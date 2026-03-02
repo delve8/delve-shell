@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="28" viewBox="0 0 32 28" fill="none" aria-hidden="true">
+  <title>delve-shell - infinite exploration in the shell</title>
+  <!-- [8>] horizontal box: 8 as colon, > as prompt -->
+  <rect x="1" y="1" width="30" height="26" rx="2" stroke="#0d9488" stroke-width="1.5" fill="none" />
+  <!-- 8: 先完整对称 8，上端用两段镜像贝塞尔留开口 (轴对称) -->
+  <path
+    d="M 11 14 C 13.25 16.4 13.25 18.5 11 18.5 C 8.75 18.5 8.75 16.4 11 14 M 11 14 C 12.75 11.5 12.75 10 12.5 9.5 M 9.5 9.5 C 9.25 10 9.25 11.5 11 14"
+    stroke="#0d9488"
+    stroke-width="1.2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <!-- > smaller, thicker -->
+  <path d="M 19 9 L 25 14 L 19 19" stroke="#0d9488" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+</svg>
