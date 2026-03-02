@@ -23,18 +23,18 @@ type ApprovalRequest struct {
 
 // ExecEvent 命令执行后发出，供 TUI 展示 HIL 过程与结果
 type ExecEvent struct {
-	Command    string
-	Whitelisted bool
-	Result     string // stdout + stderr + exit_code，供界面展示
-	Sensitive  bool   // 为 true 时结果含隐私数据，未写入历史且返回给 LLM 的为 "done"
+	Command   string
+	Allowed   bool   // 命中允许列表无需审批
+	Result    string // stdout + stderr + exit_code，供界面展示
+	Sensitive bool   // 为 true 时结果含隐私数据，未写入历史且返回给 LLM 的为 "done"
 }
 
-// ExecuteCommandTool 执行命令/脚本；未命中白名单时通过 requestApproval 阻塞直至用户批准或拒绝
+// ExecuteCommandTool 执行命令/脚本；未命中允许列表时通过 requestApproval 阻塞直至用户批准或拒绝
 type ExecuteCommandTool struct {
-	Whitelist       *hil.Whitelist
+	Allowlist       *hil.Allowlist
 	RequestApproval func(command string) bool
 	Session         *history.Session
-	OnExec          func(command string, whitelisted bool, result string, sensitive bool)
+	OnExec          func(command string, allowed bool, result string, sensitive bool)
 }
 
 var _ tool.InvokableTool = (*ExecuteCommandTool)(nil)
@@ -42,7 +42,7 @@ var _ tool.InvokableTool = (*ExecuteCommandTool)(nil)
 func (t *ExecuteCommandTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 	return &schema.ToolInfo{
 		Name: "execute_command",
-		Desc: "Execute a shell command or script in the user's environment. Prefer shell commands to accomplish tasks; use Python or other scripting only when shell is not sufficient. If the command is not on the whitelist, the tool waits for user approval before running. Results must not contain user secrets or passwords; if output may contain sensitive data, set result_contains_secrets to true so the result is shown only to the user and not returned to the model or stored in history.",
+		Desc: "Execute a shell command or script in the user's environment. Prefer shell commands to accomplish tasks; use Python or other scripting only when shell is not sufficient. If the command is not on the allowlist, the tool waits for user approval before running. Results must not contain user secrets or passwords; if output may contain sensitive data, set result_contains_secrets to true so the result is shown only to the user and not returned to the model or stored in history.",
 		ParamsOneOf: schema.NewParamsOneOfByParams(map[string]*schema.ParameterInfo{
 			"command": {
 				Type:     schema.String,
@@ -73,17 +73,17 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 	sensitive := input.ResultContainsSecrets
 
 	approved := true
-	whitelisted := false
-	if t.Whitelist != nil {
-		whitelisted = t.Whitelist.Allow(command) || t.Whitelist.AllowPipeline(command)
+	allowed := false
+	if t.Allowlist != nil {
+		allowed = t.Allowlist.Allow(command) || t.Allowlist.AllowPipeline(command)
 	}
-	if !whitelisted {
+	if !allowed {
 		approved = t.RequestApproval(command)
 		if t.Session != nil {
 			_ = t.Session.AppendCommand(command, approved)
 		}
 		if !approved {
-			return "User declined to run the command", nil
+			return "The user declined to run this command: " + command + ". Continue without running it; you may suggest an alternative or ask what they prefer.", nil
 		}
 	} else if t.Session != nil {
 		_ = t.Session.AppendCommand(command, true)
@@ -112,7 +112,7 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 		resultForUI += "\nerror: " + err.Error()
 	}
 	if t.OnExec != nil {
-		t.OnExec(command, whitelisted, resultForUI, sensitive)
+		t.OnExec(command, allowed, resultForUI, sensitive)
 	}
 	if sensitive {
 		return "done", nil

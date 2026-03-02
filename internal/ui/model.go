@@ -49,6 +49,7 @@ func getSlashOptions(lang string) []slashOption {
 func getConfigSubOptions(lang string) []slashOption {
 	return []slashOption{
 		{"/config show", i18n.T(lang, i18n.KeyDescConfigShow)},
+		{"/config allowlist update", i18n.T(lang, i18n.KeyDescConfigAllowlistUpdate)},
 		{"/config llm base_url <url>", i18n.T(lang, i18n.KeyDescConfigLLMBaseURL)},
 		{"/config llm api_key <key>", i18n.T(lang, i18n.KeyDescConfigLLMApiKey)},
 		{"/config llm model <name>", i18n.T(lang, i18n.KeyDescConfigLLMModel)},
@@ -76,11 +77,11 @@ type Model struct {
 	ExecDirectChan      chan<- string
 	ShellRequestedChan  chan<- []string // on /sh send current Messages to preserve after return
 	CancelRequestChan   chan<- struct{}  // on /cancel request cancel of in-flight AI
-	ConfigUpdatedChan   chan<- struct{}  // on /config save or /reload, invalidate runner so next message reloads config/whitelist
+	ConfigUpdatedChan   chan<- struct{}  // on /config save or /reload, invalidate runner so next message reloads config/allowlist
 	Width               int
 	Height              int
 	SlashSuggestIndex   int  // 0..len(visible)-1 when input starts with /
-	WaitingForAI       bool // true 时不允许再提交新问题，可用 /cancel 取消
+	WaitingForAI       bool // true 时仅禁止再提交新问题（Enter 发消息）；/xxx 斜杠命令任何时候都可用
 }
 
 // Init 实现 tea.Model
@@ -120,6 +121,17 @@ func visibleSlashOptions(input string, opts []slashOption) []int {
 	return out
 }
 
+// slashChosenToInputValue 将选中的斜杠命令转为填入输入框的字符串（带占位时去掉占位并加空格，便于用户继续输入）
+func slashChosenToInputValue(chosen string) string {
+	// 带 <...> 占位符的改为 "前缀 " 方便用户接着输入
+	if strings.Contains(chosen, " <") {
+		if i := strings.Index(chosen, " <"); i > 0 {
+			return chosen[:i] + " "
+		}
+	}
+	return chosen
+}
+
 // Update 实现 tea.Model
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -134,6 +146,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Viewport.Width = m.Width
 			m.Viewport.Height = vh
 		}
+		m.Viewport.SetContent(m.buildContent())
+		m.Viewport.GotoBottom()
 		return m, nil
 
 	case tea.KeyMsg:
@@ -146,6 +160,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "n", "N":
 				m.Pending.ResponseCh <- false
 				m.Pending = nil
+				m.WaitingForAI = false // 拒绝后立即允许继续输入，不必等 agent 返回
 				return m, nil
 			}
 			return m, nil
@@ -183,9 +198,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if text == "" {
 				return m, nil
 			}
-			// 等待 AI 时不允许提交新问题（斜杠命令除外）；提示在 View 中显示在输入框下方
+			// WaitingForAI 只限制「提交新问题」：以 / 开头的斜杠命令任何时候都可执行
 			if m.WaitingForAI && !strings.HasPrefix(text, "/") {
 				return m, nil
+			}
+			// 先判断是否为「仅填入选中项」：/ 后 Up/Down 选中再回车，只填输入区，不写入对话区、不执行
+			if strings.HasPrefix(text, "/") {
+				opts := getSlashOptionsForInput(text, m.getLang())
+				vis := visibleSlashOptions(text, opts)
+				if len(vis) > 0 && m.SlashSuggestIndex < len(vis) {
+					chosen := opts[vis[m.SlashSuggestIndex]].Cmd
+					if len(strings.TrimSpace(strings.TrimPrefix(text, "/"))) > 0 && (chosen == text || strings.HasPrefix(chosen, text)) && chosen != text {
+						m.Input.SetValue(slashChosenToInputValue(chosen))
+						m.Input.CursorEnd()
+						return m, nil
+					}
+				}
 			}
 			m.Messages = append(m.Messages, i18n.T(m.getLang(), i18n.KeyUserLabel)+text)
 			m.Viewport.SetContent(m.buildContent())
@@ -241,6 +269,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case text == "/config show", text == "/config":
 				m = m.showConfig()
 				return m, nil
+			case text == "/config allowlist update":
+				m = m.applyConfigAllowlistUpdate()
+				return m, nil
 			case text == "/reload":
 				if m.ConfigUpdatedChan != nil {
 					select {
@@ -262,8 +293,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				vis := visibleSlashOptions(text, opts)
 				if len(vis) > 0 && m.SlashSuggestIndex < len(vis) {
 					chosen := opts[vis[m.SlashSuggestIndex]].Cmd
-					// 输入须对应所选命令（如 /ex 对应 /exit），避免 "/foo" 误匹配到 /exit
-					if chosen == text || strings.HasPrefix(chosen, text) {
+					// 输入须对应所选命令；仅 "/" 时不处理。「仅填入」已在 Enter 开头提前 return
+					if len(strings.TrimSpace(strings.TrimPrefix(text, "/"))) > 0 && (chosen == text || strings.HasPrefix(chosen, text)) {
+						// 用户输入与选中一致（完整输入后回车）→ 执行
 						if chosen == "/exit" {
 							return m, tea.Quit
 						}
@@ -299,9 +331,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							m.Viewport.GotoBottom()
 							return m, nil
 						}
-						// /config 子项：选中后或展示配置，或填入前缀待用户输入值
 						if chosen == "/config show" {
 							m = m.showConfig()
+							return m, nil
+						}
+						if chosen == "/config allowlist update" {
+							m = m.applyConfigAllowlistUpdate()
 							return m, nil
 						}
 						if strings.HasPrefix(chosen, "/config llm base_url") {
@@ -394,8 +429,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var tag string
 		if msg.Direct {
 			tag = i18n.T(lang, i18n.KeyRunTagDirect)
-		} else if msg.Whitelisted {
-			tag = i18n.T(lang, i18n.KeyRunTagWhitelist)
+		} else if msg.Allowed {
+			tag = i18n.T(lang, i18n.KeyRunTagAllowlist)
 		} else {
 			tag = i18n.T(lang, i18n.KeyRunTagApproved)
 		}
@@ -529,6 +564,28 @@ func (m Model) showConfig() Model {
 	return m
 }
 
+// applyConfigAllowlistUpdate 将内置默认允许列表合并到当前 allowlist.yaml，仅追加缺失的 pattern
+func (m Model) applyConfigAllowlistUpdate() Model {
+	lang := m.getLang()
+	added, err := config.AllowlistUpdateWithDefaults()
+	if err != nil {
+		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
+		m.Viewport.SetContent(m.buildContent())
+		m.Viewport.GotoBottom()
+		return m
+	}
+	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyAllowlistUpdateDone, added)))
+	m.Viewport.SetContent(m.buildContent())
+	m.Viewport.GotoBottom()
+	if m.ConfigUpdatedChan != nil {
+		select {
+		case m.ConfigUpdatedChan <- struct{}{}:
+		default:
+		}
+	}
+	return m
+}
+
 // View 实现 tea.Model
 func (m Model) View() string {
 	lang := m.getLang()
@@ -545,7 +602,7 @@ func (m Model) View() string {
 	}
 	m.Viewport.Width = m.Width
 	m.Viewport.Height = vh
-	m.Viewport.SetContent(m.buildContent())
+	// 不在 View() 中 SetContent，避免每帧重置滚动导致 Up/Down/PgUp/PgDown 无效；内容仅在 Update() 中变更时设置
 	out := m.Viewport.View()
 	out += "\n"
 	out += m.Input.View()

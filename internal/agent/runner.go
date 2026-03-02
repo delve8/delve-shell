@@ -20,7 +20,7 @@ import (
 // RunnerOptions 创建 Runner 的选项；LLM 从 Config 的 config.yaml 读取（支持 $VAR 引用环境变量）
 type RunnerOptions struct {
 	Config        *config.Config
-	Whitelist     *hil.Whitelist
+	Allowlist     *hil.Allowlist
 	Session       *history.Session
 	RulesText     string
 	ApprovalChan  chan<- *ApprovalRequest
@@ -55,12 +55,12 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 	}
 
 	execTool := &ExecuteCommandTool{
-		Whitelist:       opts.Whitelist,
+		Allowlist:       opts.Allowlist,
 		RequestApproval: requestApproval,
 		Session:         opts.Session,
-		OnExec: func(cmd string, whitelisted bool, result string, sensitive bool) {
+		OnExec: func(cmd string, allowed bool, result string, sensitive bool) {
 			if opts.ExecEventChan != nil {
-				opts.ExecEventChan <- ExecEvent{Command: cmd, Whitelisted: whitelisted, Result: result, Sensitive: sensitive}
+				opts.ExecEventChan <- ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive}
 			}
 		},
 	}
@@ -106,7 +106,7 @@ Prefer shell commands to accomplish tasks; only when shell is not sufficient, co
 
 Tool and script results must not contain user secrets, passwords, or other private data. If you must run something whose output may contain sensitive data, set execute_command's result_contains_secrets to true: the result will be shown only to the user, the model will receive "done", and the result will not be stored in session history.
 
-Important: commands not on the whitelist must be explicitly approved by the user in this tool; do not rely on "asking" in chat—the tool will show the pending command and wait for confirmation. Use view_context when you need to see current session history.`
+Important: commands not on the allowlist must be explicitly approved by the user in this tool; do not rely on "asking" in chat—the tool will show the pending command and wait for confirmation. Use view_context when you need to see current session history.`
 
 // Run 对一条用户消息生成回复；若 agent 调用了需审批的命令，会阻塞直至用户批准或拒绝
 func (r *Runner) Run(ctx context.Context, userMessage string) (reply string, err error) {

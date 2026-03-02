@@ -22,9 +22,9 @@ func ConfigPath() string {
 	return filepath.Join(RootDir(), "config.yaml")
 }
 
-// WhitelistPath 白名单配置文件路径（独立于 config.yaml）
-func WhitelistPath() string {
-	return filepath.Join(RootDir(), "whitelist.yaml")
+// AllowlistPath 允许列表配置文件路径（独立于 config.yaml）
+func AllowlistPath() string {
+	return filepath.Join(RootDir(), "allowlist.yaml")
 }
 
 // RulesDir rules 目录路径

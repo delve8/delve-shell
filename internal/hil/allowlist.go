@@ -7,39 +7,30 @@ import (
 	"delve-shell/internal/config"
 )
 
-// Whitelist 基于配置的白名单匹配器
-type Whitelist struct {
+// Allowlist 基于配置的允许列表匹配器
+type Allowlist struct {
 	patterns []compiledEntry
 }
 
 type compiledEntry struct {
-	literal string
-	regex   *regexp.Regexp
+	regex *regexp.Regexp
 }
 
-// NewWhitelist 从白名单条目构建匹配器；无效正则会被忽略
-func NewWhitelist(entries []config.WhitelistEntry) *Whitelist {
-	w := &Whitelist{}
+// NewAllowlist 从允许列表条目构建匹配器；每条 Pattern 按正则处理，无效正则会被忽略
+func NewAllowlist(entries []config.AllowlistEntry) *Allowlist {
+	w := &Allowlist{}
 	for _, e := range entries {
-		if e.IsRegex {
-			if re, err := regexp.Compile(e.Pattern); err == nil {
-				w.patterns = append(w.patterns, compiledEntry{regex: re})
-			}
-		} else {
-			w.patterns = append(w.patterns, compiledEntry{literal: e.Pattern})
+		if re, err := regexp.Compile(e.Pattern); err == nil {
+			w.patterns = append(w.patterns, compiledEntry{regex: re})
 		}
 	}
 	return w
 }
 
-// Allow 判断整条命令（或脚本）是否命中白名单，命中则无需用户审批
-func (w *Whitelist) Allow(command string) bool {
+// Allow 判断整条命令（或脚本）是否命中允许列表，命中则无需用户审批
+func (w *Allowlist) Allow(command string) bool {
 	for _, p := range w.patterns {
-		if p.regex != nil {
-			if p.regex.MatchString(command) {
-				return true
-			}
-		} else if p.literal == command {
+		if p.regex != nil && p.regex.MatchString(command) {
 			return true
 		}
 	}
@@ -96,9 +87,9 @@ func splitShellChain(segment string) []string {
 	return out
 }
 
-// AllowPipeline 若命令含管道，拆成子命令；仅当每个子命令都命中白名单时返回 true，整条管道可自动获批。
+// AllowPipeline 若命令含管道，拆成子命令；仅当每个子命令都命中允许列表时返回 true，整条管道可自动获批。
 // 每一段还会按 ; && || 再拆，避免 "cat x; rm -rf /" 因含 cat 被整段放行。
-func (w *Whitelist) AllowPipeline(command string) bool {
+func (w *Allowlist) AllowPipeline(command string) bool {
 	parts := splitPipeline(command)
 	if len(parts) <= 1 {
 		return false

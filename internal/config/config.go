@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config 应用配置（主配置 config.yaml；白名单见 whitelist.yaml 与 LoadWhitelist）
+// Config 应用配置（主配置 config.yaml；允许列表见 allowlist.yaml 与 LoadAllowlist）
 type Config struct {
 	// Language 界面语言，如 en、zh；默认 en
 	Language string `yaml:"language"`
@@ -26,10 +26,9 @@ type LLMConfig struct {
 	SystemPrompt string `yaml:"system_prompt"`          // 系统提示词，空则使用代码内置默认；支持 $VAR 与多行
 }
 
-// WhitelistEntry 白名单一条：Pattern 为正则或普通字符串，IsRegex 为 true 时按正则匹配
-type WhitelistEntry struct {
+// AllowlistEntry 允许列表一条：Pattern 始终按正则匹配
+type AllowlistEntry struct {
 	Pattern string `yaml:"pattern"`
-	IsRegex bool   `yaml:"is_regex"`
 }
 
 // HistoryConfig 历史保留策略
@@ -62,7 +61,7 @@ func Load() (*Config, error) {
 	return &c, nil
 }
 
-// Default 返回默认配置（白名单单独见 whitelist.yaml / LoadWhitelist）
+// Default 返回默认配置（允许列表单独见 allowlist.yaml / LoadAllowlist）
 func Default() *Config {
 	return &Config{
 		Language: "en",
@@ -115,11 +114,13 @@ func (c *Config) languageResolved() string {
 	return "en"
 }
 
-// LLMResolved 返回展开环境变量后的 LLM 配置；用于实际请求。空 base_url 默认为 OpenAI 官方
+// LLMResolved 返回展开环境变量后的 LLM 配置；用于实际请求。空 base_url 默认为 OpenAI 官方。
+// 会对 base_url、api_key、model 做 TrimSpace，避免粘贴或配置时带入首尾空格导致 401。
 func (c *Config) LLMResolved() (baseURL, apiKey, model string) {
-	baseURL = strings.TrimRight(ExpandEnv(c.LLM.BaseURL), "/")
-	apiKey = ExpandEnv(c.LLM.APIKey)
-	model = ExpandEnv(c.LLM.Model)
+	baseURL = strings.TrimSpace(ExpandEnv(c.LLM.BaseURL))
+	baseURL = strings.TrimRight(baseURL, "/")
+	apiKey = strings.TrimSpace(ExpandEnv(c.LLM.APIKey))
+	model = strings.TrimSpace(ExpandEnv(c.LLM.Model))
 	if model == "" {
 		model = "gpt-4o-mini"
 	}
@@ -129,104 +130,178 @@ func (c *Config) LLMResolved() (baseURL, apiKey, model string) {
 	return baseURL, apiKey, model
 }
 
-// whitelistFile 白名单文件结构（whitelist.yaml）
-type whitelistFile struct {
-	Whitelist []WhitelistEntry `yaml:"whitelist"`
+// allowlistFile 允许列表文件结构（allowlist.yaml）
+type allowlistFile struct {
+	Allowlist []AllowlistEntry `yaml:"allowlist"`
 }
 
-// LoadWhitelist 从 whitelist.yaml 加载白名单。文件不存在时写入默认白名单并返回
-func LoadWhitelist() ([]WhitelistEntry, error) {
-	path := WhitelistPath()
+// LoadAllowlist 从 allowlist.yaml 加载允许列表。文件不存在时写入默认并返回
+func LoadAllowlist() ([]AllowlistEntry, error) {
+	path := AllowlistPath()
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			def := defaultWhitelist()
+			def := defaultAllowlist()
 			if err := EnsureRootDir(); err != nil {
 				return nil, err
 			}
-			if err := WriteWhitelist(def); err != nil {
+			if err := WriteAllowlist(def); err != nil {
 				return nil, err
 			}
 			return def, nil
 		}
 		return nil, err
 	}
-	var f whitelistFile
+	var f allowlistFile
 	if err := yaml.Unmarshal(data, &f); err != nil {
 		return nil, err
 	}
-	return f.Whitelist, nil
+	return f.Allowlist, nil
 }
 
-// WriteWhitelist 将白名单写回 whitelist.yaml（调用方在修改后使用；首次写入前应 EnsureRootDir）
-func WriteWhitelist(entries []WhitelistEntry) error {
-	data, err := yaml.Marshal(whitelistFile{Whitelist: entries})
+// WriteAllowlist 将允许列表写回 allowlist.yaml（调用方在修改后使用；首次写入前应 EnsureRootDir）
+func WriteAllowlist(entries []AllowlistEntry) error {
+	data, err := yaml.Marshal(allowlistFile{Allowlist: entries})
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(WhitelistPath(), data, 0600)
+	return os.WriteFile(AllowlistPath(), data, 0600)
 }
 
-// defaultWhitelist 内置默认白名单：只读类命令，不修改文件系统或系统状态
-func defaultWhitelist() []WhitelistEntry {
-	return []WhitelistEntry{
+// DefaultAllowlist 返回内置默认允许列表（只读类命令）；供 /config allowlist update 等合并使用
+func DefaultAllowlist() []AllowlistEntry {
+	return defaultAllowlist()
+}
+
+// AllowlistUpdateWithDefaults 将当前允许列表与内置默认合并：保留已有条目，追加默认里尚未存在的 pattern。返回本次新增条数。
+func AllowlistUpdateWithDefaults() (added int, err error) {
+	path := AllowlistPath()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			if err := EnsureRootDir(); err != nil {
+				return 0, err
+			}
+			def := defaultAllowlist()
+			if err := WriteAllowlist(def); err != nil {
+				return 0, err
+			}
+			return len(def), nil
+		}
+		return 0, err
+	}
+	var f allowlistFile
+	if err := yaml.Unmarshal(data, &f); err != nil {
+		return 0, err
+	}
+	have := make(map[string]bool)
+	for _, e := range f.Allowlist {
+		have[e.Pattern] = true
+	}
+	out := f.Allowlist
+	for _, e := range defaultAllowlist() {
+		if !have[e.Pattern] {
+			out = append(out, e)
+			have[e.Pattern] = true
+			added++
+		}
+	}
+	if added == 0 {
+		return 0, nil
+	}
+	if err := WriteAllowlist(out); err != nil {
+		return 0, err
+	}
+	return added, nil
+}
+
+// defaultAllowlist 内置默认允许列表：只读类命令，不修改文件系统或系统状态；每条 Pattern 均为正则
+func defaultAllowlist() []AllowlistEntry {
+	return []AllowlistEntry{
 		// 目录与路径
-		{Pattern: `\bpwd\b`, IsRegex: true},
-		{Pattern: `\bls\b`, IsRegex: true},
-		{Pattern: `\bdir\b`, IsRegex: true}, // 部分环境别名
+		{Pattern: `\bpwd\b`},
+		{Pattern: `\bls\b`},
+		{Pattern: `\bdir\b`}, // 部分环境别名
 		// 用户与环境
-		{Pattern: `\bwhoami\b`, IsRegex: true},
-		{Pattern: `\bid\b`, IsRegex: true},
-		{Pattern: `\benv\b`, IsRegex: true},
-		{Pattern: `\bprintenv\b`, IsRegex: true},
+		{Pattern: `\bwhoami\b`},
+		{Pattern: `\bid\b`},
+		{Pattern: `\benv\b`},
+		{Pattern: `\bprintenv\b`},
 		// 系统信息
-		{Pattern: `\buname\b`, IsRegex: true},
-		{Pattern: `\bhostname\b`, IsRegex: true},
-		{Pattern: `\bdate\b`, IsRegex: true},
+		{Pattern: `\buname\b`},
+		{Pattern: `\bhostname\b`},
+		{Pattern: `\bdate\b`},
 		// 命令查找
-		{Pattern: `\bwhich\b`, IsRegex: true},
-		{Pattern: `\bwhereis\b`, IsRegex: true},
-		{Pattern: `\btype\b`, IsRegex: true},
+		{Pattern: `\bwhich\b`},
+		{Pattern: `\bwhereis\b`},
+		{Pattern: `\btype\b`},
 		// 只读查看文件（cat/head/tail/less/more 仅读；注意 cat 可读任意文件）
-		{Pattern: `\bcat\b`, IsRegex: true},
-		{Pattern: `\bhead\b`, IsRegex: true},
-		{Pattern: `\btail\b`, IsRegex: true},
-		{Pattern: `\bless\b`, IsRegex: true},
-		{Pattern: `\bmore\b`, IsRegex: true},
+		{Pattern: `\bcat\b`},
+		{Pattern: `\bhead\b`},
+		{Pattern: `\btail\b`},
+		{Pattern: `\bless\b`},
+		{Pattern: `\bmore\b`},
 		// 文件信息与统计
-		{Pattern: `\bfile\b`, IsRegex: true},
-		{Pattern: `\bstat\b`, IsRegex: true},
-		{Pattern: `\bwc\b`, IsRegex: true},
+		{Pattern: `\bfile\b`},
+		{Pattern: `\bstat\b`},
+		{Pattern: `\bwc\b`},
 		// find：仅允许常见只读用法（-name/-type/-maxdepth），不含 -exec/-delete
-		{Pattern: `find\s+\S+(\s+-(name|type|maxdepth|iname)\s+\S+)*\s*$`, IsRegex: true},
+		{Pattern: `find\s+\S+(\s+-(name|type|maxdepth|iname)\s+\S+)*\s*$`},
 		// grep/egrep/fgrep：只读搜索
-		{Pattern: `\bgrep\b`, IsRegex: true},
-		{Pattern: `\begrep\b`, IsRegex: true},
-		{Pattern: `\bfgrep\b`, IsRegex: true},
+		{Pattern: `\bgrep\b`},
+		{Pattern: `\begrep\b`},
+		{Pattern: `\bfgrep\b`},
 		// 其他只读
-		{Pattern: `\btrue\b`, IsRegex: true},
-		{Pattern: `\bfalse\b`, IsRegex: true},
-		{Pattern: `\bseq\b`, IsRegex: true},
+		{Pattern: `\btrue\b`},
+		{Pattern: `\bfalse\b`},
+		{Pattern: `\bseq\b`},
 		// kubectl 只读子命令
-		{Pattern: `kubectl\s+get\s`, IsRegex: true},
-		{Pattern: `kubectl\s+describe\s`, IsRegex: true},
-		{Pattern: `kubectl\s+logs\s`, IsRegex: true},
-		{Pattern: `kubectl\s+top\s`, IsRegex: true},
-		{Pattern: `kubectl\s+explain\s`, IsRegex: true},
-		{Pattern: `kubectl\s+api-resources`, IsRegex: true},
-		{Pattern: `kubectl\s+api-versions`, IsRegex: true},
-		{Pattern: `kubectl\s+cluster-info(?!\s+dump)`, IsRegex: true}, // view 只读；dump 会写文件故排除
-		{Pattern: `kubectl\s+config\s+view`, IsRegex: true},
-		{Pattern: `kubectl\s+version`, IsRegex: true},
-		{Pattern: `kubectl\s+auth\s+can-i`, IsRegex: true},
-		{Pattern: `kubectl\s+auth\s+whoami`, IsRegex: true},
-		{Pattern: `kubectl\s+rollout\s+status`, IsRegex: true},
-		{Pattern: `kubectl\s+diff\s`, IsRegex: true},
-		{Pattern: `kubectl\s+.*--help`, IsRegex: true},
+		{Pattern: `kubectl\s+get\s`},
+		{Pattern: `kubectl\s+describe\s`},
+		{Pattern: `kubectl\s+logs\s`},
+		{Pattern: `kubectl\s+top\s`},
+		{Pattern: `kubectl\s+explain\s`},
+		{Pattern: `kubectl\s+api-resources`},
+		{Pattern: `kubectl\s+api-versions`},
+		{Pattern: `kubectl\s+cluster-info(?!\s+dump)`}, // view 只读；dump 会写文件故排除
+		{Pattern: `kubectl\s+config\s+view`},
+		{Pattern: `kubectl\s+version`},
+		{Pattern: `kubectl\s+auth\s+can-i`},
+		{Pattern: `kubectl\s+auth\s+whoami`},
+		{Pattern: `kubectl\s+rollout\s+status`},
+		{Pattern: `kubectl\s+diff\s`},
+		{Pattern: `kubectl\s+.*--help`},
+		// git 只读命令
+		{Pattern: `git\s+status\s`},
+		{Pattern: `git\s+status\s*$`},
+		{Pattern: `git\s+diff\s`},
+		{Pattern: `git\s+diff\s*$`},
+		{Pattern: `git\s+log\s`},
+		{Pattern: `git\s+log\s*$`},
+		{Pattern: `git\s+show\s`},
+		{Pattern: `git\s+show\s*$`},
+		{Pattern: `git\s+branch(?:\s+-(?:a|v|r)|\s+--(?:list|show-current))?(?:\s|$)`},
+		{Pattern: `git\s+tag(?:\s+-(?:l|list)|\s+--list)(?:\s|$)`},
+		{Pattern: `git\s+tag\s*$`},
+		{Pattern: `git\s+remote(?:\s+-(?:v)|\s+show)(?:\s|$)`},
+		{Pattern: `git\s+config\s+(?:--get|--list|--get-all)(?:\s|$)`},
+		{Pattern: `git\s+rev-parse(?:\s|$)`},
+		{Pattern: `git\s+describe(?:\s|$)`},
+		{Pattern: `git\s+stash\s+list(?:\s|$)`},
+		{Pattern: `git\s+reflog\s`},
+		{Pattern: `git\s+reflog\s*$`},
+		{Pattern: `git\s+blame\s`},
+		{Pattern: `git\s+ls-files\s`},
+		{Pattern: `git\s+ls-tree\s`},
+		{Pattern: `git\s+cat-file\s`},
+		{Pattern: `git\s+for-each-ref\s`},
+		{Pattern: `git\s+symbolic-ref\s`},
+		{Pattern: `git\s+help\s`},
+		{Pattern: `git\s+version\s*$`},
+		{Pattern: `git\s+--help`},
 		// 其他 CLI help
-		{Pattern: `docker\s+.*--help`, IsRegex: true},
-		{Pattern: `git\s+--help`, IsRegex: true},
-		{Pattern: `\b--help\b`, IsRegex: true}, // 多数 GNU 工具 command --help
+		{Pattern: `docker\s+.*--help`},
+		{Pattern: `\b--help\b`}, // 多数 GNU 工具 command --help
 	}
 }
 

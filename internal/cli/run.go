@@ -64,14 +64,14 @@ func runRun(cmd *cobra.Command, args []string) error {
 		if apiKey == "" {
 			return nil, agent.ErrLLMNotConfigured
 		}
-		whitelistEntries, err := config.LoadWhitelist()
+		allowlistEntries, err := config.LoadAllowlist()
 		if err != nil {
-			return nil, fmt.Errorf("load whitelist: %w", err)
+			return nil, fmt.Errorf("load allowlist: %w", err)
 		}
-		whitelist := hil.NewWhitelist(whitelistEntries)
+		allowlist := hil.NewAllowlist(allowlistEntries)
 		r, err := agent.NewRunner(context.Background(), agent.RunnerOptions{
 			Config:        cfg2,
-			Whitelist:     whitelist,
+			Allowlist:     allowlist,
 			Session:       session,
 			RulesText:     rulesText,
 			ApprovalChan:  approvalChan,
@@ -111,7 +111,7 @@ func runRun(cmd *cobra.Command, args []string) error {
 	go func() {
 		for ev := range execEventChan {
 			if currentP != nil {
-				currentP.Send(ui.CommandExecutedMsg{Command: ev.Command, Whitelisted: ev.Whitelisted, Result: ev.Result, Sensitive: ev.Sensitive})
+				currentP.Send(ui.CommandExecutedMsg{Command: ev.Command, Allowed: ev.Allowed, Result: ev.Result, Sensitive: ev.Sensitive})
 			}
 		}
 	}()
