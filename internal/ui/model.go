@@ -32,16 +32,16 @@ const (
 
 type slashOption struct{ Cmd, Desc string }
 
-// getSlashOptions 返回顶层斜杠命令（输入 "/" 或 "/c" 等时显示）；不含 /config 子项。
+// getSlashOptions 返回顶层斜杠命令（输入 "/" 时显示）；顺序：help, cancel, config, reload, run, sh, exit
 func getSlashOptions(lang string) []slashOption {
 	return []slashOption{
-		{"/exit", i18n.T(lang, i18n.KeyDescExit)},
-		{"/run <cmd>", i18n.T(lang, i18n.KeyDescRun)},
-		{"/sh", i18n.T(lang, i18n.KeyDescSh)},
+		{"/help", i18n.T(lang, i18n.KeyDescHelp)},
 		{"/cancel", i18n.T(lang, i18n.KeyDescCancel)},
 		{"/config", i18n.T(lang, i18n.KeyDescConfig)},
 		{"/reload", i18n.T(lang, i18n.KeyDescReload)},
-		{"/help", i18n.T(lang, i18n.KeyDescHelp)},
+		{"/run <cmd>", i18n.T(lang, i18n.KeyDescRun)},
+		{"/sh", i18n.T(lang, i18n.KeyDescSh)},
+		{"/exit", i18n.T(lang, i18n.KeyDescExit)},
 	}
 }
 
@@ -208,7 +208,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				vis := visibleSlashOptions(text, opts)
 				if len(vis) > 0 && m.SlashSuggestIndex < len(vis) {
 					chosen := opts[vis[m.SlashSuggestIndex]].Cmd
-					if len(strings.TrimSpace(strings.TrimPrefix(text, "/"))) > 0 && (chosen == text || strings.HasPrefix(chosen, text)) && chosen != text {
+					// 选中项与当前输入不一致 ⇒ 视为「选中后填入」，不执行、不写入 View
+					if (chosen == text || strings.HasPrefix(chosen, text)) && chosen != text {
 						m.Input.SetValue(slashChosenToInputValue(chosen))
 						m.Input.CursorEnd()
 						return m, nil
