@@ -1,3 +1,5 @@
+<img src="assets/logo.svg" width="64" height="56" alt="delve-shell" />
+
 # delve-shell
 
 AI-assisted ops CLI: chat with an AI in the terminal to run ops tasks. **Every command is shown and executed only after user confirmation (y/n).** Commands not on the allowlist always require approval. Suited for production and auditable workflows.
