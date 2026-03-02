@@ -245,16 +245,58 @@ func defaultAllowlist() []AllowlistEntry {
 		{Pattern: `\bfile\b`},
 		{Pattern: `\bstat\b`},
 		{Pattern: `\bwc\b`},
+		// 校验与编码（只读）
+		{Pattern: `\bmd5sum\b`},
+		{Pattern: `\bsha256sum\b`},
+		{Pattern: `\bsha1sum\b`},
+		{Pattern: `\bshasum\b`},   // macOS
+		{Pattern: `\bbase64\b`},
+		{Pattern: `\bcksum\b`},
 		// find：仅允许常见只读用法（-name/-type/-maxdepth），不含 -exec/-delete
 		{Pattern: `find\s+\S+(\s+-(name|type|maxdepth|iname)\s+\S+)*\s*$`},
 		// grep/egrep/fgrep：只读搜索
 		{Pattern: `\bgrep\b`},
 		{Pattern: `\begrep\b`},
 		{Pattern: `\bfgrep\b`},
+		// 输出与管道（只读）
+		{Pattern: `\becho\b`},
+		{Pattern: `\bprintf\b`},
+		// 文本比较与处理（只读，不写文件）
+		{Pattern: `\bdiff\b`},
+		{Pattern: `\bcmp\b`},
+		{Pattern: `\bcut\b`},
+		{Pattern: `\btr\b`},
+		{Pattern: `\buniq\b`},
+		{Pattern: `\bnl\b`},
+		{Pattern: `\bcolumn\b`},
+		{Pattern: `\bod\b`},
+		{Pattern: `\bxxd\b`},
+		{Pattern: `\bhexdump\b`},
+		// 压缩流只读（解压到 stdout，不写文件）
+		{Pattern: `\bzcat\b`},
+		{Pattern: `\bbzcat\b`},
+		{Pattern: `\bxzcat\b`},
+		// 进程与系统资源（只读）
+		{Pattern: `\bps\b`},
+		{Pattern: `\buptime\b`},
+		{Pattern: `\bdf\b`},
+		{Pattern: `\bdu\b`},
+		{Pattern: `\bfree\b`},
+		{Pattern: `\blsblk\b`},
+		// 用户与权限（只读）
+		{Pattern: `\bgroups\b`},
+		{Pattern: `\bgetent\b`},
+		{Pattern: `\blocale\b`},
+		// 网络只读（DNS、连通性）
+		{Pattern: `\bping\b`},
+		{Pattern: `\bnslookup\b`},
+		{Pattern: `\bdig\b`},
+		{Pattern: `\bhost\b`},
 		// 其他只读
 		{Pattern: `\btrue\b`},
 		{Pattern: `\bfalse\b`},
 		{Pattern: `\bseq\b`},
+		{Pattern: `\bsleep\b`},
 		// kubectl 只读子命令
 		{Pattern: `kubectl\s+get\s`},
 		{Pattern: `kubectl\s+describe\s`},

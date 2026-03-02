@@ -27,6 +27,30 @@ func NewAllowlist(entries []config.AllowlistEntry) *Allowlist {
 	return w
 }
 
+// ContainsWriteRedirection 检测命令中是否含有写文件类重定向（> >> 2> 2>> 1> &> 等）。
+// 仅做简单启发：在单引号外出现 > 且不是 >= 或 => 即视为写重定向，需用户审批。
+func ContainsWriteRedirection(command string) bool {
+	inSingle := false
+	for i := 0; i < len(command); i++ {
+		c := command[i]
+		if c == '\'' {
+			inSingle = !inSingle
+			continue
+		}
+		if inSingle {
+			continue
+		}
+		if c == '>' {
+			nextEq := i+1 < len(command) && command[i+1] == '='
+			prevEq := i > 0 && command[i-1] == '='
+			if !nextEq && !prevEq {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // Allow 判断整条命令（或脚本）是否命中允许列表，命中则无需用户审批
 func (w *Allowlist) Allow(command string) bool {
 	for _, p := range w.patterns {

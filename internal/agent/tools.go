@@ -75,7 +75,9 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 	approved := true
 	allowed := false
 	if t.Allowlist != nil {
-		allowed = t.Allowlist.Allow(command) || t.Allowlist.AllowPipeline(command)
+		// 含写重定向（> >> 等）一律不自动放行，必须经用户确认
+		allowed = !hil.ContainsWriteRedirection(command) &&
+			(t.Allowlist.Allow(command) || t.Allowlist.AllowPipeline(command))
 	}
 	if !allowed {
 		approved = t.RequestApproval(command)
