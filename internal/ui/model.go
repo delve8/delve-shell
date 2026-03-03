@@ -76,6 +76,7 @@ type Model struct {
 	Viewport            viewport.Model
 	Messages            []string
 	Pending             *agent.ApprovalRequest
+	PendingSensitive    *agent.SensitiveConfirmationRequest
 	SubmitChan          chan<- string
 	ExecDirectChan      chan<- string
 	ShellRequestedChan  chan<- []string // on /sh send current Messages to preserve after return
@@ -154,6 +155,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
+		if m.PendingSensitive != nil {
+			switch msg.String() {
+			case "1":
+				m.PendingSensitive.ResponseCh <- agent.SensitiveRefuse
+				m.PendingSensitive = nil
+				return m, nil
+			case "2":
+				m.PendingSensitive.ResponseCh <- agent.SensitiveRunAndStore
+				m.PendingSensitive = nil
+				return m, nil
+			case "3":
+				m.PendingSensitive.ResponseCh <- agent.SensitiveRunNoStore
+				m.PendingSensitive = nil
+				return m, nil
+			}
+			return m, nil
+		}
 		if m.Pending != nil {
 			switch msg.String() {
 			case "y", "Y":
@@ -404,6 +422,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Pending = msg
 		return m, nil
 
+	case SensitiveConfirmationRequestMsg:
+		m.PendingSensitive = msg
+		return m, nil
+
 	case ConfigReloadedMsg:
 		lang := m.getLang()
 		m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(lang, i18n.KeyConfigReloaded)))
@@ -462,6 +484,16 @@ func (m Model) buildContent() string {
 	for _, line := range m.Messages {
 		b.WriteString(line)
 		b.WriteString("\n")
+	}
+	if m.PendingSensitive != nil {
+		b.WriteString("\n")
+		b.WriteString(titleStyle.Render(i18n.T(lang, i18n.KeySensitivePrompt)) + "\n")
+		b.WriteString(m.PendingSensitive.Command + "\n")
+		b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeySensitiveChoice1)) + "\n")
+		b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeySensitiveChoice2)) + "\n")
+		b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeySensitiveChoice3)) + "\n")
+		b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeySensitivePressKey)))
+		return b.String()
 	}
 	if m.Pending != nil {
 		b.WriteString("\n")

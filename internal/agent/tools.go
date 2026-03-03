@@ -23,6 +23,21 @@ type ApprovalRequest struct {
 	ResponseCh chan bool
 }
 
+// SensitiveChoice is the user's choice when a command may access sensitive path(s).
+type SensitiveChoice int
+
+const (
+	SensitiveRefuse     SensitiveChoice = iota // 1: refuse, do not run
+	SensitiveRunAndStore                       // 2: run, return result to AI, store in history
+	SensitiveRunNoStore                        // 3: run, return result to AI, do not store in history
+)
+
+// SensitiveConfirmationRequest is sent to HIL when command may access sensitive file(s); user picks Refuse / RunAndStore / RunNoStore.
+type SensitiveConfirmationRequest struct {
+	Command    string
+	ResponseCh chan SensitiveChoice
+}
+
 // ExecEvent is emitted after command execution for TUI to show HIL process and result.
 type ExecEvent struct {
 	Command   string
@@ -32,11 +47,14 @@ type ExecEvent struct {
 }
 
 // ExecuteCommandTool runs a command/script; blocks on requestApproval until user approves or rejects when not on allowlist.
+// When command may access sensitive path(s), blocks on requestSensitiveConfirmation for user to choose: refuse / run+store / run+no store.
 type ExecuteCommandTool struct {
-	Allowlist       *hil.Allowlist
-	RequestApproval func(command, reason, riskLevel string) bool
-	Session         *history.Session
-	OnExec          func(command string, allowed bool, result string, sensitive bool)
+	Allowlist                  *hil.Allowlist
+	SensitiveMatcher           *hil.SensitiveMatcher
+	RequestApproval            func(command, reason, riskLevel string) bool
+	RequestSensitiveConfirmation func(command string) SensitiveChoice
+	Session                    *history.Session
+	OnExec                     func(command string, allowed bool, result string, sensitive bool)
 }
 
 var _ tool.InvokableTool = (*ExecuteCommandTool)(nil)
@@ -110,6 +128,23 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 		_ = t.Session.AppendCommand(command, true, "", "")
 	}
 
+	// When command may access sensitive path(s), ask user: refuse / run+store / run+no store.
+	storeResult := true
+	if t.SensitiveMatcher != nil && t.SensitiveMatcher.MayAccessSensitivePath(command) && t.RequestSensitiveConfirmation != nil {
+		choice := t.RequestSensitiveConfirmation(command)
+		switch choice {
+		case SensitiveRefuse:
+			return "The user declined to run this command (may access sensitive file(s)): " + command + ". Continue without running it.", nil
+		case SensitiveRunNoStore:
+			storeResult = false // run, return result to AI, but do not store in history
+		case SensitiveRunAndStore:
+			// storeResult = true
+		}
+	} else if input.ResultContainsSecrets {
+		storeResult = false
+		sensitive = true
+	}
+
 	cmd := exec.CommandContext(ctx, "sh", "-c", command)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -121,7 +156,7 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 	}
 	outStr := stdout.String()
 	errStr := stderr.String()
-	if !sensitive && t.Session != nil {
+	if storeResult && t.Session != nil {
 		_ = t.Session.AppendCommandResult(command, outStr, errStr, exitCode)
 	}
 	resultForUI := outStr
@@ -133,8 +168,9 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 		resultForUI += "\nerror: " + err.Error()
 	}
 	if t.OnExec != nil {
-		t.OnExec(command, allowed, resultForUI, sensitive)
+		t.OnExec(command, allowed, resultForUI, sensitive || !storeResult)
 	}
+	// When AI set result_contains_secrets we return "done"; when user chose RunNoStore we still return full result to AI.
 	if sensitive {
 		return "done", nil
 	}

@@ -19,12 +19,14 @@ import (
 
 // RunnerOptions for creating a Runner; LLM is read from Config (config.yaml, supports $VAR env expansion).
 type RunnerOptions struct {
-	Config        *config.Config
-	Allowlist     *hil.Allowlist
-	Session       *history.Session
-	RulesText     string
-	ApprovalChan  chan<- *ApprovalRequest
-	ExecEventChan chan<- ExecEvent
+	Config                     *config.Config
+	Allowlist                  *hil.Allowlist
+	SensitiveMatcher           *hil.SensitiveMatcher
+	Session                    *history.Session
+	RulesText                  string
+	ApprovalChan               chan<- *ApprovalRequest
+	SensitiveConfirmationChan  chan<- *SensitiveConfirmationRequest
+	ExecEventChan              chan<- ExecEvent
 }
 
 // Runner wraps the eino react agent; generates replies and runs commands via HIL approval.
@@ -53,11 +55,21 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		opts.ApprovalChan <- &ApprovalRequest{Command: cmd, Reason: reason, RiskLevel: riskLevel, ResponseCh: ch}
 		return <-ch
 	}
+	requestSensitiveConfirmation := func(cmd string) SensitiveChoice {
+		if opts.SensitiveConfirmationChan == nil {
+			return SensitiveRunAndStore
+		}
+		ch := make(chan SensitiveChoice)
+		opts.SensitiveConfirmationChan <- &SensitiveConfirmationRequest{Command: cmd, ResponseCh: ch}
+		return <-ch
+	}
 
 	execTool := &ExecuteCommandTool{
-		Allowlist:       opts.Allowlist,
-		RequestApproval: requestApproval,
-		Session:         opts.Session,
+		Allowlist:                    opts.Allowlist,
+		SensitiveMatcher:             opts.SensitiveMatcher,
+		RequestApproval:              requestApproval,
+		RequestSensitiveConfirmation: requestSensitiveConfirmation,
+		Session:                      opts.Session,
 		OnExec: func(cmd string, allowed bool, result string, sensitive bool) {
 			if opts.ExecEventChan != nil {
 				opts.ExecEventChan <- ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive}

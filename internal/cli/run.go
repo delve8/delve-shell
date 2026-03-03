@@ -45,6 +45,7 @@ func runRun(cmd *cobra.Command, args []string) error {
 	defer session.Close()
 
 	approvalChan := make(chan *agent.ApprovalRequest, 4)
+	sensitiveConfirmationChan := make(chan *agent.SensitiveConfirmationRequest, 4)
 	execEventChan := make(chan agent.ExecEvent, 8)
 	configUpdatedChan := make(chan struct{}, 1)
 
@@ -69,13 +70,20 @@ func runRun(cmd *cobra.Command, args []string) error {
 			return nil, fmt.Errorf("load allowlist: %w", err)
 		}
 		allowlist := hil.NewAllowlist(allowlistEntries)
+		sensitivePatterns, err := config.LoadSensitivePatterns()
+		if err != nil {
+			return nil, fmt.Errorf("load sensitive patterns: %w", err)
+		}
+		sensitiveMatcher := hil.NewSensitiveMatcher(sensitivePatterns)
 		r, err := agent.NewRunner(context.Background(), agent.RunnerOptions{
-			Config:        cfg2,
-			Allowlist:     allowlist,
-			Session:       session,
-			RulesText:     rulesText,
-			ApprovalChan:  approvalChan,
-			ExecEventChan: execEventChan,
+			Config:                    cfg2,
+			Allowlist:                 allowlist,
+			SensitiveMatcher:          sensitiveMatcher,
+			Session:                   session,
+			RulesText:                 rulesText,
+			ApprovalChan:              approvalChan,
+			SensitiveConfirmationChan: sensitiveConfirmationChan,
+			ExecEventChan:             execEventChan,
 		})
 		if err != nil {
 			return nil, err
@@ -103,6 +111,13 @@ func runRun(cmd *cobra.Command, args []string) error {
 	}()
 	go func() {
 		for req := range approvalChan {
+			if currentP != nil {
+				currentP.Send(req)
+			}
+		}
+	}()
+	go func() {
+		for req := range sensitiveConfirmationChan {
 			if currentP != nil {
 				currentP.Send(req)
 			}

@@ -27,6 +27,11 @@ func AllowlistPath() string {
 	return filepath.Join(RootDir(), "allowlist.yaml")
 }
 
+// SensitivePatternsPath returns the sensitive-output patterns file path (regex rules; optional override).
+func SensitivePatternsPath() string {
+	return filepath.Join(RootDir(), "sensitive_patterns.yaml")
+}
+
 // RulesDir returns the rules directory path.
 func RulesDir() string {
 	return filepath.Join(RootDir(), "rules")

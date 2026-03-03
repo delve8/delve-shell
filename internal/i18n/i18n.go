@@ -29,6 +29,11 @@ const (
 	KeyRunTagDirect        = "run_tag_direct"
 	KeyRunTagAllowlist     = "run_tag_allowlist"
 	KeyResultSensitive     = "result_sensitive"
+	KeySensitivePrompt     = "sensitive_prompt"
+	KeySensitiveChoice1    = "sensitive_choice_1"
+	KeySensitiveChoice2    = "sensitive_choice_2"
+	KeySensitiveChoice3    = "sensitive_choice_3"
+	KeySensitivePressKey   = "sensitive_press_key"
 	KeyErrLLMNotConfigured = "err_llm_not_configured"
 	KeyUserLabel           = "user_label"
 	KeyAILabel             = "ai_label"
@@ -89,6 +94,11 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
 		KeyRunTagDirect:        "direct",
 		KeyRunTagAllowlist:     "allowlist",
 		KeyResultSensitive:     "(Result contains sensitive data; not stored in history.)",
+		KeySensitivePrompt:     "This command may access sensitive file(s). Choose:",
+		KeySensitiveChoice1:    "1 = Refuse (do not run)",
+		KeySensitiveChoice2:    "2 = Run, return result to AI, store in history",
+		KeySensitiveChoice3:    "3 = Run, return result to AI, do not store in history",
+		KeySensitivePressKey:   "Press 1, 2, or 3: ",
 		KeyErrLLMNotConfigured: "LLM not configured. Use /config to set llm.api_key (and llm.base_url, llm.model), then send a message again (no restart needed). Supports $VAR or ${VAR} for env. Config path: %s",
 		KeyUserLabel:           "User: ",
 		KeyAILabel:             "AI: ",
@@ -145,6 +155,11 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
 		KeyRunTagDirect:        "直接执行",
 		KeyRunTagAllowlist:     "允许列表",
 		KeyResultSensitive:     "（结果含敏感数据，未写入历史。）",
+		KeySensitivePrompt:     "该命令可能访问敏感文件。请选择：",
+		KeySensitiveChoice1:    "1 = 拒绝（不执行）",
+		KeySensitiveChoice2:    "2 = 执行，结果返回 AI 并写入历史",
+		KeySensitiveChoice3:    "3 = 执行，结果返回 AI，但不写入历史",
+		KeySensitivePressKey:   "请按 1、2 或 3：",
 		KeyErrLLMNotConfigured: "LLM 未配置。请用 /config 设置 llm.api_key（以及 llm.base_url、llm.model），设置后直接发消息即可，无需重启。支持 $VAR 或 ${VAR} 引用环境变量。配置文件路径：%s",
 		KeyUserLabel:           "用户：",
 		KeyAILabel:             "AI：",
