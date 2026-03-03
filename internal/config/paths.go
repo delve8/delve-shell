@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 )
 
-// DefaultRootDir 默认配置与数据根目录
+// DefaultRootDir is the default config and data root directory name.
 const DefaultRootDir = ".delve-shell"
 
-// RootDir 返回 delve-shell 根目录（如 ~/.delve-shell），若未设置则用默认
+// RootDir returns the delve-shell root directory (e.g. ~/.delve-shell), or default if not set.
 func RootDir() string {
 	if p := os.Getenv("DELVE_SHELL_ROOT"); p != "" {
 		return p
@@ -17,22 +17,22 @@ func RootDir() string {
 	return filepath.Join(home, DefaultRootDir)
 }
 
-// ConfigPath 配置文件路径
+// ConfigPath returns the config file path.
 func ConfigPath() string {
 	return filepath.Join(RootDir(), "config.yaml")
 }
 
-// AllowlistPath 允许列表配置文件路径（独立于 config.yaml）
+// AllowlistPath returns the allowlist config path (separate from config.yaml).
 func AllowlistPath() string {
 	return filepath.Join(RootDir(), "allowlist.yaml")
 }
 
-// RulesDir rules 目录路径
+// RulesDir returns the rules directory path.
 func RulesDir() string {
 	return filepath.Join(RootDir(), "rules")
 }
 
-// HistoryDir 会话历史目录路径
+// HistoryDir returns the session history directory path.
 func HistoryDir() string {
 	return filepath.Join(RootDir(), "history")
 }

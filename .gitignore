@@ -2,3 +2,4 @@ bin/
 .cursor/
 .vscode/
 .DS_Store
+delve-shell

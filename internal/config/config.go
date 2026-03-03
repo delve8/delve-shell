@@ -8,36 +8,36 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config 应用配置（主配置 config.yaml；允许列表见 allowlist.yaml 与 LoadAllowlist）
+// Config is the main app config (config.yaml; allowlist is allowlist.yaml via LoadAllowlist).
 type Config struct {
-	// Language 界面语言，如 en、zh；默认 en
+	// Language for UI, e.g. en, zh; default en
 	Language string `yaml:"language"`
-	// LLM 大模型 API 配置；字符串中支持 $VAR 或 ${VAR} 引用环境变量
+	// LLM API config; strings support $VAR or ${VAR} env expansion
 	LLM LLMConfig `yaml:"llm"`
-	// History 历史保留策略
+	// History retention policy
 	History HistoryConfig `yaml:"history"`
 }
 
-// LLMConfig LLM API 配置
+// LLMConfig is the LLM API config.
 type LLMConfig struct {
-	BaseURL      string `yaml:"base_url,omitempty"`      // OpenAI 兼容 API 地址；空则用官方，默认模型时不写入
-	APIKey       string `yaml:"api_key"`                // API Key，支持 $VAR
-	Model        string `yaml:"model,omitempty"`        // 模型名；空则默认 gpt-4o-mini，默认时不写入
-	SystemPrompt string `yaml:"system_prompt"`          // 系统提示词，空则使用代码内置默认；支持 $VAR 与多行
+	BaseURL      string `yaml:"base_url,omitempty"`      // OpenAI-compatible API URL; empty = official; not written when default model
+	APIKey       string `yaml:"api_key"`                 // API key; supports $VAR
+	Model        string `yaml:"model,omitempty"`         // model name; empty = default gpt-4o-mini; not written when default
+	SystemPrompt string `yaml:"system_prompt"`           // system prompt; empty = built-in default; supports $VAR and multiline
 }
 
-// AllowlistEntry 允许列表一条：Pattern 始终按正则匹配
+// AllowlistEntry is one allowlist entry; Pattern is always a regex.
 type AllowlistEntry struct {
 	Pattern string `yaml:"pattern"`
 }
 
-// HistoryConfig 历史保留策略
+// HistoryConfig is the history retention policy.
 type HistoryConfig struct {
-	MaxDays   int `yaml:"max_days"`   // 保留最近 N 天，0 表示不按天数清理
-	MaxEntries int `yaml:"max_entries"` // 每个会话或全局最大条数，0 表示不限制
+	MaxDays    int `yaml:"max_days"`    // keep last N days; 0 = no day-based cleanup
+	MaxEntries int `yaml:"max_entries"` // max entries per session or global; 0 = no limit
 }
 
-// Load 从默认路径加载配置。文件不存在时使用内置默认配置并写回 config.yaml，后续均从文件读取
+// Load reads config from the default path. If file does not exist, writes default config to config.yaml and returns it.
 func Load() (*Config, error) {
 	path := ConfigPath()
 	data, err := os.ReadFile(path)
@@ -61,7 +61,7 @@ func Load() (*Config, error) {
 	return &c, nil
 }
 
-// Default 返回默认配置（允许列表单独见 allowlist.yaml / LoadAllowlist）
+// Default returns the default config (allowlist is separate: allowlist.yaml / LoadAllowlist).
 func Default() *Config {
 	return &Config{
 		Language: "en",
@@ -73,12 +73,12 @@ func Default() *Config {
 	}
 }
 
-// ExpandEnv 将 s 中的 $VAR 与 ${VAR} 替换为环境变量值（与 shell 一致）
+// ExpandEnv replaces $VAR and ${VAR} in s with env values (shell-compatible).
 func ExpandEnv(s string) string {
 	return os.Expand(s, func(key string) string { return os.Getenv(key) })
 }
 
-// LLMSummary 返回当前 LLM 配置的只读摘要（api_key 脱敏），用于 /config show
+// LLMSummary returns a read-only summary of current LLM config (api_key masked) for /config show.
 func (c *Config) LLMSummary() string {
 	baseURL := c.LLM.BaseURL
 	model := c.LLM.Model
@@ -114,8 +114,8 @@ func (c *Config) languageResolved() string {
 	return "en"
 }
 
-// LLMResolved 返回展开环境变量后的 LLM 配置；用于实际请求。空 base_url 默认为 OpenAI 官方。
-// 会对 base_url、api_key、model 做 TrimSpace，避免粘贴或配置时带入首尾空格导致 401。
+// LLMResolved returns LLM config with env vars expanded for actual requests. Empty base_url defaults to OpenAI.
+// Trims base_url, api_key, model to avoid 401 from leading/trailing spaces when pasting.
 func (c *Config) LLMResolved() (baseURL, apiKey, model string) {
 	baseURL = strings.TrimSpace(ExpandEnv(c.LLM.BaseURL))
 	baseURL = strings.TrimRight(baseURL, "/")
@@ -130,12 +130,12 @@ func (c *Config) LLMResolved() (baseURL, apiKey, model string) {
 	return baseURL, apiKey, model
 }
 
-// allowlistFile 允许列表文件结构（allowlist.yaml）
+// allowlistFile is the allowlist.yaml file structure.
 type allowlistFile struct {
 	Allowlist []AllowlistEntry `yaml:"allowlist"`
 }
 
-// LoadAllowlist 从 allowlist.yaml 加载允许列表。文件不存在时写入默认并返回
+// LoadAllowlist loads allowlist from allowlist.yaml. If missing, writes default and returns it.
 func LoadAllowlist() ([]AllowlistEntry, error) {
 	path := AllowlistPath()
 	data, err := os.ReadFile(path)
@@ -159,7 +159,7 @@ func LoadAllowlist() ([]AllowlistEntry, error) {
 	return f.Allowlist, nil
 }
 
-// WriteAllowlist 将允许列表写回 allowlist.yaml（调用方在修改后使用；首次写入前应 EnsureRootDir）
+// WriteAllowlist writes the allowlist to allowlist.yaml (call after changes; EnsureRootDir before first write).
 func WriteAllowlist(entries []AllowlistEntry) error {
 	data, err := yaml.Marshal(allowlistFile{Allowlist: entries})
 	if err != nil {
@@ -168,12 +168,12 @@ func WriteAllowlist(entries []AllowlistEntry) error {
 	return os.WriteFile(AllowlistPath(), data, 0600)
 }
 
-// DefaultAllowlist 返回内置默认允许列表（只读类命令）；供 /config allowlist update 等合并使用
+// DefaultAllowlist returns the built-in default allowlist (read-only commands); used by /config allowlist update etc.
 func DefaultAllowlist() []AllowlistEntry {
 	return defaultAllowlist()
 }
 
-// AllowlistUpdateWithDefaults 将当前允许列表与内置默认合并：保留已有条目，追加默认里尚未存在的 pattern。返回本次新增条数。
+// AllowlistUpdateWithDefaults merges current allowlist with built-in default: keep existing, add missing patterns. Returns number added.
 func AllowlistUpdateWithDefaults() (added int, err error) {
 	path := AllowlistPath()
 	data, err := os.ReadFile(path)
@@ -215,53 +215,53 @@ func AllowlistUpdateWithDefaults() (added int, err error) {
 	return added, nil
 }
 
-// defaultAllowlist 内置默认允许列表：只读类命令，不修改文件系统或系统状态；每条 Pattern 均为正则
+// defaultAllowlist is the built-in default: read-only commands; each Pattern is a regex.
 func defaultAllowlist() []AllowlistEntry {
 	return []AllowlistEntry{
-		// 目录与路径
+		// dirs and paths
 		{Pattern: `\bpwd\b`},
 		{Pattern: `\bls\b`},
-		{Pattern: `\bdir\b`}, // 部分环境别名
-		// 用户与环境
+		{Pattern: `\bdir\b`}, // some envs alias
+		// user and env
 		{Pattern: `\bwhoami\b`},
 		{Pattern: `\bid\b`},
 		{Pattern: `\benv\b`},
 		{Pattern: `\bprintenv\b`},
-		// 系统信息
+		// system info
 		{Pattern: `\buname\b`},
 		{Pattern: `\bhostname\b`},
 		{Pattern: `\bdate\b`},
-		// 命令查找
+		// command lookup
 		{Pattern: `\bwhich\b`},
 		{Pattern: `\bwhereis\b`},
 		{Pattern: `\btype\b`},
-		// 只读查看文件（cat/head/tail/less/more 仅读；注意 cat 可读任意文件）
+		// read-only file view (cat/head/tail/less/more read-only; cat can read any file)
 		{Pattern: `\bcat\b`},
 		{Pattern: `\bhead\b`},
 		{Pattern: `\btail\b`},
 		{Pattern: `\bless\b`},
 		{Pattern: `\bmore\b`},
-		// 文件信息与统计
+		// file info and stats
 		{Pattern: `\bfile\b`},
 		{Pattern: `\bstat\b`},
 		{Pattern: `\bwc\b`},
-		// 校验与编码（只读）
+		// checksum and encoding (read-only)
 		{Pattern: `\bmd5sum\b`},
 		{Pattern: `\bsha256sum\b`},
 		{Pattern: `\bsha1sum\b`},
 		{Pattern: `\bshasum\b`},   // macOS
 		{Pattern: `\bbase64\b`},
 		{Pattern: `\bcksum\b`},
-		// find：仅允许常见只读用法（-name/-type/-maxdepth），不含 -exec/-delete
+		// find: common read-only usage only (-name/-type/-maxdepth), no -exec/-delete
 		{Pattern: `find\s+\S+(\s+-(name|type|maxdepth|iname)\s+\S+)*\s*$`},
-		// grep/egrep/fgrep：只读搜索
+		// grep/egrep/fgrep: read-only search
 		{Pattern: `\bgrep\b`},
 		{Pattern: `\begrep\b`},
 		{Pattern: `\bfgrep\b`},
-		// 输出与管道（只读）
+		// output and pipes (read-only)
 		{Pattern: `\becho\b`},
 		{Pattern: `\bprintf\b`},
-		// 文本比较与处理（只读，不写文件）
+		// text compare and process (read-only, no file write)
 		{Pattern: `\bdiff\b`},
 		{Pattern: `\bcmp\b`},
 		{Pattern: `\bcut\b`},
@@ -272,32 +272,32 @@ func defaultAllowlist() []AllowlistEntry {
 		{Pattern: `\bod\b`},
 		{Pattern: `\bxxd\b`},
 		{Pattern: `\bhexdump\b`},
-		// 压缩流只读（解压到 stdout，不写文件）
+		// decompress to stdout (read-only)
 		{Pattern: `\bzcat\b`},
 		{Pattern: `\bbzcat\b`},
 		{Pattern: `\bxzcat\b`},
-		// 进程与系统资源（只读）
+		// process and system resources (read-only)
 		{Pattern: `\bps\b`},
 		{Pattern: `\buptime\b`},
 		{Pattern: `\bdf\b`},
 		{Pattern: `\bdu\b`},
 		{Pattern: `\bfree\b`},
 		{Pattern: `\blsblk\b`},
-		// 用户与权限（只读）
+		// user and permissions (read-only)
 		{Pattern: `\bgroups\b`},
 		{Pattern: `\bgetent\b`},
 		{Pattern: `\blocale\b`},
-		// 网络只读（DNS、连通性）
+		// network read-only (DNS, connectivity)
 		{Pattern: `\bping\b`},
 		{Pattern: `\bnslookup\b`},
 		{Pattern: `\bdig\b`},
 		{Pattern: `\bhost\b`},
-		// 其他只读
+		// other read-only
 		{Pattern: `\btrue\b`},
 		{Pattern: `\bfalse\b`},
 		{Pattern: `\bseq\b`},
 		{Pattern: `\bsleep\b`},
-		// kubectl 只读子命令
+		// kubectl read-only subcommands
 		{Pattern: `kubectl\s+get\s`},
 		{Pattern: `kubectl\s+describe\s`},
 		{Pattern: `kubectl\s+logs\s`},
@@ -305,7 +305,7 @@ func defaultAllowlist() []AllowlistEntry {
 		{Pattern: `kubectl\s+explain\s`},
 		{Pattern: `kubectl\s+api-resources`},
 		{Pattern: `kubectl\s+api-versions`},
-		{Pattern: `kubectl\s+cluster-info(?!\s+dump)`}, // view 只读；dump 会写文件故排除
+		{Pattern: `kubectl\s+cluster-info(?!\s+dump)`}, // view read-only; dump writes so excluded
 		{Pattern: `kubectl\s+config\s+view`},
 		{Pattern: `kubectl\s+version`},
 		{Pattern: `kubectl\s+auth\s+can-i`},
@@ -313,7 +313,7 @@ func defaultAllowlist() []AllowlistEntry {
 		{Pattern: `kubectl\s+rollout\s+status`},
 		{Pattern: `kubectl\s+diff\s`},
 		{Pattern: `kubectl\s+.*--help`},
-		// git 只读命令
+		// git read-only commands
 		{Pattern: `git\s+status\s`},
 		{Pattern: `git\s+status\s*$`},
 		{Pattern: `git\s+diff\s`},
@@ -341,13 +341,13 @@ func defaultAllowlist() []AllowlistEntry {
 		{Pattern: `git\s+help\s`},
 		{Pattern: `git\s+version\s*$`},
 		{Pattern: `git\s+--help`},
-		// 其他 CLI help
+		// other CLI help
 		{Pattern: `docker\s+.*--help`},
-		{Pattern: `\b--help\b`}, // 多数 GNU 工具 command --help
+		{Pattern: `\b--help\b`}, // most GNU tools: command --help
 	}
 }
 
-// EnsureRootDir 确保根目录及子目录存在
+// EnsureRootDir creates root and subdirs if missing.
 func EnsureRootDir() error {
 	for _, dir := range []string{RootDir(), RulesDir(), HistoryDir()} {
 		if err := os.MkdirAll(dir, 0700); err != nil {
@@ -357,7 +357,7 @@ func EnsureRootDir() error {
 	return nil
 }
 
-// Write 将配置写回默认路径（调用方在修改配置后使用；首次写入前应 EnsureRootDir）
+// Write writes config to the default path (call after modifying; EnsureRootDir before first write).
 func Write(c *Config) error {
 	data, err := yaml.Marshal(c)
 	if err != nil {

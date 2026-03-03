@@ -7,7 +7,7 @@ import (
 	"delve-shell/internal/config"
 )
 
-// Allowlist 基于配置的允许列表匹配器
+// Allowlist is a config-based allowlist matcher.
 type Allowlist struct {
 	patterns []compiledEntry
 }
@@ -16,7 +16,7 @@ type compiledEntry struct {
 	regex *regexp.Regexp
 }
 
-// NewAllowlist 从允许列表条目构建匹配器；每条 Pattern 按正则处理，无效正则会被忽略
+// NewAllowlist builds a matcher from allowlist entries; each Pattern is a regex, invalid ones are ignored.
 func NewAllowlist(entries []config.AllowlistEntry) *Allowlist {
 	w := &Allowlist{}
 	for _, e := range entries {
@@ -27,8 +27,8 @@ func NewAllowlist(entries []config.AllowlistEntry) *Allowlist {
 	return w
 }
 
-// ContainsWriteRedirection 检测命令中是否含有写文件类重定向（> >> 2> 2>> 1> &> 等）。
-// 仅做简单启发：在单引号外出现 > 且不是 >= 或 => 即视为写重定向，需用户审批。
+// ContainsWriteRedirection reports whether the command contains write redirection (>, >>, 2>, etc.).
+// Heuristic: > outside single quotes and not >= or => is treated as write redirection and requires user approval.
 func ContainsWriteRedirection(command string) bool {
 	inSingle := false
 	for i := 0; i < len(command); i++ {
@@ -51,7 +51,7 @@ func ContainsWriteRedirection(command string) bool {
 	return false
 }
 
-// Allow 判断整条命令（或脚本）是否命中允许列表，命中则无需用户审批
+// Allow reports whether the full command (or script) matches the allowlist; if so, no user approval needed.
 func (w *Allowlist) Allow(command string) bool {
 	for _, p := range w.patterns {
 		if p.regex != nil && p.regex.MatchString(command) {
@@ -61,7 +61,7 @@ func (w *Allowlist) Allow(command string) bool {
 	return false
 }
 
-// splitPipeline 按管道符 | 拆分命令，忽略引号内的 |
+// splitPipeline splits the command by pipe |, ignoring | inside quotes.
 func splitPipeline(command string) []string {
 	var parts []string
 	var b strings.Builder
@@ -89,13 +89,13 @@ func splitPipeline(command string) []string {
 	return parts
 }
 
-// splitShellChain 将一段按 ; && || 拆成多条子命令（用于严格校验，防止 cat x; rm -rf / 因含 cat 被放行）
+// splitShellChain splits a segment by ; && || into subcommands (strict check so "cat x; rm -rf /" is not allowed by cat).
 func splitShellChain(segment string) []string {
 	segment = strings.TrimSpace(segment)
 	if segment == "" {
 		return nil
 	}
-	// 简单按 ; 与 && || 拆分（不处理引号内），每段 trim
+	// simple split by ; and && || (no quote handling), trim each segment
 	var out []string
 	for _, s := range strings.FieldsFunc(segment, func(r rune) bool {
 		return r == ';' || r == '&' || r == '|'
@@ -111,8 +111,8 @@ func splitShellChain(segment string) []string {
 	return out
 }
 
-// AllowPipeline 若命令含管道，拆成子命令；仅当每个子命令都命中允许列表时返回 true，整条管道可自动获批。
-// 每一段还会按 ; && || 再拆，避免 "cat x; rm -rf /" 因含 cat 被整段放行。
+// AllowPipeline if the command has pipes, splits into subcommands; returns true only when every subcommand matches allowlist.
+// Each segment is further split by ; && || so "cat x; rm -rf /" is not allowed as a whole.
 func (w *Allowlist) AllowPipeline(command string) bool {
 	parts := splitPipeline(command)
 	if len(parts) <= 1 {

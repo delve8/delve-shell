@@ -6,10 +6,10 @@ import (
 	"github.com/cloudwego/eino/schema"
 )
 
-// Agent 封装 eino agent，后续接入 ReAct + 执行命令 / 查看上下文 tool
+// Agent wraps the eino agent; will be wired to ReAct + execute_command / view_context tools.
 type Agent struct{}
 
-// New 创建 agent（占位，后续注入 model、tools、rules）
+// New creates an agent (placeholder; model, tools, rules to be injected later).
 func New(ctx context.Context) (*Agent, error) {
 	_ = schema.Message{}
 	return &Agent{}, nil

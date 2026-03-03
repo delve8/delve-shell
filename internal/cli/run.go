@@ -185,7 +185,7 @@ func runRun(cmd *cobra.Command, args []string) error {
 
 	for {
 		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, savedMessages)
-		// 不使用 WithMouse*，以便终端可对文字做鼠标选中复制；滚动请用 Up/Down/PgUp/PgDown
+		// do not use WithMouse* so the terminal can use mouse for text selection; scroll with Up/Down/PgUp/PgDown
 		p := tea.NewProgram(model, tea.WithAltScreen())
 		currentP = p
 		_, err = p.Run()

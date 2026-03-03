@@ -9,7 +9,7 @@ import (
 	"delve-shell/internal/config"
 )
 
-// Load 从 config.RulesDir() 读取所有规则文件内容，按文件名排序后拼接为一段文本，供注入 LLM system prompt 或上下文
+// Load reads all rule file contents from config.RulesDir(), sorts by filename, and concatenates for LLM system prompt or context.
 func Load() (string, error) {
 	dir := config.RulesDir()
 	entries, err := os.ReadDir(dir)

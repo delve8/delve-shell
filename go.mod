@@ -10,6 +10,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/cloudwego/eino v0.7.36
 	github.com/cloudwego/eino-ext/components/model/openai v0.1.8
+	github.com/creack/pty v1.1.21
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.10.2
 	gopkg.in/yaml.v3 v3.0.1

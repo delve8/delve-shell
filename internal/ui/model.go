@@ -17,12 +17,15 @@ import (
 )
 
 var (
-	titleStyle   = lipgloss.NewStyle().Bold(true)
-	errStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
-	execStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("6")).Italic(true)
-	resultStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).MarginLeft(2)
-	suggestStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
-	suggestHi    = lipgloss.NewStyle().Foreground(lipgloss.Color("13")).Bold(true)
+	titleStyle        = lipgloss.NewStyle().Bold(true)
+	errStyle          = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
+	execStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("6")).Italic(true)
+	resultStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).MarginLeft(2)
+	suggestStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
+	suggestHi         = lipgloss.NewStyle().Foreground(lipgloss.Color("13")).Bold(true)
+	riskReadOnlyStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)  // green
+	riskLowStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true)  // yellow
+	riskHighStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true)  // red
 )
 
 const (
@@ -32,7 +35,7 @@ const (
 
 type slashOption struct{ Cmd, Desc string }
 
-// getSlashOptions 返回顶层斜杠命令（输入 "/" 时显示）；顺序：help, cancel, config, reload, run, sh, exit
+// getSlashOptions returns top-level slash commands (shown when input starts with "/"); order: help, cancel, config, reload, run, sh, exit.
 func getSlashOptions(lang string) []slashOption {
 	return []slashOption{
 		{"/help", i18n.T(lang, i18n.KeyDescHelp)},
@@ -45,7 +48,7 @@ func getSlashOptions(lang string) []slashOption {
 	}
 }
 
-// getConfigSubOptions 返回 /config 子项（仅当输入以 "/config" 开头时显示），不含 /exit、/sh 等。
+// getConfigSubOptions returns /config sub-options (shown when input starts with "/config"), not /exit, /sh, etc.
 func getConfigSubOptions(lang string) []slashOption {
 	return []slashOption{
 		{"/config show", i18n.T(lang, i18n.KeyDescConfigShow)},
@@ -57,7 +60,7 @@ func getConfigSubOptions(lang string) []slashOption {
 	}
 }
 
-// getSlashOptionsForInput 根据当前输入返回应展示的斜杠选项：输入 "/config" 或 "/config xxx" 时只返回 /config 子项，否则返回顶层命令。
+// getSlashOptionsForInput returns slash options to show: when input is "/config" or "/config xxx" returns only /config sub-options, else top-level commands.
 func getSlashOptionsForInput(inputVal string, lang string) []slashOption {
 	normalized := strings.TrimPrefix(inputVal, "/")
 	normalized = strings.ToLower(strings.TrimSpace(normalized))
@@ -67,7 +70,7 @@ func getSlashOptionsForInput(inputVal string, lang string) []slashOption {
 	return getSlashOptions(lang)
 }
 
-// Model 为 Bubble Tea 的会话与审批 UI
+// Model is the Bubble Tea session and approval UI.
 type Model struct {
 	Input               textinput.Model
 	Viewport            viewport.Model
@@ -81,15 +84,15 @@ type Model struct {
 	Width               int
 	Height              int
 	SlashSuggestIndex   int  // 0..len(visible)-1 when input starts with /
-	WaitingForAI       bool // true 时仅禁止再提交新问题（Enter 发消息）；/xxx 斜杠命令任何时候都可用
+	WaitingForAI       bool // when true only blocks submitting new messages (Enter); /xxx slash commands always allowed
 }
 
-// Init 实现 tea.Model
+// Init implements tea.Model.
 func (m Model) Init() tea.Cmd {
 	return tea.Batch(m.Input.Cursor.BlinkCmd(), tea.WindowSize())
 }
 
-// getLang 返回当前配置的语言（用于 i18n），失败或未设置时返回 "en"
+// getLang returns the current config language (for i18n); returns "en" on failure or when unset.
 func (m Model) getLang() string {
 	cfg, err := config.Load()
 	if err != nil || cfg == nil {
@@ -101,7 +104,7 @@ func (m Model) getLang() string {
 	return "en"
 }
 
-// visibleSlashOptions 根据当前输入过滤并返回可选斜杠命令的下标
+// visibleSlashOptions filters and returns indices of visible slash options for the current input.
 func visibleSlashOptions(input string, opts []slashOption) []int {
 	input = strings.TrimPrefix(input, "/")
 	input = strings.ToLower(input)
@@ -121,9 +124,9 @@ func visibleSlashOptions(input string, opts []slashOption) []int {
 	return out
 }
 
-// slashChosenToInputValue 将选中的斜杠命令转为填入输入框的字符串（带占位时去掉占位并加空格，便于用户继续输入）
+// slashChosenToInputValue converts the chosen slash command to the string to put in the input (strips <placeholder> and adds space).
 func slashChosenToInputValue(chosen string) string {
-	// 带 <...> 占位符的改为 "前缀 " 方便用户接着输入
+	// replace <...> placeholder with "prefix " so user can continue typing
 	if strings.Contains(chosen, " <") {
 		if i := strings.Index(chosen, " <"); i > 0 {
 			return chosen[:i] + " "
@@ -132,7 +135,7 @@ func slashChosenToInputValue(chosen string) string {
 	return chosen
 }
 
-// Update 实现 tea.Model
+// Update implements tea.Model.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -160,7 +163,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "n", "N":
 				m.Pending.ResponseCh <- false
 				m.Pending = nil
-				m.WaitingForAI = false // 拒绝后立即允许继续输入，不必等 agent 返回
+				m.WaitingForAI = false // after reject allow input immediately, no need to wait for agent
 				return m, nil
 			}
 			return m, nil
@@ -174,7 +177,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		inputVal := m.Input.Value()
 		inSlash := strings.HasPrefix(inputVal, "/")
 
-		// 滚动键：Up/Down 在斜杠模式下改选中项，否则与 PgUp/PgDown 一起交给 viewport
+		// scroll keys: Up/Down change selection in slash mode, else go to viewport with PgUp/PgDown
 		if key == "up" || key == "down" || key == "pgup" || key == "pgdown" {
 			if inSlash && (key == "up" || key == "down") {
 				opts := getSlashOptionsForInput(inputVal, m.getLang())
@@ -198,17 +201,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if text == "" {
 				return m, nil
 			}
-			// WaitingForAI 只限制「提交新问题」：以 / 开头的斜杠命令任何时候都可执行
+			// WaitingForAI only blocks submitting new messages; slash commands starting with / always run
 			if m.WaitingForAI && !strings.HasPrefix(text, "/") {
 				return m, nil
 			}
-			// 先判断是否为「仅填入选中项」：/ 后 Up/Down 选中再回车，只填输入区，不写入对话区、不执行
+			// first check "fill selection only": / then Up/Down then Enter only fills input, does not submit
 			if strings.HasPrefix(text, "/") {
 				opts := getSlashOptionsForInput(text, m.getLang())
 				vis := visibleSlashOptions(text, opts)
 				if len(vis) > 0 && m.SlashSuggestIndex < len(vis) {
 					chosen := opts[vis[m.SlashSuggestIndex]].Cmd
-					// 选中项与当前输入不一致 ⇒ 视为「选中后填入」，不执行、不写入 View
+					// chosen != text => fill selection only, do not execute or add to View
 					if (chosen == text || strings.HasPrefix(chosen, text)) && chosen != text {
 						m.Input.SetValue(slashChosenToInputValue(chosen))
 						m.Input.CursorEnd()
@@ -294,9 +297,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				vis := visibleSlashOptions(text, opts)
 				if len(vis) > 0 && m.SlashSuggestIndex < len(vis) {
 					chosen := opts[vis[m.SlashSuggestIndex]].Cmd
-					// 输入须对应所选命令；仅 "/" 时不处理。「仅填入」已在 Enter 开头提前 return
+					// input must match chosen command; skip when only "/". "Fill only" already returned above.
 					if len(strings.TrimSpace(strings.TrimPrefix(text, "/"))) > 0 && (chosen == text || strings.HasPrefix(chosen, text)) {
-						// 用户输入与选中一致（完整输入后回车）→ 执行
+						// user input matches chosen (full input then Enter) => execute
 						if chosen == "/exit" {
 							return m, tea.Quit
 						}
@@ -463,14 +466,25 @@ func (m Model) buildContent() string {
 	if m.Pending != nil {
 		b.WriteString("\n")
 		b.WriteString(titleStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)) + "\n")
-		b.WriteString(m.Pending.Command)
-		b.WriteString("\n")
+		switch m.Pending.RiskLevel {
+		case "read_only":
+			b.WriteString(riskReadOnlyStyle.Render("["+i18n.T(lang, i18n.KeyRiskReadOnly)+"] ") + m.Pending.Command + "\n")
+		case "low":
+			b.WriteString(riskLowStyle.Render("["+i18n.T(lang, i18n.KeyRiskLow)+"] ") + m.Pending.Command + "\n")
+		case "high":
+			b.WriteString(riskHighStyle.Render("["+i18n.T(lang, i18n.KeyRiskHigh)+"] ") + m.Pending.Command + "\n")
+		default:
+			b.WriteString(m.Pending.Command + "\n")
+		}
+		if m.Pending.Reason != "" {
+			b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeyApprovalWhy)+" "+m.Pending.Reason) + "\n")
+		}
 		b.WriteString(i18n.T(lang, i18n.KeyApproveYN))
 	}
 	return b.String()
 }
 
-// applyConfigLLM 设置 config.yaml 中 llm 的某一项并写回；value 支持 $VAR 引用环境变量
+// applyConfigLLM sets one llm field in config.yaml and writes back; value supports $VAR env expansion.
 func (m Model) applyConfigLLM(field, value string) Model {
 	value = strings.TrimSpace(value)
 	lang := m.getLang()
@@ -512,7 +526,7 @@ func (m Model) applyConfigLLM(field, value string) Model {
 	return m
 }
 
-// applyConfigLanguage 设置 config.yaml 的 language 并写回
+// applyConfigLanguage sets config.yaml language and writes back.
 func (m Model) applyConfigLanguage(value string) Model {
 	value = strings.TrimSpace(value)
 	if value == "" {
@@ -549,7 +563,7 @@ func (m Model) applyConfigLanguage(value string) Model {
 	return m
 }
 
-// showConfig 在对话区显示当前 config 路径与 LLM 摘要（api_key 脱敏）
+// showConfig displays current config path and LLM summary (api_key masked) in the conversation area.
 func (m Model) showConfig() Model {
 	lang := m.getLang()
 	cfg, err := config.Load()
@@ -565,7 +579,7 @@ func (m Model) showConfig() Model {
 	return m
 }
 
-// applyConfigAllowlistUpdate 将内置默认允许列表合并到当前 allowlist.yaml，仅追加缺失的 pattern
+// applyConfigAllowlistUpdate merges built-in default allowlist into current allowlist.yaml, appending only missing patterns.
 func (m Model) applyConfigAllowlistUpdate() Model {
 	lang := m.getLang()
 	added, err := config.AllowlistUpdateWithDefaults()
@@ -587,7 +601,7 @@ func (m Model) applyConfigAllowlistUpdate() Model {
 	return m
 }
 
-// View 实现 tea.Model
+// View implements tea.Model.
 func (m Model) View() string {
 	lang := m.getLang()
 	if m.Height <= 4 {
@@ -603,7 +617,7 @@ func (m Model) View() string {
 	}
 	m.Viewport.Width = m.Width
 	m.Viewport.Height = vh
-	// 不在 View() 中 SetContent，避免每帧重置滚动导致 Up/Down/PgUp/PgDown 无效；内容仅在 Update() 中变更时设置
+	// do not SetContent in View() to avoid resetting scroll every frame (would break Up/Down/PgUp/PgDown); set only in Update() when content changes
 	out := m.Viewport.View()
 	out += "\n"
 	out += m.Input.View()
@@ -631,8 +645,8 @@ func (m Model) View() string {
 	return out
 }
 
-// NewModel 创建带默认输入框的 Model（支持斜杠命令与 viewport 滚动）。
-// initialMessages 非 nil 时用作已有对话内容（如 /sh 返回后恢复）。
+// NewModel creates a Model with default input (slash commands and viewport scrolling).
+// initialMessages if non-nil is used as existing conversation (e.g. after /sh return).
 func NewModel(submitChan chan<- string, execDirectChan chan<- string, shellRequestedChan chan<- []string, cancelRequestChan chan<- struct{}, configUpdatedChan chan<- struct{}, initialMessages []string) Model {
 	ti := textinput.New()
 	lang := "en"

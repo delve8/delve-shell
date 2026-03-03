@@ -8,7 +8,7 @@ import (
 	"delve-shell/internal/config"
 )
 
-// Prune 根据配置清理过期历史；MaxDays>0 时删除超过该天数的会话文件
+// Prune cleans up old history per config; when MaxDays>0, deletes session files older than that.
 func Prune(cfg *config.Config) error {
 	if cfg.History.MaxDays <= 0 {
 		return nil

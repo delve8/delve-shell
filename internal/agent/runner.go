@@ -17,7 +17,7 @@ import (
 	"delve-shell/internal/history"
 )
 
-// RunnerOptions 创建 Runner 的选项；LLM 从 Config 的 config.yaml 读取（支持 $VAR 引用环境变量）
+// RunnerOptions for creating a Runner; LLM is read from Config (config.yaml, supports $VAR env expansion).
 type RunnerOptions struct {
 	Config        *config.Config
 	Allowlist     *hil.Allowlist
@@ -27,12 +27,12 @@ type RunnerOptions struct {
 	ExecEventChan chan<- ExecEvent
 }
 
-// Runner 封装 eino react agent，可对用户消息生成回复；执行命令时经 HIL 审批
+// Runner wraps the eino react agent; generates replies and runs commands via HIL approval.
 type Runner struct {
 	agent *react.Agent
 }
 
-// NewRunner 创建 Runner；LLM 从 opts.Config.LLM 读取，未配置时返回可引导用户编辑 config.yaml 的错误
+// NewRunner creates a Runner; LLM from opts.Config.LLM, returns error guiding user to edit config.yaml if not set.
 func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 	baseURL, apiKey, model := opts.Config.LLMResolved()
 	if apiKey == "" {
@@ -48,9 +48,9 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		return nil, err
 	}
 
-	requestApproval := func(cmd string) bool {
+	requestApproval := func(cmd, reason, riskLevel string) bool {
 		ch := make(chan bool)
-		opts.ApprovalChan <- &ApprovalRequest{Command: cmd, ResponseCh: ch}
+		opts.ApprovalChan <- &ApprovalRequest{Command: cmd, Reason: reason, RiskLevel: riskLevel, ResponseCh: ch}
 		return <-ch
 	}
 
@@ -78,7 +78,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 	}
 	sysPrompt = config.ExpandEnv(sysPrompt)
 	if opts.RulesText != "" {
-		sysPrompt += "\n\n--- 用户规则 (rules) ---\n" + opts.RulesText
+		sysPrompt += "\n\n--- User rules (rules) ---\n" + opts.RulesText
 	}
 
 	reactAgent, err := react.NewAgent(ctx, &react.AgentConfig{
@@ -106,9 +106,11 @@ Prefer shell commands to accomplish tasks; only when shell is not sufficient, co
 
 Tool and script results must not contain user secrets, passwords, or other private data. If you must run something whose output may contain sensitive data, set execute_command's result_contains_secrets to true: the result will be shown only to the user, the model will receive "done", and the result will not be stored in session history.
 
-Important: commands not on the allowlist must be explicitly approved by the user in this tool; do not rely on "asking" in chat—the tool will show the pending command and wait for confirmation. Use view_context when you need to see current session history.`
+Important: commands not on the allowlist must be explicitly approved by the user in this tool; do not rely on "asking" in chat—the tool will show the pending command and wait for confirmation. Use view_context when you need to see current session history.
 
-// Run 对一条用户消息生成回复；若 agent 调用了需审批的命令，会阻塞直至用户批准或拒绝
+When calling execute_command, always provide reason (brief explanation of why and expected effect) and risk_level (read_only, low, or high) so the user sees a clear approval card.`
+
+// Run generates a reply for one user message; blocks until user approves or rejects if agent calls a command requiring approval.
 func (r *Runner) Run(ctx context.Context, userMessage string) (reply string, err error) {
 	msg, err := r.agent.Generate(ctx, []*schema.Message{
 		schema.UserMessage(userMessage),

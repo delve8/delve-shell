@@ -10,14 +10,14 @@ import (
 	"delve-shell/internal/config"
 )
 
-// Event 单条历史事件，用于审计与 LLM 上下文
+// Event is one history event for audit and LLM context.
 type Event struct {
 	Time    time.Time       `json:"time"`
 	Type    string          `json:"type"` // "user_input" | "llm_response" | "tool_call" | "command" | "command_result"
 	Payload json.RawMessage `json:"payload"`
 }
 
-// Session 单次会话的历史记录；仅由 delve-shell 写入，AI 通过只读接口读取
+// Session is one session's history; only delve-shell writes; AI reads via read-only API.
 type Session struct {
 	id   string
 	path string
@@ -25,7 +25,7 @@ type Session struct {
 	f    *os.File
 }
 
-// NewSession 创建新会话；文件在首次写入时才创建，避免产生空文件
+// NewSession creates a new session; file is created on first write to avoid empty files.
 func NewSession(id string) (*Session, error) {
 	dir := config.HistoryDir()
 	if err := os.MkdirAll(dir, 0700); err != nil {
@@ -58,22 +58,29 @@ func (s *Session) append(typ string, payload interface{}) error {
 	return err
 }
 
-// AppendUserInput 记录用户输入
+// AppendUserInput records user input.
 func (s *Session) AppendUserInput(text string) error {
 	return s.append("user_input", map[string]string{"text": text})
 }
 
-// AppendLLMResponse 记录 LLM 返回（思考、结论、工具调用等；调用方传入已序列化或结构化内容）
+// AppendLLMResponse records LLM response (caller passes serialized or structured content).
 func (s *Session) AppendLLMResponse(payload interface{}) error {
 	return s.append("llm_response", payload)
 }
 
-// AppendCommand 记录即将执行的命令/脚本
-func (s *Session) AppendCommand(command string, approved bool) error {
-	return s.append("command", map[string]interface{}{"command": command, "approved": approved})
+// AppendCommand records a command about to run; reason and riskLevel are optional, for audit.
+func (s *Session) AppendCommand(command string, approved bool, reason, riskLevel string) error {
+	payload := map[string]interface{}{"command": command, "approved": approved}
+	if reason != "" {
+		payload["reason"] = reason
+	}
+	if riskLevel != "" {
+		payload["risk_level"] = riskLevel
+	}
+	return s.append("command", payload)
 }
 
-// AppendCommandResult 记录命令执行结果
+// AppendCommandResult records command execution result.
 func (s *Session) AppendCommandResult(command string, stdout, stderr string, exitCode int) error {
 	return s.append("command_result", map[string]interface{}{
 		"command":  command,
@@ -83,7 +90,7 @@ func (s *Session) AppendCommandResult(command string, stdout, stderr string, exi
 	})
 }
 
-// Close 关闭会话文件；若从未写入则无需关闭（未创建过文件）
+// Close closes the session file; no-op if never written.
 func (s *Session) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -95,5 +102,5 @@ func (s *Session) Close() error {
 	return err
 }
 
-// Path 返回当前会话文件路径（只读用途，如「查看上下文」tool）
+// Path returns the session file path (read-only use, e.g. view_context tool).
 func (s *Session) Path() string { return s.path }

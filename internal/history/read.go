@@ -10,8 +10,8 @@ import (
 	"delve-shell/internal/config"
 )
 
-// ReadRecent 从会话文件中读取最近若干条事件，用于「查看上下文」等只读场景；maxLines<=0 表示不限制。
-// 若文件不存在（会话尚未写入过）返回 nil, nil。
+// ReadRecent reads the most recent events from the session file for read-only use (e.g. view_context). maxLines<=0 means no limit.
+// If the file does not exist (session never written), returns nil, nil.
 func ReadRecent(sessionPath string, maxLines int) ([]Event, error) {
 	f, err := os.Open(sessionPath)
 	if err != nil {
@@ -34,7 +34,7 @@ func ReadRecent(sessionPath string, maxLines int) ([]Event, error) {
 		}
 		events = append(events, ev)
 		if maxLines > 0 && len(events) >= maxLines {
-			// 保留最后 maxLines 条
+			// keep last maxLines
 			events = events[len(events)-maxLines:]
 		}
 	}
@@ -44,7 +44,7 @@ func ReadRecent(sessionPath string, maxLines int) ([]Event, error) {
 	return events, sc.Err()
 }
 
-// ListSessions 列出 HistoryDir 下所有会话文件（返回绝对路径）
+// ListSessions lists all session files under HistoryDir (returns absolute paths).
 func ListSessions() ([]string, error) {
 	dir := config.HistoryDir()
 	entries, err := os.ReadDir(dir)
