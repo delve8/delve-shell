@@ -80,6 +80,18 @@ func (s *Session) AppendCommand(command string, approved bool, reason, riskLevel
 	return s.append("command", payload)
 }
 
+// AppendSuggestedCommand records a command that was only suggested (not executed), e.g. in suggest mode.
+func (s *Session) AppendSuggestedCommand(command, reason, riskLevel string) error {
+	payload := map[string]interface{}{"command": command, "approved": false, "suggested": true}
+	if reason != "" {
+		payload["reason"] = reason
+	}
+	if riskLevel != "" {
+		payload["risk_level"] = riskLevel
+	}
+	return s.append("command", payload)
+}
+
 // AppendCommandResult records command execution result.
 func (s *Session) AppendCommandResult(command string, stdout, stderr string, exitCode int) error {
 	redactedStdout := RedactText(stdout)

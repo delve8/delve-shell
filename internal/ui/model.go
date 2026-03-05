@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/atotto/clipboard"
 
 	"delve-shell/internal/agent"
 	"delve-shell/internal/config"
@@ -29,6 +30,7 @@ var (
 	approvalHeaderStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("12")).Bold(true) // cyan, for HIL approval/sensitive headers
 	approvalDecisionApprovedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true) // green
 	approvalDecisionRejectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true) // red
+	hintStyle                   = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Italic(true) // dim, italic for hint lines (copy hint, "Copied to clipboard")
 )
 
 const (
@@ -38,12 +40,14 @@ const (
 
 type slashOption struct{ Cmd, Desc string }
 
-// getSlashOptions returns top-level slash commands (shown when input starts with "/"); order: help, cancel, config, reload, run, sh, exit.
+// getSlashOptions returns top-level slash commands (shown when input starts with "/"); order: help, cancel, config, mode, reload, run, sh, exit.
 func getSlashOptions(lang string) []slashOption {
 	return []slashOption{
 		{"/help", i18n.T(lang, i18n.KeyDescHelp)},
 		{"/cancel", i18n.T(lang, i18n.KeyDescCancel)},
 		{"/config", i18n.T(lang, i18n.KeyDescConfig)},
+		{"/mode suggest", i18n.T(lang, i18n.KeyDescModeSuggest)},
+		{"/mode run", i18n.T(lang, i18n.KeyDescModeRun)},
 		{"/reload", i18n.T(lang, i18n.KeyDescReload)},
 		{"/run <cmd>", i18n.T(lang, i18n.KeyDescRun)},
 		{"/sh", i18n.T(lang, i18n.KeyDescSh)},
@@ -55,6 +59,7 @@ func getSlashOptions(lang string) []slashOption {
 func getConfigSubOptions(lang string) []slashOption {
 	return []slashOption{
 		{"/config show", i18n.T(lang, i18n.KeyDescConfigShow)},
+		{"/config mode <suggest|run>", i18n.T(lang, i18n.KeyDescConfigMode)},
 		{"/config allowlist update", i18n.T(lang, i18n.KeyDescConfigAllowlistUpdate)},
 		{"/config llm base_url <url>", i18n.T(lang, i18n.KeyDescConfigLLMBaseURL)},
 		{"/config llm api_key <key>", i18n.T(lang, i18n.KeyDescConfigLLMApiKey)},
@@ -63,12 +68,15 @@ func getConfigSubOptions(lang string) []slashOption {
 	}
 }
 
-// getSlashOptionsForInput returns slash options to show: when input is "/config" or "/config xxx" returns only /config sub-options, else top-level commands.
+// getSlashOptionsForInput returns slash options to show: when input is "/config" or "/config xxx" returns only /config sub-options; when "/mode" or "/mode x" returns mode sub-options; else top-level commands.
 func getSlashOptionsForInput(inputVal string, lang string) []slashOption {
 	normalized := strings.TrimPrefix(inputVal, "/")
 	normalized = strings.ToLower(strings.TrimSpace(normalized))
 	if normalized == "config" || strings.HasPrefix(normalized, "config ") {
 		return getConfigSubOptions(lang)
+	}
+	if normalized == "mode" || strings.HasPrefix(normalized, "mode ") {
+		return getSlashOptions(lang) // /mode suggest, /mode run
 	}
 	return getSlashOptions(lang)
 }
@@ -80,15 +88,18 @@ type Model struct {
 	Messages            []string
 	Pending             *agent.ApprovalRequest
 	PendingSensitive    *agent.SensitiveConfirmationRequest
+	PendingSuggested    *string // suggested command card: press c to copy, Enter to dismiss
 	SubmitChan          chan<- string
 	ExecDirectChan      chan<- string
 	ShellRequestedChan  chan<- []string // on /sh send current Messages to preserve after return
 	CancelRequestChan   chan<- struct{}  // on /cancel request cancel of in-flight AI
 	ConfigUpdatedChan   chan<- struct{}  // on /config save or /reload, invalidate runner so next message reloads config/allowlist
+	ModeChangeChan      chan<- string    // on /mode send new mode (suggest|run), runtime only, not written to config
+	GetMode             func() string   // current runtime mode for display
 	Width               int
 	Height              int
 	SlashSuggestIndex   int  // 0..len(visible)-1 when input starts with /
-	WaitingForAI       bool // when true only blocks submitting new messages (Enter); /xxx slash commands always allowed
+	WaitingForAI        bool // when true only blocks submitting new messages (Enter); /xxx slash commands always allowed
 }
 
 // Init implements tea.Model.
@@ -208,7 +219,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.Pending != nil {
 			lang := m.getLang()
 			switch msg.String() {
-			case "y", "Y":
+			case "1", "y", "Y":
 				// Persist a static summary of the approval card and user's decision.
 				riskLabel := ""
 				switch m.Pending.RiskLevel {
@@ -237,7 +248,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Pending.ResponseCh <- true
 				m.Pending = nil
 				return m, nil
-			case "n", "N":
+			case "2", "n", "N":
 				riskLabel := ""
 				switch m.Pending.RiskLevel {
 				case "read_only":
@@ -265,6 +276,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Pending.ResponseCh <- false
 				m.Pending = nil
 				m.WaitingForAI = false // after reject allow input immediately, no need to wait for agent
+				return m, nil
+			}
+			return m, nil
+		}
+		if m.PendingSuggested != nil {
+			lang := m.getLang()
+			switch key {
+			case "1", "c", "C":
+				_ = clipboard.WriteAll(*m.PendingSuggested)
+				m.appendSuggestedLine(*m.PendingSuggested, lang)
+				m.Messages = append(m.Messages, hintStyle.Render(i18n.T(lang, i18n.KeySuggestedCopied)))
+				m.PendingSuggested = nil
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
+				return m, nil
+			case "2", "enter":
+				m.appendSuggestedLine(*m.PendingSuggested, lang)
+				m.PendingSuggested = nil
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
 				return m, nil
 			}
 			return m, nil
@@ -372,6 +403,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case text == "/config allowlist update":
 				m = m.applyConfigAllowlistUpdate()
 				return m, nil
+			case strings.HasPrefix(text, "/mode "), text == "/mode":
+				arg := strings.TrimSpace(strings.TrimPrefix(text, "/mode"))
+				m = m.applyModeSwitch(arg)
+				return m, nil
+			case strings.HasPrefix(text, "/config mode "):
+				m = m.applyConfigMode(strings.TrimSpace(strings.TrimPrefix(text, "/config mode ")))
+				return m, nil
 			case text == "/reload":
 				if m.ConfigUpdatedChan != nil {
 					select {
@@ -437,6 +475,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						}
 						if chosen == "/config allowlist update" {
 							m = m.applyConfigAllowlistUpdate()
+							return m, nil
+						}
+						if chosen == "/mode suggest" || chosen == "/mode run" {
+							modeArg := strings.TrimSpace(strings.TrimPrefix(chosen, "/mode"))
+							m = m.applyModeSwitch(modeArg)
+							return m, nil
+						}
+						if chosen == "/config mode <suggest|run>" {
+							m.Input.SetValue("/config mode ")
+							m.Input.CursorEnd()
+							return m, nil
+						}
+						if strings.HasPrefix(chosen, "/config mode") {
+							m.Input.SetValue("/config mode ")
+							m.Input.CursorEnd()
 							return m, nil
 						}
 						if strings.HasPrefix(chosen, "/config llm base_url") {
@@ -537,6 +590,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case CommandExecutedMsg:
 		lang := m.getLang()
+		if msg.Suggested {
+			// Show a card and wait for user to press c (copy) or Enter (dismiss)
+			if m.PendingSuggested != nil {
+				m.appendSuggestedLine(*m.PendingSuggested, lang)
+			}
+			cmd := msg.Command
+			m.PendingSuggested = &cmd
+			m.Viewport.SetContent(m.buildContent())
+			m.Viewport.GotoBottom()
+			return m, nil
+		}
 		var tag string
 		if msg.Direct {
 			tag = i18n.T(lang, i18n.KeyRunTagDirect)
@@ -565,7 +629,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) buildContent() string {
 	lang := m.getLang()
 	var b strings.Builder
-	b.WriteString(titleStyle.Render(i18n.T(lang, i18n.KeyTitleHeader)) + "\n\n")
+	modeStr := "run"
+	if m.GetMode != nil {
+		modeStr = m.GetMode()
+	}
+	title := i18n.T(lang, i18n.KeyTitleHeader) + " | " + i18n.T(lang, i18n.KeyModeLabel) + ": " + modeStr
+	b.WriteString(titleStyle.Render(title) + "\n\n")
 	for _, line := range m.Messages {
 		b.WriteString(line)
 		b.WriteString("\n")
@@ -597,8 +666,23 @@ func (m Model) buildContent() string {
 			b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeyApprovalWhy)+" "+m.Pending.Reason) + "\n")
 		}
 		b.WriteString(i18n.T(lang, i18n.KeyApproveYN))
+		return b.String()
+	}
+	if m.PendingSuggested != nil {
+		b.WriteString("\n")
+		b.WriteString(approvalHeaderStyle.Render(i18n.T(lang, i18n.KeySuggestedCardTitle)) + "\n")
+		b.WriteString(execStyle.Render(*m.PendingSuggested) + "\n")
+		b.WriteString(hintStyle.Render(i18n.T(lang, i18n.KeySuggestedCardHint)))
+		return b.String()
 	}
 	return b.String()
+}
+
+// appendSuggestedLine appends the run line and copy hint for a suggested command (when dismissing the card).
+func (m *Model) appendSuggestedLine(command, lang string) {
+	tag := i18n.T(lang, i18n.KeyRunTagSuggested)
+	m.Messages = append(m.Messages, execStyle.Render(i18n.T(lang, i18n.KeyRunLabel)+command+" ("+tag+")"))
+	m.Messages = append(m.Messages, hintStyle.Render(i18n.T(lang, i18n.KeySuggestedCopyHint)))
 }
 
 // applyConfigLLM sets one llm field in config.yaml and writes back; value supports $VAR env expansion.
@@ -698,6 +782,65 @@ func (m Model) showConfig() Model {
 	return m
 }
 
+// applyModeSwitch sets runtime mode to the given value (suggest or run) and sends to ModeChangeChan; does not write config.
+func (m Model) applyModeSwitch(modeArg string) Model {
+	lang := m.getLang()
+	modeArg = strings.TrimSpace(strings.ToLower(modeArg))
+	if modeArg != "suggest" && modeArg != "run" {
+		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyModeRequired)))
+		m.Viewport.SetContent(m.buildContent())
+		m.Viewport.GotoBottom()
+		return m
+	}
+	if m.ModeChangeChan != nil {
+		select {
+		case m.ModeChangeChan <- modeArg:
+		default:
+		}
+	}
+	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyModeSetTo, modeArg)))
+	m.Viewport.SetContent(m.buildContent())
+	m.Viewport.GotoBottom()
+	return m
+}
+
+// applyConfigMode sets default mode in config and writes config; next startup will use this mode.
+func (m Model) applyConfigMode(value string) Model {
+	value = strings.TrimSpace(strings.ToLower(value))
+	if value != "suggest" && value != "run" {
+		lang := m.getLang()
+		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+i18n.T(lang, i18n.KeyConfigModeRequired)))
+		m.Viewport.SetContent(m.buildContent())
+		m.Viewport.GotoBottom()
+		return m
+	}
+	lang := m.getLang()
+	cfg, err := config.Load()
+	if err != nil {
+		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
+		m.Viewport.SetContent(m.buildContent())
+		m.Viewport.GotoBottom()
+		return m
+	}
+	cfg.Mode = value
+	if err := config.Write(cfg); err != nil {
+		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
+		m.Viewport.SetContent(m.buildContent())
+		m.Viewport.GotoBottom()
+		return m
+	}
+	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyConfigSavedMode, value)))
+	m.Viewport.SetContent(m.buildContent())
+	m.Viewport.GotoBottom()
+	if m.ConfigUpdatedChan != nil {
+		select {
+		case m.ConfigUpdatedChan <- struct{}{}:
+		default:
+		}
+	}
+	return m
+}
+
 // applyConfigAllowlistUpdate merges built-in default allowlist into current allowlist.yaml, appending only missing patterns.
 func (m Model) applyConfigAllowlistUpdate() Model {
 	lang := m.getLang()
@@ -766,7 +909,8 @@ func (m Model) View() string {
 
 // NewModel creates a Model with default input (slash commands and viewport scrolling).
 // initialMessages if non-nil is used as existing conversation (e.g. after /sh return).
-func NewModel(submitChan chan<- string, execDirectChan chan<- string, shellRequestedChan chan<- []string, cancelRequestChan chan<- struct{}, configUpdatedChan chan<- struct{}, initialMessages []string) Model {
+// modeChangeChan and getMode are for /mode (runtime switch); getMode returns current mode for title.
+func NewModel(submitChan chan<- string, execDirectChan chan<- string, shellRequestedChan chan<- []string, cancelRequestChan chan<- struct{}, configUpdatedChan chan<- struct{}, modeChangeChan chan<- string, getMode func() string, initialMessages []string) Model {
 	ti := textinput.New()
 	lang := "en"
 	if cfg, err := config.Load(); err == nil && cfg != nil && cfg.Language != "" {
@@ -796,6 +940,8 @@ func NewModel(submitChan chan<- string, execDirectChan chan<- string, shellReque
 		ShellRequestedChan:  shellRequestedChan,
 		CancelRequestChan:   cancelRequestChan,
 		ConfigUpdatedChan:   configUpdatedChan,
+		ModeChangeChan:      modeChangeChan,
+		GetMode:             getMode,
 		Width:               defaultWidth,
 		Height:              defaultHeight,
 	}

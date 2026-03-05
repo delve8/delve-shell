@@ -56,6 +56,19 @@ const (
 	KeyDescConfigLanguage     = "desc_config_language"
 	KeyDescConfigAllowlistUpdate = "desc_config_allowlist_update"
 	KeyAllowlistUpdateDone    = "allowlist_update_done" // format: added count
+	KeyDescModeSuggest        = "desc_mode_suggest"
+	KeyDescModeRun            = "desc_mode_run"
+	KeyDescConfigMode         = "desc_config_mode"
+	KeyModeRequired           = "mode_required"
+	KeyRunTagSuggested        = "run_tag_suggested"
+	KeySuggestedCopyHint      = "suggested_copy_hint"
+	KeySuggestedCardTitle     = "suggested_card_title"
+	KeySuggestedCardHint      = "suggested_card_hint"
+	KeySuggestedCopied        = "suggested_copied"
+	KeyModeLabel              = "mode_label"
+	KeyModeSetTo              = "mode_set_to"           // format: suggest or run
+	KeyConfigSavedMode        = "config_saved_mode"     // format: suggest or run
+	KeyConfigModeRequired     = "config_mode_required"
 
 	// First-time wizard (before lang is chosen use "en" for intro; after language step use chosen lang)
 	KeyWizardTitle        = "wizard_title"
@@ -81,14 +94,16 @@ Slash commands:
   /run <cmd>     Run a command directly (no AI)
   /sh            Spawn bash; return here when done
   /cancel        Cancel current AI request
-  /config        Set or show config: /config llm base_url <url>, /config llm api_key <key>, /config llm model <name>, /config show, /config language <en|zh>
+  /config        Set or show config: /config show, /config mode <suggest|run>, /config llm ..., /config language <en|zh>
+  /mode suggest  Only suggest commands, do not run (this session only)
+  /mode run      Approve then run commands (this session only)
   /reload        Reload config and allowlist (no restart)
   /help          Show this help
 
 Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse reporting).`,
 		KeyNoRequestInProgress: "(No request in progress)",
 		KeyUsageRun:            "Usage: /run <command>",
-		KeyUnknownCmd:          "Unknown command. Use /exit, /run <cmd>, /sh, /cancel, /config, /reload, /help",
+		KeyUnknownCmd:          "Unknown command. Use /exit, /run <cmd>, /sh, /cancel, /config, /mode suggest, /mode run, /reload, /help",
 		KeyConfigReloaded:      "Config and allowlist reloaded. Next message will use new config.",
 		KeyCancelled:           "(Cancelled)",
 		KeyErrorPrefix:         "Error: ",
@@ -102,7 +117,7 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
 		KeyTitleHeader:         "delve-shell — Enter to send, ctrl+c to quit | Up/Down/PgUp/PgDown scroll",
 		KeyApprovalPrompt:           "Command to run (approval required):",
 		KeyApprovalWhy:              "Why:",
-		KeyApproveYN:                "Approve? (y/n): ",
+		KeyApproveYN:                "1=approve, 2=reject (or y/n): ",
 		KeyApprovalDecisionApproved: "Decision: approved",
 		KeyApprovalDecisionRejected: "Decision: rejected",
 		KeyRiskReadOnly:       "READ-ONLY",
@@ -135,6 +150,19 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
 		KeyDescConfigLanguage:     "Set UI language (en, zh)",
 		KeyDescConfigAllowlistUpdate: "Merge built-in default allowlist into current (add missing entries)",
 		KeyAllowlistUpdateDone:    "Allowlist updated: %d new pattern(s) added. Use /reload to apply.",
+		KeyDescModeSuggest:       "Switch to suggest mode (only suggest commands, do not run); this session only",
+		KeyDescModeRun:           "Switch to run mode (approve then run commands); this session only",
+		KeyDescConfigMode:        "Set default mode (suggest | run); saved to config, used on next startup",
+		KeyModeRequired:         "Usage: /mode suggest or /mode run",
+		KeyRunTagSuggested:       "suggested",
+		KeySuggestedCopyHint:     "Select the command above to copy, or use /run <cmd> to run it.",
+		KeySuggestedCardTitle:    "Suggested command (not executed):",
+		KeySuggestedCardHint:     "1=copy, 2=dismiss (or c / Enter)",
+		KeySuggestedCopied:       "Copied to clipboard.",
+		KeyModeLabel:             "mode",
+		KeyModeSetTo:             "Mode set to %s (this session only).",
+		KeyConfigSavedMode:      "Config saved (mode: %s). Use /reload to apply as default for next message.",
+		KeyConfigModeRequired:   "mode: value required (suggest or run)",
 		KeyWizardTitle:           "=== delve-shell first-time setup ===",
 		KeyWizardConfigPath:      "Config path: %s",
 		KeyWizardIntroDesc1:     "This wizard will set UI language and LLM config (base_url, api_key, model).",
@@ -156,14 +184,16 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
   /run <cmd>     直接执行命令（不经 AI）
   /sh            启动 bash；结束后返回
   /cancel        取消当前 AI 请求
-  /config        设置或查看配置：/config llm base_url <url>、/config llm api_key <key>、/config llm model <name>、/config show、/config language <en|zh>
+  /config        设置或查看配置：/config show、/config mode <suggest|run>、/config llm ...、/config language <en|zh>
+  /mode suggest  仅建议命令不执行（仅当前会话）
+  /mode run      审批后执行命令（仅当前会话）
   /reload        重载配置与允许列表（无需重启）
   /help          显示此帮助
 
 滚动：Up/Down、PgUp/PgDown。文本选择：使用终端鼠标（无需 mouse reporting）。`,
 		KeyNoRequestInProgress: "（当前无进行中的请求）",
 		KeyUsageRun:            "用法：/run <命令>",
-		KeyUnknownCmd:          "未知命令。可用：/exit、/run <cmd>、/sh、/cancel、/config、/reload、/help",
+		KeyUnknownCmd:          "未知命令。可用：/exit、/run <cmd>、/sh、/cancel、/config、/mode suggest、/mode run、/reload、/help",
 		KeyConfigReloaded:      "配置与允许列表已重载，下一条消息将使用新配置。",
 		KeyCancelled:           "（已取消）",
 		KeyErrorPrefix:         "错误：",
@@ -177,7 +207,7 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
 		KeyTitleHeader:         "delve-shell — Enter 发送，ctrl+c 退出 | Up/Down/PgUp/PgDown 滚动",
 		KeyApprovalPrompt:           "待执行的命令（需你确认）：",
 		KeyApprovalWhy:              "原因：",
-		KeyApproveYN:                "批准？(y/n)：",
+		KeyApproveYN:                "1=批准，2=拒绝（或 y/n）：",
 		KeyApprovalDecisionApproved: "决定：已批准",
 		KeyApprovalDecisionRejected: "决定：已拒绝",
 		KeyRiskReadOnly:       "只读",
@@ -210,6 +240,19 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
 		KeyDescConfigLanguage:     "设置界面语言（en、zh）",
 		KeyDescConfigAllowlistUpdate: "将内置默认允许列表合并到当前（仅追加缺失项）",
 		KeyAllowlistUpdateDone:    "允许列表已更新：新增 %d 条。使用 /reload 生效。",
+		KeyDescModeSuggest:       "切换到 suggest 模式（仅建议命令不执行）；仅当前会话",
+		KeyDescModeRun:           "切换到 run 模式（审批后执行）；仅当前会话",
+		KeyDescConfigMode:        "设置默认模式（suggest | run）；写入配置，下次启动生效",
+		KeyModeRequired:          "用法：/mode suggest 或 /mode run",
+		KeyRunTagSuggested:       "建议",
+		KeySuggestedCopyHint:     "可选中上方命令复制，或使用 /run <cmd> 执行。",
+		KeySuggestedCardTitle:    "建议的命令（未执行）：",
+		KeySuggestedCardHint:     "1=复制，2=关闭（或 c / Enter）",
+		KeySuggestedCopied:       "已复制到剪贴板。",
+		KeyModeLabel:             "模式",
+		KeyModeSetTo:             "当前会话模式已设为 %s（不写入配置）。",
+		KeyConfigSavedMode:      "配置已保存（mode: %s）。使用 /reload 后作为默认模式生效。",
+		KeyConfigModeRequired:   "mode: 需提供值（suggest 或 run）",
 		KeyWizardTitle:           "=== delve-shell 首次启动向导 ===",
 		KeyWizardConfigPath:      "配置文件路径：%s",
 		KeyWizardIntroDesc1:     "本向导将设置界面语言和 LLM 配置（base_url、api_key、model）。",

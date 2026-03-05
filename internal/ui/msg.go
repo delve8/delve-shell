@@ -14,13 +14,14 @@ type AgentReplyMsg struct {
 	Err   error
 }
 
-// CommandExecutedMsg carries command execution process and result (allowlist/approved/direct) for display in the conversation.
+// CommandExecutedMsg carries command execution process and result (allowlist/approved/direct/suggested) for display in the conversation.
 type CommandExecutedMsg struct {
 	Command   string
 	Allowed   bool
 	Direct    bool   // true = /run direct execution, no AI
 	Result    string
 	Sensitive bool   // true = result contains private data, not stored and LLM sees "done"
+	Suggested bool   // true = suggest mode, command was not executed (user can copy)
 }
 
 // ConfigReloadedMsg notifies the UI that config/allowlist was reloaded; next message will use new config.

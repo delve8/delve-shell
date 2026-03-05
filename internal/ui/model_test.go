@@ -16,7 +16,7 @@ import (
 
 func TestApprovalCard_ShowsCommandReasonAndRisk(t *testing.T) {
 	// do not run tea.NewProgram().Run(); just build Model and set Pending
-	m := NewModel(nil, nil, nil, nil, nil, nil)
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil)
 	ch := make(chan bool, 1)
 	m.Pending = &agent.ApprovalRequest{
 		Command:    "kubectl get pods",
@@ -39,7 +39,7 @@ func TestApprovalCard_ShowsCommandReasonAndRisk(t *testing.T) {
 }
 
 func TestApprovalCard_HighRiskLabel(t *testing.T) {
-	m := NewModel(nil, nil, nil, nil, nil, nil)
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil)
 	m.Pending = &agent.ApprovalRequest{
 		Command:    "rm -rf /tmp/foo",
 		RiskLevel:  "high",
@@ -57,7 +57,7 @@ func TestApprovalCard_HighRiskLabel(t *testing.T) {
 
 func TestApprovalCard_ApproveYClearsPending(t *testing.T) {
 	ch := make(chan bool, 1)
-	m := NewModel(nil, nil, nil, nil, nil, nil)
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil)
 	m.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
 
 	// simulate user pressing y
@@ -78,7 +78,7 @@ func TestApprovalCard_ApproveYClearsPending(t *testing.T) {
 
 func TestApprovalCard_ApproveNClearsPendingAndSendsFalse(t *testing.T) {
 	ch := make(chan bool, 1)
-	m := NewModel(nil, nil, nil, nil, nil, nil)
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil)
 	m.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
 
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("n")})

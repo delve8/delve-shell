@@ -20,6 +20,7 @@ import (
 // RunnerOptions for creating a Runner; LLM is read from Config (config.yaml, supports $VAR env expansion).
 type RunnerOptions struct {
 	Config                     *config.Config
+	Mode                       string // "suggest" or "run"; default "run"
 	Allowlist                  *hil.Allowlist
 	SensitiveMatcher           *hil.SensitiveMatcher
 	Session                    *history.Session
@@ -64,15 +65,23 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		return <-ch
 	}
 
+	mode := opts.Config.ModeResolved()
+	if opts.Mode != "" {
+		m := strings.TrimSpace(strings.ToLower(opts.Mode))
+		if m == "suggest" || m == "run" {
+			mode = m
+		}
+	}
 	execTool := &ExecuteCommandTool{
-		Allowlist:                    opts.Allowlist,
-		SensitiveMatcher:             opts.SensitiveMatcher,
+		Mode:                        mode,
+		Allowlist:                   opts.Allowlist,
+		SensitiveMatcher:            opts.SensitiveMatcher,
 		RequestApproval:              requestApproval,
 		RequestSensitiveConfirmation: requestSensitiveConfirmation,
-		Session:                      opts.Session,
-		OnExec: func(cmd string, allowed bool, result string, sensitive bool) {
+		Session:                     opts.Session,
+		OnExec: func(cmd string, allowed bool, result string, sensitive bool, suggested bool) {
 			if opts.ExecEventChan != nil {
-				opts.ExecEventChan <- ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive}
+				opts.ExecEventChan <- ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested}
 			}
 		},
 	}
@@ -89,6 +98,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		sysPrompt = defaultSystemPrompt
 	}
 	sysPrompt = config.ExpandEnv(sysPrompt)
+	sysPrompt += "\n\n--- Current mode ---\n" + modeParagraph(mode)
 	if opts.RulesText != "" {
 		sysPrompt += "\n\n--- User rules (rules) ---\n" + opts.RulesText
 	}
@@ -114,6 +124,8 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 
 const defaultSystemPrompt = `You are an ops assistant. Run commands in the user's environment via execute_command.
 
+Prefer combined commands (e.g. pipelines, one-liners) to get the final result in a single execute_command call when possible; avoid splitting into many small commands that each need a separate call. This is especially important in suggest mode, where each call only produces a suggestion and does not run—one combined command gives the user a single, complete suggestion to review or copy.
+
 Prefer shell commands to accomplish tasks; only when shell is not sufficient, consider Python or other scripting tools in the environment.
 
 Tool and script results must not contain user secrets, passwords, or other private data. If you must run something whose output may contain sensitive data, set execute_command's result_contains_secrets to true: the result will be shown only to the user, the model will receive "done", and the result will not be stored in session history.
@@ -121,6 +133,15 @@ Tool and script results must not contain user secrets, passwords, or other priva
 Important: commands not on the allowlist must be explicitly approved by the user in this tool; do not rely on "asking" in chat—the tool will show the pending command and wait for confirmation. Use view_context when you need to see current session history.
 
 When calling execute_command, always provide reason (brief explanation of why and expected effect) and risk_level (read_only, low, or high) so the user sees a clear approval card.`
+
+func modeParagraph(mode string) string {
+	switch mode {
+	case "suggest":
+		return `Current mode: suggest. In this mode, execute_command will not run any command; it only records the suggested command for the user. The tool will return that the command was not executed. Still call execute_command for every command you want to suggest, so the user sees the full list. Prefer one combined command per task when possible. Explain to the user that these are suggestions only and they can copy or run them elsewhere if needed.`
+	default:
+		return `Current mode: run. Commands on the allowlist run directly; others require user approval before running. Commands with write redirection always require approval.`
+	}
+}
 
 // Run generates a reply for one user message; blocks until user approves or rejects if agent calls a command requiring approval.
 func (r *Runner) Run(ctx context.Context, userMessage string) (reply string, err error) {

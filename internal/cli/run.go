@@ -65,6 +65,13 @@ func runRun(cmd *cobra.Command, args []string) error {
 	sensitiveConfirmationChan := make(chan *agent.SensitiveConfirmationRequest, 4)
 	execEventChan := make(chan agent.ExecEvent, 8)
 	configUpdatedChan := make(chan struct{}, 1)
+	modeChangeChan := make(chan string, 1)
+
+	cfg0, _ := loadConfig()
+	currentMode := "run"
+	if cfg0 != nil {
+		currentMode = cfg0.ModeResolved()
+	}
 
 	var runner *agent.Runner
 	var runnerMu sync.Mutex
@@ -94,6 +101,7 @@ func runRun(cmd *cobra.Command, args []string) error {
 		sensitiveMatcher := hil.NewSensitiveMatcher(sensitivePatterns)
 		r, err := agent.NewRunner(context.Background(), agent.RunnerOptions{
 			Config:                    cfg2,
+			Mode:                      currentMode,
 			Allowlist:                 allowlist,
 			SensitiveMatcher:          sensitiveMatcher,
 			Session:                   session,
@@ -117,12 +125,23 @@ func runRun(cmd *cobra.Command, args []string) error {
 	var currentP *tea.Program
 
 	go func() {
-		for range configUpdatedChan {
-			runnerMu.Lock()
-			runner = nil
-			runnerMu.Unlock()
-			if currentP != nil {
-				currentP.Send(ui.ConfigReloadedMsg{})
+		for {
+			select {
+			case <-configUpdatedChan:
+				if cfg, err := loadConfig(); err == nil && cfg != nil {
+					currentMode = cfg.ModeResolved()
+				}
+				runnerMu.Lock()
+				runner = nil
+				runnerMu.Unlock()
+				if currentP != nil {
+					currentP.Send(ui.ConfigReloadedMsg{})
+				}
+			case newMode := <-modeChangeChan:
+				currentMode = newMode
+				runnerMu.Lock()
+				runner = nil
+				runnerMu.Unlock()
 			}
 		}
 	}()
@@ -143,7 +162,7 @@ func runRun(cmd *cobra.Command, args []string) error {
 	go func() {
 		for ev := range execEventChan {
 			if currentP != nil {
-				currentP.Send(ui.CommandExecutedMsg{Command: ev.Command, Allowed: ev.Allowed, Result: ev.Result, Sensitive: ev.Sensitive})
+				currentP.Send(ui.CommandExecutedMsg{Command: ev.Command, Allowed: ev.Allowed, Result: ev.Result, Sensitive: ev.Sensitive, Suggested: ev.Suggested})
 			}
 		}
 	}()
@@ -215,8 +234,9 @@ func runRun(cmd *cobra.Command, args []string) error {
 		}
 	}()
 
+	getMode := func() string { return currentMode }
 	for {
-		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, savedMessages)
+		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, modeChangeChan, getMode, savedMessages)
 		// do not use WithMouse* so the terminal can use mouse for text selection; scroll with Up/Down/PgUp/PgDown
 		p := tea.NewProgram(model, tea.WithAltScreen())
 		currentP = p

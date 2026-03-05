@@ -16,6 +16,8 @@ type Config struct {
 	LLM LLMConfig `yaml:"llm"`
 	// History retention policy
 	History HistoryConfig `yaml:"history"`
+	// Mode: suggest (only suggest commands, do not run) or run (approve then run); default run
+	Mode string `yaml:"mode"`
 }
 
 // LLMConfig is the LLM API config.
@@ -75,6 +77,7 @@ func Default() *Config {
 			MaxDays:    30,
 			MaxEntries: 0,
 		},
+		Mode: "run",
 	}
 }
 
@@ -109,7 +112,17 @@ func (c *Config) LLMSummary() string {
 	} else {
 		sp = "(custom, " + fmt.Sprintf("%d", len(sp)) + " chars)"
 	}
-	return "language: " + c.languageResolved() + "\nllm.base_url: " + baseURL + "\nllm.api_key: " + key + "\nllm.model: " + model + "\nllm.system_prompt: " + sp
+	mode := c.ModeResolved()
+	return "language: " + c.languageResolved() + "\nmode: " + mode + "\nllm.base_url: " + baseURL + "\nllm.api_key: " + key + "\nllm.model: " + model + "\nllm.system_prompt: " + sp
+}
+
+// ModeResolved returns current mode: "suggest" or "run". Default is "run".
+func (c *Config) ModeResolved() string {
+	s := strings.TrimSpace(strings.ToLower(c.Mode))
+	if s == "suggest" || s == "run" {
+		return s
+	}
+	return "run"
 }
 
 func (c *Config) languageResolved() string {
@@ -283,6 +296,24 @@ func DefaultAllowlist() []AllowlistEntry {
 	return defaultAllowlist()
 }
 
+// oldAllowlistWords are single-command names that used to use \bword\b or (^|\s)word\b; migration removes those so (^|\s)word(\s|$) are the only ones.
+var oldAllowlistWords = []string{
+	"pwd", "ls", "dir", "whoami", "id", "env", "printenv", "uname", "hostname", "date", "which", "whereis", "type",
+	"cat", "head", "tail", "less", "more", "file", "stat", "wc", "md5sum", "sha256sum", "sha1sum", "shasum", "base64", "cksum",
+	"grep", "egrep", "fgrep", "echo", "printf", "diff", "cmp", "cut", "tr", "uniq", "nl", "column", "od", "xxd", "hexdump",
+	"zcat", "bzcat", "xzcat", "ps", "uptime", "df", "du", "free", "lsblk", "groups", "getent", "locale",
+	"ping", "nslookup", "dig", "host", "true", "false", "seq", "sleep", "--help",
+}
+
+func buildOldLoosePatternsMap() map[string]bool {
+	m := make(map[string]bool, len(oldAllowlistWords)*2)
+	for _, w := range oldAllowlistWords {
+		m[`\b`+w+`\b`] = true
+		m[`(^|\s)`+w+`\b`] = true
+	}
+	return m
+}
+
 // AllowlistUpdateWithDefaults merges current allowlist with built-in default: keep existing, add missing patterns. Returns number added.
 func AllowlistUpdateWithDefaults() (added int, err error) {
 	path := AllowlistPath()
@@ -309,6 +340,14 @@ func AllowlistUpdateWithDefaults() (added int, err error) {
 		have[e.Pattern] = true
 	}
 	out := f.Allowlist
+	oldLoosePatterns := buildOldLoosePatternsMap()
+	outFiltered := out[:0]
+	for _, e := range out {
+		if !oldLoosePatterns[e.Pattern] {
+			outFiltered = append(outFiltered, e)
+		}
+	}
+	out = outFiltered
 	for _, e := range defaultAllowlist() {
 		if !have[e.Pattern] {
 			out = append(out, e)
@@ -316,7 +355,8 @@ func AllowlistUpdateWithDefaults() (added int, err error) {
 			added++
 		}
 	}
-	if added == 0 {
+	needWrite := added > 0 || len(out) < len(f.Allowlist)
+	if !needWrite {
 		return 0, nil
 	}
 	if err := WriteAllowlist(out); err != nil {
@@ -326,87 +366,89 @@ func AllowlistUpdateWithDefaults() (added int, err error) {
 }
 
 // defaultAllowlist is the built-in default: read-only commands; each Pattern is a regex.
+// Single-command patterns use (^|\s)word(\s|$) so the word is only matched as command name:
+// left side must be start or space (not -word option); right side must be space or end (not word-xxx).
 func defaultAllowlist() []AllowlistEntry {
 	return []AllowlistEntry{
 		// dirs and paths
-		{Pattern: `\bpwd\b`},
-		{Pattern: `\bls\b`},
-		{Pattern: `\bdir\b`}, // some envs alias
+		{Pattern: `(^|\s)pwd(\s|$)`},
+		{Pattern: `(^|\s)ls(\s|$)`},
+		{Pattern: `(^|\s)dir(\s|$)`}, // some envs alias
 		// user and env
-		{Pattern: `\bwhoami\b`},
-		{Pattern: `\bid\b`},
-		{Pattern: `\benv\b`},
-		{Pattern: `\bprintenv\b`},
+		{Pattern: `(^|\s)whoami(\s|$)`},
+		{Pattern: `(^|\s)id(\s|$)`},
+		{Pattern: `(^|\s)env(\s|$)`},
+		{Pattern: `(^|\s)printenv(\s|$)`},
 		// system info
-		{Pattern: `\buname\b`},
-		{Pattern: `\bhostname\b`},
-		{Pattern: `\bdate\b`},
+		{Pattern: `(^|\s)uname(\s|$)`},
+		{Pattern: `(^|\s)hostname(\s|$)`},
+		{Pattern: `(^|\s)date(\s|$)`},
 		// command lookup
-		{Pattern: `\bwhich\b`},
-		{Pattern: `\bwhereis\b`},
-		{Pattern: `\btype\b`},
+		{Pattern: `(^|\s)which(\s|$)`},
+		{Pattern: `(^|\s)whereis(\s|$)`},
+		{Pattern: `(^|\s)type(\s|$)`},
 		// read-only file view (cat/head/tail/less/more read-only; cat can read any file)
-		{Pattern: `\bcat\b`},
-		{Pattern: `\bhead\b`},
-		{Pattern: `\btail\b`},
-		{Pattern: `\bless\b`},
-		{Pattern: `\bmore\b`},
+		{Pattern: `(^|\s)cat(\s|$)`},
+		{Pattern: `(^|\s)head(\s|$)`},
+		{Pattern: `(^|\s)tail(\s|$)`},
+		{Pattern: `(^|\s)less(\s|$)`},
+		{Pattern: `(^|\s)more(\s|$)`},
 		// file info and stats
-		{Pattern: `\bfile\b`},
-		{Pattern: `\bstat\b`},
-		{Pattern: `\bwc\b`},
+		{Pattern: `(^|\s)file(\s|$)`},
+		{Pattern: `(^|\s)stat(\s|$)`},
+		{Pattern: `(^|\s)wc(\s|$)`},
 		// checksum and encoding (read-only)
-		{Pattern: `\bmd5sum\b`},
-		{Pattern: `\bsha256sum\b`},
-		{Pattern: `\bsha1sum\b`},
-		{Pattern: `\bshasum\b`},   // macOS
-		{Pattern: `\bbase64\b`},
-		{Pattern: `\bcksum\b`},
+		{Pattern: `(^|\s)md5sum(\s|$)`},
+		{Pattern: `(^|\s)sha256sum(\s|$)`},
+		{Pattern: `(^|\s)sha1sum(\s|$)`},
+		{Pattern: `(^|\s)shasum(\s|$)`},   // macOS
+		{Pattern: `(^|\s)base64(\s|$)`},
+		{Pattern: `(^|\s)cksum(\s|$)`},
 		// find: common read-only usage only (-name/-type/-maxdepth), no -exec/-delete
 		{Pattern: `find\s+\S+(\s+-(name|type|maxdepth|iname)\s+\S+)*\s*$`},
 		// grep/egrep/fgrep: read-only search
-		{Pattern: `\bgrep\b`},
-		{Pattern: `\begrep\b`},
-		{Pattern: `\bfgrep\b`},
+		{Pattern: `(^|\s)grep(\s|$)`},
+		{Pattern: `(^|\s)egrep(\s|$)`},
+		{Pattern: `(^|\s)fgrep(\s|$)`},
 		// output and pipes (read-only)
-		{Pattern: `\becho\b`},
-		{Pattern: `\bprintf\b`},
+		{Pattern: `(^|\s)echo(\s|$)`},
+		{Pattern: `(^|\s)printf(\s|$)`},
 		// text compare and process (read-only, no file write)
-		{Pattern: `\bdiff\b`},
-		{Pattern: `\bcmp\b`},
-		{Pattern: `\bcut\b`},
-		{Pattern: `\btr\b`},
-		{Pattern: `\buniq\b`},
-		{Pattern: `\bnl\b`},
-		{Pattern: `\bcolumn\b`},
-		{Pattern: `\bod\b`},
-		{Pattern: `\bxxd\b`},
-		{Pattern: `\bhexdump\b`},
+		{Pattern: `(^|\s)diff(\s|$)`},
+		{Pattern: `(^|\s)cmp(\s|$)`},
+		{Pattern: `(^|\s)cut(\s|$)`},
+		{Pattern: `(^|\s)tr(\s|$)`},
+		{Pattern: `(^|\s)uniq(\s|$)`},
+		{Pattern: `(^|\s)nl(\s|$)`},
+		{Pattern: `(^|\s)column(\s|$)`},
+		{Pattern: `(^|\s)od(\s|$)`},
+		{Pattern: `(^|\s)xxd(\s|$)`},
+		{Pattern: `(^|\s)hexdump(\s|$)`},
 		// decompress to stdout (read-only)
-		{Pattern: `\bzcat\b`},
-		{Pattern: `\bbzcat\b`},
-		{Pattern: `\bxzcat\b`},
+		{Pattern: `(^|\s)zcat(\s|$)`},
+		{Pattern: `(^|\s)bzcat(\s|$)`},
+		{Pattern: `(^|\s)xzcat(\s|$)`},
 		// process and system resources (read-only)
-		{Pattern: `\bps\b`},
-		{Pattern: `\buptime\b`},
-		{Pattern: `\bdf\b`},
-		{Pattern: `\bdu\b`},
-		{Pattern: `\bfree\b`},
-		{Pattern: `\blsblk\b`},
+		{Pattern: `(^|\s)ps(\s|$)`},
+		{Pattern: `(^|\s)uptime(\s|$)`},
+		{Pattern: `(^|\s)df(\s|$)`},
+		{Pattern: `(^|\s)du(\s|$)`},
+		{Pattern: `(^|\s)free(\s|$)`},
+		{Pattern: `(^|\s)lsblk(\s|$)`},
 		// user and permissions (read-only)
-		{Pattern: `\bgroups\b`},
-		{Pattern: `\bgetent\b`},
-		{Pattern: `\blocale\b`},
+		{Pattern: `(^|\s)groups(\s|$)`},
+		{Pattern: `(^|\s)getent(\s|$)`},
+		{Pattern: `(^|\s)locale(\s|$)`},
 		// network read-only (DNS, connectivity)
-		{Pattern: `\bping\b`},
-		{Pattern: `\bnslookup\b`},
-		{Pattern: `\bdig\b`},
-		{Pattern: `\bhost\b`},
+		{Pattern: `(^|\s)ping(\s|$)`},
+		{Pattern: `(^|\s)nslookup(\s|$)`},
+		{Pattern: `(^|\s)dig(\s|$)`},
+		{Pattern: `(^|\s)host(\s|$)`},
 		// other read-only
-		{Pattern: `\btrue\b`},
-		{Pattern: `\bfalse\b`},
-		{Pattern: `\bseq\b`},
-		{Pattern: `\bsleep\b`},
+		{Pattern: `(^|\s)true(\s|$)`},
+		{Pattern: `(^|\s)false(\s|$)`},
+		{Pattern: `(^|\s)seq(\s|$)`},
+		{Pattern: `(^|\s)sleep(\s|$)`},
 		// kubectl read-only subcommands
 		{Pattern: `kubectl\s+get\s`},
 		{Pattern: `kubectl\s+describe\s`},
@@ -453,7 +495,7 @@ func defaultAllowlist() []AllowlistEntry {
 		{Pattern: `git\s+--help`},
 		// other CLI help
 		{Pattern: `docker\s+.*--help`},
-		{Pattern: `\b--help\b`}, // most GNU tools: command --help
+		{Pattern: `(^|\s)--help(\s|$)`}, // most GNU tools: command --help
 	}
 }
 

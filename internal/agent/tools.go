@@ -44,17 +44,20 @@ type ExecEvent struct {
 	Allowed   bool   // matched allowlist, no approval needed
 	Result    string // stdout + stderr + exit_code for display
 	Sensitive bool   // if true, result contains private data, not stored and LLM sees "done"
+	Suggested bool   // if true, command was only suggested (suggest mode), not executed
 }
 
 // ExecuteCommandTool runs a command/script; blocks on requestApproval until user approves or rejects when not on allowlist.
 // When command may access sensitive path(s), blocks on requestSensitiveConfirmation for user to choose: refuse / run+store / run+no store.
+// When Mode is "suggest", no command is executed; all are recorded as suggested and OnExec is called with Suggested=true.
 type ExecuteCommandTool struct {
-	Allowlist                  *hil.Allowlist
+	Mode       string // "suggest" or "run"; default "run"
+	Allowlist  *hil.Allowlist
 	SensitiveMatcher           *hil.SensitiveMatcher
 	RequestApproval            func(command, reason, riskLevel string) bool
 	RequestSensitiveConfirmation func(command string) SensitiveChoice
 	Session                    *history.Session
-	OnExec                     func(command string, allowed bool, result string, sensitive bool)
+	OnExec                     func(command string, allowed bool, result string, sensitive bool, suggested bool)
 }
 
 var _ tool.InvokableTool = (*ExecuteCommandTool)(nil)
@@ -108,6 +111,20 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 		riskLevel = "" // invalid value treated as not provided
 	}
 	sensitive := input.ResultContainsSecrets
+
+	mode := strings.TrimSpace(strings.ToLower(t.Mode))
+	if mode != "suggest" && mode != "run" {
+		mode = "run"
+	}
+	if mode == "suggest" {
+		if t.Session != nil {
+			_ = t.Session.AppendSuggestedCommand(command, reason, riskLevel)
+		}
+		if t.OnExec != nil {
+			t.OnExec(command, false, "(suggested, not executed)", false, true)
+		}
+		return "This command was only suggested and was not executed (suggest mode). The user can see it in the conversation and may copy or run it elsewhere. Continue with your reply or suggest next steps.", nil
+	}
 
 	approved := true
 	allowed := false
@@ -168,7 +185,7 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 		resultForUI += "\nerror: " + err.Error()
 	}
 	if t.OnExec != nil {
-		t.OnExec(command, allowed, resultForUI, sensitive || !storeResult)
+		t.OnExec(command, allowed, resultForUI, sensitive || !storeResult, false)
 	}
 	// When AI set result_contains_secrets we return "done"; when user chose RunNoStore we still return full result to AI.
 	if sensitive {
