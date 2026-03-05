@@ -82,10 +82,12 @@ func (s *Session) AppendCommand(command string, approved bool, reason, riskLevel
 
 // AppendCommandResult records command execution result.
 func (s *Session) AppendCommandResult(command string, stdout, stderr string, exitCode int) error {
+	redactedStdout := RedactText(stdout)
+	redactedStderr := RedactText(stderr)
 	return s.append("command_result", map[string]interface{}{
-		"command":  command,
-		"stdout":   stdout,
-		"stderr":   stderr,
+		"command":   command,
+		"stdout":    redactedStdout,
+		"stderr":    redactedStderr,
 		"exit_code": exitCode,
 	})
 }

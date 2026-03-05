@@ -22,6 +22,8 @@ const (
 	KeyApprovalPrompt      = "approval_prompt"
 	KeyApprovalWhy         = "approval_why"
 	KeyApproveYN           = "approve_yn"
+	KeyApprovalDecisionApproved = "approval_decision_approved"
+	KeyApprovalDecisionRejected = "approval_decision_rejected"
 	KeyRiskReadOnly        = "risk_read_only"
 	KeyRiskLow             = "risk_low"
 	KeyRiskHigh            = "risk_high"
@@ -84,9 +86,11 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
 		KeyWaitOrCancel:        "(Please wait for the current response, or /cancel)",
 		KeyPlaceholderInput:    "Type a command or / for slash commands...",
 		KeyTitleHeader:         "delve-shell — Enter to send, ctrl+c to quit | Up/Down/PgUp/PgDown scroll",
-		KeyApprovalPrompt:      "Command to run (approval required):",
-		KeyApprovalWhy:         "Why:",
-		KeyApproveYN:           "Approve? (y/n): ",
+		KeyApprovalPrompt:           "Command to run (approval required):",
+		KeyApprovalWhy:              "Why:",
+		KeyApproveYN:                "Approve? (y/n): ",
+		KeyApprovalDecisionApproved: "Decision: approved",
+		KeyApprovalDecisionRejected: "Decision: rejected",
 		KeyRiskReadOnly:       "READ-ONLY",
 		KeyRiskLow:            "LOW-RISK",
 		KeyRiskHigh:           "HIGH-RISK",
@@ -145,9 +149,11 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
 		KeyWaitOrCancel:        "（请等待当前回复，或使用 /cancel）",
 		KeyPlaceholderInput:    "输入命令或 / 查看斜杠命令…",
 		KeyTitleHeader:         "delve-shell — Enter 发送，ctrl+c 退出 | Up/Down/PgUp/PgDown 滚动",
-		KeyApprovalPrompt:      "待执行的命令（需你确认）：",
-		KeyApprovalWhy:         "原因：",
-		KeyApproveYN:           "批准？(y/n)：",
+		KeyApprovalPrompt:           "待执行的命令（需你确认）：",
+		KeyApprovalWhy:              "原因：",
+		KeyApproveYN:                "批准？(y/n)：",
+		KeyApprovalDecisionApproved: "决定：已批准",
+		KeyApprovalDecisionRejected: "决定：已拒绝",
 		KeyRiskReadOnly:       "只读",
 		KeyRiskLow:            "低风险",
 		KeyRiskHigh:           "高风险",

@@ -17,15 +17,18 @@ import (
 )
 
 var (
-	titleStyle        = lipgloss.NewStyle().Bold(true)
-	errStyle          = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
-	execStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("6")).Italic(true)
-	resultStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).MarginLeft(2)
-	suggestStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
-	suggestHi         = lipgloss.NewStyle().Foreground(lipgloss.Color("13")).Bold(true)
-	riskReadOnlyStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)  // green
-	riskLowStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true)  // yellow
-	riskHighStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true)  // red
+	titleStyle                  = lipgloss.NewStyle().Bold(true)
+	errStyle                    = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
+	execStyle                   = lipgloss.NewStyle().Foreground(lipgloss.Color("6")).Italic(true)
+	resultStyle                 = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).MarginLeft(2)
+	suggestStyle                = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
+	suggestHi                   = lipgloss.NewStyle().Foreground(lipgloss.Color("13")).Bold(true)
+	riskReadOnlyStyle           = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)  // green
+	riskLowStyle                = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true)  // yellow
+	riskHighStyle               = lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true)  // red
+	approvalHeaderStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("12")).Bold(true) // cyan, for HIL approval/sensitive headers
+	approvalDecisionApprovedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true) // green
+	approvalDecisionRejectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true) // red
 )
 
 const (
@@ -155,17 +158,47 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
+		key := msg.String()
+
+		// Always allow ctrl+c to quit, even during pending approvals or sensitive prompts.
+		if key == "ctrl+c" {
+			return m, tea.Quit
+		}
+
 		if m.PendingSensitive != nil {
+			lang := m.getLang()
 			switch msg.String() {
 			case "1":
+				// Persist a static summary of the sensitive confirmation card and user's choice.
+				m.Messages = append(m.Messages,
+					approvalHeaderStyle.Render(i18n.T(lang, i18n.KeySensitivePrompt)),
+					execStyle.Render(m.PendingSensitive.Command),
+					suggestHi.Render(i18n.T(lang, i18n.KeySensitiveChoice1)),
+				)
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
 				m.PendingSensitive.ResponseCh <- agent.SensitiveRefuse
 				m.PendingSensitive = nil
 				return m, nil
 			case "2":
+				m.Messages = append(m.Messages,
+					approvalHeaderStyle.Render(i18n.T(lang, i18n.KeySensitivePrompt)),
+					execStyle.Render(m.PendingSensitive.Command),
+					suggestHi.Render(i18n.T(lang, i18n.KeySensitiveChoice2)),
+				)
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
 				m.PendingSensitive.ResponseCh <- agent.SensitiveRunAndStore
 				m.PendingSensitive = nil
 				return m, nil
 			case "3":
+				m.Messages = append(m.Messages,
+					approvalHeaderStyle.Render(i18n.T(lang, i18n.KeySensitivePrompt)),
+					execStyle.Render(m.PendingSensitive.Command),
+					suggestHi.Render(i18n.T(lang, i18n.KeySensitiveChoice3)),
+				)
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
 				m.PendingSensitive.ResponseCh <- agent.SensitiveRunNoStore
 				m.PendingSensitive = nil
 				return m, nil
@@ -173,23 +206,68 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		if m.Pending != nil {
+			lang := m.getLang()
 			switch msg.String() {
 			case "y", "Y":
+				// Persist a static summary of the approval card and user's decision.
+				riskLabel := ""
+				switch m.Pending.RiskLevel {
+				case "read_only":
+					riskLabel = i18n.T(lang, i18n.KeyRiskReadOnly)
+				case "low":
+					riskLabel = i18n.T(lang, i18n.KeyRiskLow)
+				case "high":
+					riskLabel = i18n.T(lang, i18n.KeyRiskHigh)
+				}
+				commandLine := m.Pending.Command
+				if riskLabel != "" {
+					commandLine = "[" + riskLabel + "] " + commandLine
+				}
+				m.Messages = append(m.Messages,
+					approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)),
+					execStyle.Render(commandLine),
+					approvalDecisionApprovedStyle.Render(i18n.T(lang, i18n.KeyApprovalDecisionApproved)),
+				)
+				if m.Pending.Reason != "" {
+					m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(lang, i18n.KeyApprovalWhy)+" "+m.Pending.Reason))
+				}
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
+
 				m.Pending.ResponseCh <- true
 				m.Pending = nil
 				return m, nil
 			case "n", "N":
+				riskLabel := ""
+				switch m.Pending.RiskLevel {
+				case "read_only":
+					riskLabel = i18n.T(lang, i18n.KeyRiskReadOnly)
+				case "low":
+					riskLabel = i18n.T(lang, i18n.KeyRiskLow)
+				case "high":
+					riskLabel = i18n.T(lang, i18n.KeyRiskHigh)
+				}
+				commandLine := m.Pending.Command
+				if riskLabel != "" {
+					commandLine = "[" + riskLabel + "] " + commandLine
+				}
+				m.Messages = append(m.Messages,
+					approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)),
+					execStyle.Render(commandLine),
+					approvalDecisionRejectedStyle.Render(i18n.T(lang, i18n.KeyApprovalDecisionRejected)),
+				)
+				if m.Pending.Reason != "" {
+					m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(lang, i18n.KeyApprovalWhy)+" "+m.Pending.Reason))
+				}
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
+
 				m.Pending.ResponseCh <- false
 				m.Pending = nil
 				m.WaitingForAI = false // after reject allow input immediately, no need to wait for agent
 				return m, nil
 			}
 			return m, nil
-		}
-
-		key := msg.String()
-		if key == "ctrl+c" {
-			return m, tea.Quit
 		}
 
 		inputVal := m.Input.Value()
@@ -419,11 +497,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case ApprovalRequestMsg:
+		// When an approval is requested, immediately refresh the viewport so the
+		// approval card becomes visible, and scroll to bottom.
 		m.Pending = msg
+		m.Viewport.SetContent(m.buildContent())
+		m.Viewport.GotoBottom()
 		return m, nil
 
 	case SensitiveConfirmationRequestMsg:
+		// Same as approval: ensure the sensitive confirmation card is visible.
 		m.PendingSensitive = msg
+		m.Viewport.SetContent(m.buildContent())
+		m.Viewport.GotoBottom()
 		return m, nil
 
 	case ConfigReloadedMsg:
@@ -487,8 +572,8 @@ func (m Model) buildContent() string {
 	}
 	if m.PendingSensitive != nil {
 		b.WriteString("\n")
-		b.WriteString(titleStyle.Render(i18n.T(lang, i18n.KeySensitivePrompt)) + "\n")
-		b.WriteString(m.PendingSensitive.Command + "\n")
+		b.WriteString(approvalHeaderStyle.Render(i18n.T(lang, i18n.KeySensitivePrompt)) + "\n")
+		b.WriteString(execStyle.Render(m.PendingSensitive.Command) + "\n")
 		b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeySensitiveChoice1)) + "\n")
 		b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeySensitiveChoice2)) + "\n")
 		b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeySensitiveChoice3)) + "\n")
@@ -497,7 +582,7 @@ func (m Model) buildContent() string {
 	}
 	if m.Pending != nil {
 		b.WriteString("\n")
-		b.WriteString(titleStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)) + "\n")
+		b.WriteString(approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)) + "\n")
 		switch m.Pending.RiskLevel {
 		case "read_only":
 			b.WriteString(riskReadOnlyStyle.Render("["+i18n.T(lang, i18n.KeyRiskReadOnly)+"] ") + m.Pending.Command + "\n")
@@ -583,6 +668,8 @@ func (m Model) applyConfigLanguage(value string) Model {
 		m.Viewport.GotoBottom()
 		return m
 	}
+	// update current input placeholder to reflect new language immediately
+	m.Input.Placeholder = i18n.T(value, i18n.KeyPlaceholderInput)
 	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyConfigSavedLanguage, value)))
 	m.Viewport.SetContent(m.buildContent())
 	m.Viewport.GotoBottom()
