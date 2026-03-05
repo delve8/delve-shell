@@ -11,7 +11,10 @@ import (
 func TestTerminalE2E(t *testing.T) {
 	bin := buildBinary(t)
 	root := t.TempDir()
-	env := append(os.Environ(), "DELVE_SHELL_ROOT="+root)
+	env := append(os.Environ(),
+		"DELVE_SHELL_ROOT="+root,
+		"DELVE_SHELL_NO_WIZARD=1", // e2e 测试中关闭首次启动向导，直接进入 TUI
+	)
 
 	for _, c := range TerminalCases {
 		c := c

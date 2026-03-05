@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -13,6 +14,8 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbletea"
+	openaimodel "github.com/cloudwego/eino-ext/components/model/openai"
+	"github.com/cloudwego/eino/schema"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 
@@ -20,16 +23,30 @@ import (
 	"delve-shell/internal/config"
 	"delve-shell/internal/hil"
 	"delve-shell/internal/history"
+	"delve-shell/internal/i18n"
 	"delve-shell/internal/rules"
 	"delve-shell/internal/ui"
 )
 
 func runRun(cmd *cobra.Command, args []string) error {
 	_ = args
-	cfg, err := loadConfig()
+
+	// 首次启动向导：当没有 config.yaml 且未显式关闭向导时，先走交互配置。
+	cfg, ranWizard, err := ensureConfigWithWizard()
 	if err != nil {
 		return err
 	}
+	if ranWizard {
+		// 在进入 TUI 前做一次轻量 LLM 连通性测试，仅输出结果，不中断主流程。
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := testLLMConnection(ctx, cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "LLM connectivity test failed: %v\n", err)
+		} else {
+			fmt.Fprintln(os.Stdout, "LLM connectivity test succeeded.")
+		}
+	}
+
 	if err := history.Prune(cfg); err != nil {
 		log.Printf("[warn] history prune: %v", err)
 	}
@@ -228,3 +245,136 @@ func loadConfig() (*config.Config, error) {
 	}
 	return config.Load()
 }
+
+// ensureConfigWithWizard 确保 config.yaml 已存在；若缺失且未显式关闭向导，则运行首次启动向导。
+// 返回值 ranWizard 表示本次是否执行了向导。
+func ensureConfigWithWizard() (*config.Config, bool, error) {
+	if err := config.EnsureRootDir(); err != nil {
+		return nil, false, err
+	}
+	// 测试或特殊环境可通过 DELVE_SHELL_NO_WIZARD=1 关闭向导，回退到旧行为。
+	if os.Getenv("DELVE_SHELL_NO_WIZARD") != "" {
+		cfg, err := config.Load()
+		return cfg, false, err
+	}
+	path := config.ConfigPath()
+	if _, err := os.Stat(path); err == nil {
+		cfg, err := config.Load()
+		return cfg, false, err
+	} else if !os.IsNotExist(err) {
+		return nil, false, err
+	}
+
+	cfg, err := runFirstTimeWizard(path)
+	if err != nil {
+		return nil, false, err
+	}
+	if err := config.Write(cfg); err != nil {
+		return nil, false, err
+	}
+	return cfg, true, nil
+}
+
+// runFirstTimeWizard 在终端中引导用户填写基础配置（language / base_url / api_key / model）。
+// 仅在 config.yaml 不存在时调用。文案来自 i18n，选择语言后后续提示使用该语言。
+func runFirstTimeWizard(configPath string) (*config.Config, error) {
+	introLang := "en" // 选择语言前的说明用英文（可改为根据 locale 推断）
+	fmt.Println(i18n.T(introLang, i18n.KeyWizardTitle))
+	fmt.Println(i18n.Tf(introLang, i18n.KeyWizardConfigPath, configPath))
+	fmt.Println(i18n.T(introLang, i18n.KeyWizardIntroDesc1))
+	if s := i18n.T(introLang, i18n.KeyWizardIntroDesc2); s != "" {
+		fmt.Println(s)
+	}
+	fmt.Println(i18n.T(introLang, i18n.KeyWizardIntroEnv))
+	fmt.Println()
+
+	reader := bufio.NewReader(os.Stdin)
+
+	// Language
+	lang := ""
+	for {
+		fmt.Print(i18n.T(introLang, i18n.KeyWizardLangPrompt))
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			return nil, err
+		}
+		line = strings.TrimSpace(line)
+		if line == "" {
+			lang = "en"
+			break
+		}
+		if line == "en" || line == "zh" {
+			lang = line
+			break
+		}
+		fmt.Println(i18n.T(introLang, i18n.KeyWizardLangInvalid))
+	}
+
+	// Base URL
+	fmt.Print(i18n.T(lang, i18n.KeyWizardBaseURLPrompt))
+	baseURL, err := reader.ReadString('\n')
+	if err != nil {
+		return nil, err
+	}
+	baseURL = strings.TrimSpace(baseURL)
+
+	// API key (required)
+	apiKey := ""
+	for {
+		fmt.Print(i18n.T(lang, i18n.KeyWizardAPIKeyPrompt))
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			return nil, err
+		}
+		line = strings.TrimSpace(line)
+		if line == "" {
+			fmt.Println(i18n.T(lang, i18n.KeyWizardAPIKeyRequired))
+			continue
+		}
+		apiKey = line
+		break
+	}
+
+	// Model
+	fmt.Print(i18n.T(lang, i18n.KeyWizardModelPrompt))
+	model, err := reader.ReadString('\n')
+	if err != nil {
+		return nil, err
+	}
+	model = strings.TrimSpace(model)
+	if model == "" {
+		model = "gpt-4o-mini"
+	}
+
+	cfg := config.Default()
+	cfg.Language = lang
+	cfg.LLM.BaseURL = baseURL
+	cfg.LLM.APIKey = apiKey
+	cfg.LLM.Model = model
+
+	fmt.Println()
+	fmt.Println(i18n.T(lang, i18n.KeyWizardDone))
+	fmt.Println()
+	return cfg, nil
+}
+
+// testLLMConnection 做一次最小化的 LLM 连通性测试，不执行任何命令或工具。
+func testLLMConnection(ctx context.Context, cfg *config.Config) error {
+	baseURL, apiKey, model := cfg.LLMResolved()
+	if apiKey == "" {
+		return agent.ErrLLMNotConfigured
+	}
+	chatModel, err := openaimodel.NewChatModel(ctx, &openaimodel.ChatModelConfig{
+		APIKey:  apiKey,
+		BaseURL: baseURL,
+		Model:   model,
+	})
+	if err != nil {
+		return err
+	}
+	_, err = chatModel.Generate(ctx, []*schema.Message{
+		schema.UserMessage("delve-shell config test: reply with single word OK."),
+	})
+	return err
+}
+

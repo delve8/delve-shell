@@ -56,6 +56,20 @@ const (
 	KeyDescConfigLanguage     = "desc_config_language"
 	KeyDescConfigAllowlistUpdate = "desc_config_allowlist_update"
 	KeyAllowlistUpdateDone    = "allowlist_update_done" // format: added count
+
+	// First-time wizard (before lang is chosen use "en" for intro; after language step use chosen lang)
+	KeyWizardTitle        = "wizard_title"
+	KeyWizardConfigPath   = "wizard_config_path"   // format: %s
+	KeyWizardIntroDesc1   = "wizard_intro_desc_1"
+	KeyWizardIntroDesc2   = "wizard_intro_desc_2"
+	KeyWizardIntroEnv     = "wizard_intro_env"
+	KeyWizardLangPrompt   = "wizard_lang_prompt"
+	KeyWizardLangInvalid  = "wizard_lang_invalid"
+	KeyWizardBaseURLPrompt   = "wizard_base_url_prompt"
+	KeyWizardAPIKeyPrompt   = "wizard_api_key_prompt"
+	KeyWizardAPIKeyRequired = "wizard_api_key_required"
+	KeyWizardModelPrompt  = "wizard_model_prompt"
+	KeyWizardDone         = "wizard_done"
 )
 
 var messages = map[string]map[string]string{
@@ -121,6 +135,18 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
 		KeyDescConfigLanguage:     "Set UI language (en, zh)",
 		KeyDescConfigAllowlistUpdate: "Merge built-in default allowlist into current (add missing entries)",
 		KeyAllowlistUpdateDone:    "Allowlist updated: %d new pattern(s) added. Use /reload to apply.",
+		KeyWizardTitle:           "=== delve-shell first-time setup ===",
+		KeyWizardConfigPath:      "Config path: %s",
+		KeyWizardIntroDesc1:     "This wizard will set UI language and LLM config (base_url, api_key, model).",
+		KeyWizardIntroDesc2:     "",
+		KeyWizardIntroEnv:       "Values support $VAR or ${VAR} environment references.",
+		KeyWizardLangPrompt:     "UI language [en/zh] (default: en): ",
+		KeyWizardLangInvalid:    "Please enter 'en' or 'zh'.",
+		KeyWizardBaseURLPrompt:  "LLM base URL (optional; empty uses provider default, e.g. OpenAI official): ",
+		KeyWizardAPIKeyPrompt:   "LLM api_key (required; supports $VAR or ${VAR}): ",
+		KeyWizardAPIKeyRequired: "api_key is required. Use an env reference if you prefer not to store the key directly.",
+		KeyWizardModelPrompt:    "LLM model (optional; default: gpt-4o-mini): ",
+		KeyWizardDone:           "Config captured; it will be saved and delve-shell will start.",
 	},
 	"zh": {
 		KeyHelpText: `delve-shell — AI 辅助运维，命令经你确认后执行。
@@ -184,6 +210,18 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
 		KeyDescConfigLanguage:     "设置界面语言（en、zh）",
 		KeyDescConfigAllowlistUpdate: "将内置默认允许列表合并到当前（仅追加缺失项）",
 		KeyAllowlistUpdateDone:    "允许列表已更新：新增 %d 条。使用 /reload 生效。",
+		KeyWizardTitle:           "=== delve-shell 首次启动向导 ===",
+		KeyWizardConfigPath:      "配置文件路径：%s",
+		KeyWizardIntroDesc1:     "本向导将设置界面语言和 LLM 配置（base_url、api_key、model）。",
+		KeyWizardIntroDesc2:     "",
+		KeyWizardIntroEnv:       "以上字段均支持使用环境变量引用（如 $VAR 或 ${VAR}）。",
+		KeyWizardLangPrompt:     "界面语言 [en/zh]（默认 en）：",
+		KeyWizardLangInvalid:    "请输入 en 或 zh。",
+		KeyWizardBaseURLPrompt:  "LLM base URL（可选；留空则使用默认，例如 OpenAI 官方接口）：",
+		KeyWizardAPIKeyPrompt:   "LLM api_key（必填；支持 $VAR 或 ${VAR}）：",
+		KeyWizardAPIKeyRequired: "api_key 为必填项。若不希望直接写入密钥，可只填环境变量引用。",
+		KeyWizardModelPrompt:    "LLM model（可选；默认 gpt-4o-mini）：",
+		KeyWizardDone:           "配置已写入内存，稍后将保存到文件并启动 delve-shell。",
 	},
 }
 
