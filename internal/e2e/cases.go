@@ -105,7 +105,7 @@ var TerminalCases = []Case{
 		Timeout: 20 * time.Second,
 		Steps: []Step{
 			{Input: "", Expect: []string{"delve-shell", "Enter"}, Timeout: 5 * time.Second},
-			{Input: "list files in current directory", Expect: []string{"Command to run", "待执行的命令", "approval", "批准", "Approve?", "y/n"}, Timeout: 18 * time.Second},
+			{Input: "list files in current directory", Expect: []string{"Command to run", "待执行的命令", "approval", "批准", "1=", "2="}, Timeout: 18 * time.Second},
 			{Input: "y", Expect: []string{"exit_code", "Run:"}, Timeout: 10 * time.Second},
 		},
 	},

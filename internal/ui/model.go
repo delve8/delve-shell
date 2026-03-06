@@ -3,83 +3,22 @@ package ui
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/atotto/clipboard"
+	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/agent"
 	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
-	"github.com/charmbracelet/lipgloss"
-)
-
-var (
-	titleStyle                  = lipgloss.NewStyle().Bold(true)
-	errStyle                    = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
-	execStyle                   = lipgloss.NewStyle().Foreground(lipgloss.Color("6")).Italic(true)
-	resultStyle                 = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).MarginLeft(2)
-	suggestStyle                = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
-	suggestHi                   = lipgloss.NewStyle().Foreground(lipgloss.Color("13")).Bold(true)
-	riskReadOnlyStyle           = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)  // green
-	riskLowStyle                = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Bold(true)  // yellow
-	riskHighStyle               = lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true)  // red
-	approvalHeaderStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("12")).Bold(true) // cyan, for HIL approval/sensitive headers
-	approvalDecisionApprovedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true) // green
-	approvalDecisionRejectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true) // red
-	hintStyle                   = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Italic(true) // dim, italic for hint lines (copy hint, "Copied to clipboard")
 )
 
 const (
 	defaultWidth  = 80
 	defaultHeight = 24
 )
-
-type slashOption struct{ Cmd, Desc string }
-
-// getSlashOptions returns top-level slash commands (shown when input starts with "/"); order: help, cancel, config, mode, reload, run, sh, exit.
-func getSlashOptions(lang string) []slashOption {
-	return []slashOption{
-		{"/help", i18n.T(lang, i18n.KeyDescHelp)},
-		{"/cancel", i18n.T(lang, i18n.KeyDescCancel)},
-		{"/config", i18n.T(lang, i18n.KeyDescConfig)},
-		{"/mode suggest", i18n.T(lang, i18n.KeyDescModeSuggest)},
-		{"/mode run", i18n.T(lang, i18n.KeyDescModeRun)},
-		{"/reload", i18n.T(lang, i18n.KeyDescReload)},
-		{"/run <cmd>", i18n.T(lang, i18n.KeyDescRun)},
-		{"/sh", i18n.T(lang, i18n.KeyDescSh)},
-		{"/exit", i18n.T(lang, i18n.KeyDescExit)},
-	}
-}
-
-// getConfigSubOptions returns /config sub-options (shown when input starts with "/config"), not /exit, /sh, etc.
-func getConfigSubOptions(lang string) []slashOption {
-	return []slashOption{
-		{"/config show", i18n.T(lang, i18n.KeyDescConfigShow)},
-		{"/config mode <suggest|run>", i18n.T(lang, i18n.KeyDescConfigMode)},
-		{"/config allowlist update", i18n.T(lang, i18n.KeyDescConfigAllowlistUpdate)},
-		{"/config llm base_url <url>", i18n.T(lang, i18n.KeyDescConfigLLMBaseURL)},
-		{"/config llm api_key <key>", i18n.T(lang, i18n.KeyDescConfigLLMApiKey)},
-		{"/config llm model <name>", i18n.T(lang, i18n.KeyDescConfigLLMModel)},
-		{"/config language <en|zh>", i18n.T(lang, i18n.KeyDescConfigLanguage)},
-	}
-}
-
-// getSlashOptionsForInput returns slash options to show: when input is "/config" or "/config xxx" returns only /config sub-options; when "/mode" or "/mode x" returns mode sub-options; else top-level commands.
-func getSlashOptionsForInput(inputVal string, lang string) []slashOption {
-	normalized := strings.TrimPrefix(inputVal, "/")
-	normalized = strings.ToLower(strings.TrimSpace(normalized))
-	if normalized == "config" || strings.HasPrefix(normalized, "config ") {
-		return getConfigSubOptions(lang)
-	}
-	if normalized == "mode" || strings.HasPrefix(normalized, "mode ") {
-		return getSlashOptions(lang) // /mode suggest, /mode run
-	}
-	return getSlashOptions(lang)
-}
 
 // Model is the Bubble Tea session and approval UI.
 type Model struct {
@@ -99,6 +38,7 @@ type Model struct {
 	Width               int
 	Height              int
 	SlashSuggestIndex   int  // 0..len(visible)-1 when input starts with /
+	ChoiceIndex         int  // 0-based selection when in Pending/PendingSensitive/PendingSuggested; Up/Down to move, Enter to confirm
 	WaitingForAI        bool // when true only blocks submitting new messages (Enter); /xxx slash commands always allowed
 }
 
@@ -119,45 +59,15 @@ func (m Model) getLang() string {
 	return "en"
 }
 
-// visibleSlashOptions filters and returns indices of visible slash options for the current input.
-func visibleSlashOptions(input string, opts []slashOption) []int {
-	input = strings.TrimPrefix(input, "/")
-	input = strings.ToLower(input)
-	var out []int
-	for i, opt := range opts {
-		base := strings.Split(opt.Cmd, " ")[0]
-		base = strings.TrimPrefix(base, "/")
-		if input == "" || strings.HasPrefix(base, input) || strings.HasPrefix(opt.Cmd, "/"+input) {
-			out = append(out, i)
-		}
-	}
-	if len(out) == 0 {
-		for i := range opts {
-			out = append(out, i)
-		}
-	}
-	return out
-}
-
-// slashChosenToInputValue converts the chosen slash command to the string to put in the input (strips <placeholder> and adds space).
-func slashChosenToInputValue(chosen string) string {
-	// replace <...> placeholder with "prefix " so user can continue typing
-	if strings.Contains(chosen, " <") {
-		if i := strings.Index(chosen, " <"); i > 0 {
-			return chosen[:i] + " "
-		}
-	}
-	return chosen
-}
-
 // Update implements tea.Model.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	m.syncInputPlaceholder()
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.Width = msg.Width
 		m.Height = msg.Height
 		if m.Height > 4 {
-			vh := m.Height - 4
+			vh := m.Height - 8 // 2 header + 1 blank + 1 sep + 1 input + 3 choice/hint max
 			if vh < 1 {
 				vh = 1
 			}
@@ -176,9 +86,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
+		inChoice := m.Pending != nil || m.PendingSensitive != nil || m.PendingSuggested != nil
+		if inChoice {
+			n := choiceCount(m)
+			if n > 0 {
+				if key == "enter" {
+					// Treat Enter as selecting current option (1-based)
+					key = string(rune('1' + m.ChoiceIndex))
+				} else if key == "up" || key == "down" {
+					if key == "down" {
+						m.ChoiceIndex = (m.ChoiceIndex + 1) % n
+					} else {
+						m.ChoiceIndex = (m.ChoiceIndex - 1 + n) % n
+					}
+					return m, nil
+				}
+			}
+		}
+
 		if m.PendingSensitive != nil {
 			lang := m.getLang()
-			switch msg.String() {
+			switch key {
 			case "1":
 				// Persist a static summary of the sensitive confirmation card and user's choice.
 				m.Messages = append(m.Messages,
@@ -218,8 +146,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if m.Pending != nil {
 			lang := m.getLang()
-			switch msg.String() {
-			case "1", "y", "Y":
+			switch key {
+			case "1":
 				// Persist a static summary of the approval card and user's decision.
 				riskLabel := ""
 				switch m.Pending.RiskLevel {
@@ -248,7 +176,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Pending.ResponseCh <- true
 				m.Pending = nil
 				return m, nil
-			case "2", "n", "N":
+			case "2":
 				riskLabel := ""
 				switch m.Pending.RiskLevel {
 				case "read_only":
@@ -283,7 +211,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.PendingSuggested != nil {
 			lang := m.getLang()
 			switch key {
-			case "1", "c", "C":
+			case "1":
 				_ = clipboard.WriteAll(*m.PendingSuggested)
 				m.appendSuggestedLine(*m.PendingSuggested, lang)
 				m.Messages = append(m.Messages, hintStyle.Render(i18n.T(lang, i18n.KeySuggestedCopied)))
@@ -291,7 +219,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Viewport.SetContent(m.buildContent())
 				m.Viewport.GotoBottom()
 				return m, nil
-			case "2", "enter":
+			case "2":
 				m.appendSuggestedLine(*m.PendingSuggested, lang)
 				m.PendingSuggested = nil
 				m.Viewport.SetContent(m.buildContent())
@@ -553,6 +481,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// When an approval is requested, immediately refresh the viewport so the
 		// approval card becomes visible, and scroll to bottom.
 		m.Pending = msg
+		m.ChoiceIndex = 0
+		m.syncInputPlaceholder()
 		m.Viewport.SetContent(m.buildContent())
 		m.Viewport.GotoBottom()
 		return m, nil
@@ -560,6 +490,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case SensitiveConfirmationRequestMsg:
 		// Same as approval: ensure the sensitive confirmation card is visible.
 		m.PendingSensitive = msg
+		m.ChoiceIndex = 0
+		m.syncInputPlaceholder()
 		m.Viewport.SetContent(m.buildContent())
 		m.Viewport.GotoBottom()
 		return m, nil
@@ -597,6 +529,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			cmd := msg.Command
 			m.PendingSuggested = &cmd
+			m.ChoiceIndex = 0
+			m.syncInputPlaceholder()
 			m.Viewport.SetContent(m.buildContent())
 			m.Viewport.GotoBottom()
 			return m, nil
@@ -626,291 +560,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m Model) buildContent() string {
-	lang := m.getLang()
-	var b strings.Builder
-	modeStr := "run"
-	if m.GetMode != nil {
-		modeStr = m.GetMode()
-	}
-	title := i18n.T(lang, i18n.KeyTitleHeader) + " | " + i18n.T(lang, i18n.KeyModeLabel) + ": " + modeStr
-	b.WriteString(titleStyle.Render(title) + "\n\n")
-	for _, line := range m.Messages {
-		b.WriteString(line)
-		b.WriteString("\n")
-	}
-	if m.PendingSensitive != nil {
-		b.WriteString("\n")
-		b.WriteString(approvalHeaderStyle.Render(i18n.T(lang, i18n.KeySensitivePrompt)) + "\n")
-		b.WriteString(execStyle.Render(m.PendingSensitive.Command) + "\n")
-		b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeySensitiveChoice1)) + "\n")
-		b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeySensitiveChoice2)) + "\n")
-		b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeySensitiveChoice3)) + "\n")
-		b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeySensitivePressKey)))
-		return b.String()
-	}
-	if m.Pending != nil {
-		b.WriteString("\n")
-		b.WriteString(approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)) + "\n")
-		switch m.Pending.RiskLevel {
-		case "read_only":
-			b.WriteString(riskReadOnlyStyle.Render("["+i18n.T(lang, i18n.KeyRiskReadOnly)+"] ") + m.Pending.Command + "\n")
-		case "low":
-			b.WriteString(riskLowStyle.Render("["+i18n.T(lang, i18n.KeyRiskLow)+"] ") + m.Pending.Command + "\n")
-		case "high":
-			b.WriteString(riskHighStyle.Render("["+i18n.T(lang, i18n.KeyRiskHigh)+"] ") + m.Pending.Command + "\n")
-		default:
-			b.WriteString(m.Pending.Command + "\n")
-		}
-		if m.Pending.Reason != "" {
-			b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeyApprovalWhy)+" "+m.Pending.Reason) + "\n")
-		}
-		b.WriteString(i18n.T(lang, i18n.KeyApproveYN))
-		return b.String()
-	}
-	if m.PendingSuggested != nil {
-		b.WriteString("\n")
-		b.WriteString(approvalHeaderStyle.Render(i18n.T(lang, i18n.KeySuggestedCardTitle)) + "\n")
-		b.WriteString(execStyle.Render(*m.PendingSuggested) + "\n")
-		b.WriteString(hintStyle.Render(i18n.T(lang, i18n.KeySuggestedCardHint)))
-		return b.String()
-	}
-	return b.String()
-}
-
-// appendSuggestedLine appends the run line and copy hint for a suggested command (when dismissing the card).
-func (m *Model) appendSuggestedLine(command, lang string) {
-	tag := i18n.T(lang, i18n.KeyRunTagSuggested)
-	m.Messages = append(m.Messages, execStyle.Render(i18n.T(lang, i18n.KeyRunLabel)+command+" ("+tag+")"))
-	m.Messages = append(m.Messages, hintStyle.Render(i18n.T(lang, i18n.KeySuggestedCopyHint)))
-}
-
-// applyConfigLLM sets one llm field in config.yaml and writes back; value supports $VAR env expansion.
-func (m Model) applyConfigLLM(field, value string) Model {
-	value = strings.TrimSpace(value)
-	lang := m.getLang()
-	cfg, err := config.Load()
-	if err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	switch field {
-	case "base_url":
-		cfg.LLM.BaseURL = value
-	case "api_key":
-		cfg.LLM.APIKey = value
-	case "model":
-		cfg.LLM.Model = value
-	default:
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+i18n.T(lang, i18n.KeyConfigUnknownField)+field))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	if err := config.Write(cfg); err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyConfigSaved, field)))
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
-	if m.ConfigUpdatedChan != nil {
-		select {
-		case m.ConfigUpdatedChan <- struct{}{}:
-		default:
-		}
-	}
-	return m
-}
-
-// applyConfigLanguage sets config.yaml language and writes back.
-func (m Model) applyConfigLanguage(value string) Model {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		lang := m.getLang()
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+i18n.T(lang, i18n.KeyConfigLanguageRequired)))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	lang := m.getLang()
-	cfg, err := config.Load()
-	if err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	cfg.Language = value
-	if err := config.Write(cfg); err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	// update current input placeholder to reflect new language immediately
-	m.Input.Placeholder = i18n.T(value, i18n.KeyPlaceholderInput)
-	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyConfigSavedLanguage, value)))
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
-	if m.ConfigUpdatedChan != nil {
-		select {
-		case m.ConfigUpdatedChan <- struct{}{}:
-		default:
-		}
-	}
-	return m
-}
-
-// showConfig displays current config path and LLM summary (api_key masked) in the conversation area.
-func (m Model) showConfig() Model {
-	lang := m.getLang()
-	cfg, err := config.Load()
-	if err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	m.Messages = append(m.Messages, suggestStyle.Render(config.ConfigPath()+"\n"+cfg.LLMSummary()))
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
-	return m
-}
-
-// applyModeSwitch sets runtime mode to the given value (suggest or run) and sends to ModeChangeChan; does not write config.
-func (m Model) applyModeSwitch(modeArg string) Model {
-	lang := m.getLang()
-	modeArg = strings.TrimSpace(strings.ToLower(modeArg))
-	if modeArg != "suggest" && modeArg != "run" {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyModeRequired)))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	if m.ModeChangeChan != nil {
-		select {
-		case m.ModeChangeChan <- modeArg:
-		default:
-		}
-	}
-	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyModeSetTo, modeArg)))
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
-	return m
-}
-
-// applyConfigMode sets default mode in config and writes config; next startup will use this mode.
-func (m Model) applyConfigMode(value string) Model {
-	value = strings.TrimSpace(strings.ToLower(value))
-	if value != "suggest" && value != "run" {
-		lang := m.getLang()
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+i18n.T(lang, i18n.KeyConfigModeRequired)))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	lang := m.getLang()
-	cfg, err := config.Load()
-	if err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	cfg.Mode = value
-	if err := config.Write(cfg); err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyConfigSavedMode, value)))
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
-	if m.ConfigUpdatedChan != nil {
-		select {
-		case m.ConfigUpdatedChan <- struct{}{}:
-		default:
-		}
-	}
-	return m
-}
-
-// applyConfigAllowlistUpdate merges built-in default allowlist into current allowlist.yaml, appending only missing patterns.
-func (m Model) applyConfigAllowlistUpdate() Model {
-	lang := m.getLang()
-	added, err := config.AllowlistUpdateWithDefaults()
-	if err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyAllowlistUpdateDone, added)))
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
-	if m.ConfigUpdatedChan != nil {
-		select {
-		case m.ConfigUpdatedChan <- struct{}{}:
-		default:
-		}
-	}
-	return m
-}
-
-// View implements tea.Model.
-func (m Model) View() string {
-	lang := m.getLang()
-	if m.Height <= 4 {
-		out := m.buildContent() + "\n" + m.Input.View()
-		if m.WaitingForAI {
-			out += "\n" + suggestStyle.Render(i18n.T(lang, i18n.KeyWaitOrCancel))
-		}
-		return out
-	}
-	vh := m.Height - 4
-	if vh < 1 {
-		vh = 1
-	}
-	m.Viewport.Width = m.Width
-	m.Viewport.Height = vh
-	// do not SetContent in View() to avoid resetting scroll every frame (would break Up/Down/PgUp/PgDown); set only in Update() when content changes
-	out := m.Viewport.View()
-	out += "\n"
-	out += m.Input.View()
-	inputVal := m.Input.Value()
-	if strings.HasPrefix(inputVal, "/") {
-		opts := getSlashOptionsForInput(inputVal, lang)
-		vis := visibleSlashOptions(inputVal, opts)
-		if len(vis) > 0 {
-			out += "\n"
-			for i, vi := range vis {
-				opt := opts[vi]
-				line := fmt.Sprintf("%-14s  %s", opt.Cmd, opt.Desc)
-				if i == m.SlashSuggestIndex {
-					out += suggestHi.Render(" "+line) + "\n"
-				} else {
-					out += suggestStyle.Render(" "+line) + "\n"
-				}
-			}
-		}
-	}
-	if m.WaitingForAI {
-		out += "\n"
-		out += suggestStyle.Render(i18n.T(lang, i18n.KeyWaitOrCancel))
-	}
-	return out
-}
-
 // NewModel creates a Model with default input (slash commands and viewport scrolling).
 // initialMessages if non-nil is used as existing conversation (e.g. after /sh return).
 // modeChangeChan and getMode are for /mode (runtime switch); getMode returns current mode for title.
-func NewModel(submitChan chan<- string, execDirectChan chan<- string, shellRequestedChan chan<- []string, cancelRequestChan chan<- struct{}, configUpdatedChan chan<- struct{}, modeChangeChan chan<- string, getMode func() string, initialMessages []string) Model {
+func NewModel(
+	submitChan chan<- string,
+	execDirectChan chan<- string,
+	shellRequestedChan chan<- []string,
+	cancelRequestChan chan<- struct{},
+	configUpdatedChan chan<- struct{},
+	modeChangeChan chan<- string,
+	getMode func() string,
+	initialMessages []string,
+) Model {
 	ti := textinput.New()
 	lang := "en"
 	if cfg, err := config.Load(); err == nil && cfg != nil && cfg.Language != "" {
@@ -918,9 +580,9 @@ func NewModel(submitChan chan<- string, execDirectChan chan<- string, shellReque
 	}
 	ti.Placeholder = i18n.T(lang, i18n.KeyPlaceholderInput)
 	ti.Prompt = "> "
-	ti.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
-	ti.TextStyle = lipgloss.NewStyle()
-	ti.Cursor.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("13"))
+	ti.PromptStyle = inputPromptStyle
+	ti.TextStyle = inputTextStyle
+	ti.Cursor.Style = inputCursorStyle
 	ti.CharLimit = 0
 	ti.Width = 60
 	ti.Focus()

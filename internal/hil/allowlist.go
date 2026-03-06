@@ -51,7 +51,7 @@ func ContainsWriteRedirection(command string) bool {
 	return false
 }
 
-// Allow reports whether the full command (or script) matches the allowlist; if so, no user approval needed.
+// Allow reports whether a single command string matches the allowlist (used per segment in AllowStrict).
 func (w *Allowlist) Allow(command string) bool {
 	for _, p := range w.patterns {
 		if p.regex != nil && p.regex.MatchString(command) {
@@ -59,6 +59,35 @@ func (w *Allowlist) Allow(command string) bool {
 		}
 	}
 	return false
+}
+
+// splitIntoCommands splits a command into a flat list of single commands by pipeline (|) and chain (;, &&, ||).
+func splitIntoCommands(command string) []string {
+	parts := splitPipeline(command)
+	var out []string
+	for _, p := range parts {
+		for _, sub := range splitShellChain(p) {
+			if sub != "" {
+				out = append(out, sub)
+			}
+		}
+	}
+	if len(out) == 0 {
+		return []string{strings.TrimSpace(command)}
+	}
+	return out
+}
+
+// AllowStrict: for chained/pipeline commands, splits into segments and requires every segment to match the allowlist;
+// for a single command, requires that one segment to match. All must match; no approval bypass by a single allowed token.
+func (w *Allowlist) AllowStrict(command string) bool {
+	segments := splitIntoCommands(command)
+	for _, seg := range segments {
+		if seg == "" || !w.Allow(seg) {
+			return false
+		}
+	}
+	return len(segments) > 0
 }
 
 // splitPipeline splits the command by pipe |, ignoring | inside quotes.

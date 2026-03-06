@@ -131,7 +131,7 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 	if t.Allowlist != nil {
 		// any write redirection (>, >>, etc.) is never auto-allowed; must be approved by user
 		allowed = !hil.ContainsWriteRedirection(command) &&
-			(t.Allowlist.Allow(command) || t.Allowlist.AllowPipeline(command))
+			t.Allowlist.AllowStrict(command)
 	}
 	if !allowed {
 		approved = t.RequestApproval(command, reason, riskLevel)

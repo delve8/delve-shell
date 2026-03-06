@@ -18,6 +18,17 @@ const (
 	KeyConfigSavedLanguage  = "config_saved_language"
 	KeyWaitOrCancel        = "wait_or_cancel"
 	KeyPlaceholderInput    = "placeholder_input"
+	KeyInputHintApprove    = "input_hint_approve"    // placeholder when waiting for 1/2 (approval)
+	KeyInputHintSensitive  = "input_hint_sensitive"  // placeholder when waiting for 1/2/3 (sensitive)
+	KeyInputHintSuggest    = "input_hint_suggest"    // placeholder when waiting for 1/2 (suggest card)
+	// Choice menu labels (for Up/Down + Enter selection list)
+	KeyChoiceApprove   = "choice_approve"
+	KeyChoiceReject    = "choice_reject"
+	KeyChoiceRefuse    = "choice_refuse"
+	KeyChoiceRunStore  = "choice_run_store"
+	KeyChoiceRunNoStore = "choice_run_no_store"
+	KeyChoiceCopy      = "choice_copy"
+	KeyChoiceDismiss   = "choice_dismiss"
 	KeyTitleHeader         = "title_header"
 	KeyApprovalPrompt      = "approval_prompt"
 	KeyApprovalWhy         = "approval_why"
@@ -70,6 +81,13 @@ const (
 	KeyConfigSavedMode        = "config_saved_mode"     // format: suggest or run
 	KeyConfigModeRequired     = "config_mode_required"
 
+	// Status bar (title): IDLE / RUNNING / pending approval / suggest card
+	KeyStatusIdle             = "status_idle"
+	KeyStatusRunning          = "status_running"
+	KeyStatusPendingApproval  = "status_pending_approval"
+	KeyStatusSuggest          = "status_suggest"
+	KeyNeedConfirmationHint   = "need_confirmation_hint"
+
 	// First-time wizard (before lang is chosen use "en" for intro; after language step use chosen lang)
 	KeyWizardTitle        = "wizard_title"
 	KeyWizardConfigPath   = "wizard_config_path"   // format: %s
@@ -113,11 +131,21 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
 		KeyConfigSaved:         "Config saved (llm.%s).",
 		KeyConfigSavedLanguage:  "Config saved (language: %s).",
 		KeyWaitOrCancel:        "(Please wait for the current response, or /cancel)",
-		KeyPlaceholderInput:    "Type a command or / for slash commands...",
+		KeyPlaceholderInput:    "Type your question or task, or / for slash commands...",
+		KeyInputHintApprove:    "1 or 2",
+		KeyInputHintSensitive:  "1, 2 or 3",
+		KeyInputHintSuggest:    "1 or 2",
+		KeyChoiceApprove:       "Approve",
+		KeyChoiceReject:        "Reject",
+		KeyChoiceRefuse:        "Refuse (do not run)",
+		KeyChoiceRunStore:      "Run, return to AI, store in history",
+		KeyChoiceRunNoStore:    "Run, return to AI, do not store",
+		KeyChoiceCopy:          "Copy",
+		KeyChoiceDismiss:       "Dismiss",
 		KeyTitleHeader:         "delve-shell — Enter to send, ctrl+c to quit | Up/Down/PgUp/PgDown scroll",
 		KeyApprovalPrompt:           "Command to run (approval required):",
 		KeyApprovalWhy:              "Why:",
-		KeyApproveYN:                "1=approve, 2=reject (or y/n): ",
+		KeyApproveYN:                "1=approve, 2=reject",
 		KeyApprovalDecisionApproved: "Decision: approved",
 		KeyApprovalDecisionRejected: "Decision: rejected",
 		KeyRiskReadOnly:       "READ-ONLY",
@@ -157,12 +185,17 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
 		KeyRunTagSuggested:       "suggested",
 		KeySuggestedCopyHint:     "Select the command above to copy, or use /run <cmd> to run it.",
 		KeySuggestedCardTitle:    "Suggested command (not executed):",
-		KeySuggestedCardHint:     "1=copy, 2=dismiss (or c / Enter)",
+		KeySuggestedCardHint:     "1=copy, 2=dismiss",
 		KeySuggestedCopied:       "Copied to clipboard.",
 		KeyModeLabel:             "mode",
 		KeyModeSetTo:             "Mode set to %s (this session only).",
 		KeyConfigSavedMode:      "Config saved (mode: %s). Use /reload to apply as default for next message.",
 		KeyConfigModeRequired:   "mode: value required (suggest or run)",
+		KeyStatusIdle:           "[IDLE]",
+		KeyStatusRunning:         "[PROCESSING]",
+		KeyStatusPendingApproval: "[NEED APPROVAL]",
+		KeyStatusSuggest:         "[SUGGEST]",
+		KeyNeedConfirmationHint:  "Your confirmation required.",
 		KeyWizardTitle:           "=== delve-shell first-time setup ===",
 		KeyWizardConfigPath:      "Config path: %s",
 		KeyWizardIntroDesc1:     "This wizard will set UI language and LLM config (base_url, api_key, model).",
@@ -203,11 +236,21 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
 		KeyConfigSaved:         "配置已保存（llm.%s）。",
 		KeyConfigSavedLanguage: "配置已保存（language: %s）。",
 		KeyWaitOrCancel:        "（请等待当前回复，或使用 /cancel）",
-		KeyPlaceholderInput:    "输入命令或 / 查看斜杠命令…",
+		KeyPlaceholderInput:    "输入问题或任务，或 / 查看斜杠命令…",
+		KeyInputHintApprove:    "1 或 2",
+		KeyInputHintSensitive: "1、2 或 3",
+		KeyInputHintSuggest:    "1 或 2",
+		KeyChoiceApprove:       "批准",
+		KeyChoiceReject:        "拒绝",
+		KeyChoiceRefuse:        "拒绝（不执行）",
+		KeyChoiceRunStore:      "执行并写入历史",
+		KeyChoiceRunNoStore:    "执行但不写入历史",
+		KeyChoiceCopy:          "复制",
+		KeyChoiceDismiss:       "关闭",
 		KeyTitleHeader:         "delve-shell — Enter 发送，ctrl+c 退出 | Up/Down/PgUp/PgDown 滚动",
 		KeyApprovalPrompt:           "待执行的命令（需你确认）：",
 		KeyApprovalWhy:              "原因：",
-		KeyApproveYN:                "1=批准，2=拒绝（或 y/n）：",
+		KeyApproveYN:                "1=批准，2=拒绝",
 		KeyApprovalDecisionApproved: "决定：已批准",
 		KeyApprovalDecisionRejected: "决定：已拒绝",
 		KeyRiskReadOnly:       "只读",
@@ -247,12 +290,17 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
 		KeyRunTagSuggested:       "建议",
 		KeySuggestedCopyHint:     "可选中上方命令复制，或使用 /run <cmd> 执行。",
 		KeySuggestedCardTitle:    "建议的命令（未执行）：",
-		KeySuggestedCardHint:     "1=复制，2=关闭（或 c / Enter）",
+		KeySuggestedCardHint:     "1=复制，2=关闭",
 		KeySuggestedCopied:       "已复制到剪贴板。",
 		KeyModeLabel:             "模式",
 		KeyModeSetTo:             "当前会话模式已设为 %s（不写入配置）。",
 		KeyConfigSavedMode:      "配置已保存（mode: %s）。使用 /reload 后作为默认模式生效。",
 		KeyConfigModeRequired:   "mode: 需提供值（suggest 或 run）",
+		KeyStatusIdle:           "[空闲]",
+		KeyStatusRunning:         "[处理中]",
+		KeyStatusPendingApproval: "[待确认]",
+		KeyStatusSuggest:         "[建议]",
+		KeyNeedConfirmationHint:  "需要你的确认。",
 		KeyWizardTitle:           "=== delve-shell 首次启动向导 ===",
 		KeyWizardConfigPath:      "配置文件路径：%s",
 		KeyWizardIntroDesc1:     "本向导将设置界面语言和 LLM 配置（base_url、api_key、model）。",
