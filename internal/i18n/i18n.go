@@ -101,6 +101,16 @@ const (
 	KeyWizardAPIKeyRequired = "wizard_api_key_required"
 	KeyWizardModelPrompt  = "wizard_model_prompt"
 	KeyWizardDone         = "wizard_done"
+
+	// Session picker (startup)
+	KeySessionTitle    = "session_title"
+	KeySessionNew      = "session_new"
+	KeySessionPrompt   = "session_prompt"
+	KeySessionSwitched   = "session_switched"
+	KeySessionSwitchedTo = "session_switched_to" // format: "Switched to session: %s" (session id)
+	KeySessionSelect     = "session_select"
+	KeyDescSessions    = "desc_sessions"
+	KeySessionNone     = "session_none"
 )
 
 var messages = map[string]map[string]string{
@@ -208,6 +218,14 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
 		KeyWizardAPIKeyRequired: "api_key is required. Use an env reference if you prefer not to store the key directly.",
 		KeyWizardModelPrompt:    "LLM model (optional; default: gpt-4o-mini): ",
 		KeyWizardDone:           "Config captured; it will be saved and delve-shell will start.",
+		KeySessionTitle:         "=== Session ===",
+		KeySessionNew:           "New session",
+		KeySessionPrompt:        "Choose (0 = new, 1–%d = continue): ",
+		KeySessionSwitched:      "Switched to session.",
+		KeySessionSwitchedTo:    "Switched to session: %s",
+		KeySessionSelect:        "Up/Down select, Enter switch",
+		KeyDescSessions:         "Switch session",
+		KeySessionNone:          "No previous sessions.",
 	},
 	"zh": {
 		KeyHelpText: `delve-shell — AI 辅助运维，命令经你确认后执行。
@@ -313,6 +331,14 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
 		KeyWizardAPIKeyRequired: "api_key 为必填项。若不希望直接写入密钥，可只填环境变量引用。",
 		KeyWizardModelPrompt:    "LLM model（可选；默认 gpt-4o-mini）：",
 		KeyWizardDone:           "配置已写入内存，稍后将保存到文件并启动 delve-shell。",
+		KeySessionTitle:         "=== 会话 ===",
+		KeySessionNew:           "新会话",
+		KeySessionPrompt:        "选择（0=新会话，1–%d=继续）：",
+		KeySessionSwitched:      "已切换会话。",
+		KeySessionSwitchedTo:    "已切换到会话：%s",
+		KeySessionSelect:        "上下选择，Enter 切换",
+		KeyDescSessions:         "切换会话",
+		KeySessionNone:          "没有往期会话。",
 	},
 }
 

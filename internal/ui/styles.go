@@ -18,9 +18,10 @@ var (
 
 var (
 	// General secondary text and lists
-	suggestStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))                // secondary: help, config success, approval reason, unselected list row
-	suggestHi    = lipgloss.NewStyle().Foreground(lipgloss.Color("13")).Bold(true)   // highlighted list row (choice 1/2/3, slash options)
-	hintStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Italic(true)  // tertiary hint: copy hint, "Copied"
+	suggestStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))              // secondary: help, config success, approval reason, unselected list row
+	suggestHi          = lipgloss.NewStyle().Foreground(lipgloss.Color("13")).Bold(true)   // highlighted list row (choice 1/2/3, slash options)
+	hintStyle          = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Italic(true)  // tertiary hint: copy hint, "Copied"
+	sessionSwitchedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Italic(true) // "Switched to session: xxx" hint at bottom
 )
 
 var (

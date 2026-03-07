@@ -1,9 +1,11 @@
 package ui
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
+	"delve-shell/internal/history"
 	"delve-shell/internal/i18n"
 )
 
@@ -13,7 +15,7 @@ type choiceOption struct {
 	Label string
 }
 
-// choiceCount returns the number of options when in a choice state (approval 2, sensitive 3, suggest 2).
+// choiceCount returns the number of options when in a choice state (approval 2, sensitive 3, suggest 2, or session list N).
 func choiceCount(m Model) int {
 	switch {
 	case m.Pending != nil:
@@ -105,6 +107,66 @@ func (m Model) titleLine() string {
 	return titleStyle.Render(modePart + statusStr)
 }
 
+const maxSessionHistoryEvents = 500
+
+// sessionEventsToMessages converts history events to the same display lines used in the live conversation (User:, AI:, Run:, result).
+func sessionEventsToMessages(events []history.Event, lang string) []string {
+	var out []string
+	for _, ev := range events {
+		switch ev.Type {
+		case "user_input":
+			var p struct {
+				Text string `json:"text"`
+			}
+			if json.Unmarshal(ev.Payload, &p) == nil && p.Text != "" {
+				out = append(out, i18n.T(lang, i18n.KeyUserLabel)+p.Text)
+			}
+		case "llm_response":
+			var p struct {
+				Reply string `json:"reply"`
+			}
+			if json.Unmarshal(ev.Payload, &p) == nil && p.Reply != "" {
+				out = append(out, i18n.T(lang, i18n.KeyAILabel)+p.Reply)
+			}
+		case "command":
+			var p struct {
+				Command   string `json:"command"`
+				Approved  bool   `json:"approved"`
+				Suggested bool   `json:"suggested"`
+			}
+			if json.Unmarshal(ev.Payload, &p) != nil || p.Command == "" {
+				continue
+			}
+			tag := i18n.T(lang, i18n.KeyRunTagApproved)
+			if p.Suggested {
+				tag = i18n.T(lang, i18n.KeyRunTagSuggested)
+			}
+			out = append(out, execStyle.Render(i18n.T(lang, i18n.KeyRunLabel)+p.Command+" ("+tag+")"))
+		case "command_result":
+			var p struct {
+				Command   string `json:"command"`
+				Stdout    string `json:"stdout"`
+				Stderr    string `json:"stderr"`
+				ExitCode  int    `json:"exit_code"`
+			}
+			if json.Unmarshal(ev.Payload, &p) != nil {
+				continue
+			}
+			result := strings.TrimSpace(p.Stdout)
+			if p.Stderr != "" {
+				if result != "" {
+					result += "\n"
+				}
+				result += strings.TrimSpace(p.Stderr)
+			}
+			if result != "" {
+				out = append(out, resultStyle.Render(result))
+			}
+		}
+	}
+	return out
+}
+
 // buildContent returns the scrollable viewport content (messages + pending/suggest cards); title is rendered in View().
 func (m Model) buildContent() string {
 	lang := m.getLang()
@@ -192,17 +254,42 @@ func (m Model) View() string {
 			}
 		}
 	} else if strings.HasPrefix(inputVal, "/") {
-		opts := getSlashOptionsForInput(inputVal, lang)
+		opts := getSlashOptionsForInput(inputVal, lang, m.CurrentSessionPath)
 		vis := visibleSlashOptions(inputVal, opts)
 		if len(vis) > 0 {
 			out += "\n"
-			for i, vi := range vis {
+			hiIdx := m.SlashSuggestIndex
+			if hiIdx >= len(vis) {
+				hiIdx = 0
+			}
+			const maxSlashVisible = 8
+			start := 0
+			if len(vis) > maxSlashVisible {
+				start = hiIdx - maxSlashVisible/2
+				if start < 0 {
+					start = 0
+				}
+				if start+maxSlashVisible > len(vis) {
+					start = len(vis) - maxSlashVisible
+				}
+			}
+			end := start + maxSlashVisible
+			if end > len(vis) {
+				end = len(vis)
+			}
+			for i := start; i < end; i++ {
+				vi := vis[i]
 				opt := opts[vi]
-				line := fmt.Sprintf("%-14s  %s", opt.Cmd, opt.Desc)
-				if i == m.SlashSuggestIndex {
-					out += suggestHi.Render(" "+line) + "\n"
+				line := opt.Cmd
+				if opt.Path != "" {
+					line = "/sessions " + line
 				} else {
-					out += suggestStyle.Render(" "+line) + "\n"
+					line = fmt.Sprintf("%-14s  %s", opt.Cmd, opt.Desc)
+				}
+				if i == hiIdx {
+					out += suggestHi.Render("   "+line) + "\n"
+				} else {
+					out += suggestStyle.Render("   "+line) + "\n"
 				}
 			}
 		}

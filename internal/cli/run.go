@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -16,7 +18,6 @@ import (
 	"github.com/charmbracelet/bubbletea"
 	openaimodel "github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/schema"
-	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 
 	"delve-shell/internal/agent"
@@ -54,7 +55,7 @@ func runRun(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("load rules: %w", err)
 	}
-	sessionID := time.Now().Format("20060102-150405") + "-" + uuid.New().String()[:8]
+	sessionID := time.Now().Format("060102-150405") + "-" + randHex2()
 	session, err := history.NewSession(sessionID)
 	if err != nil {
 		return fmt.Errorf("create session: %w", err)
@@ -121,9 +122,30 @@ func runRun(cmd *cobra.Command, args []string) error {
 	execDirectChan := make(chan string, 4)
 	shellRequestedChan := make(chan []string, 1)
 	cancelRequestChan := make(chan struct{}, 1)
+	sessionSwitchChan := make(chan string, 1)
 	var savedMessages []string
 	var currentP *tea.Program
 
+	go func() {
+		for path := range sessionSwitchChan {
+			oldSession := session
+			newSession, err := history.OpenSession(path)
+			if err != nil {
+				if currentP != nil {
+					currentP.Send(ui.AgentReplyMsg{Err: fmt.Errorf("open session: %w", err)})
+				}
+				continue
+			}
+			_ = oldSession.Close()
+			session = newSession
+			runnerMu.Lock()
+			runner = nil
+			runnerMu.Unlock()
+			if currentP != nil {
+				currentP.Send(ui.SessionSwitchedMsg{Path: path})
+			}
+		}
+	}()
 	go func() {
 		for {
 			select {
@@ -192,6 +214,26 @@ func runRun(cmd *cobra.Command, args []string) error {
 	}()
 	go func() {
 		for userMsg := range submitChan {
+			if userMsg == "/new" {
+				oldSession := session
+				sessionID := time.Now().Format("060102-150405") + "-" + randHex2()
+				newSession, err := history.NewSession(sessionID)
+				if err != nil {
+					if currentP != nil {
+						currentP.Send(ui.AgentReplyMsg{Err: fmt.Errorf("new session: %w", err)})
+					}
+					continue
+				}
+				_ = oldSession.Close()
+				session = newSession
+				runnerMu.Lock()
+				runner = nil
+				runnerMu.Unlock()
+				if currentP != nil {
+					currentP.Send(ui.SessionSwitchedMsg{Path: session.Path()})
+				}
+				continue
+			}
 			r, err := getRunner()
 			if err != nil {
 				if currentP != nil {
@@ -236,7 +278,7 @@ func runRun(cmd *cobra.Command, args []string) error {
 
 	getMode := func() string { return currentMode }
 	for {
-		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, modeChangeChan, getMode, savedMessages)
+		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, modeChangeChan, sessionSwitchChan, getMode, savedMessages, session.Path())
 		// do not use WithMouse* so the terminal can use mouse for text selection; scroll with Up/Down/PgUp/PgDown
 		p := tea.NewProgram(model, tea.WithAltScreen())
 		currentP = p
@@ -257,6 +299,15 @@ func runRun(cmd *cobra.Command, args []string) error {
 			return nil
 		}
 	}
+}
+
+// randHex2 returns 2 random hex chars from crypto/rand (for session id suffix).
+func randHex2() string {
+	b := make([]byte, 1)
+	if _, err := rand.Read(b); err != nil {
+		return hex.EncodeToString([]byte{byte(time.Now().UnixNano() % 256)})
+	}
+	return hex.EncodeToString(b)
 }
 
 func loadConfig() (*config.Config, error) {

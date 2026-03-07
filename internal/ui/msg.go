@@ -26,3 +26,9 @@ type CommandExecutedMsg struct {
 
 // ConfigReloadedMsg notifies the UI that config/allowlist was reloaded; next message will use new config.
 type ConfigReloadedMsg struct{}
+
+// SessionSwitchedMsg notifies the UI that the session was switched (/new or /sessions).
+// Path is the session file path; UI loads history from it to display (empty file for new session).
+type SessionSwitchedMsg struct {
+	Path string
+}

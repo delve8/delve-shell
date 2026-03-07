@@ -2,8 +2,10 @@ package history
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -33,6 +35,26 @@ func NewSession(id string) (*Session, error) {
 	}
 	path := filepath.Join(dir, id+".jsonl")
 	return &Session{id: id, path: path, f: nil}, nil
+}
+
+// OpenSession opens an existing session file for appending (e.g. to continue a previous session).
+// path must be an absolute path to a .jsonl file under HistoryDir; the session id is derived from the filename.
+func OpenSession(path string) (*Session, error) {
+	dir := config.HistoryDir()
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+	// Ensure path is under HistoryDir
+	rel, err := filepath.Rel(dir, abs)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		return nil, errors.New("session path must be under history dir")
+	}
+	if !strings.HasSuffix(rel, ".jsonl") {
+		return nil, errors.New("session path must be a .jsonl file")
+	}
+	id := strings.TrimSuffix(filepath.Base(abs), ".jsonl")
+	return &Session{id: id, path: abs, f: nil}, nil
 }
 
 func (s *Session) append(typ string, payload interface{}) error {

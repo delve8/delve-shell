@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"errors"
+	"path/filepath"
 	"strings"
 
 	"github.com/atotto/clipboard"
@@ -10,6 +11,7 @@ import (
 
 	"delve-shell/internal/agent"
 	"delve-shell/internal/config"
+	"delve-shell/internal/history"
 	"delve-shell/internal/i18n"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -34,6 +36,8 @@ type Model struct {
 	CancelRequestChan   chan<- struct{}  // on /cancel request cancel of in-flight AI
 	ConfigUpdatedChan   chan<- struct{}  // on /config save or /reload, invalidate runner so next message reloads config/allowlist
 	ModeChangeChan      chan<- string    // on /mode send new mode (suggest|run), runtime only, not written to config
+	SessionSwitchChan   chan<- string    // on /sessions choice, send selected session path to continue
+	CurrentSessionPath  string            // path of current session (excluded from /sessions list so switch loads another)
 	GetMode             func() string   // current runtime mode for display
 	Width               int
 	Height              int
@@ -235,9 +239,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// scroll keys: Up/Down change selection in slash mode, else go to viewport with PgUp/PgDown
 		if key == "up" || key == "down" || key == "pgup" || key == "pgdown" {
 			if inSlash && (key == "up" || key == "down") {
-				opts := getSlashOptionsForInput(inputVal, m.getLang())
+				opts := getSlashOptionsForInput(inputVal, m.getLang(), m.CurrentSessionPath)
 				vis := visibleSlashOptions(inputVal, opts)
 				if len(vis) > 0 {
+					if m.SlashSuggestIndex >= len(vis) {
+						m.SlashSuggestIndex = 0
+					}
 					if key == "down" {
 						m.SlashSuggestIndex = (m.SlashSuggestIndex + 1) % len(vis)
 					} else {
@@ -260,9 +267,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.WaitingForAI && !strings.HasPrefix(text, "/") {
 				return m, nil
 			}
-			// first check "fill selection only": / then Up/Down then Enter only fills input, does not submit
+			// Save selected slash option before any state change; Enter handler resets SlashSuggestIndex below, so we must capture now.
+			var slashSelectedPath string
+			var slashSelectedIndex int = -1
 			if strings.HasPrefix(text, "/") {
-				opts := getSlashOptionsForInput(text, m.getLang())
+				opts := getSlashOptionsForInput(text, m.getLang(), m.CurrentSessionPath)
 				vis := visibleSlashOptions(text, opts)
 				if len(vis) > 0 && m.SlashSuggestIndex < len(vis) {
 					chosen := opts[vis[m.SlashSuggestIndex]].Cmd
@@ -272,8 +281,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.Input.CursorEnd()
 						return m, nil
 					}
+					slashSelectedIndex = m.SlashSuggestIndex
+					if opts[vis[m.SlashSuggestIndex]].Path != "" {
+						slashSelectedPath = opts[vis[m.SlashSuggestIndex]].Path
+					}
 				}
 			}
+			// /new sends to run loop only; do not append to Messages
+			if text == "/new" {
+				if m.SubmitChan != nil {
+					m.SubmitChan <- text
+				}
+				m.Input.SetValue("")
+				m.Input.CursorEnd()
+				m.SlashSuggestIndex = 0
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
+				return m, nil
+			}
+
 			m.Messages = append(m.Messages, i18n.T(m.getLang(), i18n.KeyUserLabel)+text)
 			m.Viewport.SetContent(m.buildContent())
 			m.Viewport.GotoBottom()
@@ -355,10 +381,38 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				return m, nil
 			case strings.HasPrefix(text, "/"):
-				opts := getSlashOptionsForInput(text, m.getLang())
+				// Use path captured before SlashSuggestIndex was reset; otherwise we would always send opts[0].
+				if slashSelectedPath != "" {
+					if m.SessionSwitchChan != nil {
+						select {
+						case m.SessionSwitchChan <- slashSelectedPath:
+						default:
+						}
+					}
+					m.Input.SetValue("")
+					m.Input.CursorEnd()
+					m.SlashSuggestIndex = 0
+					m.Viewport.SetContent(m.buildContent())
+					m.Viewport.GotoBottom()
+					return m, nil
+				}
+				opts := getSlashOptionsForInput(text, m.getLang(), m.CurrentSessionPath)
 				vis := visibleSlashOptions(text, opts)
-				if len(vis) > 0 && m.SlashSuggestIndex < len(vis) {
-					chosen := opts[vis[m.SlashSuggestIndex]].Cmd
+				var selectedOpt slashOption
+				if slashSelectedIndex >= 0 && slashSelectedIndex < len(vis) {
+					selectedOpt = opts[vis[slashSelectedIndex]]
+				}
+				// "No previous sessions" single option: show message and clear input.
+				if selectedOpt.Path == "" && len(vis) == 1 && selectedOpt.Desc == "" {
+					m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(m.getLang(), i18n.KeySessionNone)))
+					m.Viewport.SetContent(m.buildContent())
+					m.Viewport.GotoBottom()
+					m.Input.SetValue("")
+					m.Input.CursorEnd()
+					m.SlashSuggestIndex = 0
+					return m, nil
+				}
+				chosen := selectedOpt.Cmd
 					// input must match chosen command; skip when only "/". "Fill only" already returned above.
 					if len(strings.TrimSpace(strings.TrimPrefix(text, "/"))) > 0 && (chosen == text || strings.HasPrefix(chosen, text)) {
 						// user input matches chosen (full input then Enter) => execute
@@ -453,8 +507,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							}
 							return m, nil
 						}
+						if chosen == "/new" {
+							if m.SubmitChan != nil {
+								m.SubmitChan <- "/new"
+							}
+							m.Input.SetValue("")
+							m.Input.CursorEnd()
+							m.SlashSuggestIndex = 0
+							m.Viewport.SetContent(m.buildContent())
+							m.Viewport.GotoBottom()
+							return m, nil
+						}
 					}
-				}
 				m.Messages = append(m.Messages, errStyle.Render(i18n.T(m.getLang(), i18n.KeyUnknownCmd)))
 				return m, nil
 			}
@@ -465,12 +529,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		var cmd tea.Cmd
-		m.Input, cmd = m.Input.Update(msg)
-		if strings.HasPrefix(m.Input.Value(), "/") {
+	var cmd tea.Cmd
+	m.Input, cmd = m.Input.Update(msg)
+	if strings.HasPrefix(m.Input.Value(), "/") {
+		inputVal := m.Input.Value()
+		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.CurrentSessionPath)
+		vis := visibleSlashOptions(inputVal, opts)
+		// Session list (Path set): do not reset index on every keystroke so user can pick another session with Enter
+		if len(opts) == 0 || opts[0].Path == "" {
 			m.SlashSuggestIndex = 0
 		}
-		return m, cmd
+		if len(vis) > 0 && m.SlashSuggestIndex >= len(vis) {
+			m.SlashSuggestIndex = 0
+		}
+	}
+	return m, cmd
 
 	case tea.MouseMsg:
 		var cmd tea.Cmd
@@ -492,6 +565,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.PendingSensitive = msg
 		m.ChoiceIndex = 0
 		m.syncInputPlaceholder()
+		m.Viewport.SetContent(m.buildContent())
+		m.Viewport.GotoBottom()
+		return m, nil
+
+	case SessionSwitchedMsg:
+		lang := m.getLang()
+		m.CurrentSessionPath = msg.Path
+		sessionID := ""
+		if msg.Path != "" {
+			sessionID = strings.TrimSuffix(filepath.Base(msg.Path), ".jsonl")
+		}
+		switchedLine := sessionSwitchedStyle.Render(i18n.Tf(lang, i18n.KeySessionSwitchedTo, sessionID))
+		if msg.Path != "" {
+			events, _ := history.ReadRecent(msg.Path, maxSessionHistoryEvents)
+			msgs := sessionEventsToMessages(events, lang)
+			m.Messages = make([]string, 0, len(msgs)+1)
+			m.Messages = append(m.Messages, msgs...)
+			m.Messages = append(m.Messages, switchedLine)
+		} else {
+			m.Messages = []string{switchedLine}
+		}
 		m.Viewport.SetContent(m.buildContent())
 		m.Viewport.GotoBottom()
 		return m, nil
@@ -562,6 +656,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // NewModel creates a Model with default input (slash commands and viewport scrolling).
 // initialMessages if non-nil is used as existing conversation (e.g. after /sh return).
+// initialSessionPath is the current session file path (excluded from /sessions list so first option is another session).
 // modeChangeChan and getMode are for /mode (runtime switch); getMode returns current mode for title.
 func NewModel(
 	submitChan chan<- string,
@@ -570,8 +665,10 @@ func NewModel(
 	cancelRequestChan chan<- struct{},
 	configUpdatedChan chan<- struct{},
 	modeChangeChan chan<- string,
+	sessionSwitchChan chan<- string,
 	getMode func() string,
 	initialMessages []string,
+	initialSessionPath string,
 ) Model {
 	ti := textinput.New()
 	lang := "en"
@@ -603,6 +700,8 @@ func NewModel(
 		CancelRequestChan:   cancelRequestChan,
 		ConfigUpdatedChan:   configUpdatedChan,
 		ModeChangeChan:      modeChangeChan,
+		SessionSwitchChan:   sessionSwitchChan,
+		CurrentSessionPath:  initialSessionPath,
 		GetMode:             getMode,
 		Width:               defaultWidth,
 		Height:              defaultHeight,
