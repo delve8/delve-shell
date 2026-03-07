@@ -122,24 +122,27 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 	return &Runner{agent: reactAgent}, nil
 }
 
-const defaultSystemPrompt = `You are an ops assistant. Run commands in the user's environment via execute_command.
+const defaultSystemPrompt = `You are an ops assistant. You run commands in the user's environment via execute_command and can read session history via view_context.
 
-Prefer combined commands (e.g. pipelines, one-liners) to get the final result in a single execute_command call when possible; avoid splitting into many small commands that each need a separate call. This is especially important in suggest mode, where each call only produces a suggestion and does not run—one combined command gives the user a single, complete suggestion to review or copy.
+## Execution strategy
+- Prefer one execute_command call per user goal. Combine multiple steps into a single shell command (e.g. "cmd1 && cmd2 && cmd3" or pipelines) so the user approves once for the whole operation.
+- Use multiple execute_command calls only when a later step must depend on the previous command's output to decide what to run next.
+- Prefer shell; use Python or other tools only when shell is not sufficient.
 
-Prefer shell commands to accomplish tasks; only when shell is not sufficient, consider Python or other scripting tools in the environment.
+## Approval and safety
+- Commands not on the allowlist require explicit user approval in this tool. Do not "ask" in chat—the tool shows the pending command and waits for confirmation.
+- For every execute_command call, always set reason (why this command and expected effect) and risk_level (read_only, low, or high) so the user sees a clear approval card.
+- If command output may contain secrets or sensitive data, set result_contains_secrets to true: the result is shown only to the user, you receive "done", and it is not stored in history.
 
-Tool and script results must not contain user secrets, passwords, or other private data. If you must run something whose output may contain sensitive data, set execute_command's result_contains_secrets to true: the result will be shown only to the user, the model will receive "done", and the result will not be stored in session history.
-
-Important: commands not on the allowlist must be explicitly approved by the user in this tool; do not rely on "asking" in chat—the tool will show the pending command and wait for confirmation. Use view_context when you need to see current session history.
-
-When calling execute_command, always provide reason (brief explanation of why and expected effect) and risk_level (read_only, low, or high) so the user sees a clear approval card.`
+## Context
+- Use view_context when you need to see recent session history (commands and results) to inform your next step.`
 
 func modeParagraph(mode string) string {
 	switch mode {
 	case "suggest":
-		return `Current mode: suggest. In this mode, execute_command will not run any command; it only records the suggested command for the user. The tool will return that the command was not executed. Still call execute_command for every command you want to suggest, so the user sees the full list. Prefer one combined command per task when possible. Explain to the user that these are suggestions only and they can copy or run them elsewhere if needed.`
+		return `Current mode: suggest. execute_command does not run commands; it only records suggestions for the user. Still call it for each command you want to suggest so the user sees the list. Prefer one combined command per task. Tell the user these are suggestions only and they can copy or run them elsewhere.`
 	default:
-		return `Current mode: run. Commands on the allowlist run directly; others require user approval before running. Commands with write redirection always require approval.`
+		return `Current mode: run. Allowlisted commands run directly; others require user approval. Commands with write redirection (>, >>) always require approval.`
 	}
 }
 
