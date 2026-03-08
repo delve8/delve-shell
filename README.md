@@ -29,7 +29,8 @@ set DELVE_SHELL_ROOT=D:\my-dir            # Windows
 ```
 
 Main config: `<root>/config.yaml`  
-Allowlist: `<root>/allowlist.yaml`
+Allowlist: `<root>/allowlist.yaml`  
+Session data: `<root>/sessions`
 
 ## Configuration
 
@@ -62,13 +63,17 @@ Use **`/config allowlist update`** in the app to merge the current built-in defa
 
 ### Slash commands
 
-Type `/` to list and complete these commands (order: help → cancel → config → reload → run → sh → exit):
+Type `/` to list and complete these commands (order: help → cancel → config → mode → new → sessions → reload → run → sh → exit):
 
 | Command        | Description |
 |----------------|-------------|
 | `/help`        | Show help and slash command list |
 | `/cancel`      | Cancel the current AI request |
-| `/config`      | Config (after `/config` you can choose show, allowlist update, llm, language) |
+| `/config`      | Config (sub: show, mode, allowlist update, llm base_url/api_key/model, language) |
+| `/mode suggest`| Switch to suggest-only mode for this session (no execution) |
+| `/mode run`    | Switch to run mode for this session (approve then run) |
+| `/new`         | Start a new session |
+| `/sessions`    | List and switch to another session (optional filter after space) |
 | `/reload`      | Reload config and allowlist without restart |
 | `/run <cmd>`   | Run a single command directly (no AI) |
 | `/sh`          | Start the system shell; return to this session when it exits |
