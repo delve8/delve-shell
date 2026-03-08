@@ -10,14 +10,14 @@ import (
 // TestGetSessionSlashOptions_excludesCurrentSession asserts that the session list does not include currentSessionPath.
 func TestGetSessionSlashOptions_excludesCurrentSession(t *testing.T) {
 	dir := t.TempDir()
-	historyDir := filepath.Join(dir, "history")
-	if err := os.MkdirAll(historyDir, 0700); err != nil {
+	sessionsDir := filepath.Join(dir, "sessions")
+	if err := os.MkdirAll(sessionsDir, 0700); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("DELVE_SHELL_ROOT", dir)
 
-	aPath := filepath.Join(historyDir, "a.jsonl")
-	bPath := filepath.Join(historyDir, "b.jsonl")
+	aPath := filepath.Join(sessionsDir, "a.jsonl")
+	bPath := filepath.Join(sessionsDir, "b.jsonl")
 	for _, p := range []string{aPath, bPath} {
 		if err := os.WriteFile(p, []byte(`{"type":"user_input","payload":{"text":"x"}}`+"\n"), 0600); err != nil {
 			t.Fatal(err)

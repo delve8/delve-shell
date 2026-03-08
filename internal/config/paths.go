@@ -37,7 +37,7 @@ func RulesDir() string {
 	return filepath.Join(RootDir(), "rules")
 }
 
-// HistoryDir returns the session history directory path.
+// HistoryDir returns the session files directory path (~/.delve-shell/sessions).
 func HistoryDir() string {
-	return filepath.Join(RootDir(), "history")
+	return filepath.Join(RootDir(), "sessions")
 }

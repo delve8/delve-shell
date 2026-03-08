@@ -11,7 +11,7 @@ import (
 func TestListSessions_emptyDir(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("DELVE_SHELL_ROOT", dir)
-	// history dir does not exist yet
+	// sessions dir does not exist yet
 	paths, err := ListSessions()
 	if err != nil {
 		t.Fatalf("ListSessions: %v", err)
@@ -23,17 +23,17 @@ func TestListSessions_emptyDir(t *testing.T) {
 
 func TestListSessions_returnsOnlyJsonl(t *testing.T) {
 	dir := t.TempDir()
-	historyDir := filepath.Join(dir, "history")
-	if err := os.MkdirAll(historyDir, 0700); err != nil {
+	sessionsDir := filepath.Join(dir, "sessions")
+	if err := os.MkdirAll(sessionsDir, 0700); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("DELVE_SHELL_ROOT", dir)
 
 	// create one .jsonl and one non-jsonl file
-	if err := os.WriteFile(filepath.Join(historyDir, "a.jsonl"), []byte("{}"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(sessionsDir, "a.jsonl"), []byte("{}"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(historyDir, "b.txt"), []byte("x"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(sessionsDir, "b.txt"), []byte("x"), 0600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -94,15 +94,15 @@ func TestReadRecent_noFileReturnsNilNil(t *testing.T) {
 
 func TestListSessionsWithSummary_sortedByMtimeDesc(t *testing.T) {
 	dir := t.TempDir()
-	historyDir := filepath.Join(dir, "history")
-	if err := os.MkdirAll(historyDir, 0700); err != nil {
+	sessionsDir := filepath.Join(dir, "sessions")
+	if err := os.MkdirAll(sessionsDir, 0700); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("DELVE_SHELL_ROOT", dir)
 
 	// create two session files with different mtimes
-	p1 := filepath.Join(historyDir, "old.jsonl")
-	p2 := filepath.Join(historyDir, "new.jsonl")
+	p1 := filepath.Join(sessionsDir, "old.jsonl")
+	p2 := filepath.Join(sessionsDir, "new.jsonl")
 	if err := os.WriteFile(p1, []byte(`{"type":"user_input","payload":{"text":"old"}}`+"\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
