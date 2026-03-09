@@ -15,12 +15,18 @@ import (
 	"delve-shell/internal/history"
 )
 
+// ApprovalResponse is the user's choice for a pending command: Run, Reject, or Copy (copy to clipboard, do not run).
+type ApprovalResponse struct {
+	Approved     bool // true = run the command
+	CopyRequested bool // true = user chose Copy (do not run; copy to clipboard)
+}
+
 // ApprovalRequest is sent to HIL: pending command and response channel.
 type ApprovalRequest struct {
 	Command    string // command to run
 	Reason     string // AI explanation (why, expected effect); may be empty
 	RiskLevel  string // read_only | low | high; empty if not provided
-	ResponseCh chan bool
+	ResponseCh chan ApprovalResponse
 }
 
 // SensitiveChoice is the user's choice when a command may access sensitive path(s).
@@ -47,17 +53,17 @@ type ExecEvent struct {
 	Suggested bool   // if true, command was only suggested (suggest mode), not executed
 }
 
-// ExecuteCommandTool runs a command/script; blocks on requestApproval until user approves or rejects when not on allowlist.
+// ExecuteCommandTool runs a command/script; blocks on requestApproval until user chooses Run/Reject/Copy when not auto-run.
 // When command may access sensitive path(s), blocks on requestSensitiveConfirmation for user to choose: refuse / run+store / run+no store.
-// When Mode is "suggest", no command is executed; all are recorded as suggested and OnExec is called with Suggested=true.
+// AllowlistAutoRun: when true, allowlisted commands run directly and only others show card (2 options: Run, Reject); when false, every command shows card (3 options: Run, Copy, Dismiss).
 type ExecuteCommandTool struct {
-	Mode       string // "suggest" or "run"; default "run"
-	Allowlist  *hil.Allowlist
-	SensitiveMatcher           *hil.SensitiveMatcher
-	RequestApproval            func(command, reason, riskLevel string) bool
+	AllowlistAutoRun bool // when false, no command auto-runs; card has Run/Copy/Dismiss
+	Allowlist        *hil.Allowlist
+	SensitiveMatcher            *hil.SensitiveMatcher
+	RequestApproval             func(command, reason, riskLevel string) ApprovalResponse
 	RequestSensitiveConfirmation func(command string) SensitiveChoice
-	Session                    *history.Session
-	OnExec                     func(command string, allowed bool, result string, sensitive bool, suggested bool)
+	Session                     *history.Session
+	OnExec                      func(command string, allowed bool, result string, sensitive bool, suggested bool)
 }
 
 var _ tool.InvokableTool = (*ExecuteCommandTool)(nil)
@@ -112,33 +118,24 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 	}
 	sensitive := input.ResultContainsSecrets
 
-	mode := strings.TrimSpace(strings.ToLower(t.Mode))
-	if mode != "suggest" && mode != "run" {
-		mode = "run"
-	}
-	if mode == "suggest" {
-		if t.Session != nil {
-			_ = t.Session.AppendSuggestedCommand(command, reason, riskLevel)
-		}
-		if t.OnExec != nil {
-			t.OnExec(command, false, "(suggested, not executed)", false, true)
-		}
-		return "This command was only suggested and was not executed (suggest mode). The user can see it in the conversation and may copy or run it elsewhere. Continue with your reply or suggest next steps.", nil
-	}
-
-	approved := true
+	// When AllowlistAutoRun is false, no command runs without user choice; when true, allowlist matches run directly.
 	allowed := false
-	if t.Allowlist != nil {
-		// any write redirection (>, >>, etc.) is never auto-allowed; must be approved by user
+	if t.AllowlistAutoRun && t.Allowlist != nil {
 		allowed = !hil.ContainsWriteRedirection(command) &&
 			t.Allowlist.AllowStrict(command)
 	}
 	if !allowed {
-		approved = t.RequestApproval(command, reason, riskLevel)
+		resp := t.RequestApproval(command, reason, riskLevel)
 		if t.Session != nil {
-			_ = t.Session.AppendCommand(command, approved, reason, riskLevel)
+			_ = t.Session.AppendCommand(command, resp.Approved, reason, riskLevel)
 		}
-		if !approved {
+		if resp.CopyRequested {
+			if t.Session != nil {
+				_ = t.Session.AppendSuggestedCommand(command, reason, riskLevel)
+			}
+			return "The user copied the command and did not run it. Continue with your reply or suggest next steps.", nil
+		}
+		if !resp.Approved {
 			return "The user declined to run this command: " + command + ". Continue without running it; you may suggest an alternative or ask what they prefer.", nil
 		}
 	} else if t.Session != nil {

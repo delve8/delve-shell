@@ -27,18 +27,17 @@ type Model struct {
 	Input               textinput.Model
 	Viewport            viewport.Model
 	Messages            []string
-	Pending             *agent.ApprovalRequest
-	PendingSensitive    *agent.SensitiveConfirmationRequest
-	PendingSuggested    *string // suggested command card: press c to copy, Enter to dismiss
+	Pending          *agent.ApprovalRequest
+	PendingSensitive *agent.SensitiveConfirmationRequest
 	SubmitChan          chan<- string
 	ExecDirectChan      chan<- string
 	ShellRequestedChan  chan<- []string // on /sh send current Messages to preserve after return
 	CancelRequestChan   chan<- struct{}  // on /cancel request cancel of in-flight AI
 	ConfigUpdatedChan   chan<- struct{}  // on /config save or /reload, invalidate runner so next message reloads config/allowlist
-	ModeChangeChan      chan<- string    // on /mode send new mode (suggest|run), runtime only, not written to config
-	SessionSwitchChan   chan<- string    // on /sessions choice, send selected session path to continue
-	CurrentSessionPath  string            // path of current session (excluded from /sessions list so switch loads another)
-	GetMode             func() string   // current runtime mode for display
+	AllowlistAutoRunChangeChan chan<- bool // runtime toggle for allowlist auto-run (true = list only, false = none)
+	SessionSwitchChan          chan<- string // on /sessions choice, send selected session path to continue
+	CurrentSessionPath         string       // path of current session (excluded from /sessions list so switch loads another)
+	GetAllowlistAutoRun        func() bool  // for header and Pending card 2 vs 3 options
 	Width               int
 	Height              int
 	SlashSuggestIndex   int  // 0..len(visible)-1 when input starts with /
@@ -90,7 +89,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
-		inChoice := m.Pending != nil || m.PendingSensitive != nil || m.PendingSuggested != nil
+		inChoice := m.Pending != nil || m.PendingSensitive != nil
 		if inChoice {
 			n := choiceCount(m)
 			if n > 0 {
@@ -177,7 +176,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Viewport.SetContent(m.buildContent())
 				m.Viewport.GotoBottom()
 
-				m.Pending.ResponseCh <- true
+				m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: true, CopyRequested: false}
 				m.Pending = nil
 				return m, nil
 			case "2":
@@ -204,30 +203,47 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.Viewport.SetContent(m.buildContent())
 				m.Viewport.GotoBottom()
-
-				m.Pending.ResponseCh <- false
+				threeOptions := m.GetAllowlistAutoRun != nil && !m.GetAllowlistAutoRun()
+				if threeOptions {
+					// 2 = Copy
+					_ = clipboard.WriteAll(m.Pending.Command)
+					m.appendSuggestedLine(m.Pending.Command, lang)
+					m.Messages = append(m.Messages, hintStyle.Render(i18n.T(lang, i18n.KeySuggestedCopied)))
+					m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: true}
+				} else {
+					m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
+					m.WaitingForAI = false
+				}
 				m.Pending = nil
-				m.WaitingForAI = false // after reject allow input immediately, no need to wait for agent
 				return m, nil
-			}
-			return m, nil
-		}
-		if m.PendingSuggested != nil {
-			lang := m.getLang()
-			switch key {
-			case "1":
-				_ = clipboard.WriteAll(*m.PendingSuggested)
-				m.appendSuggestedLine(*m.PendingSuggested, lang)
-				m.Messages = append(m.Messages, hintStyle.Render(i18n.T(lang, i18n.KeySuggestedCopied)))
-				m.PendingSuggested = nil
+			case "3":
+				// Only when 3 options: Dismiss
+				riskLabel := ""
+				switch m.Pending.RiskLevel {
+				case "read_only":
+					riskLabel = i18n.T(lang, i18n.KeyRiskReadOnly)
+				case "low":
+					riskLabel = i18n.T(lang, i18n.KeyRiskLow)
+				case "high":
+					riskLabel = i18n.T(lang, i18n.KeyRiskHigh)
+				}
+				commandLine := m.Pending.Command
+				if riskLabel != "" {
+					commandLine = "[" + riskLabel + "] " + commandLine
+				}
+				m.Messages = append(m.Messages,
+					approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)),
+					execStyle.Render(commandLine),
+					suggestStyle.Render(i18n.T(lang, i18n.KeyChoiceDismiss)),
+				)
+				if m.Pending.Reason != "" {
+					m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(lang, i18n.KeyApprovalWhy)+" "+m.Pending.Reason))
+				}
 				m.Viewport.SetContent(m.buildContent())
 				m.Viewport.GotoBottom()
-				return m, nil
-			case "2":
-				m.appendSuggestedLine(*m.PendingSuggested, lang)
-				m.PendingSuggested = nil
-				m.Viewport.SetContent(m.buildContent())
-				m.Viewport.GotoBottom()
+				m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
+				m.Pending = nil
+				m.WaitingForAI = false
 				return m, nil
 			}
 			return m, nil
@@ -357,12 +373,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case text == "/config allowlist update":
 				m = m.applyConfigAllowlistUpdate()
 				return m, nil
-			case strings.HasPrefix(text, "/mode "), text == "/mode":
-				arg := strings.TrimSpace(strings.TrimPrefix(text, "/mode"))
-				m = m.applyModeSwitch(arg)
-				return m, nil
-			case strings.HasPrefix(text, "/config mode "):
-				m = m.applyConfigMode(strings.TrimSpace(strings.TrimPrefix(text, "/config mode ")))
+			case strings.HasPrefix(text, "/config auto-run "):
+				arg := strings.TrimSpace(strings.TrimPrefix(text, "/config auto-run "))
+				m = m.applyConfigAllowlistAutoRun(arg)
 				return m, nil
 			case text == "/reload":
 				if m.ConfigUpdatedChan != nil {
@@ -459,19 +472,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							m = m.applyConfigAllowlistUpdate()
 							return m, nil
 						}
-						if chosen == "/mode suggest" || chosen == "/mode run" {
-							modeArg := strings.TrimSpace(strings.TrimPrefix(chosen, "/mode"))
-							m = m.applyModeSwitch(modeArg)
+						if chosen == "/config auto-run list-only" {
+							m = m.applyConfigAllowlistAutoRun("list-only")
 							return m, nil
 						}
-						if chosen == "/config mode <suggest|run>" {
-							m.Input.SetValue("/config mode ")
-							m.Input.CursorEnd()
-							return m, nil
-						}
-						if strings.HasPrefix(chosen, "/config mode") {
-							m.Input.SetValue("/config mode ")
-							m.Input.CursorEnd()
+						if chosen == "/config auto-run disable" {
+							m = m.applyConfigAllowlistAutoRun("disable")
 							return m, nil
 						}
 						if strings.HasPrefix(chosen, "/config llm base_url") {
@@ -616,19 +622,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case CommandExecutedMsg:
 		lang := m.getLang()
-		if msg.Suggested {
-			// Show a card and wait for user to press c (copy) or Enter (dismiss)
-			if m.PendingSuggested != nil {
-				m.appendSuggestedLine(*m.PendingSuggested, lang)
-			}
-			cmd := msg.Command
-			m.PendingSuggested = &cmd
-			m.ChoiceIndex = 0
-			m.syncInputPlaceholder()
-			m.Viewport.SetContent(m.buildContent())
-			m.Viewport.GotoBottom()
-			return m, nil
-		}
 		var tag string
 		if msg.Direct {
 			tag = i18n.T(lang, i18n.KeyRunTagDirect)
@@ -657,16 +650,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // NewModel creates a Model with default input (slash commands and viewport scrolling).
 // initialMessages if non-nil is used as existing conversation (e.g. after /sh return).
 // initialSessionPath is the current session file path (excluded from /sessions list so first option is another session).
-// modeChangeChan and getMode are for /mode (runtime switch); getMode returns current mode for title.
+// allowlistAutoRunChangeChan and getAllowlistAutoRun are for runtime toggle and header/card options.
 func NewModel(
 	submitChan chan<- string,
 	execDirectChan chan<- string,
 	shellRequestedChan chan<- []string,
 	cancelRequestChan chan<- struct{},
 	configUpdatedChan chan<- struct{},
-	modeChangeChan chan<- string,
+	allowlistAutoRunChangeChan chan<- bool,
 	sessionSwitchChan chan<- string,
-	getMode func() string,
+	getAllowlistAutoRun func() bool,
 	initialMessages []string,
 	initialSessionPath string,
 ) Model {
@@ -698,11 +691,11 @@ func NewModel(
 		ExecDirectChan:      execDirectChan,
 		ShellRequestedChan:  shellRequestedChan,
 		CancelRequestChan:   cancelRequestChan,
-		ConfigUpdatedChan:   configUpdatedChan,
-		ModeChangeChan:      modeChangeChan,
-		SessionSwitchChan:   sessionSwitchChan,
-		CurrentSessionPath:  initialSessionPath,
-		GetMode:             getMode,
+		ConfigUpdatedChan:            configUpdatedChan,
+		AllowlistAutoRunChangeChan:   allowlistAutoRunChangeChan,
+		SessionSwitchChan:            sessionSwitchChan,
+		CurrentSessionPath:           initialSessionPath,
+		GetAllowlistAutoRun:          getAllowlistAutoRun,
 		Width:               defaultWidth,
 		Height:              defaultHeight,
 	}

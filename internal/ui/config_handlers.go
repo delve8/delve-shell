@@ -103,34 +103,51 @@ func (m Model) showConfig() Model {
 	return m
 }
 
-// applyModeSwitch sets runtime mode to the given value (suggest or run) and sends to ModeChangeChan; does not write config.
-func (m Model) applyModeSwitch(modeArg string) Model {
+// applyAllowlistAutoRunSwitch sets runtime allowlist auto-run (on -> true, off -> false) and sends to AllowlistAutoRunChangeChan; does not write config.
+func (m Model) applyAllowlistAutoRunSwitch(value string) Model {
+	value = strings.TrimSpace(strings.ToLower(value))
 	lang := m.getLang()
-	modeArg = strings.TrimSpace(strings.ToLower(modeArg))
-	if modeArg != "suggest" && modeArg != "run" {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyModeRequired)))
+	var on bool
+	switch value {
+	case "on":
+		on = true
+	case "off":
+		on = false
+	default:
+		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigAutoRunRequired)))
 		m.Viewport.SetContent(m.buildContent())
 		m.Viewport.GotoBottom()
 		return m
 	}
-	if m.ModeChangeChan != nil {
+	if m.AllowlistAutoRunChangeChan != nil {
 		select {
-		case m.ModeChangeChan <- modeArg:
+		case m.AllowlistAutoRunChangeChan <- on:
 		default:
 		}
 	}
-	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyModeSetTo, modeArg)))
+	display := i18n.T(lang, i18n.KeyAutoRunListOnly)
+	if !on {
+		display = i18n.T(lang, i18n.KeyAutoRunNone)
+	}
+	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyAllowlistAutoRunSetTo, display)))
 	m.Viewport.SetContent(m.buildContent())
 	m.Viewport.GotoBottom()
 	return m
 }
 
-// applyConfigMode sets default mode in config and writes config; next startup will use this mode.
-func (m Model) applyConfigMode(value string) Model {
+// applyConfigAllowlistAutoRun sets allowlist_auto_run in config and writes; next startup will use it.
+// value: "list-only" -> on, "disable" -> off.
+func (m Model) applyConfigAllowlistAutoRun(value string) Model {
 	value = strings.TrimSpace(strings.ToLower(value))
-	if value != "suggest" && value != "run" {
+	var on bool
+	switch value {
+	case "list-only":
+		on = true
+	case "disable":
+		on = false
+	default:
 		lang := m.getLang()
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+i18n.T(lang, i18n.KeyConfigModeRequired)))
+		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+i18n.T(lang, i18n.KeyConfigAutoRunRequired)))
 		m.Viewport.SetContent(m.buildContent())
 		m.Viewport.GotoBottom()
 		return m
@@ -143,14 +160,23 @@ func (m Model) applyConfigMode(value string) Model {
 		m.Viewport.GotoBottom()
 		return m
 	}
-	cfg.Mode = value
+	cfg.AllowlistAutoRun = &on
+	if on {
+		cfg.Mode = "run"
+	} else {
+		cfg.Mode = "suggest"
+	}
 	if err := config.Write(cfg); err != nil {
 		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
 		m.Viewport.SetContent(m.buildContent())
 		m.Viewport.GotoBottom()
 		return m
 	}
-	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyConfigSavedMode, value)))
+	display := i18n.T(lang, i18n.KeyAutoRunListOnly)
+	if !on {
+		display = i18n.T(lang, i18n.KeyAutoRunNone)
+	}
+	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyConfigSavedAllowlistAutoRun, display)))
 	m.Viewport.SetContent(m.buildContent())
 	m.Viewport.GotoBottom()
 	if m.ConfigUpdatedChan != nil {

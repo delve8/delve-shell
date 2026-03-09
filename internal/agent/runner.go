@@ -20,7 +20,7 @@ import (
 // RunnerOptions for creating a Runner; LLM is read from Config (config.yaml, supports $VAR env expansion).
 type RunnerOptions struct {
 	Config                     *config.Config
-	Mode                       string // "suggest" or "run"; default "run"
+	AllowlistAutoRun           *bool  // optional runtime override; when nil use Config.AllowlistAutoRunResolved()
 	Allowlist                  *hil.Allowlist
 	SensitiveMatcher           *hil.SensitiveMatcher
 	Session                    *history.Session
@@ -51,8 +51,8 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		return nil, err
 	}
 
-	requestApproval := func(cmd, reason, riskLevel string) bool {
-		ch := make(chan bool)
+	requestApproval := func(cmd, reason, riskLevel string) ApprovalResponse {
+		ch := make(chan ApprovalResponse, 1)
 		opts.ApprovalChan <- &ApprovalRequest{Command: cmd, Reason: reason, RiskLevel: riskLevel, ResponseCh: ch}
 		return <-ch
 	}
@@ -65,15 +65,12 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		return <-ch
 	}
 
-	mode := opts.Config.ModeResolved()
-	if opts.Mode != "" {
-		m := strings.TrimSpace(strings.ToLower(opts.Mode))
-		if m == "suggest" || m == "run" {
-			mode = m
-		}
+	allowlistAutoRun := opts.Config.AllowlistAutoRunResolved()
+	if opts.AllowlistAutoRun != nil {
+		allowlistAutoRun = *opts.AllowlistAutoRun
 	}
 	execTool := &ExecuteCommandTool{
-		Mode:                        mode,
+		AllowlistAutoRun:            allowlistAutoRun,
 		Allowlist:                   opts.Allowlist,
 		SensitiveMatcher:            opts.SensitiveMatcher,
 		RequestApproval:              requestApproval,
@@ -98,7 +95,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		sysPrompt = defaultSystemPrompt
 	}
 	sysPrompt = config.ExpandEnv(sysPrompt)
-	sysPrompt += "\n\n--- Current mode ---\n" + modeParagraph(mode)
+	sysPrompt += "\n\n--- Auto-run ---\n" + autoRunParagraph(allowlistAutoRun)
 	if opts.RulesText != "" {
 		sysPrompt += "\n\n--- User rules (rules) ---\n" + opts.RulesText
 	}
@@ -137,13 +134,11 @@ const defaultSystemPrompt = `You are an ops assistant. You run commands in the u
 ## Context
 - Use view_context when you need to see recent session history (commands and results) to inform your next step.`
 
-func modeParagraph(mode string) string {
-	switch mode {
-	case "suggest":
-		return `Current mode: suggest. execute_command does not run commands; it only records suggestions for the user. Still call it for each command you want to suggest so the user sees the list. Prefer one combined command per task. Tell the user these are suggestions only and they can copy or run them elsewhere.`
-	default:
-		return `Current mode: run. Allowlisted commands run directly; others require user approval. Commands with write redirection (>, >>) always require approval.`
+func autoRunParagraph(allowlistAutoRun bool) string {
+	if allowlistAutoRun {
+		return `Auto-run: list only. Allowlisted commands run directly; others show an approval card (user can Run, Reject, or Copy). Commands with write redirection (>, >>) always show the card.`
 	}
+	return `Auto-run: none. Every command shows an approval card (Run, Copy, or Dismiss). No command runs without user choice. Prefer one combined command per task so the user approves once.`
 }
 
 // Run generates a reply for one user message; blocks until user approves or rejects if agent calls a command requiring approval.

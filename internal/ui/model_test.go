@@ -19,8 +19,9 @@ import (
 
 func TestApprovalCard_ShowsCommandReasonAndRisk(t *testing.T) {
 	// do not run tea.NewProgram().Run(); just build Model and set Pending
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, "")
-	ch := make(chan bool, 1)
+	getAutoRun := func() bool { return true }
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
+	ch := make(chan agent.ApprovalResponse, 1)
 	m.Pending = &agent.ApprovalRequest{
 		Command:    "kubectl get pods",
 		Reason:     "List pods to check status",
@@ -42,11 +43,12 @@ func TestApprovalCard_ShowsCommandReasonAndRisk(t *testing.T) {
 }
 
 func TestApprovalCard_HighRiskLabel(t *testing.T) {
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, "")
+	getAutoRun := func() bool { return true }
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
 	m.Pending = &agent.ApprovalRequest{
 		Command:    "rm -rf /tmp/foo",
 		RiskLevel:  "high",
-		ResponseCh: make(chan bool, 1),
+		ResponseCh: make(chan agent.ApprovalResponse, 1),
 	}
 	content := m.buildContent()
 
@@ -59,8 +61,9 @@ func TestApprovalCard_HighRiskLabel(t *testing.T) {
 }
 
 func TestApprovalCard_Approve1ClearsPending(t *testing.T) {
-	ch := make(chan bool, 1)
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, "")
+	ch := make(chan agent.ApprovalResponse, 1)
+	getAutoRun := func() bool { return true }
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
 	m.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
 
 	// simulate user pressing 1 (approve)
@@ -71,17 +74,18 @@ func TestApprovalCard_Approve1ClearsPending(t *testing.T) {
 	}
 	select {
 	case v := <-ch:
-		if !v {
-			t.Error("channel should receive true for approve")
+		if !v.Approved {
+			t.Error("channel should receive Approved true for approve")
 		}
 	default:
-		t.Error("channel should receive true")
+		t.Error("channel should receive response")
 	}
 }
 
 func TestApprovalCard_Approve2ClearsPendingAndSendsFalse(t *testing.T) {
-	ch := make(chan bool, 1)
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, "")
+	ch := make(chan agent.ApprovalResponse, 1)
+	getAutoRun := func() bool { return true }
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
 	m.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
 
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("2")})
@@ -91,38 +95,39 @@ func TestApprovalCard_Approve2ClearsPendingAndSendsFalse(t *testing.T) {
 	}
 	select {
 	case v := <-ch:
-		if v {
-			t.Error("channel should receive false for reject")
+		if v.Approved {
+			t.Error("channel should receive Approved false for reject")
 		}
 	default:
-		t.Error("channel should receive false")
+		t.Error("channel should receive response")
 	}
 }
 
 // TestView_HeaderAlwaysShown asserts that View() always includes the header (mode + status) and that
 // total output lines never exceed Height so the header stays visible when the terminal shows one screen.
 func TestView_HeaderAlwaysShown(t *testing.T) {
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, "")
+	getAutoRun := func() bool { return true }
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
 	m.Height = 24
 	m.Width = 80
 	view := m.View()
-	// Header contains mode label (en "mode" or zh "模式") and a status in brackets
-	if !strings.Contains(view, "mode") && !strings.Contains(view, "模式") {
-		t.Error("View() should show header with mode label (mode or 模式)")
-	}
+	// Header contains Auto-run label and a status in brackets
 	if !strings.Contains(view, "[IDLE]") && !strings.Contains(view, "[空闲]") && !strings.Contains(view, "[PROCESSING]") && !strings.Contains(view, "[处理中]") {
 		t.Error("View() should show status in header (e.g. [IDLE] or [空闲])")
+	}
+	if !strings.Contains(view, "Auto-Run") && !strings.Contains(view, "自动执行") {
+		t.Error("View() should show Auto-Run label in header")
 	}
 
 	// Small height path: header must still appear first
 	m.Height = 4
 	viewSmall := m.View()
-	if !strings.Contains(viewSmall, "mode") && !strings.Contains(viewSmall, "模式") {
-		t.Error("View() at small height should still show header with mode label")
+	if !strings.Contains(viewSmall, "Auto-Run") && !strings.Contains(viewSmall, "自动执行") {
+		t.Error("View() at small height should still show header with Auto-Run label")
 	}
 
 	// With Pending, header shows [NEED APPROVAL] or [待确认]
-	ch := make(chan bool, 1)
+	ch := make(chan agent.ApprovalResponse, 1)
 	m.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
 	m.Height = 24
 	viewPending := m.View()
@@ -132,7 +137,7 @@ func TestView_HeaderAlwaysShown(t *testing.T) {
 
 	// Critical: with choice mode (max 3 options) and a small Height, total lines must not exceed Height,
 	// so the header (first 2 lines) stays on screen when terminal displays one full screen.
-	m2 := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, "")
+	m2 := NewModel(nil, nil, nil, nil, nil, nil, nil, func() bool { return true }, nil, "")
 	m2.Height = 12
 	m2.Width = 80
 	m2.PendingSensitive = &agent.SensitiveConfirmationRequest{Command: "cat /etc/shadow", ResponseCh: make(chan agent.SensitiveChoice, 1)}
@@ -141,10 +146,10 @@ func TestView_HeaderAlwaysShown(t *testing.T) {
 	if len(lines) > m2.Height {
 		t.Errorf("View() in choice mode (3 options) must not exceed Height: got %d lines, Height=%d (header would scroll off)", len(lines), m2.Height)
 	}
-	// First line must be the header title (mode + status)
+	// First line must be the header title (Auto-Run + status)
 	visible := strings.Join(lines[:min(len(lines), m2.Height)], "\n")
-	if !strings.Contains(visible, "mode") && !strings.Contains(visible, "模式") {
-		t.Error("header (mode label) must appear in visible area")
+	if !strings.Contains(visible, "Auto-Run") && !strings.Contains(visible, "自动执行") {
+		t.Error("header (Auto-Run label) must appear in visible area")
 	}
 	if !strings.Contains(visible, "[NEED APPROVAL]") && !strings.Contains(visible, "[待确认]") {
 		t.Error("header (pending status) must appear in visible area")
@@ -160,9 +165,10 @@ func min(a, b int) int {
 
 // TestChoice_EnterSelectsCurrentOption asserts that pressing Enter in choice mode selects the current (highlighted) option.
 func TestChoice_EnterSelectsCurrentOption(t *testing.T) {
-	// Approval: ChoiceIndex 0 = approve, Enter should send true
-	ch := make(chan bool, 1)
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, "")
+	// Approval: ChoiceIndex 0 = approve, Enter should send Approved true
+	ch := make(chan agent.ApprovalResponse, 1)
+	getAutoRun := func() bool { return true }
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
 	m.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
 	m.ChoiceIndex = 0
 
@@ -173,16 +179,16 @@ func TestChoice_EnterSelectsCurrentOption(t *testing.T) {
 	}
 	select {
 	case v := <-ch:
-		if !v {
-			t.Error("Enter with ChoiceIndex 0 should approve (true)")
+		if !v.Approved {
+			t.Error("Enter with ChoiceIndex 0 should approve (Approved true)")
 		}
 	default:
-		t.Error("channel should receive true")
+		t.Error("channel should receive response")
 	}
 
-	// Approval: ChoiceIndex 1 = reject, Enter should send false
-	ch2 := make(chan bool, 1)
-	m3 := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, "")
+	// Approval: ChoiceIndex 1 = reject, Enter should send Approved false
+	ch2 := make(chan agent.ApprovalResponse, 1)
+	m3 := NewModel(nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
 	m3.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch2}
 	m3.ChoiceIndex = 1
 
@@ -193,18 +199,18 @@ func TestChoice_EnterSelectsCurrentOption(t *testing.T) {
 	}
 	select {
 	case v := <-ch2:
-		if v {
-			t.Error("Enter with ChoiceIndex 1 should reject (false)")
+		if v.Approved {
+			t.Error("Enter with ChoiceIndex 1 should reject (Approved false)")
 		}
 	default:
-		t.Error("channel should receive false")
+		t.Error("channel should receive response")
 	}
 }
 
 // TestSessionSwitchedMsg_setsCurrentPathAndShowsSwitchedAtBottom asserts that after SessionSwitchedMsg,
 // CurrentSessionPath is set and the "Switched to session" line is present (at end when there is history).
 func TestSessionSwitchedMsg_setsCurrentPathAndShowsSwitchedAtBottom(t *testing.T) {
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, "")
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, func() bool { return true }, nil, "")
 
 	// Path empty: one message (switched hint), CurrentSessionPath ""
 	next, _ := m.Update(SessionSwitchedMsg{Path: ""})

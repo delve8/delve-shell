@@ -16,8 +16,10 @@ type Config struct {
 	LLM LLMConfig `yaml:"llm"`
 	// History retention policy
 	History HistoryConfig `yaml:"history"`
-	// Mode: suggest (only suggest commands, do not run) or run (approve then run); default run
-	Mode string `yaml:"mode"`
+	// AllowlistAutoRun: when true, allowlisted commands run without confirmation; when false, every command shows approval card (Run/Copy/Dismiss). Default true.
+	AllowlistAutoRun *bool `yaml:"allowlist_auto_run,omitempty"`
+	// Mode: deprecated, use AllowlistAutoRun. suggest -> false, run -> true. Kept for reading old config.
+	Mode string `yaml:"mode,omitempty"`
 }
 
 // LLMConfig is the LLM API config.
@@ -81,6 +83,16 @@ func Default() *Config {
 	}
 }
 
+// AllowlistAutoRunResolved returns whether allowlisted commands run without confirmation. Default true.
+// When AllowlistAutoRun is unset, migrates from Mode (run->true, suggest->false).
+func (c *Config) AllowlistAutoRunResolved() bool {
+	if c.AllowlistAutoRun != nil {
+		return *c.AllowlistAutoRun
+	}
+	s := strings.TrimSpace(strings.ToLower(c.Mode))
+	return s != "suggest"
+}
+
 // ExpandEnv replaces $VAR and ${VAR} in s with env values (shell-compatible).
 func ExpandEnv(s string) string {
 	return os.Expand(s, func(key string) string { return os.Getenv(key) })
@@ -112,17 +124,19 @@ func (c *Config) LLMSummary() string {
 	} else {
 		sp = "(custom, " + fmt.Sprintf("%d", len(sp)) + " chars)"
 	}
-	mode := c.ModeResolved()
-	return "language: " + c.languageResolved() + "\nmode: " + mode + "\nllm.base_url: " + baseURL + "\nllm.api_key: " + key + "\nllm.model: " + model + "\nllm.system_prompt: " + sp
+	autoRun := "List Only"
+	if !c.AllowlistAutoRunResolved() {
+		autoRun = "Disabled"
+	}
+	return "language: " + c.languageResolved() + "\nallowlist_auto_run: " + autoRun + "\nllm.base_url: " + baseURL + "\nllm.api_key: " + key + "\nllm.model: " + model + "\nllm.system_prompt: " + sp
 }
 
-// ModeResolved returns current mode: "suggest" or "run". Default is "run".
+// ModeResolved returns "suggest" or "run" for backward compatibility (e.g. migration). Prefer AllowlistAutoRunResolved().
 func (c *Config) ModeResolved() string {
-	s := strings.TrimSpace(strings.ToLower(c.Mode))
-	if s == "suggest" || s == "run" {
-		return s
+	if c.AllowlistAutoRunResolved() {
+		return "run"
 	}
-	return "run"
+	return "suggest"
 }
 
 func (c *Config) languageResolved() string {

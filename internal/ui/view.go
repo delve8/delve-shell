@@ -15,24 +15,32 @@ type choiceOption struct {
 	Label string
 }
 
-// choiceCount returns the number of options when in a choice state (approval 2, sensitive 3, suggest 2, or session list N).
+// choiceCount returns the number of options when in a choice state (approval 2 or 3, sensitive 3, or session list N).
 func choiceCount(m Model) int {
 	switch {
 	case m.Pending != nil:
-		return 2
+		if m.GetAllowlistAutoRun != nil && !m.GetAllowlistAutoRun() {
+			return 3 // Run, Copy, Dismiss
+		}
+		return 2 // Run, Reject
 	case m.PendingSensitive != nil:
 		return 3
-	case m.PendingSuggested != nil:
-		return 2
 	default:
 		return 0
 	}
 }
 
-// getChoiceOptions returns the option list for the current choice state (approval / sensitive / suggest).
+// getChoiceOptions returns the option list for the current choice state (approval 2 or 3 options / sensitive / session list).
 func getChoiceOptions(m Model, lang string) []choiceOption {
 	switch {
 	case m.Pending != nil:
+		if m.GetAllowlistAutoRun != nil && !m.GetAllowlistAutoRun() {
+			return []choiceOption{
+				{1, i18n.T(lang, i18n.KeyChoiceApprove)},
+				{2, i18n.T(lang, i18n.KeyChoiceCopy)},
+				{3, i18n.T(lang, i18n.KeyChoiceDismiss)},
+			}
+		}
 		return []choiceOption{
 			{1, i18n.T(lang, i18n.KeyChoiceApprove)},
 			{2, i18n.T(lang, i18n.KeyChoiceReject)},
@@ -42,11 +50,6 @@ func getChoiceOptions(m Model, lang string) []choiceOption {
 			{1, i18n.T(lang, i18n.KeyChoiceRefuse)},
 			{2, i18n.T(lang, i18n.KeyChoiceRunStore)},
 			{3, i18n.T(lang, i18n.KeyChoiceRunNoStore)},
-		}
-	case m.PendingSuggested != nil:
-		return []choiceOption{
-			{1, i18n.T(lang, i18n.KeyChoiceCopy)},
-			{2, i18n.T(lang, i18n.KeyChoiceDismiss)},
 		}
 	default:
 		return nil
@@ -58,23 +61,22 @@ func (m *Model) syncInputPlaceholder() {
 	lang := m.getLang()
 	switch {
 	case m.Pending != nil:
-		m.Input.Placeholder = i18n.T(lang, i18n.KeyInputHintApprove)
+		if m.GetAllowlistAutoRun != nil && !m.GetAllowlistAutoRun() {
+			m.Input.Placeholder = i18n.T(lang, i18n.KeyInputHintApproveThree)
+		} else {
+			m.Input.Placeholder = i18n.T(lang, i18n.KeyInputHintApprove)
+		}
 	case m.PendingSensitive != nil:
 		m.Input.Placeholder = i18n.T(lang, i18n.KeyInputHintSensitive)
-	case m.PendingSuggested != nil:
-		m.Input.Placeholder = i18n.T(lang, i18n.KeyInputHintSuggest)
 	default:
 		m.Input.Placeholder = i18n.T(lang, i18n.KeyPlaceholderInput)
 	}
 }
 
-// statusKey returns the i18n key for current state: idle, running, pending approval, or suggest card.
+// statusKey returns the i18n key for current state: idle, running, or pending approval.
 func (m Model) statusKey() string {
 	if m.Pending != nil || m.PendingSensitive != nil {
 		return i18n.KeyStatusPendingApproval
-	}
-	if m.PendingSuggested != nil {
-		return i18n.KeyStatusSuggest
 	}
 	if m.WaitingForAI {
 		return i18n.KeyStatusRunning
@@ -82,36 +84,35 @@ func (m Model) statusKey() string {
 	return i18n.KeyStatusIdle
 }
 
-// titleLine returns the fixed title (mode + status) for display above the viewport; does not scroll.
-// When pending, status and operation hint (1=approve/2=reject or 1/2/3) are rendered with pendingActionStyle on the same line.
+// titleLine returns the fixed title (Auto-run + status) for display above the viewport; does not scroll.
+// When pending, status and operation hint (1/2 or 1/2/3) are rendered with pendingActionStyle on the same line.
 func (m Model) titleLine() string {
 	lang := m.getLang()
-	modeStr := "run"
-	if m.GetMode != nil {
-		modeStr = m.GetMode()
+	autoRunStr := i18n.T(lang, i18n.KeyAutoRunListOnly)
+	if m.GetAllowlistAutoRun != nil && !m.GetAllowlistAutoRun() {
+		autoRunStr = i18n.T(lang, i18n.KeyAutoRunNone)
 	}
-	modePart := i18n.T(lang, i18n.KeyModeLabel) + ": " + modeStr + " | "
+	autoRunPart := i18n.T(lang, i18n.KeyAutoRunLabel) + autoRunStr + " | "
 	statusStr := i18n.T(lang, m.statusKey())
 	if m.Pending != nil {
 		hint := i18n.T(lang, i18n.KeyApproveYN)
-		return titleStyle.Render(modePart) + pendingActionStyle.Render(statusStr+"  "+hint)
+		if m.GetAllowlistAutoRun != nil && !m.GetAllowlistAutoRun() {
+			hint = i18n.T(lang, i18n.KeyApproveYNThree)
+		}
+		return titleStyle.Render(autoRunPart) + pendingActionStyle.Render(statusStr+"  "+hint)
 	}
 	if m.PendingSensitive != nil {
 		hint := i18n.T(lang, i18n.KeySensitivePressKey)
-		return titleStyle.Render(modePart) + pendingActionStyle.Render(statusStr+"  "+hint)
-	}
-	if m.PendingSuggested != nil {
-		hint := i18n.T(lang, i18n.KeySuggestedCardHint)
-		return titleStyle.Render(modePart) + pendingActionStyle.Render(statusStr+"  "+hint)
+		return titleStyle.Render(autoRunPart) + pendingActionStyle.Render(statusStr+"  "+hint)
 	}
 	// Idle and running: render status in a more prominent color
 	switch m.statusKey() {
 	case i18n.KeyStatusIdle:
-		return titleStyle.Render(modePart) + statusIdleStyle.Render(statusStr)
+		return titleStyle.Render(autoRunPart) + statusIdleStyle.Render(statusStr)
 	case i18n.KeyStatusRunning:
-		return titleStyle.Render(modePart) + statusRunningStyle.Render(statusStr)
+		return titleStyle.Render(autoRunPart) + statusRunningStyle.Render(statusStr)
 	default:
-		return titleStyle.Render(modePart + statusStr)
+		return titleStyle.Render(autoRunPart + statusStr)
 	}
 }
 
@@ -210,12 +211,6 @@ func (m Model) buildContent() string {
 		}
 		return b.String()
 	}
-	if m.PendingSuggested != nil {
-		b.WriteString("\n")
-		b.WriteString(approvalHeaderStyle.Render(i18n.T(lang, i18n.KeySuggestedCardTitle)) + "\n")
-		b.WriteString(execStyle.Render(*m.PendingSuggested))
-		return b.String()
-	}
 	return b.String()
 }
 
@@ -229,7 +224,7 @@ func (m Model) View() string {
 	sepLine := separatorStyle.Render(strings.Repeat("─", sepW))
 	header := m.titleLine() + "\n" + sepLine + "\n"
 
-	inChoice := m.Pending != nil || m.PendingSensitive != nil || m.PendingSuggested != nil
+	inChoice := m.Pending != nil || m.PendingSensitive != nil
 	if m.Height <= 4 {
 		out := header + m.buildContent() + "\n" + m.Input.View()
 		if m.WaitingForAI && !inChoice {

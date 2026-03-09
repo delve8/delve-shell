@@ -66,12 +66,12 @@ func runRun(cmd *cobra.Command, args []string) error {
 	sensitiveConfirmationChan := make(chan *agent.SensitiveConfirmationRequest, 4)
 	execEventChan := make(chan agent.ExecEvent, 8)
 	configUpdatedChan := make(chan struct{}, 1)
-	modeChangeChan := make(chan string, 1)
+	allowlistAutoRunChangeChan := make(chan bool, 1)
 
 	cfg0, _ := loadConfig()
-	currentMode := "run"
+	currentAllowlistAutoRun := true
 	if cfg0 != nil {
-		currentMode = cfg0.ModeResolved()
+		currentAllowlistAutoRun = cfg0.AllowlistAutoRunResolved()
 	}
 
 	var runner *agent.Runner
@@ -102,7 +102,7 @@ func runRun(cmd *cobra.Command, args []string) error {
 		sensitiveMatcher := hil.NewSensitiveMatcher(sensitivePatterns)
 		r, err := agent.NewRunner(context.Background(), agent.RunnerOptions{
 			Config:                    cfg2,
-			Mode:                      currentMode,
+			AllowlistAutoRun:          &currentAllowlistAutoRun,
 			Allowlist:                 allowlist,
 			SensitiveMatcher:          sensitiveMatcher,
 			Session:                   session,
@@ -151,7 +151,7 @@ func runRun(cmd *cobra.Command, args []string) error {
 			select {
 			case <-configUpdatedChan:
 				if cfg, err := loadConfig(); err == nil && cfg != nil {
-					currentMode = cfg.ModeResolved()
+					currentAllowlistAutoRun = cfg.AllowlistAutoRunResolved()
 				}
 				runnerMu.Lock()
 				runner = nil
@@ -159,8 +159,8 @@ func runRun(cmd *cobra.Command, args []string) error {
 				if currentP != nil {
 					currentP.Send(ui.ConfigReloadedMsg{})
 				}
-			case newMode := <-modeChangeChan:
-				currentMode = newMode
+			case newAutoRun := <-allowlistAutoRunChangeChan:
+				currentAllowlistAutoRun = newAutoRun
 				runnerMu.Lock()
 				runner = nil
 				runnerMu.Unlock()
@@ -276,9 +276,9 @@ func runRun(cmd *cobra.Command, args []string) error {
 		}
 	}()
 
-	getMode := func() string { return currentMode }
+	getAllowlistAutoRun := func() bool { return currentAllowlistAutoRun }
 	for {
-		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, modeChangeChan, sessionSwitchChan, getMode, savedMessages, session.Path())
+		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, allowlistAutoRunChangeChan, sessionSwitchChan, getAllowlistAutoRun, savedMessages, session.Path())
 		// do not use WithMouse* so the terminal can use mouse for text selection; scroll with Up/Down/PgUp/PgDown
 		p := tea.NewProgram(model, tea.WithAltScreen())
 		currentP = p

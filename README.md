@@ -7,7 +7,7 @@ AI-assisted ops CLI: chat with an AI in the terminal to run ops tasks. **Every c
 ## Overview
 
 - **Human-in-the-loop (HIL)**: Proposed commands are listed explicitly; execution happens only after the user approves or rejects. The tool does not rely on the AI’s in-chat “shall I run this” as a safety boundary.
-- **Allowlist**: Commands matching the allowlist (e.g. read-only `ls`, `cat`, `git status`) run without confirmation; all others require approval. The allowlist uses regexes and can be updated with `/config allowlist update` to merge in built-in defaults.
+- **Allowlist and auto-run**: By default, allowlisted commands (e.g. read-only `ls`, `cat`, `git status`) run without confirmation; others show an approval card (Run / Reject). With **Auto-run: None** (`/config allowlist_auto_run off`), every command shows a card (Run / Copy / Dismiss). The allowlist uses regexes and can be updated with `/config allowlist update` to merge in built-in defaults.
 - **Config and i18n**: `config.yaml` sets the LLM (base_url, api_key, model), UI language (en/zh), etc. Environment variables are supported via `$VAR` / `${VAR}`.
 - **Multi-platform**: Linux, macOS, Windows; amd64 and arm64.
 
@@ -40,10 +40,12 @@ Session data: `<root>/sessions`
 - **llm.api_key**: API key (required). Supports `$VAR` and `${VAR}` for environment variables.
 - **llm.model**: Model name. Empty defaults to `gpt-4o-mini`.
 - **language**: UI language: `en` or `zh`.
+- **allowlist_auto_run**: When `true` (default), allowlisted commands run without confirmation; when `false`, every command shows an approval card (Run / Copy / Dismiss).
 
 These can be changed from inside the app via slash commands, e.g.:
 
 - `/config show`: Show config path and LLM summary.
+- `/config auto-run list-only` or `disable`: Set whether listed commands auto-run (saved to config).
 - `/config llm api_key <key>`: Set API key.
 - `/config llm base_url <url>`: Set base_url (e.g. DashScope compatible endpoint).
 - `/config llm model <name>`: Set model.
@@ -63,15 +65,15 @@ Use **`/config allowlist update`** in the app to merge the current built-in defa
 
 ### Slash commands
 
-Type `/` to list and complete these commands (order: help → cancel → config → mode → new → sessions → reload → run → sh → exit):
+Type `/` to list and complete these commands (order: help → cancel → config → new → sessions → reload → run → sh → exit):
 
 | Command        | Description |
 |----------------|-------------|
 | `/help`        | Show help and slash command list |
 | `/cancel`      | Cancel the current AI request |
-| `/config`      | Config (sub: show, mode, allowlist update, llm base_url/api_key/model, language) |
-| `/mode suggest`| Switch to suggest-only mode for this session (no execution) |
-| `/mode run`    | Switch to run mode for this session (approve then run) |
+| `/config`      | Config (sub: show, auto-run list-only/disable, allowlist update, llm base_url/api_key/model, language) |
+| `/config auto-run list-only`  | Listed commands run without confirmation (saved to config) |
+| `/config auto-run disable`    | Every command shows Run / Copy / Dismiss (saved to config) |
 | `/new`         | Start a new session |
 | `/sessions`    | List and switch to another session (optional filter after space) |
 | `/reload`      | Reload config and allowlist without restart |

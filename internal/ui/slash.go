@@ -17,14 +17,12 @@ type slashOption struct {
 	Path string // session file path when this option is a session to switch to
 }
 
-// getSlashOptions returns top-level slash commands (shown when input starts with "/"); order: help, cancel, config, mode, new, sessions, reload, run, sh, exit.
+// getSlashOptions returns top-level slash commands (shown when input starts with "/"); order: help, cancel, config, new, sessions, reload, run, sh, exit.
 func getSlashOptions(lang string) []slashOption {
 	return []slashOption{
 		{"/help", i18n.T(lang, i18n.KeyDescHelp), ""},
 		{"/cancel", i18n.T(lang, i18n.KeyDescCancel), ""},
 		{"/config", i18n.T(lang, i18n.KeyDescConfig), ""},
-		{"/mode suggest", i18n.T(lang, i18n.KeyDescModeSuggest), ""},
-		{"/mode run", i18n.T(lang, i18n.KeyDescModeRun), ""},
 		{"/new", i18n.T(lang, i18n.KeySessionNew), ""},
 		{"/sessions", i18n.T(lang, i18n.KeyDescSessions), ""},
 		{"/reload", i18n.T(lang, i18n.KeyDescReload), ""},
@@ -38,7 +36,8 @@ func getSlashOptions(lang string) []slashOption {
 func getConfigSubOptions(lang string) []slashOption {
 	return []slashOption{
 		{"/config show", i18n.T(lang, i18n.KeyDescConfigShow), ""},
-		{"/config mode <suggest|run>", i18n.T(lang, i18n.KeyDescConfigMode), ""},
+		{"/config auto-run list-only", i18n.T(lang, i18n.KeyDescAutoRunListOnly), ""},
+		{"/config auto-run disable", i18n.T(lang, i18n.KeyDescAutoRunDisable), ""},
 		{"/config allowlist update", i18n.T(lang, i18n.KeyDescConfigAllowlistUpdate), ""},
 		{"/config llm base_url <url>", i18n.T(lang, i18n.KeyDescConfigLLMBaseURL), ""},
 		{"/config llm api_key <key>", i18n.T(lang, i18n.KeyDescConfigLLMApiKey), ""},
@@ -47,16 +46,13 @@ func getConfigSubOptions(lang string) []slashOption {
 	}
 }
 
-// getSlashOptionsForInput returns slash options to show: when input is "/config" or "/config xxx" returns only /config sub-options; when "/mode" or "/mode x" returns mode sub-options; when "/sessions" or "/sessions xxx" returns session list (with Path set) for switch, excluding currentSessionPath so first option is another session; else top-level commands.
+// getSlashOptionsForInput returns slash options to show: when input is "/config" or "/config xxx" returns only /config sub-options; when "/sessions" or "/sessions xxx" returns session list (with Path set) for switch, excluding currentSessionPath so first option is another session; else top-level commands.
 func getSlashOptionsForInput(inputVal string, lang string, currentSessionPath string) []slashOption {
 	normalized := strings.TrimPrefix(inputVal, "/")
 	normalized = strings.TrimSpace(normalized)
 	normalizedLower := strings.ToLower(normalized)
 	if normalizedLower == "config" || strings.HasPrefix(normalizedLower, "config ") {
 		return getConfigSubOptions(lang)
-	}
-	if normalizedLower == "mode" || strings.HasPrefix(normalizedLower, "mode ") {
-		return getSlashOptions(lang) // /mode suggest, /mode run
 	}
 	if normalizedLower == "sessions" || strings.HasPrefix(normalizedLower, "sessions ") {
 		// Trim "sessions" (no trailing space) so "/sessions" yields filter "" and shows all sessions
