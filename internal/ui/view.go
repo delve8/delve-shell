@@ -104,7 +104,15 @@ func (m Model) titleLine() string {
 		hint := i18n.T(lang, i18n.KeySuggestedCardHint)
 		return titleStyle.Render(modePart) + pendingActionStyle.Render(statusStr+"  "+hint)
 	}
-	return titleStyle.Render(modePart + statusStr)
+	// Idle and running: render status in a more prominent color
+	switch m.statusKey() {
+	case i18n.KeyStatusIdle:
+		return titleStyle.Render(modePart) + statusIdleStyle.Render(statusStr)
+	case i18n.KeyStatusRunning:
+		return titleStyle.Render(modePart) + statusRunningStyle.Render(statusStr)
+	default:
+		return titleStyle.Render(modePart + statusStr)
+	}
 }
 
 const maxSessionHistoryEvents = 500

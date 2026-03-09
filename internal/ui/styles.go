@@ -6,8 +6,10 @@ import "github.com/charmbracelet/lipgloss"
 
 var (
 	// Header and layout
-	titleStyle     = lipgloss.NewStyle().Bold(true)                     // title line: mode + status
-	separatorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("8")) // horizontal rule between header/content/input
+	titleStyle        = lipgloss.NewStyle().Bold(true)                          // title line: mode
+	separatorStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))    // horizontal rule between header/content/input
+	statusIdleStyle   = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("10")) // [IDLE] / [空闲] — green, stands out
+	statusRunningStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("11")) // [PROCESSING] / [处理中] — yellow, stands out
 )
 
 var (
