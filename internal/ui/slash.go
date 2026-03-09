@@ -29,6 +29,7 @@ func getSlashOptions(lang string) []slashOption {
 		{"/run <cmd>", i18n.T(lang, i18n.KeyDescRun), ""},
 		{"/sh", i18n.T(lang, i18n.KeyDescSh), ""},
 		{"/exit", i18n.T(lang, i18n.KeyDescExit), ""},
+		{"/q", i18n.T(lang, i18n.KeyDescExit), ""},
 	}
 }
 

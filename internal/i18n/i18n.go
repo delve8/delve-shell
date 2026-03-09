@@ -121,7 +121,7 @@ var messages = map[string]map[string]string{
 		KeyHelpText: `delve-shell — AI-assisted ops, commands run after your approval.
 
 Slash commands:
-  /exit          Quit
+  /exit, /q      Quit
   /run <cmd>     Run a command directly (no AI)
   /sh            Spawn bash; return here when done
   /cancel        Cancel current AI request
@@ -134,7 +134,7 @@ Slash commands:
 Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse reporting).`,
 		KeyNoRequestInProgress: "(No request in progress)",
 		KeyUsageRun:            "Usage: /run <command>",
-		KeyUnknownCmd:          "Unknown command. Use /exit, /run <cmd>, /sh, /cancel, /config, /reload, /help",
+		KeyUnknownCmd:          "Unknown command. Use /exit or /q, /run <cmd>, /sh, /cancel, /config, /reload, /help",
 		KeyConfigReloaded:      "Config and allowlist reloaded. Next message will use new config.",
 		KeyCancelled:           "(Cancelled)",
 		KeyErrorPrefix:         "Error: ",
@@ -236,7 +236,7 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
 		KeyHelpText: `delve-shell — AI 辅助运维，命令经你确认后执行。
 
 斜杠命令：
-  /exit          退出
+  /exit, /q      退出
   /run <cmd>     直接执行命令（不经 AI）
   /sh            启动 bash；结束后返回
   /cancel        取消当前 AI 请求
@@ -249,7 +249,7 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
 滚动：Up/Down、PgUp/PgDown。文本选择：使用终端鼠标（无需 mouse reporting）。`,
 		KeyNoRequestInProgress: "（当前无进行中的请求）",
 		KeyUsageRun:            "用法：/run <命令>",
-		KeyUnknownCmd:          "未知命令。可用：/exit、/run <cmd>、/sh、/cancel、/config、/reload、/help",
+		KeyUnknownCmd:          "未知命令。可用：/exit 或 /q、/run <cmd>、/sh、/cancel、/config、/reload、/help",
 		KeyConfigReloaded:      "配置与允许列表已重载，下一条消息将使用新配置。",
 		KeyCancelled:           "（已取消）",
 		KeyErrorPrefix:         "错误：",

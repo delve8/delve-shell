@@ -79,7 +79,7 @@ Type `/` to list and complete these commands (order: help → cancel → config 
 | `/reload`      | Reload config and allowlist without restart |
 | `/run <cmd>`   | Run a single command directly (no AI) |
 | `/sh`          | Start the system shell; return to this session when it exits |
-| `/exit`        | Quit (ctrl+c also works) |
+| `/exit`, `/q`  | Quit (ctrl+c also works) |
 
 After typing `/`, use **Up/Down** to select a suggestion and **Enter** to fill the input (no execution). Type the full command and press Enter again to run it.
 

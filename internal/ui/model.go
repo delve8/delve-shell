@@ -324,7 +324,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.SlashSuggestIndex = 0
 
 			switch {
-			case text == "/exit":
+			case text == "/exit", text == "/q":
 				return m, tea.Quit
 			case text == "/sh":
 				if m.ShellRequestedChan != nil {
@@ -429,7 +429,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					// input must match chosen command; skip when only "/". "Fill only" already returned above.
 					if len(strings.TrimSpace(strings.TrimPrefix(text, "/"))) > 0 && (chosen == text || strings.HasPrefix(chosen, text)) {
 						// user input matches chosen (full input then Enter) => execute
-						if chosen == "/exit" {
+						if chosen == "/exit" || chosen == "/q" {
 							return m, tea.Quit
 						}
 						if chosen == "/sh" {
