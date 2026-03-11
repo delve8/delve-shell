@@ -49,44 +49,6 @@ func (m Model) applyConfigLLM(field, value string) Model {
 	return m
 }
 
-// applyConfigLanguage sets config.yaml language and writes back.
-func (m Model) applyConfigLanguage(value string) Model {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		lang := m.getLang()
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+i18n.T(lang, i18n.KeyConfigLanguageRequired)))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	lang := m.getLang()
-	cfg, err := config.Load()
-	if err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	cfg.Language = value
-	if err := config.Write(cfg); err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	m.Input.Placeholder = i18n.T(value, i18n.KeyPlaceholderInput)
-	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyConfigSavedLanguage, value)))
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
-	if m.ConfigUpdatedChan != nil {
-		select {
-		case m.ConfigUpdatedChan <- struct{}{}:
-		default:
-		}
-	}
-	return m
-}
-
 // showConfig displays current config path and LLM summary (api_key masked) in the conversation area.
 func (m Model) showConfig() Model {
 	lang := m.getLang()
@@ -199,6 +161,75 @@ func (m Model) applyConfigAllowlistUpdate() Model {
 		return m
 	}
 	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyAllowlistUpdateDone, added)))
+	m.Viewport.SetContent(m.buildContent())
+	m.Viewport.GotoBottom()
+	if m.ConfigUpdatedChan != nil {
+		select {
+		case m.ConfigUpdatedChan <- struct{}{}:
+		default:
+		}
+	}
+	return m
+}
+
+// applyConfigAddRemote adds a remote via /config add-remote <user@host> [name] [identity_file]. Name is optional.
+func (m Model) applyConfigAddRemote(args string) Model {
+	lang := m.getLang()
+	parts := strings.Fields(args)
+	if len(parts) < 1 {
+		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+"Usage: /config add-remote <user@host> [name] [identity_file]"))
+		m.Viewport.SetContent(m.buildContent())
+		m.Viewport.GotoBottom()
+		return m
+	}
+	target := parts[0]
+	name := ""
+	identityFile := ""
+	if len(parts) >= 2 {
+		name = parts[1]
+	}
+	if len(parts) >= 3 {
+		identityFile = parts[2]
+	}
+	if err := config.AddRemote(target, name, identityFile); err != nil {
+		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
+		m.Viewport.SetContent(m.buildContent())
+		m.Viewport.GotoBottom()
+		return m
+	}
+	display := target
+	if name != "" {
+		display = name + " (" + target + ")"
+	}
+	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display)))
+	m.Viewport.SetContent(m.buildContent())
+	m.Viewport.GotoBottom()
+	if m.ConfigUpdatedChan != nil {
+		select {
+		case m.ConfigUpdatedChan <- struct{}{}:
+		default:
+		}
+	}
+	return m
+}
+
+// applyConfigRemoveRemote removes a remote via /config remove-remote <name-or-target> (name or target from list).
+func (m Model) applyConfigRemoveRemote(nameOrTarget string) Model {
+	lang := m.getLang()
+	nameOrTarget = strings.TrimSpace(nameOrTarget)
+	if nameOrTarget == "" {
+		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+"Usage: select a remote from /config remove-remote list"))
+		m.Viewport.SetContent(m.buildContent())
+		m.Viewport.GotoBottom()
+		return m
+	}
+	if err := config.RemoveRemoteByName(nameOrTarget); err != nil {
+		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
+		m.Viewport.SetContent(m.buildContent())
+		m.Viewport.GotoBottom()
+		return m
+	}
+	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyConfigRemoteRemoved, nameOrTarget)))
 	m.Viewport.SetContent(m.buildContent())
 	m.Viewport.GotoBottom()
 	if m.ConfigUpdatedChan != nil {

@@ -21,7 +21,6 @@ go test ./internal/e2e/... -v
 | TUI_unknown_cmd | Invalid slash command (e.g. /foo): error message |
 | TUI_run_direct | /run echo 1: direct run and result with exit_code |
 | TUI_reload | /reload: config and allowlist reload message |
-| TUI_config_language | /config language zh and en: save confirmation |
 | TUI_approval_flow | Requires LLM: send message → approval card → y → result (skipped by default) |
 
 ## Test case management

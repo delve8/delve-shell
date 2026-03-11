@@ -32,6 +32,11 @@ func SensitivePatternsPath() string {
 	return filepath.Join(RootDir(), "sensitive_patterns.yaml")
 }
 
+// RemotesPath returns the remotes config path (separate from config.yaml).
+func RemotesPath() string {
+	return filepath.Join(RootDir(), "remotes.yaml")
+}
+
 // RulesDir returns the rules directory path.
 func RulesDir() string {
 	return filepath.Join(RootDir(), "rules")

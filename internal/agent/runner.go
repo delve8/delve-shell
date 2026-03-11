@@ -13,6 +13,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 
 	"delve-shell/internal/config"
+	"delve-shell/internal/execenv"
 	"delve-shell/internal/hil"
 	"delve-shell/internal/history"
 )
@@ -28,6 +29,7 @@ type RunnerOptions struct {
 	ApprovalChan               chan<- *ApprovalRequest
 	SensitiveConfirmationChan  chan<- *SensitiveConfirmationRequest
 	ExecEventChan              chan<- ExecEvent
+	ExecutorProvider           func() execenv.CommandExecutor // returns current executor (local or remote)
 }
 
 // Runner wraps the eino react agent; generates replies and runs commands via HIL approval.
@@ -73,7 +75,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		AllowlistAutoRun:            allowlistAutoRun,
 		Allowlist:                   opts.Allowlist,
 		SensitiveMatcher:            opts.SensitiveMatcher,
-		RequestApproval:              requestApproval,
+		RequestApproval:             requestApproval,
 		RequestSensitiveConfirmation: requestSensitiveConfirmation,
 		Session:                     opts.Session,
 		OnExec: func(cmd string, allowed bool, result string, sensitive bool, suggested bool) {
@@ -81,6 +83,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 				opts.ExecEventChan <- ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested}
 			}
 		},
+		ExecutorProvider: opts.ExecutorProvider,
 	}
 	viewTool := &ViewContextTool{
 		SessionPath: "",

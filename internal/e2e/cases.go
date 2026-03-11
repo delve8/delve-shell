@@ -89,17 +89,6 @@ var TerminalCases = []Case{
 		},
 	},
 	{
-		Name:   "TUI_config_language",
-		Skip:   "",
-		Timeout: DefaultStepTimeout,
-		Steps: []Step{
-			{Input: "", Expect: []string{"delve-shell", "Enter"}, Timeout: 5 * time.Second},
-			{Input: "/config language zh", Expect: []string{"Config saved", "配置已保存", "language", "zh"}, Timeout: 3 * time.Second},
-			{Input: "/config language en", Expect: []string{"Config saved", "配置已保存", "language", "en"}, Timeout: 3 * time.Second},
-			{Input: "/exit", Expect: []string{}, Timeout: 2 * time.Second},
-		},
-	},
-	{
 		Name:   "TUI_approval_flow",
 		Skip:   "need E2E_LLM=1 and valid LLM config",
 		Timeout: 20 * time.Second,

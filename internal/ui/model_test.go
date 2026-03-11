@@ -20,7 +20,7 @@ import (
 func TestApprovalCard_ShowsCommandReasonAndRisk(t *testing.T) {
 	// do not run tea.NewProgram().Run(); just build Model and set Pending
 	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
 	ch := make(chan agent.ApprovalResponse, 1)
 	m.Pending = &agent.ApprovalRequest{
 		Command:    "kubectl get pods",
@@ -44,7 +44,7 @@ func TestApprovalCard_ShowsCommandReasonAndRisk(t *testing.T) {
 
 func TestApprovalCard_HighRiskLabel(t *testing.T) {
 	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
 	m.Pending = &agent.ApprovalRequest{
 		Command:    "rm -rf /tmp/foo",
 		RiskLevel:  "high",
@@ -63,7 +63,7 @@ func TestApprovalCard_HighRiskLabel(t *testing.T) {
 func TestApprovalCard_Approve1ClearsPending(t *testing.T) {
 	ch := make(chan agent.ApprovalResponse, 1)
 	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
 	m.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
 
 	// simulate user pressing 1 (approve)
@@ -85,7 +85,7 @@ func TestApprovalCard_Approve1ClearsPending(t *testing.T) {
 func TestApprovalCard_Approve2ClearsPendingAndSendsFalse(t *testing.T) {
 	ch := make(chan agent.ApprovalResponse, 1)
 	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
 	m.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
 
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("2")})
@@ -107,7 +107,7 @@ func TestApprovalCard_Approve2ClearsPendingAndSendsFalse(t *testing.T) {
 // total output lines never exceed Height so the header stays visible when the terminal shows one screen.
 func TestView_HeaderAlwaysShown(t *testing.T) {
 	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
 	m.Height = 24
 	m.Width = 80
 	view := m.View()
@@ -137,7 +137,7 @@ func TestView_HeaderAlwaysShown(t *testing.T) {
 
 	// Critical: with choice mode (max 3 options) and a small Height, total lines must not exceed Height,
 	// so the header (first 2 lines) stays on screen when terminal displays one full screen.
-	m2 := NewModel(nil, nil, nil, nil, nil, nil, nil, func() bool { return true }, nil, "")
+	m2 := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, func() bool { return true }, nil, "")
 	m2.Height = 12
 	m2.Width = 80
 	m2.PendingSensitive = &agent.SensitiveConfirmationRequest{Command: "cat /etc/shadow", ResponseCh: make(chan agent.SensitiveChoice, 1)}
@@ -168,7 +168,7 @@ func TestChoice_EnterSelectsCurrentOption(t *testing.T) {
 	// Approval: ChoiceIndex 0 = approve, Enter should send Approved true
 	ch := make(chan agent.ApprovalResponse, 1)
 	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
 	m.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
 	m.ChoiceIndex = 0
 
@@ -188,7 +188,7 @@ func TestChoice_EnterSelectsCurrentOption(t *testing.T) {
 
 	// Approval: ChoiceIndex 1 = reject, Enter should send Approved false
 	ch2 := make(chan agent.ApprovalResponse, 1)
-	m3 := NewModel(nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
+	m3 := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
 	m3.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch2}
 	m3.ChoiceIndex = 1
 
@@ -210,7 +210,7 @@ func TestChoice_EnterSelectsCurrentOption(t *testing.T) {
 // TestSessionSwitchedMsg_setsCurrentPathAndShowsSwitchedAtBottom asserts that after SessionSwitchedMsg,
 // CurrentSessionPath is set and the "Switched to session" line is present (at end when there is history).
 func TestSessionSwitchedMsg_setsCurrentPathAndShowsSwitchedAtBottom(t *testing.T) {
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, func() bool { return true }, nil, "")
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, func() bool { return true }, nil, "")
 
 	// Path empty: one message (switched hint), CurrentSessionPath ""
 	next, _ := m.Update(SessionSwitchedMsg{Path: ""})

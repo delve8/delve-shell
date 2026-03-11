@@ -1,16 +1,15 @@
 package agent
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"os/exec"
 	"strconv"
 	"strings"
 
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
 
+	"delve-shell/internal/execenv"
 	"delve-shell/internal/hil"
 	"delve-shell/internal/history"
 )
@@ -64,6 +63,9 @@ type ExecuteCommandTool struct {
 	RequestSensitiveConfirmation func(command string) SensitiveChoice
 	Session                     *history.Session
 	OnExec                      func(command string, allowed bool, result string, sensitive bool, suggested bool)
+
+	// ExecutorProvider returns the current executor (local or remote). When nil, a local executor is used.
+	ExecutorProvider func() execenv.CommandExecutor
 }
 
 var _ tool.InvokableTool = (*ExecuteCommandTool)(nil)
@@ -159,17 +161,13 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 		sensitive = true
 	}
 
-	cmd := exec.CommandContext(ctx, "sh", "-c", command)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	exitCode := 0
-	if exitErr, ok := err.(*exec.ExitError); ok {
-		exitCode = exitErr.ExitCode()
+	executor := execenv.CommandExecutor(execenv.LocalExecutor{})
+	if t.ExecutorProvider != nil {
+		if e := t.ExecutorProvider(); e != nil {
+			executor = e
+		}
 	}
-	outStr := stdout.String()
-	errStr := stderr.String()
+	outStr, errStr, exitCode, err := executor.Run(ctx, command)
 	if storeResult && t.Session != nil {
 		_ = t.Session.AppendCommandResult(command, outStr, errStr, exitCode)
 	}

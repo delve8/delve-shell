@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"strings"
 
+	"delve-shell/internal/config"
 	"delve-shell/internal/history"
 	"delve-shell/internal/i18n"
+
+	"github.com/charmbracelet/lipgloss"
 )
 
 // choiceOption is one line in the choice menu (num 1-based, label for display).
@@ -84,33 +87,33 @@ func (m Model) statusKey() string {
 	return i18n.KeyStatusIdle
 }
 
-// titleLine returns the fixed title (Auto-run + status) for display above the viewport; does not scroll.
-// When pending, status and operation hint (1/2 or 1/2/3) are rendered with pendingActionStyle on the same line.
+// titleLine returns the fixed title (Remote + Auto-run + status) for display above the viewport; does not scroll.
 func (m Model) titleLine() string {
 	lang := m.getLang()
+	remotePart := "Local"
+	if m.RemoteActive {
+		if m.RemoteLabel != "" {
+			remotePart = "Remote " + m.RemoteLabel
+		} else {
+			remotePart = "Remote"
+		}
+	}
 	autoRunStr := i18n.T(lang, i18n.KeyAutoRunListOnly)
 	if m.GetAllowlistAutoRun != nil && !m.GetAllowlistAutoRun() {
 		autoRunStr = i18n.T(lang, i18n.KeyAutoRunNone)
 	}
-	autoRunPart := i18n.T(lang, i18n.KeyAutoRunLabel) + autoRunStr + " | "
+	autoRunPart := remotePart + " | " + i18n.T(lang, i18n.KeyAutoRunLabel) + autoRunStr + " | "
 	statusStr := i18n.T(lang, m.statusKey())
-	if m.Pending != nil {
-		hint := i18n.T(lang, i18n.KeyApproveYN)
-		if m.GetAllowlistAutoRun != nil && !m.GetAllowlistAutoRun() {
-			hint = i18n.T(lang, i18n.KeyApproveYNThree)
-		}
-		return titleStyle.Render(autoRunPart) + pendingActionStyle.Render(statusStr+"  "+hint)
-	}
-	if m.PendingSensitive != nil {
-		hint := i18n.T(lang, i18n.KeySensitivePressKey)
-		return titleStyle.Render(autoRunPart) + pendingActionStyle.Render(statusStr+"  "+hint)
-	}
-	// Idle and running: render status in a more prominent color
+	// Render status with different colors for idle, running, pending, suggest.
 	switch m.statusKey() {
 	case i18n.KeyStatusIdle:
 		return titleStyle.Render(autoRunPart) + statusIdleStyle.Render(statusStr)
 	case i18n.KeyStatusRunning:
 		return titleStyle.Render(autoRunPart) + statusRunningStyle.Render(statusStr)
+	case i18n.KeyStatusPendingApproval:
+		return titleStyle.Render(autoRunPart) + pendingActionStyle.Render(statusStr)
+	case i18n.KeyStatusSuggest:
+		return titleStyle.Render(autoRunPart) + suggestStyle.Render(statusStr)
 	default:
 		return titleStyle.Render(autoRunPart + statusStr)
 	}
@@ -280,17 +283,64 @@ func (m Model) View() string {
 			if end > len(vis) {
 				end = len(vis)
 			}
+			// Align descriptions: use same command column width for all visible Cmd+Desc rows.
+			cmdWidth := 0
+			for i := start; i < end; i++ {
+				o := opts[vis[i]]
+				if o.Path == "" && len(o.Cmd) > cmdWidth {
+					cmdWidth = len(o.Cmd)
+				}
+			}
+			const minCmdWidth = 12
+			if cmdWidth < minCmdWidth {
+				cmdWidth = minCmdWidth
+			}
+			maxLineLen := 0
+			if m.Width > 4 {
+				maxLineLen = m.Width - 4 // leave margin for prefix and avoid wrap
+			}
 			for i := start; i < end; i++ {
 				vi := vis[i]
 				opt := opts[vi]
-				line := opt.Cmd
+				var line string
+				var truncated bool
 				if opt.Path != "" {
-					line = "/sessions " + line
+					line = "/sessions " + opt.Cmd
 				} else {
-					line = fmt.Sprintf("%-14s  %s", opt.Cmd, opt.Desc)
+					line = fmt.Sprintf("%-*s  %s", cmdWidth, opt.Cmd, opt.Desc)
+				}
+				if maxLineLen > 3 {
+					r := []rune(line)
+					if len(r) > maxLineLen-3 {
+						line = string(r[:maxLineLen-3]) + "..."
+						truncated = true
+					}
 				}
 				if i == hiIdx {
 					out += suggestHi.Render("   "+line) + "\n"
+					// When selected and description was truncated, show full description below (multi-line if needed)
+					if opt.Path == "" && opt.Desc != "" && truncated {
+						indent := "   " + strings.Repeat(" ", cmdWidth) + "  "
+						descRunes := []rune(opt.Desc)
+						indentLen := 3 + cmdWidth + 2
+						descW := maxLineLen - indentLen
+						if descW < 20 {
+							descW = 40
+						}
+						if descW > len(descRunes) {
+							descW = len(descRunes)
+						}
+						if descW < 1 {
+							descW = 1
+						}
+						for j := 0; j < len(descRunes); j += descW {
+							endJ := j + descW
+							if endJ > len(descRunes) {
+								endJ = len(descRunes)
+							}
+							out += suggestStyle.Render(indent+string(descRunes[j:endJ])) + "\n"
+						}
+					}
 				} else {
 					out += suggestStyle.Render("   "+line) + "\n"
 				}
@@ -301,7 +351,149 @@ func (m Model) View() string {
 		out += "\n"
 		out += suggestStyle.Render(i18n.T(lang, i18n.KeyWaitOrCancel))
 	}
+
+	// Render overlay on top if active.
+	if m.OverlayActive {
+		out = m.renderOverlay(out)
+	}
 	return out
+}
+
+// overlayBoxMaxWidth is the max width of the overlay box so hint lines (e.g. "Up/Down to move... Esc to cancel.") do not wrap.
+const overlayBoxMaxWidth = 70
+
+// renderOverlay draws a centered modal box over the base content.
+func (m Model) renderOverlay(base string) string {
+	w := m.Width
+	h := m.Height
+	if w < 20 || h < 6 {
+		return base
+	}
+
+	// Box dimensions (smaller, centered).
+	boxW := w - 8
+	if boxW > overlayBoxMaxWidth {
+		boxW = overlayBoxMaxWidth
+	}
+	boxH := 10
+	if boxH > h-4 {
+		boxH = h - 4
+	}
+
+	// Build box content.
+	var content string
+	if m.AddRemoteActive {
+		var b strings.Builder
+		if m.AddRemoteError != "" {
+			b.WriteString(errStyle.Render(m.AddRemoteError) + "\n\n")
+			if m.AddRemoteOfferOverwrite {
+				b.WriteString("Press y to overwrite, or change host/username and try again.\n\n")
+			}
+		}
+		b.WriteString("Add remote\n\n")
+		b.WriteString("Host (address or host:port):\n")
+		b.WriteString(m.AddRemoteHostInput.View())
+		b.WriteString("\n\n")
+		b.WriteString("Username:\n")
+		b.WriteString(m.AddRemoteUserInput.View())
+		b.WriteString("\n\n")
+		b.WriteString("Name (optional):\n")
+		b.WriteString(m.AddRemoteNameInput.View())
+		b.WriteString("\n\n")
+		b.WriteString("Key path (optional):\n")
+		b.WriteString(m.AddRemoteKeyInput.View())
+		if m.AddRemoteFieldIndex == 3 && len(m.PathCompletionCandidates) > 0 {
+			b.WriteString("\n\n")
+			b.WriteString("Path completion (Up/Down select, Enter or Tab to pick):\n")
+			for i, c := range m.PathCompletionCandidates {
+				line := "  " + c
+				if i == m.PathCompletionIndex {
+					b.WriteString(suggestHi.Render(line) + "\n")
+				} else {
+					b.WriteString(suggestStyle.Render(line) + "\n")
+				}
+			}
+		}
+		b.WriteString("\n\n")
+		b.WriteString("Up/Down to move between fields, Enter to save, Esc to cancel.")
+		content = b.String()
+	} else if m.RemoteAuthStep == "username" {
+		var b strings.Builder
+		if m.RemoteAuthError != "" {
+			b.WriteString(errStyle.Render(m.RemoteAuthError) + "\n\n")
+		}
+		b.WriteString("SSH auth for " + config.HostFromTarget(m.RemoteAuthTarget) + "\n\n")
+		b.WriteString("Username:\n")
+		b.WriteString(m.RemoteAuthUsernameInput.View())
+		b.WriteString("\n\n")
+		b.WriteString("Press Enter to continue, Esc to cancel.")
+		content = b.String()
+	} else if m.RemoteAuthStep == "choose" {
+		var b strings.Builder
+		if m.RemoteAuthError != "" {
+			b.WriteString(errStyle.Render(m.RemoteAuthError) + "\n\n")
+		}
+		b.WriteString("Choose authentication method:\n")
+		b.WriteString("  1. Password\n")
+		b.WriteString("  2. Key file (identity file)\n\n")
+		b.WriteString("Press 1 or 2 to select, Esc to cancel.")
+		content = b.String()
+	} else if m.RemoteAuthStep == "password" {
+		var b strings.Builder
+		b.WriteString(m.OverlayContent)
+		b.WriteString("\n\n")
+		b.WriteString(m.RemoteAuthInput.View())
+		content = b.String()
+	} else if m.RemoteAuthStep == "identity" {
+		var b strings.Builder
+		b.WriteString(m.OverlayContent)
+		b.WriteString("\n\n")
+		b.WriteString(m.RemoteAuthInput.View())
+		if len(m.PathCompletionCandidates) > 0 {
+			b.WriteString("\n\n")
+			b.WriteString("Path completion (Up/Down select, Enter or Tab to pick):\n")
+			for i, c := range m.PathCompletionCandidates {
+				line := "  " + c
+				if i == m.PathCompletionIndex {
+					b.WriteString(suggestHi.Render(line) + "\n")
+				} else {
+					b.WriteString(suggestStyle.Render(line) + "\n")
+				}
+			}
+		}
+		content = b.String()
+	} else {
+		// Generic overlay: scrollable viewport.
+		content = m.OverlayViewport.View()
+	}
+
+	// Border styles.
+	overlayBoxStyle := lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("12")).
+		Padding(0, 1).
+		Width(boxW - 2)
+	titleStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("15")).
+		Background(lipgloss.Color("12")).
+		Padding(0, 1).
+		Width(boxW - 2).
+		Align(lipgloss.Center)
+
+	// Compose box with title.
+	boxContent := overlayBoxStyle.Render(content)
+	titleBar := titleStyle.Render(m.OverlayTitle)
+	box := titleBar + "\n" + boxContent
+
+	// Use lipgloss.Place to center the overlay on a blank background.
+	overlayStyle := lipgloss.NewStyle().
+		Width(w).
+		Height(h).
+		Align(lipgloss.Center, lipgloss.Center)
+
+	// Clear the overlay area and place the box in center.
+	return overlayStyle.Render(box)
 }
 
 // appendSuggestedLine appends the run line and copy hint for a suggested command (when dismissing the card).

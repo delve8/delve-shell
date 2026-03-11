@@ -14,6 +14,11 @@ type AgentReplyMsg struct {
 	Err   error
 }
 
+// SystemNotifyMsg is a system/tool notification (e.g. connected to remote, switched to local), not from the AI.
+type SystemNotifyMsg struct {
+	Text string
+}
+
 // CommandExecutedMsg carries command execution process and result (allowlist/approved/direct/suggested) for display in the conversation.
 type CommandExecutedMsg struct {
 	Command   string
@@ -31,4 +36,35 @@ type ConfigReloadedMsg struct{}
 // Path is the session file path; UI loads history from it to display (empty file for new session).
 type SessionSwitchedMsg struct {
 	Path string
+}
+
+// RemoteStatusMsg notifies the UI that the executor is local or remote, for header display.
+type RemoteStatusMsg struct {
+	Active bool   // true = remote, false = local
+	Label  string // e.g. "dev (root@1.2.3.4)" or "user@host"
+}
+
+// RemoteAuthPromptMsg asks the user to provide additional credentials (e.g. password) for a remote target.
+type RemoteAuthPromptMsg struct {
+	Target string
+	Err    string
+}
+
+// RemoteAuthResponse carries user-provided credentials back to CLI.
+// Kind is "password" or "identity" (key file path).
+// Username is optional; when set, CLI uses it with host from Target for SSH (e.g. overlay default "root").
+type RemoteAuthResponse struct {
+	Target   string
+	Username string // optional; when set, used with host from Target for user@host
+	Kind     string // "password" or "identity"
+	Password string // password (when Kind == "password") or key file path (when Kind == "identity")
+}
+
+// OverlayCloseMsg closes any active overlay.
+type OverlayCloseMsg struct{}
+
+// OverlayShowMsg shows an overlay with the given title and content.
+type OverlayShowMsg struct {
+	Title   string
+	Content string
 }

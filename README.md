@@ -7,7 +7,7 @@ AI-assisted ops CLI: chat with an AI in the terminal to run ops tasks. **Every c
 ## Overview
 
 - **Human-in-the-loop (HIL)**: Proposed commands are listed explicitly; execution happens only after the user approves or rejects. The tool does not rely on the AI’s in-chat “shall I run this” as a safety boundary.
-- **Allowlist and auto-run**: By default, allowlisted commands (e.g. read-only `ls`, `cat`, `git status`) run without confirmation; others show an approval card (Run / Reject). With **Auto-run: None** (`/config allowlist_auto_run off`), every command shows a card (Run / Copy / Dismiss). The allowlist uses regexes and can be updated with `/config allowlist update` to merge in built-in defaults.
+- **Allowlist and auto-run**: By default, allowlisted commands (e.g. read-only `ls`, `cat`, `git status`) run without confirmation; others show an approval card (Run / Reject). With **Auto-run: None** (`/config allowlist_auto_run off`), every command shows a card (Run / Copy / Dismiss). The allowlist uses regexes and can be updated with `/config update auto-run list` to merge in built-in defaults.
 - **Config and i18n**: `config.yaml` sets the LLM (base_url, api_key, model), UI language (en/zh), etc. Environment variables are supported via `$VAR` / `${VAR}`.
 - **Multi-platform**: Linux, macOS, Windows; amd64 and arm64.
 
@@ -49,12 +49,11 @@ These can be changed from inside the app via slash commands, e.g.:
 - `/config llm api_key <key>`: Set API key.
 - `/config llm base_url <url>`: Set base_url (e.g. DashScope compatible endpoint).
 - `/config llm model <name>`: Set model.
-- `/config language en` or `zh`: Set UI language.
 
 ### Allowlist (allowlist.yaml)
 
-Each line is one regex; matching commands run without confirmation. Built-in defaults include common read-only commands (e.g. `pwd`, `ls`, `git status`, `kubectl get`).  
-Use **`/config allowlist update`** in the app to merge the current built-in defaults into your `allowlist.yaml` (only missing entries are added), then **`/reload`** to apply.
+Each line is one regex; matching commands run without confirmation. Built-in defaults include common read-only commands (e.g. `pwd`, `ls`, `git status`, `kubectl get`).
+Use **`/config update auto-run list`** in the app to merge the current built-in defaults into your `allowlist.yaml` (only missing entries are added), then **`/reload`** to apply.
 
 ## Usage
 
@@ -71,9 +70,13 @@ Type `/` to list and complete these commands (order: help → cancel → config 
 |----------------|-------------|
 | `/help`        | Show help and slash command list |
 | `/cancel`      | Cancel the current AI request |
-| `/config`      | Config (sub: show, auto-run list-only/disable, allowlist update, llm base_url/api_key/model, language) |
+| `/config`      | Config (sub: add/remove-remote, auto-run list-only/disable, show, update auto-run list, llm base_url/api_key/model) |
+| `/config add-remote`  | Add a remote (opens form) |
+| `/config remove-remote`  | Remove a remote target by name |
 | `/config auto-run list-only`  | Listed commands run without confirmation (saved to config) |
 | `/config auto-run disable`    | Every command shows Run / Copy / Dismiss (saved to config) |
+| `/config show`  | Show current config path and LLM summary |
+| `/config update auto-run list`  | Merge built-in default allowlist into current (add missing entries) |
 | `/new`         | Start a new session |
 | `/sessions`    | List and switch to another session (optional filter after space) |
 | `/reload`      | Reload config and allowlist without restart |

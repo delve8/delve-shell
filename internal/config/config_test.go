@@ -175,3 +175,112 @@ func TestSensitivePatternsPath(t *testing.T) {
 		t.Errorf("SensitivePatternsPath() = %q, want %q", got, want)
 	}
 }
+
+func TestLoadRemotes_WriteRemotes_roundtrip(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", dir)
+	defer t.Setenv("DELVE_SHELL_ROOT", "")
+
+	if err := EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	want := []RemoteTarget{
+		{Name: "dev", Target: "root@192.168.1.1", IdentityFile: "~/.ssh/id_rsa"},
+		{Name: "prod", Target: "ops@prod.example.com", IdentityFile: ""},
+	}
+	if err := WriteRemotes(want); err != nil {
+		t.Fatal(err)
+	}
+	got, err := LoadRemotes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != len(want) {
+		t.Fatalf("LoadRemotes: len = %d, want %d", len(got), len(want))
+	}
+	for i := range want {
+		if got[i].Name != want[i].Name || got[i].Target != want[i].Target || got[i].IdentityFile != want[i].IdentityFile {
+			t.Errorf("LoadRemotes[%d] = %+v, want %+v", i, got[i], want[i])
+		}
+	}
+}
+
+func TestAddRemote_RemoveRemoteByName(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", dir)
+	defer t.Setenv("DELVE_SHELL_ROOT", "")
+
+	if err := EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	if err := AddRemote("root@host", "dev", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := AddRemote("ops@prod", "prod", "~/.ssh/prod"); err != nil {
+		t.Fatal(err)
+	}
+	remotes, _ := LoadRemotes()
+	if len(remotes) != 2 {
+		t.Fatalf("after AddRemote x2: len = %d, want 2", len(remotes))
+	}
+	if err := AddRemote("root@host", "other", ""); err == nil {
+		t.Error("AddRemote duplicate target should error")
+	}
+	if err := RemoveRemoteByName("dev"); err != nil {
+		t.Fatal(err)
+	}
+	remotes, _ = LoadRemotes()
+	if len(remotes) != 1 || remotes[0].Name != "prod" {
+		t.Errorf("after RemoveRemoteByName(dev): got %v, want single prod", remotes)
+	}
+	if err := RemoveRemoteByName("nope"); err == nil {
+		t.Error("RemoveRemoteByName missing name should error")
+	}
+}
+
+func TestAddRemote_validatesUserAtHost(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", dir)
+	defer t.Setenv("DELVE_SHELL_ROOT", "")
+
+	if err := EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	for _, invalid := range []string{"hostonly", "@host", "user@", "user@@host", ""} {
+		if err := AddRemote(invalid, "", ""); err == nil {
+			t.Errorf("AddRemote(%q) should error", invalid)
+		}
+	}
+	for _, valid := range []string{"root@host", "u@1.2.3.4", "u@host:22"} {
+		_ = os.Remove(RemotesPath())
+		if err := AddRemote(valid, "", ""); err != nil {
+			t.Errorf("AddRemote(%q) should succeed: %v", valid, err)
+		}
+	}
+}
+
+func TestUpdateRemote(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", dir)
+	defer t.Setenv("DELVE_SHELL_ROOT", "")
+
+	if err := EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	if err := AddRemote("root@host", "dev", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := UpdateRemote("root@host", "prod", "~/.ssh/prod"); err != nil {
+		t.Fatal(err)
+	}
+	remotes, _ := LoadRemotes()
+	if len(remotes) != 1 {
+		t.Fatalf("after UpdateRemote: len = %d, want 1", len(remotes))
+	}
+	if remotes[0].Name != "prod" || remotes[0].IdentityFile != "~/.ssh/prod" || remotes[0].Target != "root@host" {
+		t.Errorf("after UpdateRemote: got %+v", remotes[0])
+	}
+	if err := UpdateRemote("nobody@other", "x", ""); err == nil {
+		t.Error("UpdateRemote unknown target should error")
+	}
+}

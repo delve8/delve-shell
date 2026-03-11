@@ -3,6 +3,7 @@ package ui
 import (
 	"strings"
 
+	"delve-shell/internal/config"
 	"delve-shell/internal/history"
 	"delve-shell/internal/i18n"
 )
@@ -23,6 +24,8 @@ func getSlashOptions(lang string) []slashOption {
 		{"/help", i18n.T(lang, i18n.KeyDescHelp), ""},
 		{"/cancel", i18n.T(lang, i18n.KeyDescCancel), ""},
 		{"/config", i18n.T(lang, i18n.KeyDescConfig), ""},
+		{"/remote on", "Connect to a remote target (use /remote on <user@host> or pick from config)", ""},
+		{"/remote off", "Disconnect remote and run commands locally", ""},
 		{"/new", i18n.T(lang, i18n.KeySessionNew), ""},
 		{"/sessions", i18n.T(lang, i18n.KeyDescSessions), ""},
 		{"/reload", i18n.T(lang, i18n.KeyDescReload), ""},
@@ -33,17 +36,19 @@ func getSlashOptions(lang string) []slashOption {
 	}
 }
 
-// getConfigSubOptions returns /config sub-options (shown when input starts with "/config"), not /exit, /sh, etc.
+// getConfigSubOptions returns /config sub-options (shown when input starts with "/config").
+// Order: frequent first (remote, show, auto-run/allowlist), LLM last (set once at init, rarely changed).
 func getConfigSubOptions(lang string) []slashOption {
 	return []slashOption{
-		{"/config show", i18n.T(lang, i18n.KeyDescConfigShow), ""},
+		{"/config add-remote", i18n.T(lang, i18n.KeyDescConfigAddRemote), ""},
+		{"/config remove-remote", i18n.T(lang, i18n.KeyDescConfigRemoveRemote), ""},
 		{"/config auto-run list-only", i18n.T(lang, i18n.KeyDescAutoRunListOnly), ""},
 		{"/config auto-run disable", i18n.T(lang, i18n.KeyDescAutoRunDisable), ""},
-		{"/config allowlist update", i18n.T(lang, i18n.KeyDescConfigAllowlistUpdate), ""},
+		{"/config show", i18n.T(lang, i18n.KeyDescConfigShow), ""},
+		{"/config update auto-run list", i18n.T(lang, i18n.KeyDescConfigAllowlistUpdate), ""},
 		{"/config llm base_url <url>", i18n.T(lang, i18n.KeyDescConfigLLMBaseURL), ""},
 		{"/config llm api_key <key>", i18n.T(lang, i18n.KeyDescConfigLLMApiKey), ""},
 		{"/config llm model <name>", i18n.T(lang, i18n.KeyDescConfigLLMModel), ""},
-		{"/config language <en|zh>", i18n.T(lang, i18n.KeyDescConfigLanguage), ""},
 	}
 }
 
@@ -53,6 +58,11 @@ func getSlashOptionsForInput(inputVal string, lang string, currentSessionPath st
 	normalized = strings.TrimSpace(normalized)
 	normalizedLower := strings.ToLower(normalized)
 	if normalizedLower == "config" || strings.HasPrefix(normalizedLower, "config ") {
+		rest := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "config"))
+		if rest == "remove-remote" || strings.HasPrefix(rest, "remove-remote ") {
+			filter := strings.TrimSpace(strings.TrimPrefix(rest, "remove-remote"))
+			return getRemoveRemoteSlashOptions(lang, filter)
+		}
 		return getConfigSubOptions(lang)
 	}
 	if normalizedLower == "sessions" || strings.HasPrefix(normalizedLower, "sessions ") {
@@ -60,7 +70,65 @@ func getSlashOptionsForInput(inputVal string, lang string, currentSessionPath st
 		filter := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "sessions"))
 		return getSessionSlashOptions(filter, currentSessionPath)
 	}
+	if normalizedLower == "remote" || strings.HasPrefix(normalizedLower, "remote ") {
+		// Filter is what user typed after "remote on " (e.g. "/remote on" -> "", "/remote on dev" -> "dev"). Do not use "on" as filter.
+		filter := ""
+		if strings.HasPrefix(normalizedLower, "remote on") {
+			filter = strings.TrimSpace(strings.TrimPrefix(normalizedLower, "remote on"))
+		}
+		return getRemoteSlashOptions(filter)
+	}
 	return getSlashOptions(lang)
+}
+
+// getRemoteSlashOptions returns slash options for remote connection; filter is the substring after "/remote ".
+// Shows configured remotes first, then manual input option.
+func getRemoteSlashOptions(filter string) []slashOption {
+	var opts []slashOption
+	remotes, err := config.LoadRemotes()
+	if err == nil && len(remotes) > 0 {
+		filterLower := strings.ToLower(filter)
+		for _, r := range remotes {
+			line := r.Target + " " + r.Name
+			if filterLower != "" && !strings.Contains(strings.ToLower(line), filterLower) {
+				continue
+			}
+			// When no name, Cmd already shows target; leave Desc empty to avoid duplication.
+			desc := r.Name
+			opts = append(opts, slashOption{
+				Cmd:  "/remote on " + config.HostFromTarget(r.Target),
+				Desc: desc,
+			})
+		}
+	}
+	opts = append(opts, slashOption{Cmd: "/remote on <user@host>", Desc: "Or type user@host (e.g. root@1.2.3.4)", Path: ""})
+	return opts
+}
+
+// getRemoveRemoteSlashOptions returns slash options for /config remove-remote: one option per configured remote (select to remove).
+func getRemoveRemoteSlashOptions(lang string, filter string) []slashOption {
+	remotes, err := config.LoadRemotes()
+	if err != nil || len(remotes) == 0 {
+		return []slashOption{{Cmd: "/config remove-remote", Desc: i18n.T(lang, i18n.KeyRemoteNone), Path: ""}}
+	}
+	filterLower := strings.ToLower(filter)
+	var opts []slashOption
+	for _, r := range remotes {
+		line := r.Target + " " + r.Name
+		if filterLower != "" && !strings.Contains(strings.ToLower(line), filterLower) {
+			continue
+		}
+		// Show host only (no username). RemoveRemoteByName accepts host and matches by HostFromTarget(r.Target).
+		desc := r.Name
+		opts = append(opts, slashOption{
+			Cmd:  "/config remove-remote " + config.HostFromTarget(r.Target),
+			Desc: desc,
+		})
+	}
+	if len(opts) == 0 {
+		return []slashOption{{Cmd: "/config remove-remote", Desc: i18n.T(lang, i18n.KeyRemoteNone), Path: ""}}
+	}
+	return opts
 }
 
 // getSessionSlashOptions returns slash options for session list; filter is the substring after "/sessions " (e.g. date or time to filter).

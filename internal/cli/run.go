@@ -2,7 +2,6 @@ package cli
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -22,6 +21,7 @@ import (
 
 	"delve-shell/internal/agent"
 	"delve-shell/internal/config"
+	"delve-shell/internal/execenv"
 	"delve-shell/internal/hil"
 	"delve-shell/internal/history"
 	"delve-shell/internal/i18n"
@@ -76,6 +76,19 @@ func runRun(cmd *cobra.Command, args []string) error {
 
 	var runner *agent.Runner
 	var runnerMu sync.Mutex
+
+	// currentExecutor is the active command executor (local or remote).
+	var currentExecutor execenv.CommandExecutor = execenv.LocalExecutor{}
+	// executorMu protects currentExecutor access from concurrent goroutines.
+	var executorMu sync.Mutex
+
+	// getExecutor returns the current executor for the Runner.
+	getExecutor := func() execenv.CommandExecutor {
+		executorMu.Lock()
+		defer executorMu.Unlock()
+		return currentExecutor
+	}
+
 	getRunner := func() (*agent.Runner, error) {
 		runnerMu.Lock()
 		defer runnerMu.Unlock()
@@ -110,6 +123,7 @@ func runRun(cmd *cobra.Command, args []string) error {
 			ApprovalChan:              approvalChan,
 			SensitiveConfirmationChan: sensitiveConfirmationChan,
 			ExecEventChan:             execEventChan,
+			ExecutorProvider:          getExecutor,
 		})
 		if err != nil {
 			return nil, err
@@ -123,6 +137,9 @@ func runRun(cmd *cobra.Command, args []string) error {
 	shellRequestedChan := make(chan []string, 1)
 	cancelRequestChan := make(chan struct{}, 1)
 	sessionSwitchChan := make(chan string, 1)
+	remoteOnChan := make(chan string, 1)
+	remoteOffChan := make(chan struct{}, 1)
+	remoteAuthRespChan := make(chan ui.RemoteAuthResponse, 1)
 	var savedMessages []string
 	var currentP *tea.Program
 
@@ -190,18 +207,14 @@ func runRun(cmd *cobra.Command, args []string) error {
 	}()
 	go func() {
 		for cmd := range execDirectChan {
-			c := exec.Command("sh", "-c", cmd)
-			var stdout, stderr bytes.Buffer
-			c.Stdout = &stdout
-			c.Stderr = &stderr
-			runErr := c.Run()
-			exitCode := 0
-			if exitErr, ok := runErr.(*exec.ExitError); ok {
-				exitCode = exitErr.ExitCode()
-			}
-			result := stdout.String()
-			if stderr.Len() > 0 {
-				result += "\nstderr:\n" + stderr.String()
+			executor := getExecutor()
+			stdout, stderrStr, exitCode, runErr := executor.Run(context.Background(), cmd)
+			result := stdout
+			if stderrStr != "" {
+				if result != "" {
+					result += "\n"
+				}
+				result += "stderr:\n" + stderrStr
 			}
 			result += "\nexit_code: " + fmt.Sprint(exitCode)
 			if runErr != nil && exitCode == 0 {
@@ -209,6 +222,105 @@ func runRun(cmd *cobra.Command, args []string) error {
 			}
 			if currentP != nil {
 				currentP.Send(ui.CommandExecutedMsg{Command: cmd, Direct: true, Result: result})
+			}
+		}
+	}()
+	go func() {
+		for target := range remoteOnChan {
+			// Resolve target against remotes: allow name, full target, or host-only.
+			identityFile := ""
+			label := target
+			remotes, errRemotes := config.LoadRemotes()
+			if errRemotes == nil && len(remotes) > 0 {
+				for _, r := range remotes {
+					matched := r.Target == target || r.Name == target || config.HostFromTarget(r.Target) == target
+					if matched && r.Target != "" {
+						target = r.Target
+						identityFile = r.IdentityFile
+						hostOnly := config.HostFromTarget(target)
+						if r.Name != "" {
+							label = fmt.Sprintf("%s (%s)", r.Name, hostOnly)
+						} else {
+							label = hostOnly
+						}
+						break
+					}
+				}
+			}
+
+			sshExec, _, err := execenv.NewSSHExecutor(target, identityFile)
+			if err != nil {
+				// Authentication-related errors should trigger interactive auth prompt.
+				if currentP != nil {
+					msg := fmt.Sprintf("Remote connect failed for %s: %v", config.HostFromTarget(target), err)
+					currentP.Send(ui.RemoteAuthPromptMsg{Target: target, Err: msg})
+				}
+				continue
+			}
+			if label == "" {
+				label = config.HostFromTarget(target)
+			}
+			executorMu.Lock()
+			currentExecutor = sshExec
+			executorMu.Unlock()
+			if currentP != nil {
+				currentP.Send(ui.RemoteStatusMsg{Active: true, Label: label})
+				currentP.Send(ui.SystemNotifyMsg{Text: fmt.Sprintf("Connected to remote: %s", label)})
+			}
+		}
+	}()
+	go func() {
+		for range remoteOffChan {
+			executorMu.Lock()
+			// If current executor is SSH, close it.
+			if sshExec, ok := currentExecutor.(*execenv.SSHExecutor); ok {
+				_ = sshExec.Close()
+			}
+			currentExecutor = execenv.LocalExecutor{}
+			executorMu.Unlock()
+			if currentP != nil {
+				currentP.Send(ui.RemoteStatusMsg{Active: false, Label: ""})
+				currentP.Send(ui.SystemNotifyMsg{Text: "Switched back to local executor."})
+			}
+		}
+	}()
+	go func() {
+		for resp := range remoteAuthRespChan {
+			if resp.Password == "" {
+				continue
+			}
+			// Use username from overlay if set; otherwise keep target as-is (user@host from config).
+			targetForSSH := resp.Target
+			if resp.Username != "" {
+				host := config.HostFromTarget(resp.Target)
+				targetForSSH = resp.Username + "@" + host
+			}
+			var sshExec execenv.CommandExecutor
+			var err error
+			switch resp.Kind {
+			case "identity":
+				sshExec, _, err = execenv.NewSSHExecutor(targetForSSH, resp.Password)
+			default: // "password"
+				sshExec, _, err = execenv.NewSSHExecutorWithPassword(targetForSSH, "", resp.Password)
+			}
+			// Best effort to clear password string.
+			resp.Password = ""
+			if err != nil {
+				if currentP != nil {
+					currentP.Send(ui.RemoteAuthPromptMsg{
+						Target: resp.Target,
+						Err:   fmt.Sprintf("Auth failed: %v", err),
+					})
+				}
+				continue
+			}
+			executorMu.Lock()
+			currentExecutor = sshExec
+			executorMu.Unlock()
+			if currentP != nil {
+				label := config.HostFromTarget(targetForSSH)
+				currentP.Send(ui.RemoteStatusMsg{Active: true, Label: label})
+				currentP.Send(ui.SystemNotifyMsg{Text: fmt.Sprintf("Connected to remote: %s", label)})
 			}
 		}
 	}()
@@ -278,7 +390,7 @@ func runRun(cmd *cobra.Command, args []string) error {
 
 	getAllowlistAutoRun := func() bool { return currentAllowlistAutoRun }
 	for {
-		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, allowlistAutoRunChangeChan, sessionSwitchChan, getAllowlistAutoRun, savedMessages, session.Path())
+		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, allowlistAutoRunChangeChan, sessionSwitchChan, remoteOnChan, remoteOffChan, remoteAuthRespChan, getAllowlistAutoRun, savedMessages, session.Path())
 		// do not use WithMouse* so the terminal can use mouse for text selection; scroll with Up/Down/PgUp/PgDown
 		p := tea.NewProgram(model, tea.WithAltScreen())
 		currentP = p
@@ -346,10 +458,10 @@ func ensureConfigWithWizard() (*config.Config, bool, error) {
 	return cfg, true, nil
 }
 
-// runFirstTimeWizard 在终端中引导用户填写基础配置（language / base_url / api_key / model）。
-// 仅在 config.yaml 不存在时调用。文案来自 i18n，选择语言后后续提示使用该语言。
+// runFirstTimeWizard 在终端中引导用户填写基础配置（base_url / api_key / model）。
+// 仅在 config.yaml 不存在时调用。文案来自 i18n（当前为英文）。
 func runFirstTimeWizard(configPath string) (*config.Config, error) {
-	introLang := "en" // 选择语言前的说明用英文（可改为根据 locale 推断）
+	introLang := "en"
 	fmt.Println(i18n.T(introLang, i18n.KeyWizardTitle))
 	fmt.Println(i18n.Tf(introLang, i18n.KeyWizardConfigPath, configPath))
 	fmt.Println(i18n.T(introLang, i18n.KeyWizardIntroDesc1))
@@ -360,26 +472,7 @@ func runFirstTimeWizard(configPath string) (*config.Config, error) {
 	fmt.Println()
 
 	reader := bufio.NewReader(os.Stdin)
-
-	// Language
-	lang := ""
-	for {
-		fmt.Print(i18n.T(introLang, i18n.KeyWizardLangPrompt))
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			return nil, err
-		}
-		line = strings.TrimSpace(line)
-		if line == "" {
-			lang = "en"
-			break
-		}
-		if line == "en" || line == "zh" {
-			lang = line
-			break
-		}
-		fmt.Println(i18n.T(introLang, i18n.KeyWizardLangInvalid))
-	}
+	lang := "en"
 
 	// Base URL
 	fmt.Print(i18n.T(lang, i18n.KeyWizardBaseURLPrompt))
@@ -418,7 +511,6 @@ func runFirstTimeWizard(configPath string) (*config.Config, error) {
 	}
 
 	cfg := config.Default()
-	cfg.Language = lang
 	cfg.LLM.BaseURL = baseURL
 	cfg.LLM.APIKey = apiKey
 	cfg.LLM.Model = model
