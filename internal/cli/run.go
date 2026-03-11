@@ -359,7 +359,12 @@ func runRun(cmd *cobra.Command, args []string) error {
 			var runErr error
 			go func() {
 				defer close(done)
-				reply, runErr = r.Run(reqCtx, userMsg)
+				var historyMsgs []*schema.Message
+				if session != nil {
+					events, _ := history.ReadRecent(session.Path(), agent.MaxConversationEvents)
+					historyMsgs = agent.BuildConversationMessages(events)
+				}
+				reply, runErr = r.Run(reqCtx, userMsg, historyMsgs)
 			}()
 			select {
 			case <-done:

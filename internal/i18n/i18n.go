@@ -100,7 +100,7 @@ const (
 	KeyWizardIntroEnv     = "wizard_intro_env"
 	KeyWizardLangPrompt   = "wizard_lang_prompt"
 	KeyWizardLangInvalid  = "wizard_lang_invalid"
-	KeyWizardBaseURLPrompt   = "wizard_base_url_prompt"
+		KeyWizardBaseURLPrompt   = "wizard_base_url_prompt"
 	KeyWizardAPIKeyPrompt   = "wizard_api_key_prompt"
 	KeyWizardAPIKeyRequired = "wizard_api_key_required"
 	KeyWizardModelPrompt  = "wizard_model_prompt"
@@ -126,7 +126,7 @@ const (
 	KeyConfigLLMBaseURLLabel  = "config_llm_base_url_label"
 	KeyConfigLLMApiKeyLabel   = "config_llm_api_key_label"
 	KeyConfigLLMModelLabel    = "config_llm_model_label"
-	KeyConfigLLMHint         = "config_llm_hint"
+		KeyConfigLLMHint         = "config_llm_hint"
 	KeyConfigLLMApiKeyRequired = "config_llm_api_key_required"
 	KeyDescConfigLLM  = "desc_config_llm"
 	KeyConfigHint     = "config_hint" // when /config or /config show is used: point to /config llm and header
@@ -267,7 +267,7 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyWizardIntroDesc1:     "This wizard will set LLM config (base_url, api_key, model).",
 		KeyWizardIntroDesc2:     "",
 		KeyWizardIntroEnv:       "Values support $VAR or ${VAR} environment references.",
-		KeyWizardBaseURLPrompt:  "LLM base URL (optional; empty uses provider default, e.g. OpenAI official): ",
+		KeyWizardBaseURLPrompt:  "LLM base URL (optional; empty uses provider default, e.g. OpenAI official). For OpenAI-compatible APIs, use the /v1 endpoint (e.g. https://api.openai.com/v1): ",
 		KeyWizardAPIKeyPrompt:   "LLM api_key (required; supports $VAR or ${VAR}): ",
 		KeyWizardAPIKeyRequired: "api_key is required. Use an env reference if you prefer not to store the key directly.",
 		KeyWizardModelPrompt:    "LLM model (optional; default: gpt-4o-mini): ",
@@ -288,7 +288,7 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyAddRemoteTitle:       "Add Remote",
 		KeyConfigSavedLLM:       "Config saved (llm).",
 		KeyConfigLLMTitle:       "Config LLM",
-		KeyConfigLLMBaseURLLabel: "Base URL (optional; empty = default):",
+		KeyConfigLLMBaseURLLabel: "Base URL (optional; empty = default; for OpenAI-compatible APIs use the /v1 endpoint):",
 		KeyConfigLLMApiKeyLabel:  "API key (required; supports $VAR):",
 		KeyConfigLLMModelLabel:   "Model (optional; empty = gpt-4o-mini):",
 		KeyConfigLLMHint:         "Up/Down to move between fields, Enter to save, Esc to cancel.",

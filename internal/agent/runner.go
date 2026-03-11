@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -108,6 +109,9 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		ToolsConfig: compose.ToolsNodeConfig{
 			Tools: []tool.BaseTool{execTool, viewTool},
 		},
+		// Limit total ReAct steps per turn to avoid infinite loops; default is node count + 2.
+		// 50 allows multiple tool calls (e.g. inspecting several pods) plus retries while still failing fast on loops.
+		MaxStep: 50,
 		MessageModifier: func(ctx context.Context, input []*schema.Message) []*schema.Message {
 			out := make([]*schema.Message, 0, len(input)+1)
 			out = append(out, schema.SystemMessage(sysPrompt))
@@ -128,14 +132,25 @@ const defaultSystemPrompt = `You are an ops assistant. You run commands in the u
 - Prefer one execute_command call per user goal. Combine multiple steps into a single shell command (e.g. "cmd1 && cmd2 && cmd3" or pipelines) so the user approves once for the whole operation.
 - Use multiple execute_command calls only when a later step must depend on the previous command's output to decide what to run next.
 - Prefer shell; use Python or other tools only when shell is not sufficient.
+- When you need to inspect multiple similar resources (e.g. several pods with errors), prefer a small number of batch commands (label selectors, namespaces, shell loops) instead of many single-resource commands.
 
 ## Approval and safety
 - Commands not on the allowlist require explicit user approval in this tool. Do not "ask" in chat—the tool shows the pending command and waits for confirmation.
 - For every execute_command call, always set reason (why this command and expected effect) and risk_level (read_only, low, or high) so the user sees a clear approval card.
 - If command output may contain secrets or sensitive data, set result_contains_secrets to true: the result is shown only to the user, you receive "done", and it is not stored in history.
 
+## Clarifications and confirmations
+- When you need the user's decision, present explicit options and tell the user how to answer (for example: "Option 1: ..., Option 2: ...; reply with 1 or 2.").
+- Avoid vague yes/no questions like "Do you need me to ...?". Instead, restate what you will do for each option so the meaning of the user's choice is unambiguous.
+- Never ask in chat whether you should run a command or script; triggering execute_command is the only way to propose execution, and the approval card is the only place where the user approves or rejects it.
+
 ## Context
-- Use view_context when you need to see recent session history (commands and results) to inform your next step.`
+- Use view_context when you need to see recent session history (commands and results) to inform your next step.
+
+## Loop control
+- The agent has a limited number of internal steps per turn. Avoid calling tools repeatedly when they are failing in the same way.
+- After a few unsuccessful or uninformative tool calls, stop retrying, explain the limitation, and summarize what you know so far.
+- If more tool calls would only repeat earlier failures or add little value, give your best recommendation based on existing information instead of looping.`
 
 func autoRunParagraph(allowlistAutoRun bool) string {
 	if allowlistAutoRun {
@@ -144,11 +159,45 @@ func autoRunParagraph(allowlistAutoRun bool) string {
 	return `Auto-run: none. Every command shows an approval card (Run, Copy, or Dismiss). No command runs without user choice. Prefer one combined command per task so the user approves once.`
 }
 
+// MaxConversationEvents is the max number of session events to use when building conversation history (user_input + llm_response only).
+const MaxConversationEvents = 200
+
+// BuildConversationMessages converts session events to chat messages (user/assistant only) for context. Used so the model receives prior turns without calling view_context.
+func BuildConversationMessages(events []history.Event) []*schema.Message {
+	var out []*schema.Message
+	for _, ev := range events {
+		switch ev.Type {
+		case "user_input":
+			var p struct {
+				Text string `json:"text"`
+			}
+			if json.Unmarshal(ev.Payload, &p) == nil && p.Text != "" {
+				out = append(out, schema.UserMessage(p.Text))
+			}
+		case "llm_response":
+			var p struct {
+				Reply string `json:"reply"`
+			}
+			if json.Unmarshal(ev.Payload, &p) == nil {
+				out = append(out, schema.AssistantMessage(p.Reply, nil))
+			}
+		}
+	}
+	return out
+}
+
 // Run generates a reply for one user message; blocks until user approves or rejects if agent calls a command requiring approval.
-func (r *Runner) Run(ctx context.Context, userMessage string) (reply string, err error) {
-	msg, err := r.agent.Generate(ctx, []*schema.Message{
-		schema.UserMessage(userMessage),
-	})
+// conversationHistory is optional: when non-nil and non-empty, it is prepended so the model sees prior user/assistant turns (e.g. from session). The current userMessage is always appended.
+func (r *Runner) Run(ctx context.Context, userMessage string, conversationHistory []*schema.Message) (reply string, err error) {
+	var input []*schema.Message
+	if len(conversationHistory) > 0 {
+		input = make([]*schema.Message, 0, len(conversationHistory)+1)
+		input = append(input, conversationHistory...)
+		input = append(input, schema.UserMessage(userMessage))
+	} else {
+		input = []*schema.Message{schema.UserMessage(userMessage)}
+	}
+	msg, err := r.agent.Generate(ctx, input)
 	if err != nil {
 		return "", err
 	}
