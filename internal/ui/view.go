@@ -382,7 +382,24 @@ func (m Model) renderOverlay(base string) string {
 
 	// Build box content.
 	var content string
-	if m.AddRemoteActive {
+	if m.ConfigLLMActive {
+		lang := m.getLang()
+		var b strings.Builder
+		if m.ConfigLLMError != "" {
+			b.WriteString(errStyle.Render(m.ConfigLLMError) + "\n\n")
+		}
+		b.WriteString(i18n.T(lang, i18n.KeyConfigLLMBaseURLLabel) + "\n")
+		b.WriteString(m.ConfigLLMBaseURLInput.View())
+		b.WriteString("\n\n")
+		b.WriteString(i18n.T(lang, i18n.KeyConfigLLMApiKeyLabel) + "\n")
+		b.WriteString(m.ConfigLLMApiKeyInput.View())
+		b.WriteString("\n\n")
+		b.WriteString(i18n.T(lang, i18n.KeyConfigLLMModelLabel) + "\n")
+		b.WriteString(m.ConfigLLMModelInput.View())
+		b.WriteString("\n\n")
+		b.WriteString(i18n.T(lang, i18n.KeyConfigLLMHint))
+		content = b.String()
+	} else if m.AddRemoteActive {
 		var b strings.Builder
 		if m.AddRemoteError != "" {
 			b.WriteString(errStyle.Render(m.AddRemoteError) + "\n\n")

@@ -76,6 +76,14 @@ type Model struct {
 	// Path completion (shared): used for any path input with dropdown (auth identity key path, add-remote key path).
 	PathCompletionCandidates []string
 	PathCompletionIndex       int
+
+	// Config LLM overlay: single form for base_url, api_key, model.
+	ConfigLLMActive       bool
+	ConfigLLMBaseURLInput textinput.Model
+	ConfigLLMApiKeyInput  textinput.Model
+	ConfigLLMModelInput   textinput.Model
+	ConfigLLMFieldIndex   int   // 0=base_url, 1=api_key, 2=model
+	ConfigLLMError        string
 }
 
 // Init implements tea.Model.
@@ -142,6 +150,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.AddRemoteActive = false
 		m.AddRemoteError = ""
 		m.AddRemoteOfferOverwrite = false
+		m.ConfigLLMActive = false
+		m.ConfigLLMError = ""
 		m.RemoteAuthStep = ""
 		m.RemoteAuthTarget = ""
 		m.RemoteAuthError = ""
@@ -163,6 +173,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.AddRemoteActive = false
 				m.AddRemoteError = ""
 				m.AddRemoteOfferOverwrite = false
+				m.ConfigLLMActive = false
+				m.ConfigLLMError = ""
 				m.OverlayTitle = ""
 				m.OverlayContent = ""
 				m.RemoteAuthStep = ""
@@ -356,6 +368,53 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						} else {
 							m.PathCompletionIndex = -1
 						}
+					}
+					return m, cmd
+				}
+				if m.ConfigLLMActive {
+					switch key {
+					case "up", "down":
+						dir := 1
+						if key == "up" {
+							dir = -1
+						}
+						m.ConfigLLMFieldIndex = (m.ConfigLLMFieldIndex + dir + 3) % 3
+						m.ConfigLLMBaseURLInput.Blur()
+						m.ConfigLLMApiKeyInput.Blur()
+						m.ConfigLLMModelInput.Blur()
+						switch m.ConfigLLMFieldIndex {
+						case 0:
+							m.ConfigLLMBaseURLInput.Focus()
+						case 1:
+							m.ConfigLLMApiKeyInput.Focus()
+						case 2:
+							m.ConfigLLMModelInput.Focus()
+						}
+						return m, nil
+					case "enter":
+						baseURL := strings.TrimSpace(m.ConfigLLMBaseURLInput.Value())
+						apiKey := strings.TrimSpace(m.ConfigLLMApiKeyInput.Value())
+						model := strings.TrimSpace(m.ConfigLLMModelInput.Value())
+						if apiKey == "" {
+							m.ConfigLLMError = i18n.T(m.getLang(), i18n.KeyConfigLLMApiKeyRequired)
+							return m, nil
+						}
+						m = m.applyConfigLLMFromOverlay(baseURL, apiKey, model)
+						m.OverlayActive = false
+						m.ConfigLLMActive = false
+						m.ConfigLLMError = ""
+						m.OverlayTitle = ""
+						m.OverlayContent = ""
+						return m, nil
+					}
+					var cmd tea.Cmd
+					switch m.ConfigLLMFieldIndex {
+					case 0:
+						m.ConfigLLMBaseURLInput, cmd = m.ConfigLLMBaseURLInput.Update(msg)
+					case 1:
+						m.ConfigLLMApiKeyInput, cmd = m.ConfigLLMApiKeyInput.Update(msg)
+					case 2:
+						m.ConfigLLMModelInput, cmd = m.ConfigLLMModelInput.Update(msg)
 					}
 					return m, cmd
 				}
@@ -816,6 +875,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.OverlayViewport = viewport.New(m.Width-4, min(m.Height-6, 20))
 				m.OverlayViewport.SetContent(m.OverlayContent)
 				return m, nil
+			case text == "/config llm":
+				m = m.openConfigLLMOverlay()
+				return m, nil
 			case strings.HasPrefix(text, "/config llm base_url "):
 				m = m.applyConfigLLM("base_url", strings.TrimPrefix(text, "/config llm base_url "))
 				return m, nil
@@ -826,7 +888,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m = m.applyConfigLLM("model", strings.TrimPrefix(text, "/config llm model "))
 				return m, nil
 			case text == "/config show", text == "/config":
-				m = m.showConfig()
+				m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(m.getLang(), i18n.KeyConfigHint)))
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
 				return m, nil
 			case text == "/config update auto-run list":
 				m = m.applyConfigAllowlistUpdate()
@@ -971,10 +1035,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							m.OverlayViewport.SetContent(m.OverlayContent)
 							return m, nil
 						}
-						if chosen == "/config show" {
-							m = m.showConfig()
-							return m, nil
-						}
 						if chosen == "/config update auto-run list" {
 							m = m.applyConfigAllowlistUpdate()
 							return m, nil
@@ -1028,23 +1088,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							m = m.applyConfigAllowlistAutoRun("disable")
 							return m, nil
 						}
-						if strings.HasPrefix(chosen, "/config llm base_url") {
-							m.Input.SetValue("/config llm base_url ")
-							m.Input.CursorEnd()
+						if chosen == "/config llm" {
+							m = m.openConfigLLMOverlay()
 							return m, nil
 						}
-						if strings.HasPrefix(chosen, "/config llm api_key") {
-							m.Input.SetValue("/config llm api_key ")
-							m.Input.CursorEnd()
+						if chosen == "/config" {
+							m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(m.getLang(), i18n.KeyConfigHint)))
+							m.Viewport.SetContent(m.buildContent())
+							m.Viewport.GotoBottom()
 							return m, nil
 						}
-						if strings.HasPrefix(chosen, "/config llm model") {
-							m.Input.SetValue("/config llm model ")
-							m.Input.CursorEnd()
-							return m, nil
-						}
-						if chosen == "/config" || strings.HasPrefix(chosen, "/config") {
-							m = m.showConfig()
+						if strings.HasPrefix(chosen, "/config ") {
+							// Unhandled /config subcommand; show hint
+							m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(m.getLang(), i18n.KeyConfigHint)))
+							m.Viewport.SetContent(m.buildContent())
+							m.Viewport.GotoBottom()
 							return m, nil
 						}
 						if chosen == "/reload" {

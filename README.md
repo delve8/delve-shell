@@ -44,11 +44,8 @@ Session data: `<root>/sessions`
 
 These can be changed from inside the app via slash commands, e.g.:
 
-- `/config show`: Show config path and LLM summary.
-- `/config auto-run list-only` or `disable`: Set whether listed commands auto-run (saved to config).
-- `/config llm api_key <key>`: Set API key.
-- `/config llm base_url <url>`: Set base_url (e.g. DashScope compatible endpoint).
-- `/config llm model <name>`: Set model.
+- `/config llm`: Set LLM (base URL, API key, model) in a single form.
+- `/config auto-run list-only` or `disable`: Set whether listed commands auto-run (saved to config). Current value is also shown in the header.
 
 ### Allowlist (allowlist.yaml)
 
@@ -70,12 +67,12 @@ Type `/` to list and complete these commands (order: help → cancel → config 
 |----------------|-------------|
 | `/help`        | Show help and slash command list |
 | `/cancel`      | Cancel the current AI request |
-| `/config`      | Config (sub: add/remove-remote, auto-run list-only/disable, show, update auto-run list, llm base_url/api_key/model) |
+| `/config`      | Config (sub: add/remove-remote, auto-run list-only/disable, update auto-run list, llm) |
 | `/config add-remote`  | Add a remote (opens form) |
 | `/config remove-remote`  | Remove a remote target by name |
 | `/config auto-run list-only`  | Listed commands run without confirmation (saved to config) |
 | `/config auto-run disable`    | Every command shows Run / Copy / Dismiss (saved to config) |
-| `/config show`  | Show current config path and LLM summary |
+| `/config llm`  | Set LLM (base URL, API key, model) |
 | `/config update auto-run list`  | Merge built-in default allowlist into current (add missing entries) |
 | `/new`         | Start a new session |
 | `/sessions`    | List and switch to another session (optional filter after space) |

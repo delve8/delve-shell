@@ -44,11 +44,8 @@ func getConfigSubOptions(lang string) []slashOption {
 		{"/config remove-remote", i18n.T(lang, i18n.KeyDescConfigRemoveRemote), ""},
 		{"/config auto-run list-only", i18n.T(lang, i18n.KeyDescAutoRunListOnly), ""},
 		{"/config auto-run disable", i18n.T(lang, i18n.KeyDescAutoRunDisable), ""},
-		{"/config show", i18n.T(lang, i18n.KeyDescConfigShow), ""},
 		{"/config update auto-run list", i18n.T(lang, i18n.KeyDescConfigAllowlistUpdate), ""},
-		{"/config llm base_url <url>", i18n.T(lang, i18n.KeyDescConfigLLMBaseURL), ""},
-		{"/config llm api_key <key>", i18n.T(lang, i18n.KeyDescConfigLLMApiKey), ""},
-		{"/config llm model <name>", i18n.T(lang, i18n.KeyDescConfigLLMModel), ""},
+		{"/config llm", i18n.T(lang, i18n.KeyDescConfigLLM), ""},
 	}
 }
 
@@ -70,13 +67,19 @@ func getSlashOptionsForInput(inputVal string, lang string, currentSessionPath st
 		filter := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "sessions"))
 		return getSessionSlashOptions(filter, currentSessionPath)
 	}
-	if normalizedLower == "remote" || strings.HasPrefix(normalizedLower, "remote ") {
-		// Filter is what user typed after "remote on " (e.g. "/remote on" -> "", "/remote on dev" -> "dev"). Do not use "on" as filter.
-		filter := ""
-		if strings.HasPrefix(normalizedLower, "remote on") {
-			filter = strings.TrimSpace(strings.TrimPrefix(normalizedLower, "remote on"))
+	if strings.TrimSpace(normalizedLower) == "remote" {
+		// Only "/remote" (no "on"): show just /remote on and /remote off.
+		return []slashOption{
+			{"/remote on", i18n.T(lang, i18n.KeyDescRemoteOn), ""},
+			{"/remote off", i18n.T(lang, i18n.KeyDescRemoteOff), ""},
 		}
-		return getRemoteSlashOptions(filter, lang)
+	}
+	if strings.HasPrefix(normalizedLower, "remote on") {
+		// "/remote on" or "/remote on xxx": show /remote off plus remote targets (and manual user@host).
+		filter := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "remote on"))
+		opts := getRemoteSlashOptions(filter, lang)
+		offOpt := slashOption{Cmd: "/remote off", Desc: i18n.T(lang, i18n.KeyDescRemoteOff), Path: ""}
+		return append([]slashOption{offOpt}, opts...)
 	}
 	return getSlashOptions(lang)
 }

@@ -121,6 +121,15 @@ const (
 	KeyRemoteManualHint = "remote_manual_hint" // hint when no remotes or "or type user@host"
 	KeyHelpTitle       = "help_title"
 	KeyAddRemoteTitle  = "add_remote_title"
+	KeyConfigSavedLLM  = "config_saved_llm"
+	KeyConfigLLMTitle  = "config_llm_title"
+	KeyConfigLLMBaseURLLabel  = "config_llm_base_url_label"
+	KeyConfigLLMApiKeyLabel   = "config_llm_api_key_label"
+	KeyConfigLLMModelLabel    = "config_llm_model_label"
+	KeyConfigLLMHint         = "config_llm_hint"
+	KeyConfigLLMApiKeyRequired = "config_llm_api_key_required"
+	KeyDescConfigLLM  = "desc_config_llm"
+	KeyConfigHint     = "config_hint" // when /config or /config show is used: point to /config llm and header
 )
 
 var messages = map[string]map[string]string{
@@ -151,16 +160,10 @@ Slash commands (each line: command, next line: description):
     Listed commands run without confirmation (saved to config)
   /config auto-run disable
     Every command shows Run/Copy/Dismiss (saved to config)
-  /config show
-    Show current config path and LLM summary
   /config update auto-run list
     Merge built-in default allowlist into current (add missing entries)
-  /config llm base_url <url>
-    Set LLM API base URL
-  /config llm api_key <key>
-    Set LLM API key
-  /config llm model <name>
-    Set LLM model name
+  /config llm
+    Set LLM (base URL, API key, model)
   /remote on [user@host]
     Connect to a remote host (pick from config or type user@host)
   /remote off
@@ -283,6 +286,15 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyRemoteManualHint:     "Or type user@host (e.g. root@1.2.3.4)",
 		KeyHelpTitle:            "Help",
 		KeyAddRemoteTitle:       "Add Remote",
+		KeyConfigSavedLLM:       "Config saved (llm).",
+		KeyConfigLLMTitle:       "Config LLM",
+		KeyConfigLLMBaseURLLabel: "Base URL (optional; empty = default):",
+		KeyConfigLLMApiKeyLabel:  "API key (required; supports $VAR):",
+		KeyConfigLLMModelLabel:   "Model (optional; empty = gpt-4o-mini):",
+		KeyConfigLLMHint:         "Up/Down to move between fields, Enter to save, Esc to cancel.",
+		KeyConfigLLMApiKeyRequired: "API key is required.",
+		KeyDescConfigLLM:        "Set LLM (base URL, API key, model)",
+		KeyConfigHint:           "Use /config llm for LLM; auto-run is in header.",
 	},
 }
 

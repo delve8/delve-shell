@@ -44,7 +44,7 @@ var TerminalCases = []Case{
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
 			{Input: "", Expect: []string{"delve-shell", "Enter"}, Timeout: 5 * time.Second},
-			{Input: "/config show", Expect: []string{"config.yaml", "llm", "Config:", "配置"}, Timeout: 5 * time.Second},
+			{Input: "/config show", Expect: []string{"/config llm", "header", "auto-run"}, Timeout: 5 * time.Second},
 			{Input: "/exit", Expect: []string{}, Timeout: 2 * time.Second},
 		},
 	},

@@ -3,9 +3,79 @@ package ui
 import (
 	"strings"
 
+	"github.com/charmbracelet/bubbles/textinput"
+
 	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
 )
+
+// openConfigLLMOverlay opens the Config LLM overlay with current config values pre-filled.
+func (m Model) openConfigLLMOverlay() Model {
+	cfg, err := config.Load()
+	if err != nil {
+		lang := m.getLang()
+		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
+		m.Viewport.SetContent(m.buildContent())
+		m.Viewport.GotoBottom()
+		return m
+	}
+	m.OverlayActive = true
+	m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyConfigLLMTitle)
+	m.ConfigLLMActive = true
+	m.ConfigLLMError = ""
+	m.ConfigLLMFieldIndex = 0
+	m.ConfigLLMBaseURLInput = textinput.New()
+	m.ConfigLLMBaseURLInput.Placeholder = "https://api.openai.com/v1 (optional)"
+	m.ConfigLLMBaseURLInput.SetValue(cfg.LLM.BaseURL)
+	m.ConfigLLMBaseURLInput.Focus()
+	m.ConfigLLMApiKeyInput = textinput.New()
+	m.ConfigLLMApiKeyInput.Placeholder = "sk-... or $API_KEY"
+	m.ConfigLLMApiKeyInput.EchoMode = textinput.EchoPassword
+	m.ConfigLLMApiKeyInput.SetValue(cfg.LLM.APIKey)
+	m.ConfigLLMApiKeyInput.Blur()
+	m.ConfigLLMModelInput = textinput.New()
+	m.ConfigLLMModelInput.Placeholder = "gpt-4o-mini (optional)"
+	m.ConfigLLMModelInput.SetValue(cfg.LLM.Model)
+	m.ConfigLLMModelInput.Blur()
+	return m
+}
+
+// applyConfigLLMFromOverlay writes all three llm fields (base_url, api_key, model) to config at once. api_key is required.
+func (m Model) applyConfigLLMFromOverlay(baseURL, apiKey, model string) Model {
+	baseURL = strings.TrimSpace(baseURL)
+	apiKey = strings.TrimSpace(apiKey)
+	model = strings.TrimSpace(model)
+	lang := m.getLang()
+	if apiKey == "" {
+		return m // caller sets ConfigLLMError
+	}
+	cfg, err := config.Load()
+	if err != nil {
+		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
+		m.Viewport.SetContent(m.buildContent())
+		m.Viewport.GotoBottom()
+		return m
+	}
+	cfg.LLM.BaseURL = baseURL
+	cfg.LLM.APIKey = apiKey
+	cfg.LLM.Model = model
+	if err := config.Write(cfg); err != nil {
+		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
+		m.Viewport.SetContent(m.buildContent())
+		m.Viewport.GotoBottom()
+		return m
+	}
+	m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(lang, i18n.KeyConfigSavedLLM)))
+	m.Viewport.SetContent(m.buildContent())
+	m.Viewport.GotoBottom()
+	if m.ConfigUpdatedChan != nil {
+		select {
+		case m.ConfigUpdatedChan <- struct{}{}:
+		default:
+		}
+	}
+	return m
+}
 
 // applyConfigLLM sets one llm field in config.yaml and writes back; value supports $VAR env expansion.
 func (m Model) applyConfigLLM(field, value string) Model {
@@ -46,22 +116,6 @@ func (m Model) applyConfigLLM(field, value string) Model {
 		default:
 		}
 	}
-	return m
-}
-
-// showConfig displays current config path and LLM summary (api_key masked) in the conversation area.
-func (m Model) showConfig() Model {
-	lang := m.getLang()
-	cfg, err := config.Load()
-	if err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	m.Messages = append(m.Messages, suggestStyle.Render(config.ConfigPath()+"\n"+cfg.LLMSummary()))
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
 	return m
 }
 
