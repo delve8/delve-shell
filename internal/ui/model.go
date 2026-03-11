@@ -811,7 +811,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			case text == "/help":
 				m.OverlayActive = true
-				m.OverlayTitle = "Help"
+				m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyHelpTitle)
 				m.OverlayContent = i18n.T(m.getLang(), i18n.KeyHelpText)
 				m.OverlayViewport = viewport.New(m.Width-4, min(m.Height-6, 20))
 				m.OverlayViewport.SetContent(m.OverlayContent)
@@ -833,7 +833,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			case text == "/config add-remote":
 				m.OverlayActive = true
-				m.OverlayTitle = "Add Remote"
+				m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
 				m.AddRemoteActive = true
 				m.AddRemoteError = ""
 				m.AddRemoteOfferOverwrite = false
@@ -965,7 +965,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						}
 						if chosen == "/help" {
 							m.OverlayActive = true
-							m.OverlayTitle = "Help"
+							m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyHelpTitle)
 							m.OverlayContent = i18n.T(m.getLang(), i18n.KeyHelpText)
 							m.OverlayViewport = viewport.New(m.Width-4, min(m.Height-6, 20))
 							m.OverlayViewport.SetContent(m.OverlayContent)
@@ -981,7 +981,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						}
 						if chosen == "/config add-remote" {
 							m.OverlayActive = true
-							m.OverlayTitle = "Add Remote"
+							m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
 							m.AddRemoteActive = true
 							m.AddRemoteError = ""
 							m.AddRemoteOfferOverwrite = false

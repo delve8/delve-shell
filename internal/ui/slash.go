@@ -24,8 +24,8 @@ func getSlashOptions(lang string) []slashOption {
 		{"/help", i18n.T(lang, i18n.KeyDescHelp), ""},
 		{"/cancel", i18n.T(lang, i18n.KeyDescCancel), ""},
 		{"/config", i18n.T(lang, i18n.KeyDescConfig), ""},
-		{"/remote on", "Connect to a remote target (use /remote on <user@host> or pick from config)", ""},
-		{"/remote off", "Disconnect remote and run commands locally", ""},
+		{"/remote on", i18n.T(lang, i18n.KeyDescRemoteOn), ""},
+		{"/remote off", i18n.T(lang, i18n.KeyDescRemoteOff), ""},
 		{"/new", i18n.T(lang, i18n.KeySessionNew), ""},
 		{"/sessions", i18n.T(lang, i18n.KeyDescSessions), ""},
 		{"/reload", i18n.T(lang, i18n.KeyDescReload), ""},
@@ -76,14 +76,14 @@ func getSlashOptionsForInput(inputVal string, lang string, currentSessionPath st
 		if strings.HasPrefix(normalizedLower, "remote on") {
 			filter = strings.TrimSpace(strings.TrimPrefix(normalizedLower, "remote on"))
 		}
-		return getRemoteSlashOptions(filter)
+		return getRemoteSlashOptions(filter, lang)
 	}
 	return getSlashOptions(lang)
 }
 
 // getRemoteSlashOptions returns slash options for remote connection; filter is the substring after "/remote ".
 // Shows configured remotes first, then manual input option.
-func getRemoteSlashOptions(filter string) []slashOption {
+func getRemoteSlashOptions(filter string, lang string) []slashOption {
 	var opts []slashOption
 	remotes, err := config.LoadRemotes()
 	if err == nil && len(remotes) > 0 {
@@ -101,7 +101,7 @@ func getRemoteSlashOptions(filter string) []slashOption {
 			})
 		}
 	}
-	opts = append(opts, slashOption{Cmd: "/remote on <user@host>", Desc: "Or type user@host (e.g. root@1.2.3.4)", Path: ""})
+	opts = append(opts, slashOption{Cmd: "/remote on <user@host>", Desc: i18n.T(lang, i18n.KeyRemoteManualHint), Path: ""})
 	return opts
 }
 

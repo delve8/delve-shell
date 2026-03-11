@@ -116,27 +116,72 @@ const (
 	KeyDescSessions    = "desc_sessions"
 	KeySessionNone     = "session_none"
 	KeyRemoteNone      = "remote_none"       // No remotes configured
+	KeyDescRemoteOn    = "desc_remote_on"
+	KeyDescRemoteOff   = "desc_remote_off"
+	KeyRemoteManualHint = "remote_manual_hint" // hint when no remotes or "or type user@host"
+	KeyHelpTitle       = "help_title"
+	KeyAddRemoteTitle  = "add_remote_title"
 )
 
 var messages = map[string]map[string]string{
 	"en": {
-		KeyHelpText: `delve-shell — AI-assisted ops, commands run after your approval.
+		KeyHelpText: `delve-shell — AI-assisted ops. Every command runs only after you approve.
 
-Slash commands:
-  /exit, /q      Quit
-  /run <cmd>     Run a command directly (no AI)
-  /sh            Spawn bash; return here when done
-  /cancel        Cancel current AI request
-  /config        Set or show config: /config show, /config auto-run <list-only|disable>, /config llm ...
-  /config auto-run list-only   Listed commands run without confirmation (saved to config)
-  /config auto-run disable    Every command shows Run/Copy/Dismiss (saved to config)
-  /reload        Reload config and allowlist (no restart)
-  /help          Show this help
+What it does:
+  Describe a task in natural language; the AI suggests commands. Commands on the allowlist run automatically; others show a card (Run / Reject or Run / Copy / Dismiss). All runs are recorded in session history for audit.
 
-Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse reporting).`,
-		KeyNoRequestInProgress: "(No request in progress)",
-		KeyUsageRun:            "Usage: /run <command>",
-		KeyUnknownCmd:          "Unknown command. Use /exit or /q, /run <cmd>, /sh, /cancel, /config, /reload, /help",
+Quick start:
+  1. Type your task and press Enter.
+  2. When a command card appears, press 1 to run, 2 to reject (or copy/dismiss when auto-run is off).
+  3. Type / to list slash commands; use /help anytime for this panel.
+
+Slash commands (each line: command, next line: description):
+
+  /help
+    Show this help
+  /cancel
+    Cancel current AI request
+  /config
+    Set or show config (see /config subcommands below)
+  /config add-remote
+    Add a remote (opens form)
+  /config remove-remote
+    Remove a remote target by name
+  /config auto-run list-only
+    Listed commands run without confirmation (saved to config)
+  /config auto-run disable
+    Every command shows Run/Copy/Dismiss (saved to config)
+  /config show
+    Show current config path and LLM summary
+  /config update auto-run list
+    Merge built-in default allowlist into current (add missing entries)
+  /config llm base_url <url>
+    Set LLM API base URL
+  /config llm api_key <key>
+    Set LLM API key
+  /config llm model <name>
+    Set LLM model name
+  /remote on [user@host]
+    Connect to a remote host (pick from config or type user@host)
+  /remote off
+    Disconnect from remote and run commands locally
+  /new
+    Start a new session
+  /sessions
+    List and switch to another session
+  /reload
+    Reload config and allowlist (no restart)
+  /run <cmd>
+    Run one command directly (no AI)
+  /sh
+    Spawn shell; exit shell to return here
+  /exit, /q
+    Quit (Ctrl+C also works)
+
+Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a suggestion, Enter fills then run.`,
+		KeyNoRequestInProgress: "(No request in progress. /cancel only applies when waiting for AI.)",
+		KeyUsageRun:            "Usage: /run <command> — e.g. /run ls -la",
+		KeyUnknownCmd:          "Unknown command. Type /help for the full list, or try /exit, /run <cmd>, /config, /reload.",
 		KeyConfigReloaded:      "Config and allowlist reloaded. Next message will use new config.",
 		KeyCancelled:           "(Cancelled)",
 		KeyErrorPrefix:         "Error: ",
@@ -233,6 +278,11 @@ Scroll: Up/Down, PgUp/PgDown. Text selection: use terminal mouse (no mouse repor
 		KeyDescSessions:         "Switch session",
 		KeySessionNone:          "No previous sessions.",
 		KeyRemoteNone:           "No remotes configured.",
+		KeyDescRemoteOn:         "Connect to a remote host (pick from config or type user@host)",
+		KeyDescRemoteOff:        "Disconnect from remote and run commands locally",
+		KeyRemoteManualHint:     "Or type user@host (e.g. root@1.2.3.4)",
+		KeyHelpTitle:            "Help",
+		KeyAddRemoteTitle:       "Add Remote",
 	},
 }
 
