@@ -50,7 +50,7 @@ These can be changed from inside the app via slash commands, e.g.:
 ### Allowlist (allowlist.yaml)
 
 Each line is one regex; matching commands run without confirmation. Built-in defaults include common read-only commands (e.g. `pwd`, `ls`, `git status`, `kubectl get`).
-Use **`/config update auto-run list`** in the app to merge the current built-in defaults into your `allowlist.yaml` (only missing entries are added), then **`/reload`** to apply.
+Use **`/config update auto-run list`** in the app to merge the current built-in defaults into your `allowlist.yaml` (only missing entries are added), then **`/config reload`** to apply.
 
 ## Usage
 
@@ -76,10 +76,10 @@ Type `/` to list and complete these commands (order: help → cancel → config 
 | `/config update auto-run list`  | Merge built-in default allowlist into current (add missing entries) |
 | `/new`         | Start a new session |
 | `/sessions`    | List and switch to another session (optional filter after space) |
-| `/reload`      | Reload config and allowlist without restart |
+| `/config reload` | Reload config and allowlist without restart |
 | `/run <cmd>`   | Run a single command directly (no AI) |
 | `/sh`          | Start the system shell; return to this session when it exits |
-| `/exit`, `/q`  | Quit (ctrl+c also works) |
+| `/q`           | Quit (ctrl+c also works) |
 
 After typing `/`, use **Up/Down** to select a suggestion and **Enter** to fill the input (no execution). Type the full command and press Enter again to run it.
 

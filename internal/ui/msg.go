@@ -44,10 +44,20 @@ type RemoteStatusMsg struct {
 	Label  string // e.g. "dev (root@1.2.3.4)" or "user@host"
 }
 
-// RemoteAuthPromptMsg asks the user to provide additional credentials (e.g. password) for a remote target.
+// RemoteConnectDoneMsg notifies the UI that a /remote on connection attempt finished (from the add-remote overlay).
+// When Success is true, the UI closes the overlay and refocuses; when false, the UI clears the "Connecting..." state (auth overlay may follow).
+type RemoteConnectDoneMsg struct {
+	Success bool
+	Label   string
+	Err     string
+}
+
+// RemoteAuthPromptMsg asks the user to provide additional credentials (e.g. password) for a remote target,
+// or to show a Remote Auth dialog while an automatic connection attempt is in progress (e.g. using a configured key).
 type RemoteAuthPromptMsg struct {
-	Target string
-	Err    string
+	Target              string
+	Err                 string
+	UseConfiguredIdentity bool // true when connecting immediately with a configured identity file; dialog shows "Connecting..." first
 }
 
 // RemoteAuthResponse carries user-provided credentials back to CLI.

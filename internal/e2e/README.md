@@ -17,12 +17,12 @@ go test ./internal/e2e/... -v
 
 | Case name | Coverage |
 |-----------|----------|
-| TUI_smoke_help_exit | Startup, /help, /exit |
+| TUI_smoke_help_quit | Startup, /help, /q |
 | TUI_config_show | /config show: config path and LLM summary |
 | TUI_cancel_no_request | /cancel with no in-flight request: prompt message |
 | TUI_unknown_cmd | Invalid slash command (e.g. /foo): error message |
 | TUI_run_direct | /run echo 1: direct run and result with exit_code |
-| TUI_reload | /reload: config and allowlist reload message |
+| TUI_reload | /config reload: config and allowlist reload message |
 | TUI_approval_flow | Requires LLM: send message → approval card → y → result (skipped by default) |
 
 ## Test case management

@@ -72,6 +72,16 @@ func runRun(cmd *cobra.Command, args []string) error {
 	// executorMu protects currentExecutor access from concurrent goroutines.
 	var executorMu sync.Mutex
 
+	// remoteCred stores in-memory SSH auth for a host (password or identity file).
+	// Secrets are never written to disk; they live only for this process and are cleared on /remote off.
+	type remoteCred struct {
+		Kind     string // "password" or "identity"
+		Username string
+		Secret   string // password or identity file path
+	}
+	var remoteCredMu sync.Mutex
+	remoteCreds := make(map[string]remoteCred) // key: host (without username)
+
 	// getExecutor returns the current executor for the Runner.
 	getExecutor := func() execenv.CommandExecutor {
 		executorMu.Lock()
@@ -234,17 +244,93 @@ func runRun(cmd *cobra.Command, args []string) error {
 				}
 			}
 
+			hostOnly := config.HostFromTarget(target)
+
+			// First, try any cached credential for this host (password or identity).
+			remoteCredMu.Lock()
+			cred, hasCred := remoteCreds[hostOnly]
+			remoteCredMu.Unlock()
+			if hasCred {
+				targetForSSH := target
+				if cred.Username != "" {
+					targetForSSH = cred.Username + "@" + hostOnly
+				}
+				var cachedExec execenv.CommandExecutor
+				var err error
+				switch cred.Kind {
+				case "identity":
+					cachedExec, _, err = execenv.NewSSHExecutor(targetForSSH, cred.Secret)
+				default: // "password"
+					cachedExec, _, err = execenv.NewSSHExecutorWithPassword(targetForSSH, "", cred.Secret)
+				}
+				if err == nil {
+					if label == "" {
+						label = hostOnly
+					}
+					executorMu.Lock()
+					currentExecutor = cachedExec
+					executorMu.Unlock()
+					if currentP != nil {
+						currentP.Send(ui.RemoteStatusMsg{Active: true, Label: label})
+						currentP.Send(ui.SystemNotifyMsg{Text: fmt.Sprintf("Connected to remote: %s", label)})
+						currentP.Send(ui.RemoteConnectDoneMsg{Success: true, Label: label})
+					}
+					continue
+				}
+				// Cached credential failed; drop it and fall back to config identityFile or interactive auth.
+				remoteCredMu.Lock()
+				delete(remoteCreds, hostOnly)
+				remoteCredMu.Unlock()
+			}
+
+			// When an identity file is configured for this remote and there is no cached credential,
+			// open Remote Auth dialog in "connecting with configured key" mode so the user sees the action,
+			// then attempt the SSH connection immediately.
+			if identityFile != "" {
+				if currentP != nil {
+					info := fmt.Sprintf("Using configured SSH key: %s", identityFile)
+					currentP.Send(ui.RemoteAuthPromptMsg{
+						Target:               target,
+						Err:                  info,
+						UseConfiguredIdentity: true,
+					})
+				}
+				sshExec, _, err := execenv.NewSSHExecutor(target, identityFile)
+				if err != nil {
+					// On failure, fall back to interactive auth; keep Remote Auth dialog open and show error.
+					if currentP != nil {
+						msg := fmt.Sprintf("Remote connect failed for %s: %v", hostOnly, err)
+						currentP.Send(ui.RemoteAuthPromptMsg{Target: target, Err: msg})
+					}
+					continue
+				}
+				if label == "" {
+					label = hostOnly
+				}
+				executorMu.Lock()
+				currentExecutor = sshExec
+				executorMu.Unlock()
+				if currentP != nil {
+					currentP.Send(ui.RemoteStatusMsg{Active: true, Label: label})
+					currentP.Send(ui.SystemNotifyMsg{Text: fmt.Sprintf("Connected to remote: %s", label)})
+					currentP.Send(ui.RemoteConnectDoneMsg{Success: true, Label: label})
+				}
+				continue
+			}
+
+			// No identity file configured and no cached credential: try plain SSH and prompt on failure.
 			sshExec, _, err := execenv.NewSSHExecutor(target, identityFile)
 			if err != nil {
 				// Authentication-related errors should trigger interactive auth prompt.
 				if currentP != nil {
-					msg := fmt.Sprintf("Remote connect failed for %s: %v", config.HostFromTarget(target), err)
+					msg := fmt.Sprintf("Remote connect failed for %s: %v", hostOnly, err)
 					currentP.Send(ui.RemoteAuthPromptMsg{Target: target, Err: msg})
 				}
 				continue
 			}
+
 			if label == "" {
-				label = config.HostFromTarget(target)
+				label = hostOnly
 			}
 			executorMu.Lock()
 			currentExecutor = sshExec
@@ -252,6 +338,7 @@ func runRun(cmd *cobra.Command, args []string) error {
 			if currentP != nil {
 				currentP.Send(ui.RemoteStatusMsg{Active: true, Label: label})
 				currentP.Send(ui.SystemNotifyMsg{Text: fmt.Sprintf("Connected to remote: %s", label)})
+				currentP.Send(ui.RemoteConnectDoneMsg{Success: true, Label: label})
 			}
 		}
 	}()
@@ -264,6 +351,12 @@ func runRun(cmd *cobra.Command, args []string) error {
 			}
 			currentExecutor = execenv.LocalExecutor{}
 			executorMu.Unlock()
+			// Clear any cached remote credentials when switching back to local.
+			remoteCredMu.Lock()
+			for k := range remoteCreds {
+				delete(remoteCreds, k)
+			}
+			remoteCredMu.Unlock()
 			if currentP != nil {
 				currentP.Send(ui.RemoteStatusMsg{Active: false, Label: ""})
 				currentP.Send(ui.SystemNotifyMsg{Text: "Switched back to local executor."})
@@ -277,9 +370,9 @@ func runRun(cmd *cobra.Command, args []string) error {
 			}
 			// Use username from overlay if set; otherwise keep target as-is (user@host from config).
 			targetForSSH := resp.Target
+			hostOnly := config.HostFromTarget(resp.Target)
 			if resp.Username != "" {
-				host := config.HostFromTarget(resp.Target)
-				targetForSSH = resp.Username + "@" + host
+				targetForSSH = resp.Username + "@" + hostOnly
 			}
 			var sshExec execenv.CommandExecutor
 			var err error
@@ -289,9 +382,9 @@ func runRun(cmd *cobra.Command, args []string) error {
 			default: // "password"
 				sshExec, _, err = execenv.NewSSHExecutorWithPassword(targetForSSH, "", resp.Password)
 			}
-			// Best effort to clear password string.
-			resp.Password = ""
 			if err != nil {
+				// Best effort to clear password string on failure as well.
+				resp.Password = ""
 				if currentP != nil {
 					currentP.Send(ui.RemoteAuthPromptMsg{
 						Target: resp.Target,
@@ -300,6 +393,20 @@ func runRun(cmd *cobra.Command, args []string) error {
 				}
 				continue
 			}
+			// Cache credential for this host so subsequent /remote on can reuse without prompting again.
+			kind := resp.Kind
+			if kind != "identity" {
+				kind = "password"
+			}
+			remoteCredMu.Lock()
+			remoteCreds[hostOnly] = remoteCred{
+				Kind:     kind,
+				Username: resp.Username,
+				Secret:   resp.Password,
+			}
+			remoteCredMu.Unlock()
+			// Best effort to clear password string after caching in-memory.
+			resp.Password = ""
 			executorMu.Lock()
 			currentExecutor = sshExec
 			executorMu.Unlock()
@@ -307,6 +414,7 @@ func runRun(cmd *cobra.Command, args []string) error {
 				label := config.HostFromTarget(targetForSSH)
 				currentP.Send(ui.RemoteStatusMsg{Active: true, Label: label})
 				currentP.Send(ui.SystemNotifyMsg{Text: fmt.Sprintf("Connected to remote: %s", label)})
+				currentP.Send(ui.RemoteConnectDoneMsg{Success: true, Label: label})
 			}
 		}
 	}()

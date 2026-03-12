@@ -18,34 +18,32 @@ type slashOption struct {
 	Path string // session file path when this option is a session to switch to
 }
 
-// getSlashOptions returns top-level slash commands (shown when input starts with "/"); order: help, cancel, config, new, sessions, reload, run, sh, exit.
+// getSlashOptions returns top-level slash commands (shown when input starts with "/"); order: help, cancel, config, remote, new, sessions, run, sh, quit.
 func getSlashOptions(lang string) []slashOption {
 	return []slashOption{
 		{"/help", i18n.T(lang, i18n.KeyDescHelp), ""},
 		{"/cancel", i18n.T(lang, i18n.KeyDescCancel), ""},
 		{"/config", i18n.T(lang, i18n.KeyDescConfig), ""},
-		{"/remote on", i18n.T(lang, i18n.KeyDescRemoteOn), ""},
-		{"/remote off", i18n.T(lang, i18n.KeyDescRemoteOff), ""},
+		{"/remote", i18n.T(lang, i18n.KeyDescRemoteOn), ""},
 		{"/new", i18n.T(lang, i18n.KeySessionNew), ""},
 		{"/sessions", i18n.T(lang, i18n.KeyDescSessions), ""},
-		{"/reload", i18n.T(lang, i18n.KeyDescReload), ""},
 		{"/run <cmd>", i18n.T(lang, i18n.KeyDescRun), ""},
 		{"/sh", i18n.T(lang, i18n.KeyDescSh), ""},
-		{"/exit", i18n.T(lang, i18n.KeyDescExit), ""},
 		{"/q", i18n.T(lang, i18n.KeyDescExit), ""},
 	}
 }
 
 // getConfigSubOptions returns /config sub-options (shown when input starts with "/config").
-// Order: frequent first (remote, show, auto-run/allowlist), LLM last (set once at init, rarely changed).
+// Order: frequent first (remote, auto-run/allowlist, LLM), reload last.
 func getConfigSubOptions(lang string) []slashOption {
 	return []slashOption{
 		{"/config add-remote", i18n.T(lang, i18n.KeyDescConfigAddRemote), ""},
-		{"/config remove-remote", i18n.T(lang, i18n.KeyDescConfigRemoveRemote), ""},
+		{"/config del-remote", i18n.T(lang, i18n.KeyDescConfigRemoveRemote), ""},
 		{"/config auto-run list-only", i18n.T(lang, i18n.KeyDescAutoRunListOnly), ""},
 		{"/config auto-run disable", i18n.T(lang, i18n.KeyDescAutoRunDisable), ""},
 		{"/config update auto-run list", i18n.T(lang, i18n.KeyDescConfigAllowlistUpdate), ""},
 		{"/config llm", i18n.T(lang, i18n.KeyDescConfigLLM), ""},
+		{"/config reload", i18n.T(lang, i18n.KeyDescReload), ""},
 	}
 }
 
@@ -56,8 +54,8 @@ func getSlashOptionsForInput(inputVal string, lang string, currentSessionPath st
 	normalizedLower := strings.ToLower(normalized)
 	if normalizedLower == "config" || strings.HasPrefix(normalizedLower, "config ") {
 		rest := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "config"))
-		if rest == "remove-remote" || strings.HasPrefix(rest, "remove-remote ") {
-			filter := strings.TrimSpace(strings.TrimPrefix(rest, "remove-remote"))
+		if rest == "del-remote" || strings.HasPrefix(rest, "del-remote ") {
+			filter := strings.TrimSpace(strings.TrimPrefix(rest, "del-remote"))
 			return getRemoveRemoteSlashOptions(lang, filter)
 		}
 		return getConfigSubOptions(lang)
@@ -104,15 +102,16 @@ func getRemoteSlashOptions(filter string, lang string) []slashOption {
 			})
 		}
 	}
-	opts = append(opts, slashOption{Cmd: "/remote on <user@host>", Desc: i18n.T(lang, i18n.KeyRemoteManualHint), Path: ""})
-	return opts
+	// Put the manual /remote on option at the end so users see configured remotes first.
+	manual := slashOption{Cmd: "/remote on", Desc: i18n.T(lang, i18n.KeyRemoteManualHint), Path: ""}
+	return append(opts, manual)
 }
 
-// getRemoveRemoteSlashOptions returns slash options for /config remove-remote: one option per configured remote (select to remove).
+// getRemoveRemoteSlashOptions returns slash options for /config del-remote: one option per configured remote (select to remove).
 func getRemoveRemoteSlashOptions(lang string, filter string) []slashOption {
 	remotes, err := config.LoadRemotes()
 	if err != nil || len(remotes) == 0 {
-		return []slashOption{{Cmd: "/config remove-remote", Desc: i18n.T(lang, i18n.KeyRemoteNone), Path: ""}}
+		return []slashOption{{Cmd: "/config del-remote", Desc: i18n.T(lang, i18n.KeyRemoteNone), Path: ""}}
 	}
 	filterLower := strings.ToLower(filter)
 	var opts []slashOption
@@ -124,12 +123,12 @@ func getRemoveRemoteSlashOptions(lang string, filter string) []slashOption {
 		// Show host only (no username). RemoveRemoteByName accepts host and matches by HostFromTarget(r.Target).
 		desc := r.Name
 		opts = append(opts, slashOption{
-			Cmd:  "/config remove-remote " + config.HostFromTarget(r.Target),
+			Cmd:  "/config del-remote " + config.HostFromTarget(r.Target),
 			Desc: desc,
 		})
 	}
 	if len(opts) == 0 {
-		return []slashOption{{Cmd: "/config remove-remote", Desc: i18n.T(lang, i18n.KeyRemoteNone), Path: ""}}
+		return []slashOption{{Cmd: "/config del-remote", Desc: i18n.T(lang, i18n.KeyRemoteNone), Path: ""}}
 	}
 	return opts
 }

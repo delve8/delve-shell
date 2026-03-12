@@ -177,10 +177,10 @@ func sessionEventsToMessages(events []history.Event, lang string, width int) []s
 			out = append(out, execStyle.Render(line))
 		case "command_result":
 			var p struct {
-				Command   string `json:"command"`
-				Stdout    string `json:"stdout"`
-				Stderr    string `json:"stderr"`
-				ExitCode  int    `json:"exit_code"`
+				Command  string `json:"command"`
+				Stdout   string `json:"stdout"`
+				Stderr   string `json:"stderr"`
+				ExitCode int    `json:"exit_code"`
 			}
 			if json.Unmarshal(ev.Payload, &p) != nil {
 				continue
@@ -316,7 +316,10 @@ func (m Model) View() string {
 		}
 		return out
 	}
-	vh := m.Height - 8
+	// Base viewport height: leave extra margin for the bottom separator,
+	// input line, slash suggestions, and status hints so the fixed header
+	// does not scroll out of view even in shorter terminals.
+	vh := m.Height - 10
 	if vh < 1 {
 		vh = 1
 	}
@@ -349,7 +352,9 @@ func (m Model) View() string {
 			if hiIdx >= len(vis) {
 				hiIdx = 0
 			}
-			const maxSlashVisible = 8
+			// Limit number of visible slash suggestions so the fixed header/title
+			// line is not pushed out of the terminal viewport when the list is long.
+			const maxSlashVisible = 4
 			start := 0
 			if len(vis) > maxSlashVisible {
 				start = hiIdx - maxSlashVisible/2
@@ -490,39 +495,59 @@ func (m Model) renderOverlay(base string) string {
 		content = b.String()
 	} else if m.AddRemoteActive {
 		var b strings.Builder
-		if m.AddRemoteError != "" {
-			b.WriteString(errStyle.Render(m.AddRemoteError) + "\n\n")
-			if m.AddRemoteOfferOverwrite {
-				b.WriteString("Press y to overwrite, or change host/username and try again.\n\n")
-			}
-		}
-		b.WriteString("Add remote\n\n")
-		b.WriteString("Host (address or host:port):\n")
-		b.WriteString(m.AddRemoteHostInput.View())
-		b.WriteString("\n\n")
-		b.WriteString("Username:\n")
-		b.WriteString(m.AddRemoteUserInput.View())
-		b.WriteString("\n\n")
-		b.WriteString("Name (optional):\n")
-		b.WriteString(m.AddRemoteNameInput.View())
-		b.WriteString("\n\n")
-		b.WriteString("Key path (optional):\n")
-		b.WriteString(m.AddRemoteKeyInput.View())
-		if m.AddRemoteFieldIndex == 3 && len(m.PathCompletionCandidates) > 0 {
-			b.WriteString("\n\n")
-			b.WriteString("Path completion (Up/Down select, Enter or Tab to pick):\n")
-			for i, c := range m.PathCompletionCandidates {
-				line := "  " + c
-				if i == m.PathCompletionIndex {
-					b.WriteString(suggestHi.Render(line) + "\n")
-				} else {
-					b.WriteString(suggestStyle.Render(line) + "\n")
+		if m.AddRemoteConnecting {
+			b.WriteString("Add remote\n\n")
+			b.WriteString(suggestStyle.Render("Connecting...") + "\n\n")
+			b.WriteString("Esc to cancel.")
+			content = b.String()
+		} else {
+			if m.AddRemoteError != "" {
+				b.WriteString(errStyle.Render(m.AddRemoteError) + "\n\n")
+				if m.AddRemoteOfferOverwrite {
+					b.WriteString("Press y to overwrite, or change host/username and try again.\n\n")
 				}
 			}
+			b.WriteString("Add remote\n\n")
+			b.WriteString("Host (address or host:port):\n")
+			b.WriteString(m.AddRemoteHostInput.View())
+			b.WriteString("\n\n")
+			b.WriteString("Username:\n")
+			b.WriteString(m.AddRemoteUserInput.View())
+			b.WriteString("\n\n")
+			b.WriteString("Name (optional):\n")
+			b.WriteString(m.AddRemoteNameInput.View())
+			b.WriteString("\n\n")
+			b.WriteString("Key path (optional):\n")
+			b.WriteString(m.AddRemoteKeyInput.View())
+			b.WriteString("\n\n")
+			if m.AddRemoteFieldIndex == 3 && len(m.PathCompletionCandidates) > 0 {
+				b.WriteString("\n\n")
+				b.WriteString("Path completion (Up/Down select, Enter or Tab to pick):\n")
+				for i, c := range m.PathCompletionCandidates {
+					line := "  " + c
+					if i == m.PathCompletionIndex {
+						b.WriteString(suggestHi.Render(line) + "\n")
+					} else {
+						b.WriteString(suggestStyle.Render(line) + "\n")
+					}
+				}
+			}
+			// Save-as-remote checkbox is only shown when the dialog is opened via /remote on.
+			if m.AddRemoteConnect {
+				saveLabel := "[ ]"
+				if m.AddRemoteSave {
+					saveLabel = "[X]"
+				}
+				saveLine := saveLabel + " Save as remote (Space to toggle)"
+				if m.AddRemoteFieldIndex == 4 {
+					b.WriteString(suggestHi.Render(saveLine) + "\n\n")
+				} else {
+					b.WriteString(suggestStyle.Render(saveLine) + "\n\n")
+				}
+			}
+			b.WriteString("Up/Down to move between fields, Enter to apply, Esc to cancel.")
+			content = b.String()
 		}
-		b.WriteString("\n\n")
-		b.WriteString("Up/Down to move between fields, Enter to save, Esc to cancel.")
-		content = b.String()
 	} else if m.RemoteAuthStep == "username" {
 		var b strings.Builder
 		if m.RemoteAuthError != "" {
@@ -567,6 +592,16 @@ func (m Model) renderOverlay(base string) string {
 				}
 			}
 		}
+		content = b.String()
+	} else if m.RemoteAuthStep == "auto_identity" {
+		// Automatic connection with configured identity file: show host and optional error, plus "Connecting..." hint.
+		var b strings.Builder
+		if m.RemoteAuthError != "" {
+			b.WriteString(errStyle.Render(m.RemoteAuthError) + "\n\n")
+		}
+		b.WriteString("SSH auth for " + config.HostFromTarget(m.RemoteAuthTarget) + "\n\n")
+		b.WriteString(suggestStyle.Render("Connecting with configured SSH key...") + "\n\n")
+		b.WriteString("Esc to cancel.")
 		content = b.String()
 	} else {
 		// Generic overlay: scrollable viewport.

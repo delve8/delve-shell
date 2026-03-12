@@ -159,40 +159,40 @@ Slash commands (each line: command, next line: description):
   /cancel
     Cancel current AI request
   /config
-    Set or show config (see /config subcommands below)
+    Set or show config
   /config add-remote
-    Add a remote (opens form)
-  /config remove-remote
-    Remove a remote target by name
+    Add a remote
+  /config del-remote
+    Remove a remote
   /config auto-run list-only
-    Listed commands run without confirmation (saved to config)
+    Allowlist runs without confirmation
   /config auto-run disable
-    Every command shows Run/Copy/Dismiss (saved to config)
+    Require approval for every command
   /config update auto-run list
-    Merge built-in default allowlist into current (add missing entries)
+    Merge default allowlist
   /config llm
-    Set LLM (base URL, API key, model)
+    Set LLM
+  /config reload
+    Reload config and allowlist (no restart)
   /remote on [user@host]
-    Connect to a remote host (pick from config or type user@host)
+    Connect to a remote host
   /remote off
     Disconnect from remote and run commands locally
   /new
     Start a new session
   /sessions
     List and switch to another session
-  /reload
-    Reload config and allowlist (no restart)
   /run <cmd>
     Run one command directly (no AI)
   /sh
     Spawn shell; exit shell to return here
-  /exit, /q
+  /q
     Quit (Ctrl+C also works)
 
 Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a suggestion, Enter fills then run.`,
 		KeyNoRequestInProgress: "(No request in progress. /cancel only applies when waiting for AI.)",
 		KeyUsageRun:            "Usage: /run <command> — e.g. /run ls -la",
-		KeyUnknownCmd:          "Unknown command. Type /help for the full list, or try /exit, /run <cmd>, /config, /reload.",
+		KeyUnknownCmd:          "Unknown command. Type /help for the full list, or try /q, /run <cmd>, /config.",
 		KeyDelveLabel:          "Delve:",
 		KeyConfigReloaded:      "Config and allowlist reloaded. Next message will use new config.",
 		KeyCancelled:           "(Cancelled)",
@@ -239,19 +239,19 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyDescRun:             "Run a command directly (no AI)",
 		KeyDescSh:              "Spawn bash; return here when done",
 		KeyDescCancel:          "Cancel current AI request",
-		KeyDescConfig:          "Set or show config (e.g. /config llm base_url <url>)",
+		KeyDescConfig:          "Set or show config",
 		KeyDescReload:          "Reload config and allowlist (no restart)",
 		KeyDescHelp:            "Show this help",
 		KeyDescConfigShow:      "Show current config path and LLM summary",
 		KeyDescConfigLLMBaseURL: "Set LLM API base URL",
 		KeyDescConfigLLMApiKey:  "Set LLM API key",
 		KeyDescConfigLLMModel:   "Set LLM model name",
-		KeyDescConfigAllowlistUpdate: "Merge built-in default allowlist into current (add missing entries)",
-		KeyDescConfigAddRemote:       "Add a remote (opens form)",
-		KeyDescConfigRemoveRemote:    "Remove a remote target by name",
-		KeyAllowlistUpdateDone:    "Allowlist updated: %d new pattern(s) added. Use /reload to apply.",
-		KeyDescAutoRunListOnly: "Listed commands run without confirmation (saved to config)",
-		KeyDescAutoRunDisable:  "Every command shows Run/Copy/Dismiss (saved to config)",
+		KeyDescConfigAllowlistUpdate: "Merge default allowlist",
+		KeyDescConfigAddRemote:       "Add a remote",
+		KeyDescConfigRemoveRemote:    "Remove a remote",
+		KeyAllowlistUpdateDone:    "Allowlist updated: %d new pattern(s) added. Use /config reload to apply.",
+		KeyDescAutoRunListOnly: "Allowlist runs without confirmation",
+		KeyDescAutoRunDisable:  "Require approval for every command",
 		KeyModeRequired:         "Usage: /mode suggest or /mode run",
 		KeyRunTagSuggested:       "suggested",
 		KeySuggestedCopyHint:     "Select the command above to copy, or use /run <cmd> to run it.",
@@ -262,7 +262,7 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyAutoRunListOnly:       "List Only",
 		KeyAutoRunNone:           "Disabled",
 		KeyAllowlistAutoRunSetTo: "Auto-Run set to %s (this session only).",
-		KeyConfigSavedAllowlistAutoRun: "Config saved (auto-run: %s). Use /reload to apply as default.",
+		KeyConfigSavedAllowlistAutoRun: "Config saved (auto-run: %s). Use /config reload to apply as default.",
 		KeyConfigAutoRunRequired: "auto-run: use list-only or disable",
 		KeyConfigRemoteAdded:     "Remote added: %s.",
 		KeyConfigRemoteRemoved:   "Remote removed: %s.",
@@ -290,9 +290,9 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyDescSessions:         "Switch session",
 		KeySessionNone:          "No previous sessions.",
 		KeyRemoteNone:           "No remotes configured.",
-		KeyDescRemoteOn:         "Connect to a remote host (pick from config or type user@host)",
+		KeyDescRemoteOn:         "Connect to a remote host",
 		KeyDescRemoteOff:        "Disconnect from remote and run commands locally",
-		KeyRemoteManualHint:     "Or type user@host (e.g. root@1.2.3.4)",
+		KeyRemoteManualHint:     "Open remote connection dialog",
 		KeyHelpTitle:            "Help",
 		KeyAddRemoteTitle:       "Add Remote",
 		KeyConfigSavedLLM:       "Config saved (llm).",
@@ -309,7 +309,7 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyConfigLLMCheckOK:        "LLM check OK.",
 		KeyConfigLLMCheckFailed:    "LLM check failed: %v",
 		KeyConfigLLMBaseURLAutoCorrected: "Base URL updated to %s (added /v1).",
-		KeyDescConfigLLM:        "Set LLM (base URL, API key, model)",
+		KeyDescConfigLLM:        "Set LLM",
 		KeyConfigHint:           "Use /config llm for LLM; auto-run is in header.",
 	},
 }

@@ -33,7 +33,7 @@ type Model struct {
 	ExecDirectChan      chan<- string
 	ShellRequestedChan  chan<- []string // on /sh send current Messages to preserve after return
 	CancelRequestChan   chan<- struct{}  // on /cancel request cancel of in-flight AI
-	ConfigUpdatedChan   chan<- struct{}  // on /config save or /reload, invalidate runner so next message reloads config/allowlist
+	ConfigUpdatedChan   chan<- struct{}  // on /config save or /config reload, invalidate runner so next message reloads config/allowlist
 	AllowlistAutoRunChangeChan chan<- bool // runtime toggle for allowlist auto-run (true = list only, false = none)
 	SessionSwitchChan          chan<- string // on /sessions choice, send selected session path to continue
 	RemoteOnChan               chan<- string  // on /remote on <target>, send resolved target/name to CLI
@@ -56,14 +56,18 @@ type Model struct {
 	OverlayViewport viewport.Model
 
 	// Add-remote overlay state (username + host separate).
-	AddRemoteActive      bool
-	AddRemoteUserInput   textinput.Model
-	AddRemoteHostInput   textinput.Model
-	AddRemoteNameInput   textinput.Model
-	AddRemoteKeyInput    textinput.Model
-	AddRemoteFieldIndex  int
-	AddRemoteError       string
+	// Fields: 0=host, 1=user, 2=name, 3=key path, 4=save-as-remote checkbox.
+	AddRemoteActive         bool
+	AddRemoteUserInput      textinput.Model
+	AddRemoteHostInput      textinput.Model
+	AddRemoteNameInput      textinput.Model
+	AddRemoteKeyInput       textinput.Model
+	AddRemoteFieldIndex     int
+	AddRemoteError          string
 	AddRemoteOfferOverwrite bool // when true, error was "already exists"; show overwrite hint and accept O to overwrite
+	AddRemoteSave           bool // true = save/update remote config; false = only connect (for /remote on)
+	AddRemoteConnect        bool // true when opened via /remote on; false for /config add-remote
+	AddRemoteConnecting     bool // true while waiting for connection result (show "Connecting...")
 
 	// Remote auth overlay state.
 	// RemoteAuthStep: "" = inactive, "choose" = selecting auth method, "password" = entering password, "identity" = entering key path.
@@ -73,6 +77,7 @@ type Model struct {
 	RemoteAuthUsername    string       // username to use when submitting (default root)
 	RemoteAuthUsernameInput textinput.Model // username input in choose step
 	RemoteAuthInput         textinput.Model // for password or identity path
+	RemoteAuthConnecting    bool           // true while waiting for remote auth result ("Connecting..." state)
 	// Path completion (shared): used for any path input with dropdown (auth identity key path, add-remote key path).
 	PathCompletionCandidates []string
 	PathCompletionIndex       int
@@ -172,13 +177,56 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
+	case RemoteConnectDoneMsg:
+		// Connection attempt finished: clear any "connecting" states for add-remote or remote auth.
+		m.AddRemoteConnecting = false
+		m.AddRemoteError = ""
+		m.AddRemoteOfferOverwrite = false
+		m.RemoteAuthConnecting = false
+
+		// When Remote Auth overlay is active, close it on successful connection.
+		if m.RemoteAuthStep != "" {
+			if msg.Success {
+				m.OverlayActive = false
+				m.OverlayTitle = ""
+				m.OverlayContent = ""
+				m.RemoteAuthStep = ""
+				m.RemoteAuthTarget = ""
+				m.RemoteAuthError = ""
+				m.RemoteAuthUsername = ""
+				m.PathCompletionCandidates = nil
+				m.PathCompletionIndex = -1
+				m.Input.Focus()
+			}
+			return m, nil
+		}
+
+		// Fallback: add-remote overlay (opened via /remote on or /config add-remote).
+		m.AddRemoteActive = false
+		m.OverlayTitle = ""
+		m.OverlayContent = ""
+		if msg.Success {
+			m.OverlayActive = false
+			m.Input.Focus()
+		}
+		return m, nil
 	case RemoteAuthPromptMsg:
+		m.AddRemoteConnecting = false
+		m.AddRemoteActive = false
 		m.OverlayActive = true
 		m.OverlayTitle = "Remote Auth"
-		m.RemoteAuthStep = "username" // first step: username only; Enter then shows "choose" (1/2) so username can contain 1 or 2
 		m.RemoteAuthTarget = msg.Target
 		m.RemoteAuthError = msg.Err
 		m.ChoiceIndex = 0
+		// When UseConfiguredIdentity is true, show a non-interactive "connecting with configured key" state.
+		if msg.UseConfiguredIdentity {
+			m.RemoteAuthStep = "auto_identity"
+			m.RemoteAuthConnecting = true
+			return m, nil
+		}
+		// Default: interactive auth flow starting from username.
+		m.RemoteAuthConnecting = false
+		m.RemoteAuthStep = "username" // first step: username only; Enter then shows "choose" (1/2) so username can contain 1 or 2
 		m.RemoteAuthUsernameInput = textinput.New()
 		m.RemoteAuthUsernameInput.Placeholder = "root"
 		if i := strings.Index(msg.Target, "@"); i > 0 && i < len(msg.Target)-1 {
@@ -200,8 +248,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.OverlayTitle = ""
 		m.OverlayContent = ""
 		m.AddRemoteActive = false
+		m.AddRemoteConnecting = false
 		m.AddRemoteError = ""
 		m.AddRemoteOfferOverwrite = false
+		m.RemoteAuthConnecting = false
 		m.ConfigLLMActive = false
 		m.ConfigLLMChecking = false
 		m.ConfigLLMError = ""
@@ -224,8 +274,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "esc":
 				m.OverlayActive = false
 				m.AddRemoteActive = false
+				m.AddRemoteConnecting = false
 				m.AddRemoteError = ""
 				m.AddRemoteOfferOverwrite = false
+				m.RemoteAuthConnecting = false
 				m.ConfigLLMActive = false
 				m.ConfigLLMChecking = false
 				m.ConfigLLMError = ""
@@ -235,9 +287,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.RemoteAuthTarget = ""
 				m.RemoteAuthError = ""
 				m.RemoteAuthUsername = ""
+				// After closing any overlay, always refocus main input.
+				m.Input.Focus()
 				return m, nil
 			default:
-				// Add-remote overlay: form with 4 fields (host first, then username default root, name, key path).
+				// Add-remote overlay: form with 5 fields (host, username, name, key path, save-as-remote checkbox).
 				if m.AddRemoteActive {
 					switch key {
 					case "tab":
@@ -278,7 +332,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						if key == "up" {
 							dir = -1
 						}
-						m.AddRemoteFieldIndex = (m.AddRemoteFieldIndex + dir + 4) % 4
+						// Field count: 4 for /config add-remote, 5 (with save checkbox) for /remote on.
+						fieldCount := 4
+						if m.AddRemoteConnect {
+							fieldCount = 5
+						}
+						m.AddRemoteFieldIndex = (m.AddRemoteFieldIndex + dir + fieldCount) % fieldCount
 						m.AddRemoteUserInput.Blur()
 						m.AddRemoteHostInput.Blur()
 						m.AddRemoteNameInput.Blur()
@@ -292,6 +351,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							m.AddRemoteNameInput.Focus()
 						case 3:
 							m.AddRemoteKeyInput.Focus()
+						case 4:
+							// Save checkbox: no textinput to focus.
 						}
 						if m.AddRemoteFieldIndex != 3 {
 							m.PathCompletionCandidates = nil
@@ -338,12 +399,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							m.AddRemoteOfferOverwrite = false
 							m.OverlayTitle = ""
 							m.OverlayContent = ""
+							// After closing Add Remote overlay (overwrite), refocus main input.
+							m.Input.Focus()
 							if m.ConfigUpdatedChan != nil {
 								select {
 								case m.ConfigUpdatedChan <- struct{}{}:
 								default:
 								}
 							}
+							return m, nil
+						}
+					case " ":
+						// Space toggles save-as-remote only when focused on the checkbox field.
+						if m.AddRemoteFieldIndex == 4 {
+							m.AddRemoteSave = !m.AddRemoteSave
 							return m, nil
 						}
 					case "enter":
@@ -379,53 +448,71 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							return m, nil
 						}
 						target := user + "@" + host
-						if err := config.AddRemote(target, name, keyPath); err != nil {
-							m.AddRemoteError = err.Error()
-							m.AddRemoteOfferOverwrite = strings.Contains(err.Error(), "already exists")
-							return m, nil
+						// Optionally save/update remote config when requested.
+						if m.AddRemoteSave {
+							if err := config.AddRemote(target, name, keyPath); err != nil {
+								m.AddRemoteError = err.Error()
+								m.AddRemoteOfferOverwrite = strings.Contains(err.Error(), "already exists")
+								return m, nil
+							}
+							m.AddRemoteOfferOverwrite = false
+							display := host
+							if name != "" {
+								display = name + " (" + host + ")"
+							}
+							lang := m.getLang()
+							m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display))))
+							m.Messages = append(m.Messages, "")
+							if m.ConfigUpdatedChan != nil {
+								select {
+								case m.ConfigUpdatedChan <- struct{}{}:
+								default:
+								}
+							}
 						}
-						m.AddRemoteOfferOverwrite = false
-						display := host
-						if name != "" {
-							display = name + " (" + host + ")"
-						}
-						lang := m.getLang()
-						m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display))))
-						m.Messages = append(m.Messages, "")
 						m.Viewport.SetContent(m.buildContent())
 						m.Viewport.GotoBottom()
+						if m.AddRemoteConnect && m.RemoteOnChan != nil {
+							// Show "Connecting..." and wait for RemoteConnectDoneMsg; close overlay only on success.
+							m.AddRemoteConnecting = true
+							m.AddRemoteError = ""
+							select {
+							case m.RemoteOnChan <- target:
+							default:
+								m.AddRemoteConnecting = false
+							}
+							return m, nil
+						}
 						m.OverlayActive = false
 						m.AddRemoteActive = false
 						m.AddRemoteError = ""
 						m.AddRemoteOfferOverwrite = false
 						m.OverlayTitle = ""
 						m.OverlayContent = ""
-						if m.ConfigUpdatedChan != nil {
-							select {
-							case m.ConfigUpdatedChan <- struct{}{}:
-							default:
-							}
-						}
+						m.Input.Focus()
 						return m, nil
 					}
 				var cmd tea.Cmd
-					switch m.AddRemoteFieldIndex {
-					case 0:
-						m.AddRemoteHostInput, cmd = m.AddRemoteHostInput.Update(msg)
-					case 1:
-						m.AddRemoteUserInput, cmd = m.AddRemoteUserInput.Update(msg)
-					case 2:
-						m.AddRemoteNameInput, cmd = m.AddRemoteNameInput.Update(msg)
-					case 3:
-						m.AddRemoteKeyInput, cmd = m.AddRemoteKeyInput.Update(msg)
-						m.PathCompletionCandidates = PathCandidates(m.AddRemoteKeyInput.Value())
-						if len(m.PathCompletionCandidates) > 0 {
-							m.PathCompletionIndex = 0
-						} else {
-							m.PathCompletionIndex = -1
-						}
+				switch m.AddRemoteFieldIndex {
+				case 0:
+					m.AddRemoteHostInput, cmd = m.AddRemoteHostInput.Update(msg)
+				case 1:
+					m.AddRemoteUserInput, cmd = m.AddRemoteUserInput.Update(msg)
+				case 2:
+					m.AddRemoteNameInput, cmd = m.AddRemoteNameInput.Update(msg)
+				case 3:
+					m.AddRemoteKeyInput, cmd = m.AddRemoteKeyInput.Update(msg)
+					m.PathCompletionCandidates = PathCandidates(m.AddRemoteKeyInput.Value())
+					if len(m.PathCompletionCandidates) > 0 {
+						m.PathCompletionIndex = 0
+					} else {
+						m.PathCompletionIndex = -1
 					}
-					return m, cmd
+				case 4:
+					// Save checkbox has no text input; ignore character keys here.
+					cmd = nil
+				}
+				return m, cmd
 				}
 				if m.ConfigLLMActive {
 					const configLLMFieldCount = 5
@@ -490,6 +577,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				// Remote auth: step "username" → "choose" (1/2) → "password" or "identity".
 				switch m.RemoteAuthStep {
+				case "auto_identity":
+					// Automatic connection with configured identity file: no interactive input; Esc handled above.
+					return m, nil
 				case "username":
 					if key == "enter" {
 						m.RemoteAuthUsername = strings.TrimSpace(m.RemoteAuthUsernameInput.Value())
@@ -537,6 +627,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					return m, nil
 				case "password":
+					// When waiting for auth result, ignore further input except Esc (handled above).
+					if m.RemoteAuthConnecting {
+						return m, nil
+					}
 					if key == "enter" {
 						input := m.RemoteAuthInput.Value()
 						if input == "" {
@@ -553,6 +647,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							m.OverlayContent = b.String()
 							return m, nil
 						}
+						// Non-empty password: show connecting state and send credentials; overlay stays open until auth result.
+						m.RemoteAuthConnecting = true
+						var b strings.Builder
+						if m.RemoteAuthError != "" {
+							b.WriteString(errStyle.Render(m.RemoteAuthError) + "\n\n")
+						}
+						b.WriteString("SSH password for " + config.HostFromTarget(m.RemoteAuthTarget) + "\n")
+						b.WriteString(suggestStyle.Render("Connecting...") + "\n\n")
+						b.WriteString("Press Esc to cancel.")
+						m.OverlayContent = b.String()
 						if m.RemoteAuthRespChan != nil {
 							select {
 							case m.RemoteAuthRespChan <- RemoteAuthResponse{
@@ -564,16 +668,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							default:
 							}
 						}
-						m.OverlayActive = false
-						m.RemoteAuthStep = ""
-						m.RemoteAuthTarget = ""
-						m.RemoteAuthError = ""
 						return m, nil
 					}
 					var cmd tea.Cmd
 					m.RemoteAuthInput, cmd = m.RemoteAuthInput.Update(msg)
 					return m, cmd
 				case "identity":
+					// When waiting for auth result, ignore further input except Esc (handled above).
+					if m.RemoteAuthConnecting {
+						return m, nil
+					}
 					// Path completion: Up/Down to move, Enter or Tab to pick candidate (Tab matches bash habit), or submit with Enter.
 					cands := m.PathCompletionCandidates
 					if key == "up" && len(cands) > 0 {
@@ -619,6 +723,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							m.OverlayContent = b.String()
 							return m, nil
 						}
+						// Non-empty key path: show connecting state and send credentials; overlay stays open until auth result.
+						m.RemoteAuthConnecting = true
+						var b strings.Builder
+						if m.RemoteAuthError != "" {
+							b.WriteString(errStyle.Render(m.RemoteAuthError) + "\n\n")
+						}
+						b.WriteString("SSH key file path for " + config.HostFromTarget(m.RemoteAuthTarget) + "\n")
+						b.WriteString(suggestStyle.Render("Connecting...") + "\n\n")
+						b.WriteString("Press Esc to cancel.")
+						m.OverlayContent = b.String()
 						if m.RemoteAuthRespChan != nil {
 							select {
 							case m.RemoteAuthRespChan <- RemoteAuthResponse{
@@ -630,12 +744,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							default:
 							}
 						}
-						m.OverlayActive = false
-						m.RemoteAuthStep = ""
-						m.RemoteAuthTarget = ""
-						m.RemoteAuthError = ""
-						m.PathCompletionCandidates = nil
-						m.PathCompletionIndex = -1
 						return m, nil
 					}
 					if key == "tab" {
@@ -883,9 +991,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				vis := visibleSlashOptions(text, opts)
 				if len(vis) > 0 && m.SlashSuggestIndex < len(vis) {
 					chosen := opts[vis[m.SlashSuggestIndex]].Cmd
-					// Execute-on-select: chosen is a specific item (remove-remote <name> or remote on <target>); submit it directly.
+					// Execute-on-select: chosen is a specific item (del-remote <name> or remote on <target>); submit it directly.
 					if chosen != text && strings.HasPrefix(chosen, text) {
-						if strings.HasPrefix(chosen, "/config remove-remote ") && strings.TrimSpace(strings.TrimPrefix(chosen, "/config remove-remote ")) != "" {
+						if strings.HasPrefix(chosen, "/config del-remote ") && strings.TrimSpace(strings.TrimPrefix(chosen, "/config del-remote ")) != "" {
 							text = chosen
 						} else if strings.HasPrefix(chosen, "/remote on ") {
 							t := strings.TrimSpace(strings.TrimPrefix(chosen, "/remote on "))
@@ -938,7 +1046,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.SlashSuggestIndex = 0
 
 			switch {
-			case text == "/exit", text == "/q":
+			case text == "/q":
 				return m, tea.Quit
 			case text == "/sh":
 				if m.ShellRequestedChan != nil {
@@ -997,6 +1105,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.AddRemoteActive = true
 				m.AddRemoteError = ""
 				m.AddRemoteOfferOverwrite = false
+				m.AddRemoteSave = true  // config always saves by default
+				m.AddRemoteConnect = false
 				m.PathCompletionCandidates = nil
 				m.PathCompletionIndex = -1
 				m.AddRemoteFieldIndex = 0
@@ -1014,20 +1124,43 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case strings.HasPrefix(text, "/config add-remote "):
 				m = m.applyConfigAddRemote(strings.TrimPrefix(text, "/config add-remote "))
 				return m, nil
-			case strings.HasPrefix(text, "/config remove-remote "):
-				m = m.applyConfigRemoveRemote(strings.TrimSpace(strings.TrimPrefix(text, "/config remove-remote ")))
+			case strings.HasPrefix(text, "/config del-remote "):
+				m = m.applyConfigRemoveRemote(strings.TrimSpace(strings.TrimPrefix(text, "/config del-remote ")))
 				return m, nil
 			case strings.HasPrefix(text, "/config auto-run "):
 				arg := strings.TrimSpace(strings.TrimPrefix(text, "/config auto-run "))
 				m = m.applyConfigAllowlistAutoRun(arg)
 				return m, nil
-			case text == "/reload":
+			case text == "/reload", text == "/config reload":
 				if m.ConfigUpdatedChan != nil {
 					select {
 					case m.ConfigUpdatedChan <- struct{}{}:
 					default:
 					}
 				}
+				return m, nil
+			case text == "/remote on":
+				// Reuse the Add Remote overlay so the user can enter host/user/name/key in one place.
+				m.OverlayActive = true
+				m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
+				m.AddRemoteActive = true
+				m.AddRemoteError = ""
+				m.AddRemoteOfferOverwrite = false
+				m.AddRemoteSave = false // default: do not save when using /remote on
+				m.AddRemoteConnect = true
+				m.PathCompletionCandidates = nil
+				m.PathCompletionIndex = -1
+				m.AddRemoteFieldIndex = 0
+				m.AddRemoteHostInput = textinput.New()
+				m.AddRemoteHostInput.Placeholder = "host or host:22"
+				m.AddRemoteHostInput.Focus()
+				m.AddRemoteUserInput = textinput.New()
+				m.AddRemoteUserInput.Placeholder = "e.g. root"
+				m.AddRemoteUserInput.SetValue("root")
+				m.AddRemoteNameInput = textinput.New()
+				m.AddRemoteNameInput.Placeholder = "name (optional)"
+				m.AddRemoteKeyInput = textinput.New()
+				m.AddRemoteKeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
 				return m, nil
 			case strings.HasPrefix(text, "/remote on "):
 				target := strings.TrimSpace(strings.TrimPrefix(text, "/remote on "))
@@ -1094,7 +1227,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					// input must match chosen command; skip when only "/". "Fill only" already returned above.
 					if len(strings.TrimSpace(strings.TrimPrefix(text, "/"))) > 0 && (chosen == text || strings.HasPrefix(chosen, text)) {
 						// user input matches chosen (full input then Enter) => execute
-						if chosen == "/exit" || chosen == "/q" {
+						if chosen == "/q" {
 							return m, tea.Quit
 						}
 						if chosen == "/sh" {
@@ -1161,18 +1294,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							m.Input.CursorEnd()
 							return m, nil
 						}
-						if strings.HasPrefix(chosen, "/config remove-remote ") {
-							nameOrTarget := strings.TrimSpace(strings.TrimPrefix(chosen, "/config remove-remote "))
+						if strings.HasPrefix(chosen, "/config del-remote ") {
+							nameOrTarget := strings.TrimSpace(strings.TrimPrefix(chosen, "/config del-remote "))
 							if nameOrTarget != "" {
 								m = m.applyConfigRemoveRemote(nameOrTarget)
 								return m, nil
 							}
-							m.Input.SetValue("/config remove-remote ")
+							m.Input.SetValue("/config del-remote ")
 							m.Input.CursorEnd()
 							return m, nil
 						}
-						if chosen == "/config remove-remote" {
-							m.Input.SetValue("/config remove-remote ")
+						if chosen == "/config del-remote" {
+							m.Input.SetValue("/config del-remote ")
 							m.Input.CursorEnd()
 							return m, nil
 						}
@@ -1201,7 +1334,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							m.Viewport.GotoBottom()
 							return m, nil
 						}
-						if chosen == "/reload" {
+						if chosen == "/reload" || chosen == "/config reload" {
 							if m.ConfigUpdatedChan != nil {
 								select {
 								case m.ConfigUpdatedChan <- struct{}{}:

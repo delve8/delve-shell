@@ -326,12 +326,12 @@ func (m Model) applyConfigAddRemote(args string) Model {
 	return m
 }
 
-// applyConfigRemoveRemote removes a remote via /config remove-remote <name-or-target> (name or target from list).
+// applyConfigRemoveRemote removes a remote via /config del-remote <name-or-target> (name or target from list).
 func (m Model) applyConfigRemoveRemote(nameOrTarget string) Model {
 	lang := m.getLang()
 	nameOrTarget = strings.TrimSpace(nameOrTarget)
 	if nameOrTarget == "" {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+"Usage: select a remote from /config remove-remote list"))
+		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+"Usage: select a remote from /config del-remote list"))
 		m.Viewport.SetContent(m.buildContent())
 		m.Viewport.GotoBottom()
 		return m
