@@ -20,7 +20,7 @@ import (
 func TestApprovalCard_ShowsCommandReasonAndRisk(t *testing.T) {
 	// do not run tea.NewProgram().Run(); just build Model and set Pending
 	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
 	ch := make(chan agent.ApprovalResponse, 1)
 	m.Pending = &agent.ApprovalRequest{
 		Command:    "kubectl get pods",
@@ -44,7 +44,7 @@ func TestApprovalCard_ShowsCommandReasonAndRisk(t *testing.T) {
 
 func TestApprovalCard_HighRiskLabel(t *testing.T) {
 	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
 	m.Pending = &agent.ApprovalRequest{
 		Command:    "rm -rf /tmp/foo",
 		RiskLevel:  "high",
@@ -63,7 +63,7 @@ func TestApprovalCard_HighRiskLabel(t *testing.T) {
 func TestApprovalCard_Approve1ClearsPending(t *testing.T) {
 	ch := make(chan agent.ApprovalResponse, 1)
 	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
 	m.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
 
 	// simulate user pressing 1 (approve)
@@ -85,7 +85,7 @@ func TestApprovalCard_Approve1ClearsPending(t *testing.T) {
 func TestApprovalCard_Approve2ClearsPendingAndSendsFalse(t *testing.T) {
 	ch := make(chan agent.ApprovalResponse, 1)
 	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
 	m.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
 
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("2")})
@@ -107,7 +107,7 @@ func TestApprovalCard_Approve2ClearsPendingAndSendsFalse(t *testing.T) {
 // total output lines never exceed Height so the header stays visible when the terminal shows one screen.
 func TestView_HeaderAlwaysShown(t *testing.T) {
 	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
 	m.Height = 24
 	m.Width = 80
 	view := m.View()
@@ -137,7 +137,7 @@ func TestView_HeaderAlwaysShown(t *testing.T) {
 
 	// Critical: with choice mode (max 3 options) and a small Height, total lines must not exceed Height,
 	// so the header (first 2 lines) stays on screen when terminal displays one full screen.
-	m2 := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, func() bool { return true }, nil, "")
+	m2 := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, func() bool { return true }, nil, "", false)
 	m2.Height = 12
 	m2.Width = 80
 	m2.PendingSensitive = &agent.SensitiveConfirmationRequest{Command: "cat /etc/shadow", ResponseCh: make(chan agent.SensitiveChoice, 1)}
@@ -168,7 +168,7 @@ func TestChoice_EnterSelectsCurrentOption(t *testing.T) {
 	// Approval: ChoiceIndex 0 = approve, Enter should send Approved true
 	ch := make(chan agent.ApprovalResponse, 1)
 	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
 	m.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
 	m.ChoiceIndex = 0
 
@@ -188,7 +188,7 @@ func TestChoice_EnterSelectsCurrentOption(t *testing.T) {
 
 	// Approval: ChoiceIndex 1 = reject, Enter should send Approved false
 	ch2 := make(chan agent.ApprovalResponse, 1)
-	m3 := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "")
+	m3 := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
 	m3.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch2}
 	m3.ChoiceIndex = 1
 
@@ -210,33 +210,32 @@ func TestChoice_EnterSelectsCurrentOption(t *testing.T) {
 // TestSessionSwitchedMsg_setsCurrentPathAndShowsSwitchedAtBottom asserts that after SessionSwitchedMsg,
 // CurrentSessionPath is set and the "Switched to session" line is present (at end when there is history).
 func TestSessionSwitchedMsg_setsCurrentPathAndShowsSwitchedAtBottom(t *testing.T) {
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, func() bool { return true }, nil, "")
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, func() bool { return true }, nil, "", false)
 
-	// Path empty: one message (switched hint), CurrentSessionPath ""
+	// Path empty: switched hint then blank line, CurrentSessionPath ""
 	next, _ := m.Update(SessionSwitchedMsg{Path: ""})
 	m2 := next.(Model)
 	if m2.CurrentSessionPath != "" {
 		t.Errorf("CurrentSessionPath should be empty when Path is empty, got %q", m2.CurrentSessionPath)
 	}
-	if len(m2.Messages) != 1 {
-		t.Errorf("expected 1 message when Path empty, got %d", len(m2.Messages))
+	if len(m2.Messages) < 1 {
+		t.Errorf("expected at least 1 message when Path empty, got %d", len(m2.Messages))
 	}
 	if !strings.Contains(m2.Messages[0], "Switched") && !strings.Contains(m2.Messages[0], "切换") {
 		t.Errorf("message should contain Switched/切换, got %q", m2.Messages[0])
 	}
 
-	// Path set but file does not exist: ReadRecent returns nil; switched line only, at end
+	// Path set but file does not exist: ReadRecent returns nil; switched line then blank
 	next2, _ := m2.Update(SessionSwitchedMsg{Path: filepath.Join(t.TempDir(), "nonexistent.jsonl")})
 	m3 := next2.(Model)
 	if m3.CurrentSessionPath == "" {
 		t.Error("CurrentSessionPath should be set when Path is non-empty")
 	}
-	if len(m3.Messages) != 1 {
-		t.Errorf("expected 1 message when file missing, got %d", len(m3.Messages))
+	if len(m3.Messages) < 1 {
+		t.Errorf("expected at least 1 message when file missing, got %d", len(m3.Messages))
 	}
-	last := m3.Messages[len(m3.Messages)-1]
-	if !strings.Contains(last, "Switched") && !strings.Contains(last, "切换") {
-		t.Errorf("last message should be switched hint, got %q", last)
+	if !strings.Contains(m3.Messages[0], "Switched") && !strings.Contains(m3.Messages[0], "切换") {
+		t.Errorf("first message should be switched hint, got %q", m3.Messages[0])
 	}
 }
 
@@ -248,9 +247,10 @@ func TestSessionEventsToMessages_convertsEventsToDisplayLines(t *testing.T) {
 		{Type: "command", Payload: json.RawMessage(`{"command":"ls","approved":true,"suggested":false}`)},
 		{Type: "command_result", Payload: json.RawMessage(`{"command":"ls","stdout":"a\nb","stderr":"","exit_code":0}`)},
 	}
-	lines := sessionEventsToMessages(events, "en")
-	if len(lines) < 4 {
-		t.Fatalf("expected at least 4 lines, got %d", len(lines))
+	lines := sessionEventsToMessages(events, "en", 80)
+	// Order: User, blank, AI, separator, Run, result, blank
+	if len(lines) < 6 {
+		t.Fatalf("expected at least 6 lines, got %d", len(lines))
 	}
 	if !strings.Contains(lines[0], "User:") && !strings.Contains(lines[0], "用户") {
 		t.Errorf("first line should be user label + text: %q", lines[0])
@@ -258,17 +258,21 @@ func TestSessionEventsToMessages_convertsEventsToDisplayLines(t *testing.T) {
 	if !strings.Contains(lines[0], "hello") {
 		t.Errorf("first line should contain hello: %q", lines[0])
 	}
-	if !strings.Contains(lines[1], "AI:") && !strings.Contains(lines[1], "AI：") {
-		t.Errorf("second line should be AI label: %q", lines[1])
+	// lines[1] is blank after user_input
+	aiIdx := 2
+	if !strings.Contains(lines[aiIdx], "AI:") && !strings.Contains(lines[aiIdx], "AI：") {
+		t.Errorf("AI line should be AI label: %q", lines[aiIdx])
 	}
-	if !strings.Contains(lines[1], "hi") {
-		t.Errorf("second line should contain hi: %q", lines[1])
+	if !strings.Contains(lines[aiIdx], "hi") {
+		t.Errorf("AI line should contain hi: %q", lines[aiIdx])
 	}
-	// command and command_result produce styled lines (may contain Run: / 执行:)
-	if !strings.Contains(lines[2], "ls") {
-		t.Errorf("third line should contain command ls: %q", lines[2])
+	// command is after separator (lines[3]); result after that
+	runIdx := 4
+	resultIdx := 5
+	if !strings.Contains(lines[runIdx], "ls") {
+		t.Errorf("command line should contain ls: %q", lines[runIdx])
 	}
-	if !strings.Contains(lines[3], "a") || !strings.Contains(lines[3], "b") {
-		t.Errorf("fourth line should contain result stdout: %q", lines[3])
+	if !strings.Contains(lines[resultIdx], "a") || !strings.Contains(lines[resultIdx], "b") {
+		t.Errorf("result line should contain stdout: %q", lines[resultIdx])
 	}
 }

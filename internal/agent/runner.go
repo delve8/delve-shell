@@ -41,9 +41,7 @@ type Runner struct {
 // NewRunner creates a Runner; LLM from opts.Config.LLM, returns error guiding user to edit config.yaml if not set.
 func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 	baseURL, apiKey, model := opts.Config.LLMResolved()
-	if apiKey == "" {
-		return nil, ErrLLMNotConfigured
-	}
+	// apiKey may be empty for local deployments (e.g. Ollama) that do not require auth.
 
 	chatModel, err := openaimodel.NewChatModel(ctx, &openaimodel.ChatModelConfig{
 		APIKey:  apiKey,
@@ -180,6 +178,38 @@ func BuildConversationMessages(events []history.Event) []*schema.Message {
 			}
 			if json.Unmarshal(ev.Payload, &p) == nil {
 				out = append(out, schema.AssistantMessage(p.Reply, nil))
+			}
+		}
+	}
+	return out
+}
+
+// messageContentLength returns the character length of a message's text content for context budgeting.
+func messageContentLength(m *schema.Message) int {
+	if m == nil {
+		return 0
+	}
+	return len(m.Content)
+}
+
+// TrimConversationToContext keeps the most recent messages that fit within maxMessages and (optionally) maxChars.
+// maxMessages: 0 = do not limit by count; otherwise keep at most the last maxMessages.
+// maxChars: 0 = do not limit by length; otherwise drop oldest messages until total content length <= maxChars.
+func TrimConversationToContext(msgs []*schema.Message, maxMessages, maxChars int) []*schema.Message {
+	if len(msgs) == 0 {
+		return msgs
+	}
+	out := msgs
+	if maxMessages > 0 && len(out) > maxMessages {
+		out = out[len(out)-maxMessages:]
+	}
+	if maxChars > 0 {
+		total := 0
+		for i := len(out) - 1; i >= 0; i-- {
+			total += messageContentLength(out[i])
+			if total > maxChars {
+				out = out[i+1:]
+				break
 			}
 		}
 	}

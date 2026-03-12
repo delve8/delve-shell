@@ -68,3 +68,10 @@ type OverlayShowMsg struct {
 	Title   string
 	Content string
 }
+
+// ConfigLLMCheckDoneMsg is sent when the async LLM check (after save) finishes.
+// Err non-nil means check failed; CorrectedBaseURL non-empty means /v1 was added and config was updated.
+type ConfigLLMCheckDoneMsg struct {
+	Err              error
+	CorrectedBaseURL string
+}

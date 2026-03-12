@@ -24,10 +24,12 @@ type Config struct {
 
 // LLMConfig is the LLM API config.
 type LLMConfig struct {
-	BaseURL      string `yaml:"base_url,omitempty"`      // OpenAI-compatible API URL; empty = official; not written when default model
-	APIKey       string `yaml:"api_key"`                 // API key; supports $VAR
-	Model        string `yaml:"model,omitempty"`         // model name; empty = default gpt-4o-mini; not written when default
-	SystemPrompt string `yaml:"system_prompt"`           // system prompt; empty = built-in default; supports $VAR and multiline
+	BaseURL             string `yaml:"base_url,omitempty"`              // OpenAI-compatible API URL; empty = official; not written when default model
+	APIKey              string `yaml:"api_key"`                         // API key; supports $VAR
+	Model               string `yaml:"model,omitempty"`                 // model name; empty = default gpt-4o-mini; not written when default
+	SystemPrompt        string `yaml:"system_prompt"`                   // system prompt; empty = built-in default; supports $VAR and multiline
+	MaxContextMessages  int    `yaml:"max_context_messages,omitempty"` // max user+assistant messages to send as history; 0 = default 50; reduce for small-context models
+	MaxContextChars     int    `yaml:"max_context_chars,omitempty"`     // approximate max chars for conversation history; 0 = no limit; helps avoid overflow on fixed-context models
 }
 
 // RemoteTarget is one named remote host that can be selected via /remote on.
@@ -166,7 +168,12 @@ func (c *Config) LLMSummary() string {
 	if !c.AllowlistAutoRunResolved() {
 		autoRun = "Disabled"
 	}
-	return "language: " + c.languageResolved() + "\nallowlist_auto_run: " + autoRun + "\nllm.base_url: " + baseURL + "\nllm.api_key: " + key + "\nllm.model: " + model + "\nllm.system_prompt: " + sp
+	ctxMsg := fmt.Sprintf("%d", c.MaxContextMessagesResolved())
+	ctxChars := "no limit"
+	if c.LLM.MaxContextChars > 0 {
+		ctxChars = fmt.Sprintf("%d", c.LLM.MaxContextChars)
+	}
+	return "language: " + c.languageResolved() + "\nallowlist_auto_run: " + autoRun + "\nllm.base_url: " + baseURL + "\nllm.api_key: " + key + "\nllm.model: " + model + "\nllm.system_prompt: " + sp + "\nllm.max_context_messages: " + ctxMsg + "\nllm.max_context_chars: " + ctxChars
 }
 
 // ModeResolved returns "suggest" or "run" for backward compatibility (e.g. migration). Prefer AllowlistAutoRunResolved().
@@ -198,6 +205,22 @@ func (c *Config) LLMResolved() (baseURL, apiKey, model string) {
 		baseURL = "https://api.openai.com/v1"
 	}
 	return baseURL, apiKey, model
+}
+
+// DefaultMaxContextMessages is used when llm.max_context_messages is 0 or unset.
+const DefaultMaxContextMessages = 50
+
+// MaxContextMessagesResolved returns the max number of user+assistant messages to send; 0 or unset => DefaultMaxContextMessages.
+func (c *Config) MaxContextMessagesResolved() int {
+	if c.LLM.MaxContextMessages > 0 {
+		return c.LLM.MaxContextMessages
+	}
+	return DefaultMaxContextMessages
+}
+
+// MaxContextCharsResolved returns the approximate max characters for conversation history; 0 means no limit.
+func (c *Config) MaxContextCharsResolved() int {
+	return c.LLM.MaxContextChars
 }
 
 // allowlistFile is the allowlist.yaml file structure.

@@ -19,12 +19,18 @@ var ansiStrip = regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]|\x1b[\[?][0-9;]*[a-zA-
 func stripANSI(s string) string { return ansiStrip.ReplaceAllString(s, "") }
 
 // Spawn starts the binary in a PTY; returns the PTY master and the process. Caller must Close and Kill.
+// Sets a non-zero terminal size so the TUI receives WindowSizeMsg and renders (Bubble Tea needs dimensions).
 func Spawn(binaryPath string, env []string) (*os.File, *exec.Cmd, error) {
 	cmd := exec.Command(binaryPath)
 	cmd.Env = env
 	ptmx, err := pty.Start(cmd)
 	if err != nil {
 		return nil, nil, fmt.Errorf("pty start: %w", err)
+	}
+	if err := pty.Setsize(ptmx, &pty.Winsize{Rows: 24, Cols: 80}); err != nil {
+		_ = ptmx.Close()
+		_ = cmd.Process.Kill()
+		return nil, nil, fmt.Errorf("pty setsize: %w", err)
 	}
 	return ptmx, cmd, nil
 }

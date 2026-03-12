@@ -77,13 +77,18 @@ type Model struct {
 	PathCompletionCandidates []string
 	PathCompletionIndex       int
 
-	// Config LLM overlay: single form for base_url, api_key, model.
-	ConfigLLMActive       bool
-	ConfigLLMBaseURLInput textinput.Model
-	ConfigLLMApiKeyInput  textinput.Model
-	ConfigLLMModelInput   textinput.Model
-	ConfigLLMFieldIndex   int   // 0=base_url, 1=api_key, 2=model
-	ConfigLLMError        string
+	// InitialShowConfigLLM: when true, open Config LLM overlay on first WindowSizeMsg (e.g. no config / model empty at startup).
+	InitialShowConfigLLM bool
+	// Config LLM overlay: base_url, api_key, model, max_context_messages, max_context_chars.
+	ConfigLLMActive           bool
+	ConfigLLMChecking         bool   // true while async "hello" check is in progress after save
+	ConfigLLMBaseURLInput     textinput.Model
+	ConfigLLMApiKeyInput      textinput.Model
+	ConfigLLMModelInput       textinput.Model
+	ConfigLLMMaxMessagesInput textinput.Model
+	ConfigLLMMaxCharsInput    textinput.Model
+	ConfigLLMFieldIndex       int   // 0=base_url, 1=api_key, 2=model, 3=max_messages, 4=max_chars
+	ConfigLLMError            string
 }
 
 // Init implements tea.Model.
@@ -94,6 +99,11 @@ func (m Model) Init() tea.Cmd {
 // getLang returns the UI language for i18n. Currently UI is English-only.
 func (m Model) getLang() string {
 	return "en"
+}
+
+// delveMsg prefixes msg with "Delve: " for tool/system messages (config, session, notify, etc.).
+func (m Model) delveMsg(msg string) string {
+	return i18n.T(m.getLang(), i18n.KeyDelveLabel) + " " + msg
 }
 
 // Update implements tea.Model.
@@ -113,12 +123,54 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.Viewport.SetContent(m.buildContent())
 		m.Viewport.GotoBottom()
+		if m.InitialShowConfigLLM {
+			m.InitialShowConfigLLM = false
+			m = m.openConfigLLMOverlay()
+		}
 		return m, nil
 
+	case tea.BlurMsg:
+		// Window lost focus: blur main input so its cursor stops blinking.
+		m.Input.Blur()
+		return m, nil
+	case tea.FocusMsg:
+		// Window gained focus: restore main input focus only when not in an overlay.
+		if !m.OverlayActive {
+			return m, m.Input.Focus()
+		}
+		return m, nil
 	case RemoteStatusMsg:
 		m.RemoteActive = msg.Active
 		m.RemoteLabel = msg.Label
 		m.Viewport.SetContent(m.buildContent())
+		return m, nil
+	case ConfigLLMCheckDoneMsg:
+		m.ConfigLLMChecking = false
+		lang := m.getLang()
+		if msg.Err != nil {
+			m.ConfigLLMError = i18n.Tf(lang, i18n.KeyConfigLLMCheckFailed, msg.Err)
+			m.Viewport.SetContent(m.buildContent())
+			return m, nil
+		}
+		m.ConfigLLMError = ""
+		m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyConfigSavedLLM))))
+		if msg.CorrectedBaseURL != "" {
+			m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyConfigLLMBaseURLAutoCorrected, msg.CorrectedBaseURL))))
+		}
+		m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyConfigLLMCheckOK))))
+		m.Messages = append(m.Messages, "")
+		m.Viewport.SetContent(m.buildContent())
+		m.Viewport.GotoBottom()
+		m.OverlayActive = false
+		m.ConfigLLMActive = false
+		m.OverlayTitle = ""
+		m.OverlayContent = ""
+		if m.ConfigUpdatedChan != nil {
+			select {
+			case m.ConfigUpdatedChan <- struct{}{}:
+			default:
+			}
+		}
 		return m, nil
 	case RemoteAuthPromptMsg:
 		m.OverlayActive = true
@@ -151,6 +203,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.AddRemoteError = ""
 		m.AddRemoteOfferOverwrite = false
 		m.ConfigLLMActive = false
+		m.ConfigLLMChecking = false
 		m.ConfigLLMError = ""
 		m.RemoteAuthStep = ""
 		m.RemoteAuthTarget = ""
@@ -174,6 +227,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.AddRemoteError = ""
 				m.AddRemoteOfferOverwrite = false
 				m.ConfigLLMActive = false
+				m.ConfigLLMChecking = false
 				m.ConfigLLMError = ""
 				m.OverlayTitle = ""
 				m.OverlayContent = ""
@@ -274,7 +328,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 								display = name + " (" + host + ")"
 							}
 							lang := m.getLang()
-							m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display)))
+							m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display))))
+							m.Messages = append(m.Messages, "")
 							m.Viewport.SetContent(m.buildContent())
 							m.Viewport.GotoBottom()
 							m.OverlayActive = false
@@ -335,7 +390,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							display = name + " (" + host + ")"
 						}
 						lang := m.getLang()
-						m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display)))
+						m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display))))
+						m.Messages = append(m.Messages, "")
 						m.Viewport.SetContent(m.buildContent())
 						m.Viewport.GotoBottom()
 						m.OverlayActive = false
@@ -352,7 +408,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						}
 						return m, nil
 					}
-					var cmd tea.Cmd
+				var cmd tea.Cmd
 					switch m.AddRemoteFieldIndex {
 					case 0:
 						m.AddRemoteHostInput, cmd = m.AddRemoteHostInput.Update(msg)
@@ -372,16 +428,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, cmd
 				}
 				if m.ConfigLLMActive {
+					const configLLMFieldCount = 5
 					switch key {
 					case "up", "down":
 						dir := 1
 						if key == "up" {
 							dir = -1
 						}
-						m.ConfigLLMFieldIndex = (m.ConfigLLMFieldIndex + dir + 3) % 3
+						m.ConfigLLMFieldIndex = (m.ConfigLLMFieldIndex + dir + configLLMFieldCount) % configLLMFieldCount
 						m.ConfigLLMBaseURLInput.Blur()
 						m.ConfigLLMApiKeyInput.Blur()
 						m.ConfigLLMModelInput.Blur()
+						m.ConfigLLMMaxMessagesInput.Blur()
+						m.ConfigLLMMaxCharsInput.Blur()
 						switch m.ConfigLLMFieldIndex {
 						case 0:
 							m.ConfigLLMBaseURLInput.Focus()
@@ -389,23 +448,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							m.ConfigLLMApiKeyInput.Focus()
 						case 2:
 							m.ConfigLLMModelInput.Focus()
+						case 3:
+							m.ConfigLLMMaxMessagesInput.Focus()
+						case 4:
+							m.ConfigLLMMaxCharsInput.Focus()
 						}
 						return m, nil
 					case "enter":
+						if m.ConfigLLMChecking {
+							return m, nil
+						}
 						baseURL := strings.TrimSpace(m.ConfigLLMBaseURLInput.Value())
 						apiKey := strings.TrimSpace(m.ConfigLLMApiKeyInput.Value())
 						model := strings.TrimSpace(m.ConfigLLMModelInput.Value())
-						if apiKey == "" {
-							m.ConfigLLMError = i18n.T(m.getLang(), i18n.KeyConfigLLMApiKeyRequired)
+						maxMessagesStr := strings.TrimSpace(m.ConfigLLMMaxMessagesInput.Value())
+						maxCharsStr := strings.TrimSpace(m.ConfigLLMMaxCharsInput.Value())
+						if model == "" {
+							m.ConfigLLMError = i18n.T(m.getLang(), i18n.KeyConfigLLMModelRequired)
 							return m, nil
 						}
-						m = m.applyConfigLLMFromOverlay(baseURL, apiKey, model)
-						m.OverlayActive = false
-						m.ConfigLLMActive = false
-						m.ConfigLLMError = ""
-						m.OverlayTitle = ""
-						m.OverlayContent = ""
-						return m, nil
+						m = m.applyConfigLLMFromOverlayStart(baseURL, apiKey, model, maxMessagesStr, maxCharsStr)
+						if !m.ConfigLLMChecking {
+							return m, nil
+						}
+						return m, RunConfigLLMCheckCmd()
 					}
 					var cmd tea.Cmd
 					switch m.ConfigLLMFieldIndex {
@@ -415,6 +481,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.ConfigLLMApiKeyInput, cmd = m.ConfigLLMApiKeyInput.Update(msg)
 					case 2:
 						m.ConfigLLMModelInput, cmd = m.ConfigLLMModelInput.Update(msg)
+					case 3:
+						m.ConfigLLMMaxMessagesInput, cmd = m.ConfigLLMMaxMessagesInput.Update(msg)
+					case 4:
+						m.ConfigLLMMaxCharsInput, cmd = m.ConfigLLMMaxCharsInput.Update(msg)
 					}
 					return m, cmd
 				}
@@ -672,13 +742,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if riskLabel != "" {
 					commandLine = "[" + riskLabel + "] " + commandLine
 				}
+				cmdW := m.Width
+				if cmdW <= 0 {
+					cmdW = 80
+				}
 				m.Messages = append(m.Messages,
 					approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)),
-					execStyle.Render(commandLine),
+					execStyle.Render(wrapString(commandLine, cmdW)),
 					approvalDecisionApprovedStyle.Render(i18n.T(lang, i18n.KeyApprovalDecisionApproved)),
 				)
 				if m.Pending.Reason != "" {
-					m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(lang, i18n.KeyApprovalWhy)+" "+m.Pending.Reason))
+					whyLine := i18n.T(lang, i18n.KeyApprovalWhy) + " " + m.Pending.Reason
+					m.Messages = append(m.Messages, suggestStyle.Render(wrapString(whyLine, cmdW)))
 				}
 				m.Viewport.SetContent(m.buildContent())
 				m.Viewport.GotoBottom()
@@ -700,13 +775,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if riskLabel != "" {
 					commandLine = "[" + riskLabel + "] " + commandLine
 				}
+				cmdW := m.Width
+				if cmdW <= 0 {
+					cmdW = 80
+				}
 				m.Messages = append(m.Messages,
 					approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)),
-					execStyle.Render(commandLine),
+					execStyle.Render(wrapString(commandLine, cmdW)),
 					approvalDecisionRejectedStyle.Render(i18n.T(lang, i18n.KeyApprovalDecisionRejected)),
 				)
 				if m.Pending.Reason != "" {
-					m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(lang, i18n.KeyApprovalWhy)+" "+m.Pending.Reason))
+					whyLine := i18n.T(lang, i18n.KeyApprovalWhy) + " " + m.Pending.Reason
+					m.Messages = append(m.Messages, suggestStyle.Render(wrapString(whyLine, cmdW)))
 				}
 				m.Viewport.SetContent(m.buildContent())
 				m.Viewport.GotoBottom()
@@ -715,7 +795,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					// 2 = Copy
 					_ = clipboard.WriteAll(m.Pending.Command)
 					m.appendSuggestedLine(m.Pending.Command, lang)
-					m.Messages = append(m.Messages, hintStyle.Render(i18n.T(lang, i18n.KeySuggestedCopied)))
+					m.Messages = append(m.Messages, hintStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeySuggestedCopied))))
 					m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: true}
 				} else {
 					m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
@@ -738,13 +818,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if riskLabel != "" {
 					commandLine = "[" + riskLabel + "] " + commandLine
 				}
+				cmdW := m.Width
+				if cmdW <= 0 {
+					cmdW = 80
+				}
 				m.Messages = append(m.Messages,
 					approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)),
-					execStyle.Render(commandLine),
+					execStyle.Render(wrapString(commandLine, cmdW)),
 					suggestStyle.Render(i18n.T(lang, i18n.KeyChoiceDismiss)),
 				)
 				if m.Pending.Reason != "" {
-					m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(lang, i18n.KeyApprovalWhy)+" "+m.Pending.Reason))
+					whyLine := i18n.T(lang, i18n.KeyApprovalWhy) + " " + m.Pending.Reason
+					m.Messages = append(m.Messages, suggestStyle.Render(wrapString(whyLine, cmdW)))
 				}
 				m.Viewport.SetContent(m.buildContent())
 				m.Viewport.GotoBottom()
@@ -834,7 +919,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
-			m.Messages = append(m.Messages, i18n.T(m.getLang(), i18n.KeyUserLabel)+text)
+			userLine := i18n.T(m.getLang(), i18n.KeyUserLabel) + text
+			w := m.Width
+			if w <= 0 {
+				w = 80
+			}
+			sepW := w
+			sepLine := separatorStyle.Render(strings.Repeat("─", sepW))
+			if len(m.Messages) > 0 && m.Messages[len(m.Messages)-1] != sepLine {
+				m.Messages = append(m.Messages, sepLine)
+			}
+			m.Messages = append(m.Messages, wrapString(userLine, w))
+			m.Messages = append(m.Messages, "") // blank line before command or AI reply
 			m.Viewport.SetContent(m.buildContent())
 			m.Viewport.GotoBottom()
 			m.Input.SetValue("")
@@ -863,7 +959,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.WaitingForAI = false
 				} else {
 					lang := m.getLang()
-					m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(lang, i18n.KeyNoRequestInProgress)))
+					m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyNoRequestInProgress))))
 					m.Viewport.SetContent(m.buildContent())
 					m.Viewport.GotoBottom()
 				}
@@ -888,7 +984,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m = m.applyConfigLLM("model", strings.TrimPrefix(text, "/config llm model "))
 				return m, nil
 			case text == "/config show", text == "/config":
-				m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(m.getLang(), i18n.KeyConfigHint)))
+				m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyConfigHint))))
 				m.Viewport.SetContent(m.buildContent())
 				m.Viewport.GotoBottom()
 				return m, nil
@@ -959,7 +1055,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.ExecDirectChan != nil && cmd != "" {
 					m.ExecDirectChan <- cmd
 				} else if cmd == "" {
-					m.Messages = append(m.Messages, errStyle.Render(i18n.T(m.getLang(), i18n.KeyUsageRun)))
+					m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyUsageRun))))
 				}
 				return m, nil
 			case strings.HasPrefix(text, "/"):
@@ -986,7 +1082,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				// "No previous sessions" single option: show message and clear input.
 				if selectedOpt.Path == "" && len(vis) == 1 && selectedOpt.Desc == "" {
-					m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(m.getLang(), i18n.KeySessionNone)))
+					m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeySessionNone))))
 					m.Viewport.SetContent(m.buildContent())
 					m.Viewport.GotoBottom()
 					m.Input.SetValue("")
@@ -1093,14 +1189,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							return m, nil
 						}
 						if chosen == "/config" {
-							m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(m.getLang(), i18n.KeyConfigHint)))
+							m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyConfigHint))))
 							m.Viewport.SetContent(m.buildContent())
 							m.Viewport.GotoBottom()
 							return m, nil
 						}
 						if strings.HasPrefix(chosen, "/config ") {
 							// Unhandled /config subcommand; show hint
-							m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(m.getLang(), i18n.KeyConfigHint)))
+							m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyConfigHint))))
 							m.Viewport.SetContent(m.buildContent())
 							m.Viewport.GotoBottom()
 							return m, nil
@@ -1155,7 +1251,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							return m, nil
 						}
 					}
-				m.Messages = append(m.Messages, errStyle.Render(i18n.T(m.getLang(), i18n.KeyUnknownCmd)))
+				m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyUnknownCmd))))
 				return m, nil
 			}
 			if m.SubmitChan != nil {
@@ -1212,23 +1308,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Path != "" {
 			sessionID = strings.TrimSuffix(filepath.Base(msg.Path), ".jsonl")
 		}
-		switchedLine := sessionSwitchedStyle.Render(i18n.Tf(lang, i18n.KeySessionSwitchedTo, sessionID))
+		switchedLine := sessionSwitchedStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeySessionSwitchedTo, sessionID)))
 		if msg.Path != "" {
 			events, _ := history.ReadRecent(msg.Path, maxSessionHistoryEvents)
-			msgs := sessionEventsToMessages(events, lang)
-			m.Messages = make([]string, 0, len(msgs)+1)
+			msgs := sessionEventsToMessages(events, lang, m.Width)
+			m.Messages = make([]string, 0, len(msgs)+2)
 			m.Messages = append(m.Messages, msgs...)
 			m.Messages = append(m.Messages, switchedLine)
 		} else {
 			m.Messages = []string{switchedLine}
 		}
+		m.Messages = append(m.Messages, "")
 		m.Viewport.SetContent(m.buildContent())
 		m.Viewport.GotoBottom()
 		return m, nil
 
 	case ConfigReloadedMsg:
 		lang := m.getLang()
-		m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(lang, i18n.KeyConfigReloaded)))
+		m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyConfigReloaded))))
+		m.Messages = append(m.Messages, "")
 		m.Viewport.SetContent(m.buildContent())
 		m.Viewport.GotoBottom()
 		return m, nil
@@ -1237,21 +1335,37 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		lang := m.getLang()
 		if msg.Err != nil {
 			if errors.Is(msg.Err, context.Canceled) {
-				m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(lang, i18n.KeyCancelled)))
+				m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyCancelled))))
 			} else if errors.Is(msg.Err, agent.ErrLLMNotConfigured) {
-				m.Messages = append(m.Messages, errStyle.Render(i18n.Tf(lang, i18n.KeyErrLLMNotConfigured, config.ConfigPath())))
+				m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyErrLLMNotConfigured, config.ConfigPath()))))
 			} else {
-				m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyErrorPrefix)+msg.Err.Error()))
+				m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyErrorPrefix)+msg.Err.Error())))
 			}
+			m.Messages = append(m.Messages, "")
 		} else if msg.Reply != "" {
-			m.Messages = append(m.Messages, i18n.T(lang, i18n.KeyAILabel)+msg.Reply)
+			aiLine := i18n.T(lang, i18n.KeyAILabel) + msg.Reply
+			w := m.Width
+			if w <= 0 {
+				w = 80
+			}
+			m.Messages = append(m.Messages, wrapString(aiLine, w))
+			sepW := m.Width
+			if sepW <= 0 {
+				sepW = 80
+			}
+			m.Messages = append(m.Messages, separatorStyle.Render(strings.Repeat("─", sepW)))
 		}
 		m.Viewport.SetContent(m.buildContent())
 		m.Viewport.GotoBottom()
 		return m, nil
 	case SystemNotifyMsg:
 		if msg.Text != "" {
-			m.Messages = append(m.Messages, suggestStyle.Render(msg.Text))
+			w := m.Width
+			if w <= 0 {
+				w = 80
+			}
+			m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(wrapString(msg.Text, w))))
+			m.Messages = append(m.Messages, "")
 			m.Viewport.SetContent(m.buildContent())
 			m.Viewport.GotoBottom()
 		}
@@ -1267,13 +1381,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			tag = i18n.T(lang, i18n.KeyRunTagApproved)
 		}
-		m.Messages = append(m.Messages, execStyle.Render(i18n.T(lang, i18n.KeyRunLabel)+msg.Command+" ("+tag+")"))
+		runLine := i18n.T(lang, i18n.KeyRunLabel) + msg.Command + " (" + tag + ")"
+		w := m.Width
+		if w <= 0 {
+			w = 80
+		}
+		m.Messages = append(m.Messages, execStyle.Render(wrapString(runLine, w)))
 		if msg.Sensitive {
 			m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(lang, i18n.KeyResultSensitive)))
 		}
 		if msg.Result != "" {
-			m.Messages = append(m.Messages, resultStyle.Render(msg.Result))
+			m.Messages = append(m.Messages, resultStyle.Render(wrapString(msg.Result, w)))
 		}
+		m.Messages = append(m.Messages, "") // blank line after command output
 		m.Viewport.SetContent(m.buildContent())
 		m.Viewport.GotoBottom()
 		return m, nil
@@ -1287,7 +1407,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // NewModel creates a Model with default input (slash commands and viewport scrolling).
 // initialMessages if non-nil is used as existing conversation (e.g. after /sh return).
 // initialSessionPath is the current session file path (excluded from /sessions list so first option is another session).
-// allowlistAutoRunChangeChan and getAllowlistAutoRun are for runtime toggle and header/card options.
+// initialShowConfigLLM: when true, Config LLM overlay is opened on first WindowSizeMsg (used when no config or model empty at startup).
 func NewModel(
 	submitChan chan<- string,
 	execDirectChan chan<- string,
@@ -1302,6 +1422,7 @@ func NewModel(
 	getAllowlistAutoRun func() bool,
 	initialMessages []string,
 	initialSessionPath string,
+	initialShowConfigLLM bool,
 ) Model {
 	ti := textinput.New()
 	ti.Placeholder = i18n.T("en", i18n.KeyPlaceholderInput)
@@ -1335,6 +1456,7 @@ func NewModel(
 		RemoteAuthRespChan:         remoteAuthRespChan,
 		CurrentSessionPath:         initialSessionPath,
 		GetAllowlistAutoRun:        getAllowlistAutoRun,
+		InitialShowConfigLLM:       initialShowConfigLLM,
 		Width:                     defaultWidth,
 		Height:                    defaultHeight,
 	}

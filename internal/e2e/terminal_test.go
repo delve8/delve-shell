@@ -9,11 +9,14 @@ import (
 )
 
 func TestTerminalE2E(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skip e2e in short mode (PTY/TUI tests are slow and environment-sensitive)")
+	}
 	bin := buildBinary(t)
 	root := t.TempDir()
+	writeMinimalConfig(t, root)
 	env := append(os.Environ(),
 		"DELVE_SHELL_ROOT="+root,
-		"DELVE_SHELL_NO_WIZARD=1", // e2e 测试中关闭首次启动向导，直接进入 TUI
 	)
 
 	for _, c := range TerminalCases {
@@ -24,6 +27,16 @@ func TestTerminalE2E(t *testing.T) {
 			}
 			runCase(t, bin, env, c)
 		})
+	}
+}
+
+// writeMinimalConfig writes a minimal config.yaml with llm.model set so the TUI starts without opening the Config LLM overlay.
+func writeMinimalConfig(t *testing.T, root string) {
+	t.Helper()
+	cfgPath := filepath.Join(root, "config.yaml")
+	body := "language: en\nllm:\n  model: gpt-4o-mini\n"
+	if err := os.WriteFile(cfgPath, []byte(body), 0600); err != nil {
+		t.Fatalf("write minimal config: %v", err)
 	}
 }
 

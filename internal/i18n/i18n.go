@@ -49,6 +49,7 @@ const (
 	KeyErrLLMNotConfigured = "err_llm_not_configured"
 	KeyUserLabel           = "user_label"
 	KeyAILabel             = "ai_label"
+	KeyDelveLabel          = "delve_label" // tool/system message prefix, e.g. "Delve:"
 	KeyRunLabel            = "run_label"
 	// Slash option descriptions (cmd as suffix for consistency)
 	KeyDescExit   = "desc_exit"
@@ -123,12 +124,19 @@ const (
 	KeyAddRemoteTitle  = "add_remote_title"
 	KeyConfigSavedLLM  = "config_saved_llm"
 	KeyConfigLLMTitle  = "config_llm_title"
-	KeyConfigLLMBaseURLLabel  = "config_llm_base_url_label"
-	KeyConfigLLMApiKeyLabel   = "config_llm_api_key_label"
-	KeyConfigLLMModelLabel    = "config_llm_model_label"
-		KeyConfigLLMHint         = "config_llm_hint"
-	KeyConfigLLMApiKeyRequired = "config_llm_api_key_required"
-	KeyDescConfigLLM  = "desc_config_llm"
+	KeyConfigLLMBaseURLLabel     = "config_llm_base_url_label"
+	KeyConfigLLMApiKeyLabel      = "config_llm_api_key_label"
+	KeyConfigLLMModelLabel       = "config_llm_model_label"
+	KeyConfigLLMMaxMessagesLabel = "config_llm_max_messages_label"
+	KeyConfigLLMMaxCharsLabel    = "config_llm_max_chars_label"
+	KeyConfigLLMHint             = "config_llm_hint"
+	KeyConfigLLMApiKeyRequired  = "config_llm_api_key_required"
+	KeyConfigLLMModelRequired   = "config_llm_model_required"
+	KeyConfigLLMChecking       = "config_llm_checking"             // "Checking..."
+	KeyConfigLLMCheckOK        = "config_llm_check_ok"             // after save: "LLM check OK."
+	KeyConfigLLMCheckFailed    = "config_llm_check_failed"         // format: "LLM check failed: %v"
+	KeyConfigLLMBaseURLAutoCorrected = "config_llm_base_url_auto_corrected" // format: "Base URL updated to %s (added /v1)."
+	KeyDescConfigLLM            = "desc_config_llm"
 	KeyConfigHint     = "config_hint" // when /config or /config show is used: point to /config llm and header
 )
 
@@ -185,6 +193,7 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyNoRequestInProgress: "(No request in progress. /cancel only applies when waiting for AI.)",
 		KeyUsageRun:            "Usage: /run <command> — e.g. /run ls -la",
 		KeyUnknownCmd:          "Unknown command. Type /help for the full list, or try /exit, /run <cmd>, /config, /reload.",
+		KeyDelveLabel:          "Delve:",
 		KeyConfigReloaded:      "Config and allowlist reloaded. Next message will use new config.",
 		KeyCancelled:           "(Cancelled)",
 		KeyErrorPrefix:         "Error: ",
@@ -268,7 +277,7 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyWizardIntroDesc2:     "",
 		KeyWizardIntroEnv:       "Values support $VAR or ${VAR} environment references.",
 		KeyWizardBaseURLPrompt:  "LLM base URL (optional; empty uses provider default, e.g. OpenAI official). For OpenAI-compatible APIs, use the /v1 endpoint (e.g. https://api.openai.com/v1): ",
-		KeyWizardAPIKeyPrompt:   "LLM api_key (required; supports $VAR or ${VAR}): ",
+		KeyWizardAPIKeyPrompt:   "LLM api_key (optional; supports $VAR or ${VAR}. Leave empty for local models): ",
 		KeyWizardAPIKeyRequired: "api_key is required. Use an env reference if you prefer not to store the key directly.",
 		KeyWizardModelPrompt:    "LLM model (optional; default: gpt-4o-mini): ",
 		KeyWizardDone:           "Config captured; it will be saved and delve-shell will start.",
@@ -288,11 +297,18 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyAddRemoteTitle:       "Add Remote",
 		KeyConfigSavedLLM:       "Config saved (llm).",
 		KeyConfigLLMTitle:       "Config LLM",
-		KeyConfigLLMBaseURLLabel: "Base URL (optional; empty = default; for OpenAI-compatible APIs use the /v1 endpoint):",
-		KeyConfigLLMApiKeyLabel:  "API key (required; supports $VAR):",
-		KeyConfigLLMModelLabel:   "Model (optional; empty = gpt-4o-mini):",
-		KeyConfigLLMHint:         "Up/Down to move between fields, Enter to save, Esc to cancel.",
+		KeyConfigLLMBaseURLLabel: "Base URL (optional; empty = OpenAI official API):",
+		KeyConfigLLMApiKeyLabel:  "API key (optional; supports $VAR):",
+		KeyConfigLLMModelLabel:       "Model:",
+		KeyConfigLLMMaxMessagesLabel: "Max context messages (default 50):",
+		KeyConfigLLMMaxCharsLabel:    "Max context chars (default: no limit or auto from API):",
+		KeyConfigLLMHint:             "Up/Down to move between fields, Enter to save, Esc to cancel.",
 		KeyConfigLLMApiKeyRequired: "API key is required.",
+		KeyConfigLLMModelRequired:   "Model is required.",
+		KeyConfigLLMChecking:       "Checking...",
+		KeyConfigLLMCheckOK:        "LLM check OK.",
+		KeyConfigLLMCheckFailed:    "LLM check failed: %v",
+		KeyConfigLLMBaseURLAutoCorrected: "Base URL updated to %s (added /v1).",
 		KeyDescConfigLLM:        "Set LLM (base URL, API key, model)",
 		KeyConfigHint:           "Use /config llm for LLM; auto-run is in header.",
 	},

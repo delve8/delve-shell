@@ -1,27 +1,30 @@
 package ui
 
 import (
+	"context"
+	"strconv"
 	"strings"
+	"time"
 
+	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/textinput"
 
 	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/llmtest"
 )
 
 // openConfigLLMOverlay opens the Config LLM overlay with current config values pre-filled.
+// If config file is missing, uses config.Default() so the overlay still opens (user can save to create the file).
 func (m Model) openConfigLLMOverlay() Model {
 	cfg, err := config.Load()
 	if err != nil {
-		lang := m.getLang()
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
+		cfg = config.Default()
 	}
 	m.OverlayActive = true
 	m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyConfigLLMTitle)
 	m.ConfigLLMActive = true
+	m.ConfigLLMChecking = false
 	m.ConfigLLMError = ""
 	m.ConfigLLMFieldIndex = 0
 	m.ConfigLLMBaseURLInput = textinput.New()
@@ -37,44 +40,95 @@ func (m Model) openConfigLLMOverlay() Model {
 	m.ConfigLLMModelInput.Placeholder = "gpt-4o-mini (optional)"
 	m.ConfigLLMModelInput.SetValue(cfg.LLM.Model)
 	m.ConfigLLMModelInput.Blur()
+	m.ConfigLLMMaxMessagesInput = textinput.New()
+	m.ConfigLLMMaxMessagesInput.Placeholder = ""
+	if cfg.LLM.MaxContextMessages > 0 {
+		m.ConfigLLMMaxMessagesInput.SetValue(strconv.Itoa(cfg.LLM.MaxContextMessages))
+	}
+	m.ConfigLLMMaxMessagesInput.Blur()
+	m.ConfigLLMMaxCharsInput = textinput.New()
+	m.ConfigLLMMaxCharsInput.Placeholder = ""
+	if cfg.LLM.MaxContextChars > 0 {
+		m.ConfigLLMMaxCharsInput.SetValue(strconv.Itoa(cfg.LLM.MaxContextChars))
+	}
+	m.ConfigLLMMaxCharsInput.Blur()
 	return m
 }
 
-// applyConfigLLMFromOverlay writes all three llm fields (base_url, api_key, model) to config at once. api_key is required.
-func (m Model) applyConfigLLMFromOverlay(baseURL, apiKey, model string) Model {
+// applyConfigLLMFromOverlayStart writes config and sets ConfigLLMChecking so the UI shows "Checking...".
+// The caller should then run RunConfigLLMCheckCmd() and handle ConfigLLMCheckDoneMsg to close or show error.
+func (m Model) applyConfigLLMFromOverlayStart(baseURL, apiKey, model, maxMessagesStr, maxCharsStr string) Model {
 	baseURL = strings.TrimSpace(baseURL)
 	apiKey = strings.TrimSpace(apiKey)
 	model = strings.TrimSpace(model)
 	lang := m.getLang()
-	if apiKey == "" {
+	if model == "" {
 		return m // caller sets ConfigLLMError
 	}
 	cfg, err := config.Load()
 	if err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
+		cfg = config.Default()
+		if err := config.EnsureRootDir(); err != nil {
+			m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
+			m.Viewport.SetContent(m.buildContent())
+			m.Viewport.GotoBottom()
+			return m
+		}
 	}
 	cfg.LLM.BaseURL = baseURL
 	cfg.LLM.APIKey = apiKey
 	cfg.LLM.Model = model
+	if s := strings.TrimSpace(maxMessagesStr); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n >= 0 {
+			cfg.LLM.MaxContextMessages = n
+		}
+	} else {
+		cfg.LLM.MaxContextMessages = 0
+	}
+	if s := strings.TrimSpace(maxCharsStr); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n >= 0 {
+			cfg.LLM.MaxContextChars = n
+		}
+	} else {
+		cfg.LLM.MaxContextChars = 0
+	}
 	if err := config.Write(cfg); err != nil {
 		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
 		m.Viewport.SetContent(m.buildContent())
 		m.Viewport.GotoBottom()
 		return m
 	}
-	m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(lang, i18n.KeyConfigSavedLLM)))
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
-	if m.ConfigUpdatedChan != nil {
-		select {
-		case m.ConfigUpdatedChan <- struct{}{}:
-		default:
-		}
-	}
+	m.ConfigLLMError = ""
+	m.ConfigLLMChecking = true
 	return m
+}
+
+// RunConfigLLMCheckCmd runs the LLM "hello" check in the background and returns ConfigLLMCheckDoneMsg.
+// If the URL fails and does not end with /v1, retries with /v1 and updates config on success.
+func RunConfigLLMCheckCmd() tea.Cmd {
+	return func() tea.Msg {
+		cfg, err := config.Load()
+		if err != nil {
+			return ConfigLLMCheckDoneMsg{Err: err}
+		}
+		resolvedBaseURL, resolvedAPIKey, resolvedModel := cfg.LLMResolved()
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		checkErr := llmtest.TestConnection(ctx, resolvedBaseURL, resolvedAPIKey, resolvedModel)
+		if checkErr != nil && resolvedBaseURL != "" && !strings.HasSuffix(resolvedBaseURL, "/v1") {
+			tryURL := resolvedBaseURL + "/v1"
+			ctx2, cancel2 := context.WithTimeout(context.Background(), 15*time.Second)
+			retryErr := llmtest.TestConnection(ctx2, tryURL, resolvedAPIKey, resolvedModel)
+			cancel2()
+			if retryErr == nil {
+				cfg.LLM.BaseURL = tryURL
+				if writeErr := config.Write(cfg); writeErr == nil {
+					return ConfigLLMCheckDoneMsg{CorrectedBaseURL: tryURL}
+				}
+			}
+		}
+		return ConfigLLMCheckDoneMsg{Err: checkErr}
+	}
 }
 
 // applyConfigLLM sets one llm field in config.yaml and writes back; value supports $VAR env expansion.
@@ -107,7 +161,8 @@ func (m Model) applyConfigLLM(field, value string) Model {
 		m.Viewport.GotoBottom()
 		return m
 	}
-	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyConfigSaved, field)))
+	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyConfigSaved, field))))
+	m.Messages = append(m.Messages, "")
 	m.Viewport.SetContent(m.buildContent())
 	m.Viewport.GotoBottom()
 	if m.ConfigUpdatedChan != nil {
@@ -145,7 +200,8 @@ func (m Model) applyAllowlistAutoRunSwitch(value string) Model {
 	if !on {
 		display = i18n.T(lang, i18n.KeyAutoRunNone)
 	}
-	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyAllowlistAutoRunSetTo, display)))
+	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyAllowlistAutoRunSetTo, display))))
+	m.Messages = append(m.Messages, "")
 	m.Viewport.SetContent(m.buildContent())
 	m.Viewport.GotoBottom()
 	return m
@@ -192,7 +248,8 @@ func (m Model) applyConfigAllowlistAutoRun(value string) Model {
 	if !on {
 		display = i18n.T(lang, i18n.KeyAutoRunNone)
 	}
-	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyConfigSavedAllowlistAutoRun, display)))
+	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyConfigSavedAllowlistAutoRun, display))))
+	m.Messages = append(m.Messages, "")
 	m.Viewport.SetContent(m.buildContent())
 	m.Viewport.GotoBottom()
 	if m.ConfigUpdatedChan != nil {
@@ -214,7 +271,8 @@ func (m Model) applyConfigAllowlistUpdate() Model {
 		m.Viewport.GotoBottom()
 		return m
 	}
-	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyAllowlistUpdateDone, added)))
+	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyAllowlistUpdateDone, added))))
+	m.Messages = append(m.Messages, "")
 	m.Viewport.SetContent(m.buildContent())
 	m.Viewport.GotoBottom()
 	if m.ConfigUpdatedChan != nil {
@@ -255,7 +313,8 @@ func (m Model) applyConfigAddRemote(args string) Model {
 	if name != "" {
 		display = name + " (" + target + ")"
 	}
-	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display)))
+	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display))))
+	m.Messages = append(m.Messages, "")
 	m.Viewport.SetContent(m.buildContent())
 	m.Viewport.GotoBottom()
 	if m.ConfigUpdatedChan != nil {
@@ -283,7 +342,8 @@ func (m Model) applyConfigRemoveRemote(nameOrTarget string) Model {
 		m.Viewport.GotoBottom()
 		return m
 	}
-	m.Messages = append(m.Messages, suggestStyle.Render(i18n.Tf(lang, i18n.KeyConfigRemoteRemoved, nameOrTarget)))
+	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyConfigRemoteRemoved, nameOrTarget))))
+	m.Messages = append(m.Messages, "")
 	m.Viewport.SetContent(m.buildContent())
 	m.Viewport.GotoBottom()
 	if m.ConfigUpdatedChan != nil {

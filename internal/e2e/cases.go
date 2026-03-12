@@ -26,6 +26,9 @@ type Step struct {
 // DefaultStepTimeout is used when Case.Timeout is zero.
 const DefaultStepTimeout = 8 * time.Second
 
+// tuiReadyExpect: substrings that appear on the initial TUI (title line + placeholder). Main view uses titleLine() and KeyPlaceholderInput, not "delve-shell" or "Enter".
+var tuiReadyExpect = []string{"Local", "IDLE", "Auto-Run", "Type", "slash"}
+
 // TerminalCases is the registered list of terminal e2e cases; append to add cases.
 var TerminalCases = []Case{
 	{
@@ -33,7 +36,7 @@ var TerminalCases = []Case{
 		Skip:   "",
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
-			{Input: "", Expect: []string{"delve-shell", "Enter"}, Timeout: 5 * time.Second}, // wait for TUI ready
+			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second}, // wait for TUI ready
 			{Input: "/help", Expect: []string{"Slash commands", "斜杠命令", "Quit", "退出", "/exit", "/run", "/help"}, Timeout: 5 * time.Second},
 			{Input: "/exit", Expect: []string{}, Timeout: 2 * time.Second},
 		},
@@ -43,7 +46,7 @@ var TerminalCases = []Case{
 		Skip:   "",
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
-			{Input: "", Expect: []string{"delve-shell", "Enter"}, Timeout: 5 * time.Second},
+			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
 			{Input: "/config show", Expect: []string{"/config llm", "header", "auto-run"}, Timeout: 5 * time.Second},
 			{Input: "/exit", Expect: []string{}, Timeout: 2 * time.Second},
 		},
@@ -53,7 +56,7 @@ var TerminalCases = []Case{
 		Skip:   "",
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
-			{Input: "", Expect: []string{"delve-shell", "Enter"}, Timeout: 5 * time.Second},
+			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
 			{Input: "/cancel", Expect: []string{"No request in progress", "当前无进行中的请求", "无进行中的请求"}, Timeout: 3 * time.Second},
 			{Input: "/exit", Expect: []string{}, Timeout: 2 * time.Second},
 		},
@@ -63,8 +66,8 @@ var TerminalCases = []Case{
 		Skip:   "",
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
-			{Input: "", Expect: []string{"delve-shell", "Enter"}, Timeout: 5 * time.Second},
-			{Input: "/foo", Expect: []string{"Unknown command", "未知命令", "/exit", "/run", "/help"}, Timeout: 3 * time.Second},
+			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
+			{Input: "/foo", Expect: []string{"Unknown command", "未知命令", "/exit", "/run", "/help"}, Timeout: 5 * time.Second},
 			{Input: "/exit", Expect: []string{}, Timeout: 2 * time.Second},
 		},
 	},
@@ -73,7 +76,7 @@ var TerminalCases = []Case{
 		Skip:   "",
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
-			{Input: "", Expect: []string{"delve-shell", "Enter"}, Timeout: 5 * time.Second},
+			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
 			{Input: "/run echo 1", Expect: []string{"Run:", "echo 1", "exit_code", "direct", "直接执行"}, Timeout: 5 * time.Second},
 			{Input: "/exit", Expect: []string{}, Timeout: 2 * time.Second},
 		},
@@ -83,7 +86,7 @@ var TerminalCases = []Case{
 		Skip:   "",
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
-			{Input: "", Expect: []string{"delve-shell", "Enter"}, Timeout: 5 * time.Second},
+			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
 			{Input: "/reload", Expect: []string{"reloaded", "重载", "Config and allowlist", "配置与允许列表"}, Timeout: 3 * time.Second},
 			{Input: "/exit", Expect: []string{}, Timeout: 2 * time.Second},
 		},
@@ -93,7 +96,7 @@ var TerminalCases = []Case{
 		Skip:   "need E2E_LLM=1 and valid LLM config",
 		Timeout: 20 * time.Second,
 		Steps: []Step{
-			{Input: "", Expect: []string{"delve-shell", "Enter"}, Timeout: 5 * time.Second},
+			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
 			{Input: "list files in current directory", Expect: []string{"Command to run", "待执行的命令", "approval", "批准", "1=", "2="}, Timeout: 18 * time.Second},
 			{Input: "y", Expect: []string{"exit_code", "Run:"}, Timeout: 10 * time.Second},
 		},
