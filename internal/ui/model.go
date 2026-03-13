@@ -118,6 +118,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.Width = msg.Width
 		m.Height = msg.Height
+		// Use full terminal width for input so long lines don't scroll until they exceed the line.
+		if m.Width > 4 {
+			m.Input.Width = m.Width - 4 // leave margin for prompt "> " and right edge
+		}
 		if m.Height > 4 {
 			vh := m.Height - 8 // 2 header + 1 blank + 1 sep + 1 input + 3 choice/hint max
 			if vh < 1 {
@@ -1564,7 +1568,7 @@ func NewModel(
 	ti.TextStyle = inputTextStyle
 	ti.Cursor.Style = inputCursorStyle
 	ti.CharLimit = 0
-	ti.Width = 60
+	ti.Width = defaultWidth - 4 // will be updated on first WindowSizeMsg to match terminal
 	ti.Focus()
 	vp := viewport.New(defaultWidth, defaultHeight-4)
 	vp.MouseWheelEnabled = true
