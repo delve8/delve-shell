@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -138,6 +139,48 @@ func runRun(cmd *cobra.Command, args []string) error {
 	remoteAuthRespChan := make(chan ui.RemoteAuthResponse, 1)
 	var savedMessages []string
 	var currentP *tea.Program
+
+	// updateRemoteRunCompletion fetches a one-time /run completion cache from the remote host.
+	// It runs best-effort and never blocks the main connection flow.
+	updateRemoteRunCompletion := func(exec execenv.CommandExecutor, remoteLabel string) {
+		if currentP == nil || exec == nil || strings.TrimSpace(remoteLabel) == "" {
+			return
+		}
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			// Use bash compgen for a reasonably complete command list.
+			out, _, _, err := exec.Run(ctx, "bash -lc 'compgen -c'")
+			if err != nil {
+				return
+			}
+			seen := make(map[string]struct{}, 4096)
+			cmds := make([]string, 0, 2048)
+			for _, line := range strings.Split(out, "\n") {
+				s := strings.TrimSpace(line)
+				if s == "" {
+					continue
+				}
+				// Keep it simple: name-like tokens only.
+				if strings.ContainsAny(s, " \t/") {
+					continue
+				}
+				if _, ok := seen[s]; ok {
+					continue
+				}
+				seen[s] = struct{}{}
+				cmds = append(cmds, s)
+				// Cap to avoid excessive memory/CPU for huge environments.
+				if len(cmds) >= 8000 {
+					break
+				}
+			}
+			sort.Strings(cmds)
+			if currentP != nil {
+				currentP.Send(ui.RunCompletionCacheMsg{RemoteLabel: remoteLabel, Commands: cmds})
+			}
+		}()
+	}
 
 	go func() {
 		for path := range sessionSwitchChan {
@@ -270,6 +313,7 @@ func runRun(cmd *cobra.Command, args []string) error {
 					executorMu.Lock()
 					currentExecutor = cachedExec
 					executorMu.Unlock()
+					updateRemoteRunCompletion(cachedExec, label)
 					if currentP != nil {
 						currentP.Send(ui.RemoteStatusMsg{Active: true, Label: label})
 						currentP.Send(ui.SystemNotifyMsg{Text: fmt.Sprintf("Connected to remote: %s", label)})
@@ -310,6 +354,7 @@ func runRun(cmd *cobra.Command, args []string) error {
 				executorMu.Lock()
 				currentExecutor = sshExec
 				executorMu.Unlock()
+				updateRemoteRunCompletion(sshExec, label)
 				if currentP != nil {
 					currentP.Send(ui.RemoteStatusMsg{Active: true, Label: label})
 					currentP.Send(ui.SystemNotifyMsg{Text: fmt.Sprintf("Connected to remote: %s", label)})
@@ -335,6 +380,7 @@ func runRun(cmd *cobra.Command, args []string) error {
 			executorMu.Lock()
 			currentExecutor = sshExec
 			executorMu.Unlock()
+			updateRemoteRunCompletion(sshExec, label)
 			if currentP != nil {
 				currentP.Send(ui.RemoteStatusMsg{Active: true, Label: label})
 				currentP.Send(ui.SystemNotifyMsg{Text: fmt.Sprintf("Connected to remote: %s", label)})
@@ -410,11 +456,12 @@ func runRun(cmd *cobra.Command, args []string) error {
 			executorMu.Lock()
 			currentExecutor = sshExec
 			executorMu.Unlock()
+			labelStr := config.HostFromTarget(targetForSSH)
+			updateRemoteRunCompletion(sshExec, labelStr)
 			if currentP != nil {
-				label := config.HostFromTarget(targetForSSH)
-				currentP.Send(ui.RemoteStatusMsg{Active: true, Label: label})
-				currentP.Send(ui.SystemNotifyMsg{Text: fmt.Sprintf("Connected to remote: %s", label)})
-				currentP.Send(ui.RemoteConnectDoneMsg{Success: true, Label: label})
+				currentP.Send(ui.RemoteStatusMsg{Active: true, Label: labelStr})
+				currentP.Send(ui.SystemNotifyMsg{Text: fmt.Sprintf("Connected to remote: %s", labelStr)})
+				currentP.Send(ui.RemoteConnectDoneMsg{Success: true, Label: labelStr})
 			}
 		}
 	}()

@@ -91,6 +91,20 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 	if opts.Session != nil {
 		viewTool.SessionPath = opts.Session.Path()
 	}
+	listSkillsTool := &ListSkillsTool{}
+	getSkillTool := &GetSkillTool{}
+	runSkillTool := &RunSkillTool{
+		RequestApproval:             requestApproval,
+		RequestSensitiveConfirmation: requestSensitiveConfirmation,
+		SensitiveMatcher:            opts.SensitiveMatcher,
+		Session:                     opts.Session,
+		OnExec: func(cmd string, allowed bool, result string, sensitive bool, suggested bool) {
+			if opts.ExecEventChan != nil {
+				opts.ExecEventChan <- ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested}
+			}
+		},
+		ExecutorProvider: opts.ExecutorProvider,
+	}
 
 	sysPrompt := opts.Config.LLM.SystemPrompt
 	if sysPrompt == "" {
@@ -105,7 +119,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 	reactAgent, err := react.NewAgent(ctx, &react.AgentConfig{
 		ToolCallingModel: chatModel,
 		ToolsConfig: compose.ToolsNodeConfig{
-			Tools: []tool.BaseTool{execTool, viewTool},
+			Tools: []tool.BaseTool{execTool, viewTool, listSkillsTool, getSkillTool, runSkillTool},
 		},
 		// Limit total ReAct steps per turn to avoid infinite loops; default is node count + 2.
 		// 50 allows multiple tool calls (e.g. inspecting several pods) plus retries while still failing fast on loops.
@@ -124,7 +138,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 	return &Runner{agent: reactAgent}, nil
 }
 
-const defaultSystemPrompt = `You are an ops assistant. You run commands in the user's environment via execute_command and can read session history via view_context.
+const defaultSystemPrompt = `You are an ops assistant. You run commands in the user's environment via execute_command and can read session history via view_context. Installed skills (scripts under ~/.delve-shell/skills/) can be listed with list_skills and run with run_skill (same approval flow as execute_command).
 
 ## Execution strategy
 - Prefer one execute_command call per user goal. Combine multiple steps into a single shell command (e.g. "cmd1 && cmd2 && cmd3" or pipelines) so the user approves once for the whole operation.
@@ -141,6 +155,10 @@ const defaultSystemPrompt = `You are an ops assistant. You run commands in the u
 - When you need the user's decision, present explicit options and tell the user how to answer (for example: "Option 1: ..., Option 2: ...; reply with 1 or 2.").
 - Avoid vague yes/no questions like "Do you need me to ...?". Instead, restate what you will do for each option so the meaning of the user's choice is unambiguous.
 - Never ask in chat whether you should run a command or script; triggering execute_command is the only way to propose execution, and the approval card is the only place where the user approves or rejects it.
+
+## Skills
+- Skills live under ~/.delve-shell/skills/<name>/ with SKILL.md and scripts/ subdir. Use list_skills to discover all skills (name, description). Use get_skill(skill_name) to read one skill's full SKILL.md (usage, params, examples). Then call run_skill(skill_name, script_name, args=[...]) to run it (approval card like execute_command).
+- Before run_skill: call get_skill(skill_name) so you have the full contract (which script, which args). Prefer run_skill when the user's goal matches an installed skill; otherwise use execute_command.
 
 ## Context
 - Use view_context when you need to see recent session history (commands and results) to inform your next step.

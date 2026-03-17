@@ -85,3 +85,20 @@ type ConfigLLMCheckDoneMsg struct {
 	Err              error
 	CorrectedBaseURL string
 }
+
+// AddSkillRefsLoadedMsg is sent when branch/tag list for add-skill URL has been loaded (for Ref dropdown).
+type AddSkillRefsLoadedMsg struct {
+	Refs []string
+}
+
+// AddSkillPathsLoadedMsg is sent when directory paths in repo have been loaded (for Path dropdown).
+type AddSkillPathsLoadedMsg struct {
+	Paths []string
+}
+
+// RunCompletionCacheMsg provides a cached list of runnable command names for /run completion.
+// RemoteLabel identifies which remote the list belongs to (empty for local).
+type RunCompletionCacheMsg struct {
+	RemoteLabel string
+	Commands    []string
+}

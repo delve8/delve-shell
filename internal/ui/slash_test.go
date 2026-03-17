@@ -38,3 +38,41 @@ func TestGetSessionSlashOptions_excludesCurrentSession(t *testing.T) {
 		t.Errorf("option Cmd should start with session id b, got %q", opts[0].Cmd)
 	}
 }
+
+func TestGetSlashOptionsForInput_runCompletion_filtersAndNoFallback(t *testing.T) {
+	local := []string{"bash", "base64", "cat"}
+
+	// "/run" shows the usage row.
+	opts := getSlashOptionsForInput("/run", "en", "", local, nil, false)
+	if len(opts) != 1 || opts[0].Cmd != "/run <cmd>" {
+		t.Fatalf("expected usage option for /run, got %#v", opts)
+	}
+
+	// "/run b" filters local commands.
+	opts = getSlashOptionsForInput("/run b", "en", "", local, nil, false)
+	if len(opts) != 2 {
+		t.Fatalf("expected 2 options, got %d: %#v", len(opts), opts)
+	}
+	if opts[0].Cmd != "/run bash" || opts[1].Cmd != "/run base64" {
+		t.Fatalf("unexpected options: %#v", opts)
+	}
+
+	// No match: return empty (do not fall back to top-level slash commands).
+	opts = getSlashOptionsForInput("/run z", "en", "", local, nil, false)
+	if len(opts) != 0 {
+		t.Fatalf("expected no options for unmatched /run prefix, got %#v", opts)
+	}
+}
+
+func TestGetSlashOptionsForInput_runCompletion_usesRemoteCacheWhenActive(t *testing.T) {
+	local := []string{"bash", "base64"}
+	remote := []string{"busybox", "bzip2"}
+
+	opts := getSlashOptionsForInput("/run b", "en", "", local, remote, true)
+	if len(opts) != 2 {
+		t.Fatalf("expected 2 options from remote cache, got %d: %#v", len(opts), opts)
+	}
+	if opts[0].Cmd != "/run busybox" || opts[1].Cmd != "/run bzip2" {
+		t.Fatalf("unexpected options: %#v", opts)
+	}
+}

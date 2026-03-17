@@ -46,3 +46,19 @@ func RulesDir() string {
 func HistoryDir() string {
 	return filepath.Join(RootDir(), "sessions")
 }
+
+// SkillsDir returns the skills directory path (~/.delve-shell/skills). Each subdir is one skill (SKILL.md + optional scripts/).
+func SkillsDir() string {
+	return filepath.Join(RootDir(), "skills")
+}
+
+// SkillAuditPath returns the skill install/remove audit log path (~/.delve-shell/skill_audit.jsonl).
+func SkillAuditPath() string {
+	return filepath.Join(RootDir(), "skill_audit.jsonl")
+}
+
+// SkillsManifestPath returns the skills manifest path (~/.delve-shell/skills/manifest.json).
+// Tracks which skill dir was installed from which git URL/ref for upgrade and display.
+func SkillsManifestPath() string {
+	return filepath.Join(RootDir(), "skills", "manifest.json")
+}

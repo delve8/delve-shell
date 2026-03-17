@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"errors"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 	"delve-shell/internal/config"
 	"delve-shell/internal/history"
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/skills"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 )
@@ -43,6 +45,10 @@ type Model struct {
 	GetAllowlistAutoRun        func() bool  // for header and Pending card 2 vs 3 options
 	RemoteActive        bool   // whether commands run on a remote executor
 	RemoteLabel         string // label for remote in header, e.g. "dev (root@1.2.3.4)" or "user@host"
+	// /run completion caches (best-effort).
+	LocalRunCommands  []string
+	RemoteRunCommands []string
+	RemoteRunLabel    string // which remote the RemoteRunCommands came from
 	Width               int
 	Height              int
 	SlashSuggestIndex   int  // 0..len(visible)-1 when input starts with /
@@ -94,6 +100,21 @@ type Model struct {
 	ConfigLLMMaxCharsInput    textinput.Model
 	ConfigLLMFieldIndex       int   // 0=base_url, 1=api_key, 2=model, 3=max_messages, 4=max_chars
 	ConfigLLMError            string
+
+	// Add-skill overlay: URL (required), ref, path and local name (optional).
+	AddSkillActive          bool
+	AddSkillURLInput        textinput.Model
+	AddSkillRefInput        textinput.Model
+	AddSkillPathInput       textinput.Model
+	AddSkillNameInput       textinput.Model
+	AddSkillFieldIndex      int      // 0=url, 1=ref, 2=path, 3=name
+	AddSkillError           string
+	AddSkillRefsFullList    []string // all refs from remote (for filtering)
+	AddSkillRefCandidates  []string // refs filtered by Ref input prefix
+	AddSkillRefIndex       int      // selection in ref dropdown
+	AddSkillPathsFullList  []string // paths from git repo (when non-nil, Path dropdown uses this instead of static list)
+	AddSkillPathCandidates []string // path options filtered by Path input prefix
+	AddSkillPathIndex      int      // selection in path dropdown
 }
 
 // Init implements tea.Model.
@@ -123,7 +144,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Input.Width = m.Width - 4 // leave margin for prompt "> " and right edge
 		}
 		if m.Height > 4 {
-			vh := m.Height - 8 // 2 header + 1 blank + 1 sep + 1 input + 3 choice/hint max
+			vh := m.Height - 10 // header + sep + viewport; bottom 2 lines for input + slash/choice dropdown
 			if vh < 1 {
 				vh = 1
 			}
@@ -151,7 +172,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case RemoteStatusMsg:
 		m.RemoteActive = msg.Active
 		m.RemoteLabel = msg.Label
+		if msg.Active {
+			// New remote active: clear any previous remote /run completion cache.
+			m.RemoteRunLabel = msg.Label
+			m.RemoteRunCommands = nil
+		} else {
+			// Switching back to local: drop any remote /run completion cache.
+			m.RemoteRunLabel = ""
+			m.RemoteRunCommands = nil
+		}
 		m.Viewport.SetContent(m.buildContent())
+		return m, nil
+	case RunCompletionCacheMsg:
+		// Remote cache update (sent by CLI on successful /remote on).
+		// Ignore stale results from previous remotes.
+		if msg.RemoteLabel == "" || msg.RemoteLabel != m.RemoteLabel {
+			return m, nil
+		}
+		m.RemoteRunLabel = msg.RemoteLabel
+		m.RemoteRunCommands = msg.Commands
 		return m, nil
 	case ConfigLLMCheckDoneMsg:
 		m.ConfigLLMChecking = false
@@ -179,6 +218,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case m.ConfigUpdatedChan <- struct{}{}:
 			default:
 			}
+		}
+		return m, nil
+	case AddSkillRefsLoadedMsg:
+		if m.AddSkillActive {
+			m.AddSkillRefsFullList = msg.Refs
+			m.AddSkillRefCandidates = filterByPrefix(msg.Refs, m.AddSkillRefInput.Value())
+			m.AddSkillRefIndex = 0
+		}
+		return m, nil
+	case AddSkillPathsLoadedMsg:
+		if m.AddSkillActive {
+			m.AddSkillPathsFullList = msg.Paths
+			m = m.updateAddSkillPathCandidates()
 		}
 		return m, nil
 	case RemoteConnectDoneMsg:
@@ -256,6 +308,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.AddRemoteError = ""
 		m.AddRemoteOfferOverwrite = false
 		m.RemoteAuthConnecting = false
+		m.AddSkillActive = false
+		m.AddSkillError = ""
 		m.ConfigLLMActive = false
 		m.ConfigLLMChecking = false
 		m.ConfigLLMError = ""
@@ -282,6 +336,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.AddRemoteError = ""
 				m.AddRemoteOfferOverwrite = false
 				m.RemoteAuthConnecting = false
+				m.AddSkillActive = false
+				m.AddSkillError = ""
 				m.ConfigLLMActive = false
 				m.ConfigLLMChecking = false
 				m.ConfigLLMError = ""
@@ -295,6 +351,154 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Input.Focus()
 				return m, nil
 			default:
+				// Add-skill overlay: URL, ref, path.
+				if m.AddSkillActive {
+					switch key {
+					case "tab":
+						if m.AddSkillFieldIndex == 1 && len(m.AddSkillRefCandidates) > 0 && m.AddSkillRefIndex >= 0 && m.AddSkillRefIndex < len(m.AddSkillRefCandidates) {
+							m.AddSkillRefInput.SetValue(m.AddSkillRefCandidates[m.AddSkillRefIndex])
+							m.AddSkillRefInput.CursorEnd()
+							m.AddSkillRefCandidates = nil
+							m.AddSkillRefIndex = 0
+							return m, nil
+						}
+						if m.AddSkillFieldIndex == 2 && len(m.AddSkillPathCandidates) > 0 && m.AddSkillPathIndex >= 0 && m.AddSkillPathIndex < len(m.AddSkillPathCandidates) {
+							m.AddSkillPathInput.SetValue(m.AddSkillPathCandidates[m.AddSkillPathIndex])
+							m.AddSkillPathInput.CursorEnd()
+							m.AddSkillPathCandidates = nil
+							m.AddSkillPathIndex = 0
+							return m, nil
+						}
+					case "up", "down":
+						dir := 1
+						if key == "up" {
+							dir = -1
+						}
+						if m.AddSkillFieldIndex == 1 && len(m.AddSkillRefCandidates) > 0 {
+							m.AddSkillRefIndex = (m.AddSkillRefIndex + dir + len(m.AddSkillRefCandidates)) % len(m.AddSkillRefCandidates)
+							return m, nil
+						}
+						if m.AddSkillFieldIndex == 2 && len(m.AddSkillPathCandidates) > 0 {
+							m.AddSkillPathIndex = (m.AddSkillPathIndex + dir + len(m.AddSkillPathCandidates)) % len(m.AddSkillPathCandidates)
+							return m, nil
+						}
+						m.AddSkillFieldIndex = (m.AddSkillFieldIndex + dir + addSkillFieldCount) % addSkillFieldCount
+						m.AddSkillURLInput.Blur()
+						m.AddSkillRefInput.Blur()
+						m.AddSkillPathInput.Blur()
+						m.AddSkillNameInput.Blur()
+						switch m.AddSkillFieldIndex {
+						case 0:
+							m.AddSkillURLInput.Focus()
+						case 1:
+							m.AddSkillRefInput.Focus()
+							m.AddSkillRefCandidates = nil
+							m.AddSkillRefIndex = 0
+							urlForRefs := strings.TrimSpace(m.AddSkillURLInput.Value())
+							if urlForRefs != "" {
+								return m, RunListRefsCmd(urlForRefs)
+							}
+						case 2:
+							m.AddSkillPathInput.Focus()
+							m = m.updateAddSkillPathCandidates()
+							urlForPaths := strings.TrimSpace(m.AddSkillURLInput.Value())
+							if urlForPaths != "" {
+								refForPaths := strings.TrimSpace(m.AddSkillRefInput.Value())
+								return m, RunListPathsCmd(urlForPaths, refForPaths)
+							}
+						case 3:
+							m.AddSkillNameInput.Focus()
+						}
+						return m, nil
+					case "enter":
+						// In Ref field with ref candidates: pick selected and fill
+						if m.AddSkillFieldIndex == 1 && len(m.AddSkillRefCandidates) > 0 {
+							if m.AddSkillRefIndex >= 0 && m.AddSkillRefIndex < len(m.AddSkillRefCandidates) {
+								m.AddSkillRefInput.SetValue(m.AddSkillRefCandidates[m.AddSkillRefIndex])
+								m.AddSkillRefInput.CursorEnd()
+								m.AddSkillRefCandidates = nil
+								m.AddSkillRefIndex = 0
+							}
+							return m, nil
+						}
+						// In Path field with path candidates: pick selected and fill
+						if m.AddSkillFieldIndex == 2 && len(m.AddSkillPathCandidates) > 0 {
+							if m.AddSkillPathIndex >= 0 && m.AddSkillPathIndex < len(m.AddSkillPathCandidates) {
+								chosenPath := m.AddSkillPathCandidates[m.AddSkillPathIndex]
+								m.AddSkillPathInput.SetValue(chosenPath)
+								m.AddSkillPathInput.CursorEnd()
+								m.AddSkillPathCandidates = nil
+								m.AddSkillPathIndex = 0
+								// Auto-fill local name from chosen path last segment when name is empty.
+								if strings.TrimSpace(m.AddSkillNameInput.Value()) == "" {
+									p := strings.TrimSpace(chosenPath)
+									if idx := strings.LastIndex(p, "/"); idx >= 0 && idx < len(p)-1 {
+										p = p[idx+1:]
+									}
+									m.AddSkillNameInput.SetValue(p)
+									m.AddSkillNameInput.CursorEnd()
+								}
+							}
+							return m, nil
+						}
+						// Submit form
+						url := strings.TrimSpace(m.AddSkillURLInput.Value())
+						ref := strings.TrimSpace(m.AddSkillRefInput.Value())
+						path := strings.TrimSpace(m.AddSkillPathInput.Value())
+						nameInput := strings.TrimSpace(m.AddSkillNameInput.Value())
+						if path == "." {
+							path = ""
+						}
+						if url == "" {
+							m.AddSkillError = i18n.T(m.getLang(), i18n.KeyAddSkillURLRequired)
+							return m, nil
+						}
+						m.AddSkillError = ""
+						name, err := skills.InstallFromGit(url, ref, nameInput, path)
+						if err != nil {
+							if errors.Is(err, os.ErrExist) {
+								m.AddSkillError = i18n.T(m.getLang(), i18n.KeySkillAlreadyExists)
+							} else {
+								m.AddSkillError = i18n.Tf(m.getLang(), i18n.KeySkillInstallFailed, err)
+							}
+							return m, nil
+						}
+						m.OverlayActive = false
+						m.AddSkillActive = false
+						m.OverlayTitle = ""
+						m.OverlayContent = ""
+						m.Input.Focus()
+						m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillInstalled, name))))
+						m.Viewport.SetContent(m.buildContent())
+						m.Viewport.GotoBottom()
+						return m, nil
+					}
+					var cmd tea.Cmd
+					switch m.AddSkillFieldIndex {
+					case 0:
+						m.AddSkillURLInput, cmd = m.AddSkillURLInput.Update(msg)
+					case 1:
+						m.AddSkillRefInput, cmd = m.AddSkillRefInput.Update(msg)
+						m.AddSkillRefCandidates = filterByPrefix(m.AddSkillRefsFullList, m.AddSkillRefInput.Value())
+						m.AddSkillRefIndex = 0
+					case 2:
+						m.AddSkillPathInput, cmd = m.AddSkillPathInput.Update(msg)
+						m = m.updateAddSkillPathCandidates()
+						// Auto-fill local name from path last segment when name is empty.
+						if strings.TrimSpace(m.AddSkillNameInput.Value()) == "" {
+							if p := strings.TrimSpace(m.AddSkillPathInput.Value()); p != "" {
+								if idx := strings.LastIndex(p, "/"); idx >= 0 && idx < len(p)-1 {
+									p = p[idx+1:]
+								}
+								m.AddSkillNameInput.SetValue(p)
+								m.AddSkillNameInput.CursorEnd()
+							}
+						}
+					case 3:
+						m.AddSkillNameInput, cmd = m.AddSkillNameInput.Update(msg)
+					}
+					return m, cmd
+				}
 				// Add-remote overlay: form with 5 fields (host, username, name, key path, save-as-remote checkbox).
 				if m.AddRemoteActive {
 					switch key {
@@ -959,7 +1163,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// scroll keys: Up/Down change selection in slash mode, else go to viewport with PgUp/PgDown
 		if key == "up" || key == "down" || key == "pgup" || key == "pgdown" {
 			if inSlash && (key == "up" || key == "down") {
-				opts := getSlashOptionsForInput(inputVal, m.getLang(), m.CurrentSessionPath)
+				opts := getSlashOptionsForInput(inputVal, m.getLang(), m.CurrentSessionPath, m.LocalRunCommands, m.RemoteRunCommands, m.RemoteActive)
 				vis := visibleSlashOptions(inputVal, opts)
 				if len(vis) > 0 {
 					if m.SlashSuggestIndex >= len(vis) {
@@ -988,11 +1192,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			// Save selected slash option before any state change; Enter handler resets SlashSuggestIndex below, so we must capture now.
+			// Use inputVal (not text) for slash options so we match what the view shows and get correct opts/vis when user has trailing space.
 			var slashSelectedPath string
 			var slashSelectedIndex int = -1
-			if strings.HasPrefix(text, "/") {
-				opts := getSlashOptionsForInput(text, m.getLang(), m.CurrentSessionPath)
-				vis := visibleSlashOptions(text, opts)
+			if strings.HasPrefix(inputVal, "/") {
+				opts := getSlashOptionsForInput(inputVal, m.getLang(), m.CurrentSessionPath, m.LocalRunCommands, m.RemoteRunCommands, m.RemoteActive)
+				vis := visibleSlashOptions(inputVal, opts)
 				if len(vis) > 0 && m.SlashSuggestIndex < len(vis) {
 					chosen := opts[vis[m.SlashSuggestIndex]].Cmd
 					// Execute-on-select: chosen is a specific item (del-remote <name> or remote on <target>); submit it directly.
@@ -1006,10 +1211,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							}
 						}
 					}
+					// del-skill: fill selected skill name only when input is incomplete (chosen != text); else fall through to submit.
+					if strings.HasPrefix(chosen, "/config del-skill ") && strings.TrimSpace(chosen[len("/config del-skill "):]) != "" && chosen != text {
+						m.Input.SetValue(chosen)
+						m.Input.CursorEnd()
+						m.SlashSuggestIndex = 0
+						return m, nil
+					}
 					// chosen != text => fill selection only, do not execute or add to View
 					if (chosen == text || strings.HasPrefix(chosen, text)) && chosen != text {
 						m.Input.SetValue(slashChosenToInputValue(chosen))
 						m.Input.CursorEnd()
+						m.SlashSuggestIndex = 0 // reset so next Enter (new opts set, e.g. skill list) uses index 0
 						return m, nil
 					}
 					slashSelectedIndex = m.SlashSuggestIndex
@@ -1187,6 +1400,81 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Input.SetValue("")
 				m.Input.CursorEnd()
 				return m, nil
+			case strings.HasPrefix(text, "/config add-skill"):
+				rest := strings.TrimSpace(text[len("/config add-skill"):])
+				url, ref, path := "", "", ""
+				if rest != "" {
+					fields := strings.Fields(rest)
+					if len(fields) >= 1 {
+						url = fields[0]
+					}
+					if len(fields) >= 2 {
+						if strings.Contains(fields[1], "/") {
+							path = fields[1]
+						} else {
+							ref = fields[1]
+						}
+					}
+					if len(fields) >= 3 {
+						ref = fields[1]
+						path = fields[2]
+					}
+				}
+				m = m.openAddSkillOverlay(url, ref, path)
+				m.Input.SetValue("")
+				m.Input.CursorEnd()
+				return m, nil
+			case strings.HasPrefix(text, "/config del-skill "):
+				rest := strings.TrimSpace(text[len("/config del-skill "):])
+				fields := strings.Fields(rest)
+				if len(fields) == 0 {
+					m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyUsageSkillRemove))))
+					m.Viewport.SetContent(m.buildContent())
+					m.Viewport.GotoBottom()
+					return m, nil
+				}
+				skillNameToRemove := fields[0]
+				if err := skills.Remove(skillNameToRemove); err != nil {
+					m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoveFailed, err))))
+				} else {
+					m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoved, skillNameToRemove))))
+				}
+				m.Input.SetValue("")
+				m.Input.CursorEnd()
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
+				return m, nil
+			case strings.HasPrefix(text, "/skill "):
+				rest := strings.TrimSpace(text[len("/skill "):])
+				fields := strings.Fields(rest)
+				if len(fields) < 1 {
+					m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyUsageSkill))))
+					return m, nil
+				}
+				skillName := fields[0]
+				naturalLanguage := strings.TrimSpace(strings.TrimPrefix(rest, skillName))
+				if naturalLanguage == "" {
+					m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyUsageSkill))))
+					return m, nil
+				}
+				skillDir := skills.SkillDir(skillName)
+				if _, err := os.Stat(filepath.Join(skillDir, "SKILL.md")); err != nil {
+					m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeySkillNotFound))))
+					return m, nil
+				}
+				skillContent, err := skills.ReadSKILLContent(skillDir)
+				if err != nil {
+					m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillInstallFailed, err))))
+					return m, nil
+				}
+				payload := skillInvocationPrompt(skillName, skillContent, naturalLanguage)
+				if m.SubmitChan != nil {
+					m.SubmitChan <- payload
+					m.WaitingForAI = true
+				}
+				m.Input.SetValue("")
+				m.Input.CursorEnd()
+				return m, nil
 			case strings.HasPrefix(text, "/run "):
 				cmd := strings.TrimSpace(text[len("/run "):])
 				if m.ExecDirectChan != nil && cmd != "" {
@@ -1211,15 +1499,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.Viewport.GotoBottom()
 					return m, nil
 				}
-				opts := getSlashOptionsForInput(text, m.getLang(), m.CurrentSessionPath)
+				opts := getSlashOptionsForInput(text, m.getLang(), m.CurrentSessionPath, m.LocalRunCommands, m.RemoteRunCommands, m.RemoteActive)
 				vis := visibleSlashOptions(text, opts)
 				var selectedOpt slashOption
 				if slashSelectedIndex >= 0 && slashSelectedIndex < len(vis) {
 					selectedOpt = opts[vis[slashSelectedIndex]]
 				}
-				// "No previous sessions" single option: show message and clear input.
-				if selectedOpt.Path == "" && len(vis) == 1 && selectedOpt.Desc == "" {
-					m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeySessionNone))))
+				// Sessions list empty: show message only when the single option is the session-none placeholder (not for del-skill etc).
+				sessionNoneMsg := i18n.T(m.getLang(), i18n.KeySessionNone)
+				if selectedOpt.Path == "" && len(vis) == 1 && selectedOpt.Cmd == sessionNoneMsg {
+					m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(sessionNoneMsg)))
 					m.Viewport.SetContent(m.buildContent())
 					m.Viewport.GotoBottom()
 					m.Input.SetValue("")
@@ -1248,6 +1537,36 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						if chosen == "/run <cmd>" {
 							m.Input.SetValue("/run ")
 							m.Input.CursorEnd()
+							return m, nil
+						}
+						if strings.HasPrefix(chosen, "/config del-skill ") {
+							name := strings.TrimSpace(chosen[len("/config del-skill "):])
+							if name != "" {
+								if err := skills.Remove(name); err != nil {
+									m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoveFailed, err))))
+								} else {
+									m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoved, name))))
+								}
+								m.Viewport.SetContent(m.buildContent())
+								m.Viewport.GotoBottom()
+							}
+							m.Input.SetValue("")
+							m.Input.CursorEnd()
+							m.SlashSuggestIndex = 0
+							return m, nil
+						}
+						if chosen == "/config add-skill" {
+							m = m.openAddSkillOverlay("", "", "")
+							m.Input.SetValue("")
+							m.Input.CursorEnd()
+							m.SlashSuggestIndex = 0
+							return m, nil
+						}
+						if strings.HasPrefix(chosen, "/skill ") {
+							// Fill so user can type natural language after the skill name.
+							m.Input.SetValue(chosen+" ")
+							m.Input.CursorEnd()
+							m.SlashSuggestIndex = 0
 							return m, nil
 						}
 						if chosen == "/cancel" {
@@ -1389,6 +1708,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						}
 					}
 				m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyUnknownCmd))))
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
 				return m, nil
 			}
 			if m.SubmitChan != nil {
@@ -1402,7 +1723,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.Input, cmd = m.Input.Update(msg)
 	if strings.HasPrefix(m.Input.Value(), "/") {
 		inputVal := m.Input.Value()
-		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.CurrentSessionPath)
+		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.CurrentSessionPath, m.LocalRunCommands, m.RemoteRunCommands, m.RemoteActive)
 		vis := visibleSlashOptions(inputVal, opts)
 		// Session list (Path set): do not reset index on every keystroke so user can pick another session with Enter
 		if len(opts) == 0 || opts[0].Path == "" {

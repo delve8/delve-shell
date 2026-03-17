@@ -316,9 +316,7 @@ func (m Model) View() string {
 		}
 		return out
 	}
-	// Base viewport height: leave extra margin for the bottom separator,
-	// input line, slash suggestions, and status hints so the fixed header
-	// does not scroll out of view even in shorter terminals.
+	// Base viewport height: leave room for header, separator, input line, and slash/choice dropdown (the two lines at bottom are for input + suggestions).
 	vh := m.Height - 10
 	if vh < 1 {
 		vh = 1
@@ -344,7 +342,7 @@ func (m Model) View() string {
 			}
 		}
 	} else if strings.HasPrefix(inputVal, "/") {
-		opts := getSlashOptionsForInput(inputVal, lang, m.CurrentSessionPath)
+		opts := getSlashOptionsForInput(inputVal, lang, m.CurrentSessionPath, m.LocalRunCommands, m.RemoteRunCommands, m.RemoteActive)
 		vis := visibleSlashOptions(inputVal, opts)
 		if len(vis) > 0 {
 			out += "\n"
@@ -385,33 +383,42 @@ func (m Model) View() string {
 			if m.Width > 4 {
 				maxLineLen = m.Width - 4 // leave margin for prefix and avoid wrap
 			}
-			for i := start; i < end; i++ {
+			// remainingLines is the total number of lines we can use for the dropdown (including wrapped descriptions).
+			remainingLines := maxSlashVisible
+			for i := start; i < end && remainingLines > 0; i++ {
 				vi := vis[i]
 				opt := opts[vi]
-				var line string
-				var truncated bool
+
+				cmdText := opt.Cmd
 				if opt.Path != "" {
-					line = "/sessions " + opt.Cmd
-				} else {
-					line = fmt.Sprintf("%-*s  %s", cmdWidth, opt.Cmd, opt.Desc)
+					cmdText = "/sessions " + opt.Cmd
 				}
-				if maxLineLen > 3 {
-					r := []rune(line)
-					if len(r) > maxLineLen-3 {
-						line = string(r[:maxLineLen-3]) + "..."
-						truncated = true
-					}
-				}
-				if i == hiIdx {
-					out += suggestHi.Render("   "+line) + "\n"
-					// When selected and description was truncated, show full description below (multi-line if needed)
-					if opt.Path == "" && opt.Desc != "" && truncated {
+
+				// When there is a description and width budget, show Cmd + first chunk of Desc on the first line,
+				// then wrap the remaining Desc onto following lines within remainingLines.
+				if opt.Path == "" && opt.Desc != "" && maxLineLen > 0 {
+					descRunes := []rune(opt.Desc)
+					// Visible width for the first line: "   " + cmdWidth + "  " + descFirst
+					prefixRunes := 3 + cmdWidth + 2
+					descFirstW := maxLineLen - prefixRunes
+					if descFirstW < 8 {
+						// Not enough room for inline desc; fall back to command-only line and use wrapped lines below.
+						line := fmt.Sprintf("%-*s", cmdWidth, cmdText)
+						if i == hiIdx {
+							out += suggestHi.Render("   "+line) + "\n"
+						} else {
+							out += suggestStyle.Render("   "+line) + "\n"
+						}
+						remainingLines--
+						if remainingLines <= 0 {
+							break
+						}
+						// Now wrap full desc on following lines.
 						indent := "   " + strings.Repeat(" ", cmdWidth) + "  "
-						descRunes := []rune(opt.Desc)
-						indentLen := 3 + cmdWidth + 2
+						indentLen := len([]rune(indent))
 						descW := maxLineLen - indentLen
-						if descW < 20 {
-							descW = 40
+						if descW < 10 {
+							descW = 10
 						}
 						if descW > len(descRunes) {
 							descW = len(descRunes)
@@ -419,16 +426,65 @@ func (m Model) View() string {
 						if descW < 1 {
 							descW = 1
 						}
-						for j := 0; j < len(descRunes); j += descW {
+						for j := 0; j < len(descRunes) && remainingLines > 0; j += descW {
 							endJ := j + descW
 							if endJ > len(descRunes) {
 								endJ = len(descRunes)
 							}
 							out += suggestStyle.Render(indent+string(descRunes[j:endJ])) + "\n"
+							remainingLines--
+						}
+						continue
+					}
+
+					if descFirstW > len(descRunes) {
+						descFirstW = len(descRunes)
+					}
+					firstChunk := string(descRunes[:descFirstW])
+					line := fmt.Sprintf("%-*s  %s", cmdWidth, cmdText, firstChunk)
+					if i == hiIdx {
+						out += suggestHi.Render("   "+line) + "\n"
+					} else {
+						out += suggestStyle.Render("   "+line) + "\n"
+					}
+					remainingLines--
+					if remainingLines <= 0 {
+						break
+					}
+
+					// Wrap remaining desc onto following lines.
+					rest := descRunes[descFirstW:]
+					if len(rest) > 0 {
+						indent := "   " + strings.Repeat(" ", cmdWidth) + "  "
+						indentLen := len([]rune(indent))
+						descW := maxLineLen - indentLen
+						if descW < 10 {
+							descW = 10
+						}
+						if descW > len(rest) {
+							descW = len(rest)
+						}
+						if descW < 1 {
+							descW = 1
+						}
+						for j := 0; j < len(rest) && remainingLines > 0; j += descW {
+							endJ := j + descW
+							if endJ > len(rest) {
+								endJ = len(rest)
+							}
+							out += suggestStyle.Render(indent+string(rest[j:endJ])) + "\n"
+							remainingLines--
 						}
 					}
 				} else {
-					out += suggestStyle.Render("   "+line) + "\n"
+					// No description or no width budget: show command only.
+					line := fmt.Sprintf("%-*s", cmdWidth, cmdText)
+					if i == hiIdx {
+						out += suggestHi.Render("   "+line) + "\n"
+					} else {
+						out += suggestStyle.Render("   "+line) + "\n"
+					}
+					remainingLines--
 				}
 			}
 		}
@@ -492,6 +548,50 @@ func (m Model) renderOverlay(base string) string {
 		b.WriteString(m.ConfigLLMMaxCharsInput.View())
 		b.WriteString("\n\n")
 		b.WriteString(i18n.T(lang, i18n.KeyConfigLLMHint))
+		content = b.String()
+	} else if m.AddSkillActive {
+		lang := m.getLang()
+		var b strings.Builder
+		if m.AddSkillError != "" {
+			b.WriteString(errStyle.Render(m.AddSkillError) + "\n\n")
+		}
+		b.WriteString(i18n.T(lang, i18n.KeyAddSkillURLLabel) + "\n")
+		b.WriteString(m.AddSkillURLInput.View())
+		b.WriteString("\n\n")
+		b.WriteString(i18n.T(lang, i18n.KeyAddSkillRefLabel) + "\n")
+		b.WriteString(m.AddSkillRefInput.View())
+		if m.AddSkillFieldIndex == 1 && len(m.AddSkillRefCandidates) > 0 {
+			b.WriteString("\n")
+			b.WriteString("  (Up/Down select, Enter or Tab to pick)\n")
+			for i, c := range m.AddSkillRefCandidates {
+				line := "  " + c
+				if i == m.AddSkillRefIndex {
+					b.WriteString(suggestHi.Render(line) + "\n")
+				} else {
+					b.WriteString(suggestStyle.Render(line) + "\n")
+				}
+			}
+		}
+		b.WriteString("\n\n")
+		b.WriteString(i18n.T(lang, i18n.KeyAddSkillPathLabel) + "\n")
+		b.WriteString(m.AddSkillPathInput.View())
+		if m.AddSkillFieldIndex == 2 && len(m.AddSkillPathCandidates) > 0 {
+			b.WriteString("\n")
+			b.WriteString("  (Up/Down select, Enter or Tab to pick)\n")
+			for i, c := range m.AddSkillPathCandidates {
+				line := "  " + c
+				if i == m.AddSkillPathIndex {
+					b.WriteString(suggestHi.Render(line) + "\n")
+				} else {
+					b.WriteString(suggestStyle.Render(line) + "\n")
+				}
+			}
+		}
+		b.WriteString("\n\n")
+		b.WriteString(i18n.T(lang, i18n.KeyAddSkillNameLabel) + "\n")
+		b.WriteString(m.AddSkillNameInput.View())
+		b.WriteString("\n\n")
+		b.WriteString(i18n.T(lang, i18n.KeyAddSkillHint))
 		content = b.String()
 	} else if m.AddRemoteActive {
 		var b strings.Builder

@@ -712,9 +712,9 @@ func defaultAllowlist() []AllowlistEntry {
 	}
 }
 
-// EnsureRootDir creates root and subdirs if missing.
+// EnsureRootDir creates root and subdirs if missing (including skills dir for user-installed skills).
 func EnsureRootDir() error {
-	for _, dir := range []string{RootDir(), RulesDir(), HistoryDir()} {
+	for _, dir := range []string{RootDir(), RulesDir(), HistoryDir(), SkillsDir()} {
 		if err := os.MkdirAll(dir, 0700); err != nil {
 			return err
 		}

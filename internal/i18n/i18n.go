@@ -4,53 +4,53 @@ import "fmt"
 
 // Msg keys for user-facing strings. Code error messages stay in English in callers.
 const (
-	KeyHelpText            = "help_text"
-	KeyNoRequestInProgress = "no_request_in_progress"
-	KeyUsageRun            = "usage_run"
-	KeyUnknownCmd          = "unknown_cmd"
-	KeyConfigReloaded      = "config_reloaded"
-	KeyCancelled           = "cancelled"
-	KeyErrorPrefix         = "error_prefix"
-	KeyConfigPrefix        = "config_prefix"
-	KeyConfigUnknownField  = "config_unknown_field"
-	KeyConfigSaved         = "config_saved"
-	KeyWaitOrCancel        = "wait_or_cancel"
-	KeyPlaceholderInput    = "placeholder_input"
-	KeyInputHintApprove    = "input_hint_approve"     // placeholder when waiting for 1/2 (approval)
+	KeyHelpText              = "help_text"
+	KeyNoRequestInProgress   = "no_request_in_progress"
+	KeyUsageRun              = "usage_run"
+	KeyUnknownCmd            = "unknown_cmd"
+	KeyConfigReloaded        = "config_reloaded"
+	KeyCancelled             = "cancelled"
+	KeyErrorPrefix           = "error_prefix"
+	KeyConfigPrefix          = "config_prefix"
+	KeyConfigUnknownField    = "config_unknown_field"
+	KeyConfigSaved           = "config_saved"
+	KeyWaitOrCancel          = "wait_or_cancel"
+	KeyPlaceholderInput      = "placeholder_input"
+	KeyInputHintApprove      = "input_hint_approve"       // placeholder when waiting for 1/2 (approval)
 	KeyInputHintApproveThree = "input_hint_approve_three" // placeholder when waiting for 1/2/3 (Run/Copy/Dismiss)
-	KeyInputHintSensitive  = "input_hint_sensitive"  // placeholder when waiting for 1/2/3 (sensitive)
+	KeyInputHintSensitive    = "input_hint_sensitive"     // placeholder when waiting for 1/2/3 (sensitive)
 	// Choice menu labels (for Up/Down + Enter selection list)
-	KeyChoiceApprove   = "choice_approve"
-	KeyChoiceReject    = "choice_reject"
-	KeyChoiceRefuse    = "choice_refuse"
-	KeyChoiceRunStore  = "choice_run_store"
-	KeyChoiceRunNoStore = "choice_run_no_store"
-	KeyChoiceCopy      = "choice_copy"
-	KeyChoiceDismiss   = "choice_dismiss"
-	KeyTitleHeader         = "title_header"
-	KeyApprovalPrompt      = "approval_prompt"
-	KeyApprovalWhy         = "approval_why"
-	KeyApproveYN           = "approve_yn"       // 2 options
-	KeyApproveYNThree      = "approve_yn_three" // 3 options: Run, Copy, Dismiss
+	KeyChoiceApprove            = "choice_approve"
+	KeyChoiceReject             = "choice_reject"
+	KeyChoiceRefuse             = "choice_refuse"
+	KeyChoiceRunStore           = "choice_run_store"
+	KeyChoiceRunNoStore         = "choice_run_no_store"
+	KeyChoiceCopy               = "choice_copy"
+	KeyChoiceDismiss            = "choice_dismiss"
+	KeyTitleHeader              = "title_header"
+	KeyApprovalPrompt           = "approval_prompt"
+	KeyApprovalWhy              = "approval_why"
+	KeyApproveYN                = "approve_yn"       // 2 options
+	KeyApproveYNThree           = "approve_yn_three" // 3 options: Run, Copy, Dismiss
 	KeyApprovalDecisionApproved = "approval_decision_approved"
 	KeyApprovalDecisionRejected = "approval_decision_rejected"
-	KeyRiskReadOnly        = "risk_read_only"
-	KeyRiskLow             = "risk_low"
-	KeyRiskHigh            = "risk_high"
-	KeyRunTagApproved      = "run_tag_approved"
-	KeyRunTagDirect        = "run_tag_direct"
-	KeyRunTagAllowlist     = "run_tag_allowlist"
-	KeyResultSensitive     = "result_sensitive"
-	KeySensitivePrompt     = "sensitive_prompt"
-	KeySensitiveChoice1    = "sensitive_choice_1"
-	KeySensitiveChoice2    = "sensitive_choice_2"
-	KeySensitiveChoice3    = "sensitive_choice_3"
-	KeySensitivePressKey   = "sensitive_press_key"
-	KeyErrLLMNotConfigured = "err_llm_not_configured"
-	KeyUserLabel           = "user_label"
-	KeyAILabel             = "ai_label"
-	KeyDelveLabel          = "delve_label" // tool/system message prefix, e.g. "Delve:"
-	KeyRunLabel            = "run_label"
+	KeyRiskReadOnly             = "risk_read_only"
+	KeyRiskLow                  = "risk_low"
+	KeyRiskHigh                 = "risk_high"
+	KeyRunTagApproved           = "run_tag_approved"
+	KeyRunTagDirect             = "run_tag_direct"
+	KeyRunTagAllowlist          = "run_tag_allowlist"
+	KeyResultSensitive          = "result_sensitive"
+	KeySensitivePrompt          = "sensitive_prompt"
+	KeySensitiveChoice1         = "sensitive_choice_1"
+	KeySensitiveChoice2         = "sensitive_choice_2"
+	KeySensitiveChoice3         = "sensitive_choice_3"
+	KeySensitivePressKey        = "sensitive_press_key"
+	KeyErrLLMNotConfigured      = "err_llm_not_configured"
+	KeyUserLabel                = "user_label"
+	KeyAILabel                  = "ai_label"
+	KeyDelveLabel               = "delve_label" // tool/system message prefix, e.g. "Delve:"
+	KeyRunLabel                 = "run_label"
 	// Slash option descriptions (cmd as suffix for consistency)
 	KeyDescExit   = "desc_exit"
 	KeyDescRun    = "desc_run"
@@ -60,84 +60,107 @@ const (
 	KeyDescReload = "desc_reload"
 	KeyDescHelp   = "desc_help"
 	// /config 子项说明（仅在选择 /config 后显示）
-	KeyDescConfigShow       = "desc_config_show"
-	KeyDescConfigLLMBaseURL = "desc_config_llm_base_url"
-	KeyDescConfigLLMApiKey  = "desc_config_llm_api_key"
-	KeyDescConfigLLMModel   = "desc_config_llm_model"
-		KeyDescConfigAllowlistUpdate = "desc_config_allowlist_update"
-		KeyDescConfigAddRemote       = "desc_config_add_remote"
-		KeyDescConfigRemoveRemote    = "desc_config_remove_remote"
-		KeyAllowlistUpdateDone    = "allowlist_update_done" // format: added count
-	KeyDescAutoRunListOnly = "desc_auto_run_list_only"
-	KeyDescAutoRunDisable  = "desc_auto_run_disable"
-	KeyModeRequired           = "mode_required"
-	KeyRunTagSuggested        = "run_tag_suggested"
-	KeySuggestedCopyHint      = "suggested_copy_hint"
-	KeySuggestedCardTitle     = "suggested_card_title"
-	KeySuggestedCardHint      = "suggested_card_hint"
-	KeySuggestedCopied        = "suggested_copied"
-	KeyAutoRunLabel           = "auto_run_label"   // "Auto-Run: " (EN) / "自动执行：" (ZH)
-	KeyAutoRunListOnly        = "auto_run_list_only" // "List Only" / "名单内的"
-	KeyAutoRunNone            = "auto_run_none"     // "Disabled" (EN) / "已关闭" (ZH)
-	KeyModeSetTo              = "mode_set_to"       // deprecated; was mode
-	KeyAllowlistAutoRunSetTo  = "allowlist_auto_run_set_to" // "Auto-run set to %s (this session only)."
+	KeyDescConfigShow              = "desc_config_show"
+	KeyDescConfigLLMBaseURL        = "desc_config_llm_base_url"
+	KeyDescConfigLLMApiKey         = "desc_config_llm_api_key"
+	KeyDescConfigLLMModel          = "desc_config_llm_model"
+	KeyDescConfigAllowlistUpdate   = "desc_config_allowlist_update"
+	KeyDescConfigAddRemote         = "desc_config_add_remote"
+	KeyDescConfigRemoveRemote      = "desc_config_remove_remote"
+	KeyAllowlistUpdateDone         = "allowlist_update_done" // format: added count
+	KeyDescAutoRunListOnly         = "desc_auto_run_list_only"
+	KeyDescAutoRunDisable          = "desc_auto_run_disable"
+	KeyModeRequired                = "mode_required"
+	KeyRunTagSuggested             = "run_tag_suggested"
+	KeySuggestedCopyHint           = "suggested_copy_hint"
+	KeySuggestedCardTitle          = "suggested_card_title"
+	KeySuggestedCardHint           = "suggested_card_hint"
+	KeySuggestedCopied             = "suggested_copied"
+	KeyAutoRunLabel                = "auto_run_label"                  // "Auto-Run: " (EN) / "自动执行：" (ZH)
+	KeyAutoRunListOnly             = "auto_run_list_only"              // "List Only" / "名单内的"
+	KeyAutoRunNone                 = "auto_run_none"                   // "Disabled" (EN) / "已关闭" (ZH)
+	KeyModeSetTo                   = "mode_set_to"                     // deprecated; was mode
+	KeyAllowlistAutoRunSetTo       = "allowlist_auto_run_set_to"       // "Auto-run set to %s (this session only)."
 	KeyConfigSavedAllowlistAutoRun = "config_saved_allowlist_auto_run" // "Config saved (allowlist_auto_run: %s)."
-		KeyConfigAutoRunRequired = "config_auto_run_required"
-		KeyConfigRemoteAdded     = "config_remote_added"     // format: name, target
-		KeyConfigRemoteRemoved   = "config_remote_removed"  // format: name
+	KeyConfigAutoRunRequired       = "config_auto_run_required"
+	KeyConfigRemoteAdded           = "config_remote_added"   // format: name, target
+	KeyConfigRemoteRemoved         = "config_remote_removed" // format: name
 
 	// Status bar (title): IDLE / RUNNING / pending approval / suggest card
-	KeyStatusIdle             = "status_idle"
-	KeyStatusRunning          = "status_running"
-	KeyStatusPendingApproval  = "status_pending_approval"
-	KeyStatusSuggest          = "status_suggest"
-	KeyNeedConfirmationHint   = "need_confirmation_hint"
+	KeyStatusIdle            = "status_idle"
+	KeyStatusRunning         = "status_running"
+	KeyStatusPendingApproval = "status_pending_approval"
+	KeyStatusSuggest         = "status_suggest"
+	KeyNeedConfirmationHint  = "need_confirmation_hint"
 
 	// First-time wizard (before lang is chosen use "en" for intro; after language step use chosen lang)
-	KeyWizardTitle        = "wizard_title"
-	KeyWizardConfigPath   = "wizard_config_path"   // format: %s
-	KeyWizardIntroDesc1   = "wizard_intro_desc_1"
-	KeyWizardIntroDesc2   = "wizard_intro_desc_2"
-	KeyWizardIntroEnv     = "wizard_intro_env"
-	KeyWizardLangPrompt   = "wizard_lang_prompt"
-	KeyWizardLangInvalid  = "wizard_lang_invalid"
-		KeyWizardBaseURLPrompt   = "wizard_base_url_prompt"
+	KeyWizardTitle          = "wizard_title"
+	KeyWizardConfigPath     = "wizard_config_path" // format: %s
+	KeyWizardIntroDesc1     = "wizard_intro_desc_1"
+	KeyWizardIntroDesc2     = "wizard_intro_desc_2"
+	KeyWizardIntroEnv       = "wizard_intro_env"
+	KeyWizardLangPrompt     = "wizard_lang_prompt"
+	KeyWizardLangInvalid    = "wizard_lang_invalid"
+	KeyWizardBaseURLPrompt  = "wizard_base_url_prompt"
 	KeyWizardAPIKeyPrompt   = "wizard_api_key_prompt"
 	KeyWizardAPIKeyRequired = "wizard_api_key_required"
-	KeyWizardModelPrompt  = "wizard_model_prompt"
-	KeyWizardDone         = "wizard_done"
+	KeyWizardModelPrompt    = "wizard_model_prompt"
+	KeyWizardDone           = "wizard_done"
 
 	// Session picker (startup)
-	KeySessionTitle    = "session_title"
-	KeySessionNew      = "session_new"
-	KeySessionPrompt   = "session_prompt"
-	KeySessionSwitched   = "session_switched"
-	KeySessionSwitchedTo = "session_switched_to" // format: "Switched to session: %s" (session id)
-	KeySessionSelect     = "session_select"
-	KeyDescSessions    = "desc_sessions"
-	KeySessionNone     = "session_none"
-	KeyRemoteNone      = "remote_none"       // No remotes configured
-	KeyDescRemoteOn    = "desc_remote_on"
-	KeyDescRemoteOff   = "desc_remote_off"
-	KeyRemoteManualHint = "remote_manual_hint" // hint when no remotes or "or type user@host"
-	KeyHelpTitle       = "help_title"
-	KeyAddRemoteTitle  = "add_remote_title"
-	KeyConfigSavedLLM  = "config_saved_llm"
-	KeyConfigLLMTitle  = "config_llm_title"
-	KeyConfigLLMBaseURLLabel     = "config_llm_base_url_label"
-	KeyConfigLLMApiKeyLabel      = "config_llm_api_key_label"
-	KeyConfigLLMModelLabel       = "config_llm_model_label"
-	KeyConfigLLMMaxMessagesLabel = "config_llm_max_messages_label"
-	KeyConfigLLMMaxCharsLabel    = "config_llm_max_chars_label"
-	KeyConfigLLMHint             = "config_llm_hint"
-	KeyConfigLLMApiKeyRequired  = "config_llm_api_key_required"
-	KeyConfigLLMModelRequired   = "config_llm_model_required"
-	KeyConfigLLMChecking       = "config_llm_checking"             // "Checking..."
-	KeyConfigLLMCheckOK        = "config_llm_check_ok"             // after save: "LLM check OK."
-	KeyConfigLLMCheckFailed    = "config_llm_check_failed"         // format: "LLM check failed: %v"
+	KeySessionTitle                  = "session_title"
+	KeySessionNew                    = "session_new"
+	KeySessionPrompt                 = "session_prompt"
+	KeySessionSwitched               = "session_switched"
+	KeySessionSwitchedTo             = "session_switched_to" // format: "Switched to session: %s" (session id)
+	KeySessionSelect                 = "session_select"
+	KeyDescSessions                  = "desc_sessions"
+	KeySessionNone                   = "session_none"
+	KeyRemoteNone                    = "remote_none" // No remotes configured
+	KeyDescRemoteOn                  = "desc_remote_on"
+	KeyDescRemoteOff                 = "desc_remote_off"
+	KeyRemoteManualHint              = "remote_manual_hint" // hint when no remotes or "or type user@host"
+	KeyHelpTitle                     = "help_title"
+	KeyAddRemoteTitle                = "add_remote_title"
+	KeyConfigSavedLLM                = "config_saved_llm"
+	KeyConfigLLMTitle                = "config_llm_title"
+	KeyConfigLLMBaseURLLabel         = "config_llm_base_url_label"
+	KeyConfigLLMApiKeyLabel          = "config_llm_api_key_label"
+	KeyConfigLLMModelLabel           = "config_llm_model_label"
+	KeyConfigLLMMaxMessagesLabel     = "config_llm_max_messages_label"
+	KeyConfigLLMMaxCharsLabel        = "config_llm_max_chars_label"
+	KeyConfigLLMHint                 = "config_llm_hint"
+	KeyConfigLLMApiKeyRequired       = "config_llm_api_key_required"
+	KeyConfigLLMModelRequired        = "config_llm_model_required"
+	KeyConfigLLMChecking             = "config_llm_checking"                // "Checking..."
+	KeyConfigLLMCheckOK              = "config_llm_check_ok"                // after save: "LLM check OK."
+	KeyConfigLLMCheckFailed          = "config_llm_check_failed"            // format: "LLM check failed: %v"
 	KeyConfigLLMBaseURLAutoCorrected = "config_llm_base_url_auto_corrected" // format: "Base URL updated to %s (added /v1)."
-	KeyDescConfigLLM            = "desc_config_llm"
-	KeyConfigHint     = "config_hint" // when /config or /config show is used: point to /config llm and header
+	KeyDescConfigLLM                 = "desc_config_llm"
+	KeyConfigHint                    = "config_hint" // when /config or /config show is used: point to /config llm and header
+	// Skill
+	KeyDescSkill           = "desc_skill"
+	KeyUsageSkill          = "usage_skill"
+	KeySkillNotFound       = "skill_not_found"
+	KeySkillScriptNotFound = "skill_script_not_found"
+	KeySkillNone           = "skill_none"
+	KeyDescSkillInstall    = "desc_skill_install"
+	KeyDescSkillRemove     = "desc_skill_remove"
+	KeyAddSkillTitle       = "add_skill_title"
+	KeyAddSkillURLLabel    = "add_skill_url_label"
+	KeyAddSkillRefLabel    = "add_skill_ref_label"
+	KeyAddSkillPathLabel   = "add_skill_path_label"
+	KeyAddSkillNameLabel   = "add_skill_name_label"
+	KeyAddSkillHint        = "add_skill_hint"
+	KeyAddSkillAuthHint    = "add_skill_auth_hint"
+	KeyAddSkillURLRequired = "add_skill_url_required"
+	KeySkillInstalled      = "skill_installed"
+	KeySkillRemoved        = "skill_removed"
+	KeySkillInstallFailed  = "skill_install_failed"
+	KeySkillRemoveFailed   = "skill_remove_failed"
+	KeyUsageSkillInstall   = "usage_skill_install"
+	KeyUsageSkillRemove    = "usage_skill_remove"
+	KeySkillAlreadyExists  = "skill_already_exists"
 )
 
 var messages = map[string]map[string]string{
@@ -164,6 +187,10 @@ Slash commands (each line: command, next line: description):
     Add a remote
   /config del-remote
     Remove a remote
+  /config add-skill <url> [ref] [path]
+    Install a skill from a git repo (path = subpath if repo has multiple skills)
+  /config del-skill <skill_name>
+    Remove an installed skill
   /config auto-run list-only
     Allowlist runs without confirmation
   /config auto-run disable
@@ -173,7 +200,7 @@ Slash commands (each line: command, next line: description):
   /config llm
     Set LLM
   /config reload
-    Reload config and allowlist (no restart)
+    Reload config and allowlist
   /remote on [user@host]
     Connect to a remote host
   /remote off
@@ -182,6 +209,12 @@ Slash commands (each line: command, next line: description):
     Start a new session
   /sessions
     List and switch to another session
+  /skill <skill-name> [detail]
+    Ask AI to use an installed skill for this task
+  /config add-skill <url> [ref] [path]
+    Install a skill from a git repo (path = subpath in repo, e.g. skills/foo)
+  /config del-skill <skill_name>
+    Remove an installed skill
   /run <cmd>
     Run one command directly (no AI)
   /sh
@@ -190,127 +223,149 @@ Slash commands (each line: command, next line: description):
     Quit (Ctrl+C also works)
 
 Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a suggestion, Enter fills then run.`,
-		KeyNoRequestInProgress: "(No request in progress. /cancel only applies when waiting for AI.)",
-		KeyUsageRun:            "Usage: /run <command> — e.g. /run ls -la",
-		KeyUnknownCmd:          "Unknown command. Type /help for the full list, or try /q, /run <cmd>, /config.",
-		KeyDelveLabel:          "Delve:",
-		KeyConfigReloaded:      "Config and allowlist reloaded. Next message will use new config.",
-		KeyCancelled:           "(Cancelled)",
-		KeyErrorPrefix:         "Error: ",
-		KeyConfigPrefix:        "Config: ",
-		KeyConfigUnknownField:   "unknown field ",
-		KeyConfigSaved:         "Config saved (llm.%s).",
-		KeyWaitOrCancel:        "(Please wait for the current response, or /cancel)",
-		KeyPlaceholderInput:    "Type your question or task, or / for slash commands...",
-		KeyInputHintApprove:     "1 or 2",
-		KeyInputHintApproveThree: "1, 2 or 3",
-		KeyInputHintSensitive:  "1, 2 or 3",
-		KeyChoiceApprove:       "Approve",
-		KeyChoiceReject:        "Reject",
-		KeyChoiceRefuse:        "Refuse (do not run)",
-		KeyChoiceRunStore:      "Run, return to AI, store in history",
-		KeyChoiceRunNoStore:    "Run, return to AI, do not store",
-		KeyChoiceCopy:          "Copy",
-		KeyChoiceDismiss:       "Dismiss",
-		KeyTitleHeader:         "delve-shell — Enter to send, ctrl+c to quit | Up/Down/PgUp/PgDown scroll",
-		KeyApprovalPrompt:           "Command to run (approval required):",
-		KeyApprovalWhy:              "Why:",
-		KeyApproveYN:                "1=approve, 2=reject",
-		KeyApproveYNThree:           "1=Run, 2=Copy, 3=Dismiss",
-		KeyApprovalDecisionApproved: "Decision: approved",
-		KeyApprovalDecisionRejected: "Decision: rejected",
-		KeyRiskReadOnly:       "READ-ONLY",
-		KeyRiskLow:            "LOW-RISK",
-		KeyRiskHigh:           "HIGH-RISK",
-		KeyRunTagApproved:      "approved",
-		KeyRunTagDirect:        "direct",
-		KeyRunTagAllowlist:     "allowlist",
-		KeyResultSensitive:     "(Result contains sensitive data; not stored in history.)",
-		KeySensitivePrompt:     "This command may access sensitive file(s). Choose:",
-		KeySensitiveChoice1:    "1 = Refuse (do not run)",
-		KeySensitiveChoice2:    "2 = Run, return result to AI, store in history",
-		KeySensitiveChoice3:    "3 = Run, return result to AI, do not store in history",
-		KeySensitivePressKey:   "Press 1, 2, or 3: ",
-		KeyErrLLMNotConfigured: "LLM not configured. Use /config to set llm.api_key (and llm.base_url, llm.model), then send a message again (no restart needed). Supports $VAR or ${VAR} for env. Config path: %s",
-		KeyUserLabel:           "User: ",
-		KeyAILabel:             "AI: ",
-		KeyRunLabel:            "Run: ",
-		KeyDescExit:            "Quit delve-shell",
-		KeyDescRun:             "Run a command directly (no AI)",
-		KeyDescSh:              "Spawn bash; return here when done",
-		KeyDescCancel:          "Cancel current AI request",
-		KeyDescConfig:          "Set or show config",
-		KeyDescReload:          "Reload config and allowlist (no restart)",
-		KeyDescHelp:            "Show this help",
-		KeyDescConfigShow:      "Show current config path and LLM summary",
-		KeyDescConfigLLMBaseURL: "Set LLM API base URL",
-		KeyDescConfigLLMApiKey:  "Set LLM API key",
-		KeyDescConfigLLMModel:   "Set LLM model name",
-		KeyDescConfigAllowlistUpdate: "Merge default allowlist",
-		KeyDescConfigAddRemote:       "Add a remote",
-		KeyDescConfigRemoveRemote:    "Remove a remote",
-		KeyAllowlistUpdateDone:    "Allowlist updated: %d new pattern(s) added. Use /config reload to apply.",
-		KeyDescAutoRunListOnly: "Allowlist runs without confirmation",
-		KeyDescAutoRunDisable:  "Require approval for every command",
-		KeyModeRequired:         "Usage: /mode suggest or /mode run",
-		KeyRunTagSuggested:       "suggested",
-		KeySuggestedCopyHint:     "Select the command above to copy, or use /run <cmd> to run it.",
-		KeySuggestedCardTitle:    "Suggested command (not executed):",
-		KeySuggestedCardHint:     "1=copy, 2=dismiss",
-		KeySuggestedCopied:       "Copied to clipboard.",
-		KeyAutoRunLabel:          "Auto-Run: ",
-		KeyAutoRunListOnly:       "List Only",
-		KeyAutoRunNone:           "Disabled",
-		KeyAllowlistAutoRunSetTo: "Auto-Run set to %s (this session only).",
-		KeyConfigSavedAllowlistAutoRun: "Config saved (auto-run: %s). Use /config reload to apply as default.",
-		KeyConfigAutoRunRequired: "auto-run: use list-only or disable",
-		KeyConfigRemoteAdded:     "Remote added: %s.",
-		KeyConfigRemoteRemoved:   "Remote removed: %s.",
-		KeyStatusIdle:           "[IDLE]",
-		KeyStatusRunning:         "[PROCESSING]",
-		KeyStatusPendingApproval: "[NEED APPROVAL]",
-		KeyStatusSuggest:         "[SUGGEST]",
-		KeyNeedConfirmationHint:  "Your confirmation required.",
-		KeyWizardTitle:           "=== delve-shell first-time setup ===",
-		KeyWizardConfigPath:      "Config path: %s",
-		KeyWizardIntroDesc1:     "This wizard will set LLM config (base_url, api_key, model).",
-		KeyWizardIntroDesc2:     "",
-		KeyWizardIntroEnv:       "Values support $VAR or ${VAR} environment references.",
-		KeyWizardBaseURLPrompt:  "LLM base URL (optional; empty uses provider default, e.g. OpenAI official). For OpenAI-compatible APIs, use the /v1 endpoint (e.g. https://api.openai.com/v1): ",
-		KeyWizardAPIKeyPrompt:   "LLM api_key (optional; supports $VAR or ${VAR}. Leave empty for local models): ",
-		KeyWizardAPIKeyRequired: "api_key is required. Use an env reference if you prefer not to store the key directly.",
-		KeyWizardModelPrompt:    "LLM model (optional; default: gpt-4o-mini): ",
-		KeyWizardDone:           "Config captured; it will be saved and delve-shell will start.",
-		KeySessionTitle:         "=== Session ===",
-		KeySessionNew:           "New session",
-		KeySessionPrompt:        "Choose (0 = new, 1–%d = continue): ",
-		KeySessionSwitched:      "Switched to session.",
-		KeySessionSwitchedTo:    "Switched to session: %s",
-		KeySessionSelect:        "Up/Down select, Enter switch",
-		KeyDescSessions:         "Switch session",
-		KeySessionNone:          "No previous sessions.",
-		KeyRemoteNone:           "No remotes configured.",
-		KeyDescRemoteOn:         "Connect to a remote host",
-		KeyDescRemoteOff:        "Disconnect from remote and run commands locally",
-		KeyRemoteManualHint:     "Open remote connection dialog",
-		KeyHelpTitle:            "Help",
-		KeyAddRemoteTitle:       "Add Remote",
-		KeyConfigSavedLLM:       "Config saved (llm).",
-		KeyConfigLLMTitle:       "Config LLM",
-		KeyConfigLLMBaseURLLabel: "Base URL (optional; empty = OpenAI official API):",
-		KeyConfigLLMApiKeyLabel:  "API key (optional; supports $VAR):",
-		KeyConfigLLMModelLabel:       "Model:",
-		KeyConfigLLMMaxMessagesLabel: "Max context messages (default 50):",
-		KeyConfigLLMMaxCharsLabel:    "Max context chars (default: no limit or auto from API):",
-		KeyConfigLLMHint:             "Up/Down to move between fields, Enter to save, Esc to cancel.",
-		KeyConfigLLMApiKeyRequired: "API key is required.",
-		KeyConfigLLMModelRequired:   "Model is required.",
-		KeyConfigLLMChecking:       "Checking...",
-		KeyConfigLLMCheckOK:        "LLM check OK.",
-		KeyConfigLLMCheckFailed:    "LLM check failed: %v",
+		KeyNoRequestInProgress:           "(No request in progress. /cancel only applies when waiting for AI.)",
+		KeyUsageRun:                      "Usage: /run <command> — e.g. /run ls -la",
+		KeyUnknownCmd:                    "Unknown command. Type /help for the full list, or try /q, /run <cmd>, /config.",
+		KeyDelveLabel:                    "Delve:",
+		KeyConfigReloaded:                "Config and allowlist reloaded. Next message will use new config.",
+		KeyCancelled:                     "(Cancelled)",
+		KeyErrorPrefix:                   "Error: ",
+		KeyConfigPrefix:                  "Config: ",
+		KeyConfigUnknownField:            "unknown field ",
+		KeyConfigSaved:                   "Config saved (llm.%s).",
+		KeyWaitOrCancel:                  "(Please wait for the current response, or /cancel)",
+		KeyPlaceholderInput:              "Type your question or task, or / for slash commands...",
+		KeyInputHintApprove:              "1 or 2",
+		KeyInputHintApproveThree:         "1, 2 or 3",
+		KeyInputHintSensitive:            "1, 2 or 3",
+		KeyChoiceApprove:                 "Approve",
+		KeyChoiceReject:                  "Reject",
+		KeyChoiceRefuse:                  "Refuse (do not run)",
+		KeyChoiceRunStore:                "Run, return to AI, store in history",
+		KeyChoiceRunNoStore:              "Run, return to AI, do not store",
+		KeyChoiceCopy:                    "Copy",
+		KeyChoiceDismiss:                 "Dismiss",
+		KeyTitleHeader:                   "delve-shell — Enter to send, ctrl+c to quit | Up/Down/PgUp/PgDown scroll",
+		KeyApprovalPrompt:                "Command to run (approval required):",
+		KeyApprovalWhy:                   "Why:",
+		KeyApproveYN:                     "1=approve, 2=reject",
+		KeyApproveYNThree:                "1=Run, 2=Copy, 3=Dismiss",
+		KeyApprovalDecisionApproved:      "Decision: approved",
+		KeyApprovalDecisionRejected:      "Decision: rejected",
+		KeyRiskReadOnly:                  "READ-ONLY",
+		KeyRiskLow:                       "LOW-RISK",
+		KeyRiskHigh:                      "HIGH-RISK",
+		KeyRunTagApproved:                "approved",
+		KeyRunTagDirect:                  "direct",
+		KeyRunTagAllowlist:               "allowlist",
+		KeyResultSensitive:               "(Result contains sensitive data; not stored in history.)",
+		KeySensitivePrompt:               "This command may access sensitive file(s). Choose:",
+		KeySensitiveChoice1:              "1 = Refuse (do not run)",
+		KeySensitiveChoice2:              "2 = Run, return result to AI, store in history",
+		KeySensitiveChoice3:              "3 = Run, return result to AI, do not store in history",
+		KeySensitivePressKey:             "Press 1, 2, or 3: ",
+		KeyErrLLMNotConfigured:           "LLM not configured. Use /config to set llm.api_key (and llm.base_url, llm.model), then send a message again (no restart needed). Supports $VAR or ${VAR} for env. Config path: %s",
+		KeyUserLabel:                     "User: ",
+		KeyAILabel:                       "AI: ",
+		KeyRunLabel:                      "Run: ",
+		KeyDescExit:                      "Quit delve-shell",
+		KeyDescRun:                       "Run a command directly (no AI)",
+		KeyDescSh:                        "Spawn bash; return here when done",
+		KeyDescCancel:                    "Cancel current AI request",
+		KeyDescConfig:                    "Set or show config",
+		KeyDescReload:                    "Reload config and allowlist",
+		KeyDescHelp:                      "Show this help",
+		KeyDescConfigShow:                "Show current config path and LLM summary",
+		KeyDescConfigLLMBaseURL:          "Set LLM API base URL",
+		KeyDescConfigLLMApiKey:           "Set LLM API key",
+		KeyDescConfigLLMModel:            "Set LLM model name",
+		KeyDescConfigAllowlistUpdate:     "Merge default allowlist",
+		KeyDescConfigAddRemote:           "Add a remote",
+		KeyDescConfigRemoveRemote:        "Remove a remote",
+		KeyAllowlistUpdateDone:           "Allowlist updated: %d new pattern(s) added. Use /config reload to apply.",
+		KeyDescAutoRunListOnly:           "Allowlist runs without confirmation",
+		KeyDescAutoRunDisable:            "Require approval for every command",
+		KeyModeRequired:                  "Usage: /mode suggest or /mode run",
+		KeyRunTagSuggested:               "suggested",
+		KeySuggestedCopyHint:             "Select the command above to copy, or use /run <cmd> to run it.",
+		KeySuggestedCardTitle:            "Suggested command (not executed):",
+		KeySuggestedCardHint:             "1=copy, 2=dismiss",
+		KeySuggestedCopied:               "Copied to clipboard.",
+		KeyAutoRunLabel:                  "Auto-Run: ",
+		KeyAutoRunListOnly:               "List Only",
+		KeyAutoRunNone:                   "Disabled",
+		KeyAllowlistAutoRunSetTo:         "Auto-Run set to %s (this session only).",
+		KeyConfigSavedAllowlistAutoRun:   "Config saved (auto-run: %s). Use /config reload to apply as default.",
+		KeyConfigAutoRunRequired:         "auto-run: use list-only or disable",
+		KeyConfigRemoteAdded:             "Remote added: %s.",
+		KeyConfigRemoteRemoved:           "Remote removed: %s.",
+		KeyStatusIdle:                    "[IDLE]",
+		KeyStatusRunning:                 "[PROCESSING]",
+		KeyStatusPendingApproval:         "[NEED APPROVAL]",
+		KeyStatusSuggest:                 "[SUGGEST]",
+		KeyNeedConfirmationHint:          "Your confirmation required.",
+		KeyWizardTitle:                   "=== delve-shell first-time setup ===",
+		KeyWizardConfigPath:              "Config path: %s",
+		KeyWizardIntroDesc1:              "This wizard will set LLM config (base_url, api_key, model).",
+		KeyWizardIntroDesc2:              "",
+		KeyWizardIntroEnv:                "Values support $VAR or ${VAR} environment references.",
+		KeyWizardBaseURLPrompt:           "LLM base URL (optional; empty uses provider default, e.g. OpenAI official). For OpenAI-compatible APIs, use the /v1 endpoint (e.g. https://api.openai.com/v1): ",
+		KeyWizardAPIKeyPrompt:            "LLM api_key (optional; supports $VAR or ${VAR}. Leave empty for local models): ",
+		KeyWizardAPIKeyRequired:          "api_key is required. Use an env reference if you prefer not to store the key directly.",
+		KeyWizardModelPrompt:             "LLM model (optional; default: gpt-4o-mini): ",
+		KeyWizardDone:                    "Config captured; it will be saved and delve-shell will start.",
+		KeySessionTitle:                  "=== Session ===",
+		KeySessionNew:                    "New session",
+		KeySessionPrompt:                 "Choose (0 = new, 1–%d = continue): ",
+		KeySessionSwitched:               "Switched to session.",
+		KeySessionSwitchedTo:             "Switched to session: %s",
+		KeySessionSelect:                 "Up/Down select, Enter switch",
+		KeyDescSessions:                  "Switch session",
+		KeySessionNone:                   "No previous sessions.",
+		KeyRemoteNone:                    "No remotes configured.",
+		KeyDescRemoteOn:                  "Connect to a remote host",
+		KeyDescRemoteOff:                 "Disconnect from remote and run commands locally",
+		KeyRemoteManualHint:              "Open remote connection dialog",
+		KeyHelpTitle:                     "Help",
+		KeyAddRemoteTitle:                "Add Remote",
+		KeyConfigSavedLLM:                "Config saved (llm).",
+		KeyConfigLLMTitle:                "Config LLM",
+		KeyConfigLLMBaseURLLabel:         "Base URL (optional; empty = OpenAI official API):",
+		KeyConfigLLMApiKeyLabel:          "API key (optional; supports $VAR):",
+		KeyConfigLLMModelLabel:           "Model:",
+		KeyConfigLLMMaxMessagesLabel:     "Max context messages (default 50):",
+		KeyConfigLLMMaxCharsLabel:        "Max context chars (default: no limit or auto from API):",
+		KeyConfigLLMHint:                 "Up/Down to move between fields, Enter to save, Esc to cancel.",
+		KeyConfigLLMApiKeyRequired:       "API key is required.",
+		KeyConfigLLMModelRequired:        "Model is required.",
+		KeyConfigLLMChecking:             "Checking...",
+		KeyConfigLLMCheckOK:              "LLM check OK.",
+		KeyConfigLLMCheckFailed:          "LLM check failed: %v",
 		KeyConfigLLMBaseURLAutoCorrected: "Base URL updated to %s (added /v1).",
-		KeyDescConfigLLM:        "Set LLM",
-		KeyConfigHint:           "Use /config llm for LLM; auto-run is in header.",
+		KeyDescConfigLLM:                 "Set LLM",
+		KeyConfigHint:                    "Use /config llm for LLM; auto-run is in header.",
+		KeyDescSkill:                     "Ask AI to use an installed skill for this task",
+		KeyUsageSkill:                    "Usage: /skill <skill-name> [detail] — describe what you want after the name",
+		KeySkillNotFound:                 "Skill not found.",
+		KeySkillScriptNotFound:           "Script not found in skill.",
+		KeySkillNone:                     "No skills (add dirs with SKILL.md under ~/.delve-shell/skills/)",
+		KeyDescSkillInstall:              "Install a skill from a git repo",
+		KeyDescSkillRemove:               "Remove an installed skill",
+		KeyAddSkillTitle:                 "Add skill",
+		KeyAddSkillURLLabel:              "Git URL:",
+		KeyAddSkillRefLabel:              "Ref — branch or tag:",
+		KeyAddSkillPathLabel:             "Path in repo — e.g. skills/foo:",
+		KeyAddSkillNameLabel:             "Local skill name:",
+		KeyAddSkillHint:                  "Up/Down to move, Enter to install, Esc to cancel.",
+		KeyAddSkillAuthHint:              "Private repo: HTTPS — git credential helper or GITHUB_TOKEN; SSH — ssh-add.",
+		KeyAddSkillURLRequired:           "URL is required.",
+		KeySkillInstalled:                "Skill installed: %s",
+		KeySkillRemoved:                  "Skill removed: %s",
+		KeySkillInstallFailed:            "Skill install failed: %v",
+		KeySkillRemoveFailed:             "Skill remove failed: %v",
+		KeyUsageSkillInstall:             "Usage: /config add-skill <url> [ref] [path] — path required if repo has multiple skills (e.g. skills/foo)",
+		KeyUsageSkillRemove:              "Usage: /config del-skill <skill_name>",
+		KeySkillAlreadyExists:            "Skill already exists. Remove it first or use another name.",
 	},
 }
 

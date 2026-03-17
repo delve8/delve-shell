@@ -1,11 +1,14 @@
 package ui
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 
 	"delve-shell/internal/config"
 	"delve-shell/internal/history"
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/skills"
 )
 
 const maxSessionsInSlash = 20
@@ -18,7 +21,7 @@ type slashOption struct {
 	Path string // session file path when this option is a session to switch to
 }
 
-// getSlashOptions returns top-level slash commands (shown when input starts with "/"); order: help, cancel, config, remote, new, sessions, run, sh, quit.
+// getSlashOptions returns top-level slash commands (shown when input starts with "/"); order: help, cancel, config, remote, new, sessions, skill, run, sh, quit.
 func getSlashOptions(lang string) []slashOption {
 	return []slashOption{
 		{"/help", i18n.T(lang, i18n.KeyDescHelp), ""},
@@ -27,6 +30,7 @@ func getSlashOptions(lang string) []slashOption {
 		{"/remote", i18n.T(lang, i18n.KeyDescRemoteOn), ""},
 		{"/new", i18n.T(lang, i18n.KeySessionNew), ""},
 		{"/sessions", i18n.T(lang, i18n.KeyDescSessions), ""},
+		{"/skill <skill-name> [detail]", i18n.T(lang, i18n.KeyDescSkill), ""},
 		{"/run <cmd>", i18n.T(lang, i18n.KeyDescRun), ""},
 		{"/sh", i18n.T(lang, i18n.KeyDescSh), ""},
 		{"/q", i18n.T(lang, i18n.KeyDescExit), ""},
@@ -39,6 +43,8 @@ func getConfigSubOptions(lang string) []slashOption {
 	return []slashOption{
 		{"/config add-remote", i18n.T(lang, i18n.KeyDescConfigAddRemote), ""},
 		{"/config del-remote", i18n.T(lang, i18n.KeyDescConfigRemoveRemote), ""},
+		{"/config add-skill", i18n.T(lang, i18n.KeyDescSkillInstall), ""},
+		{"/config del-skill", i18n.T(lang, i18n.KeyDescSkillRemove), ""},
 		{"/config auto-run list-only", i18n.T(lang, i18n.KeyDescAutoRunListOnly), ""},
 		{"/config auto-run disable", i18n.T(lang, i18n.KeyDescAutoRunDisable), ""},
 		{"/config update auto-run list", i18n.T(lang, i18n.KeyDescConfigAllowlistUpdate), ""},
@@ -48,15 +54,57 @@ func getConfigSubOptions(lang string) []slashOption {
 }
 
 // getSlashOptionsForInput returns slash options to show: when input is "/config" or "/config xxx" returns only /config sub-options; when "/sessions" or "/sessions xxx" returns session list (with Path set) for switch, excluding currentSessionPath so first option is another session; else top-level commands.
-func getSlashOptionsForInput(inputVal string, lang string, currentSessionPath string) []slashOption {
+func getSlashOptionsForInput(inputVal string, lang string, currentSessionPath string, localRunCommands []string, remoteRunCommands []string, remoteActive bool) []slashOption {
 	normalized := strings.TrimPrefix(inputVal, "/")
 	normalized = strings.TrimSpace(normalized)
 	normalizedLower := strings.ToLower(normalized)
+	// /run completion: show command candidates rather than slash commands.
+	if normalizedLower == "run" || strings.HasPrefix(normalizedLower, "run ") {
+		// When just "/run": show the usage form.
+		if normalizedLower == "run" {
+			return []slashOption{{Cmd: "/run <cmd>", Desc: i18n.T(lang, i18n.KeyDescRun), Path: ""}}
+		}
+		// After "/run " start showing command candidates.
+		rest := ""
+		if len(normalized) >= 3 {
+			rest = strings.TrimSpace(normalized[3:])
+		}
+		// Only complete the first token after /run; once user has typed arguments, stop dropdown.
+		if strings.Contains(rest, " ") || strings.Contains(rest, "\t") {
+			return []slashOption{}
+		}
+		prefix := strings.ToLower(rest)
+		cands := localRunCommands
+		if cands == nil {
+			cands = LocalRunCommands()
+		}
+		if remoteActive && len(remoteRunCommands) > 0 {
+			cands = remoteRunCommands
+		}
+		// Limit suggestions to keep UI responsive and dropdown small.
+		const maxRunCands = 50
+		opts := make([]slashOption, 0, 12)
+		for _, c := range cands {
+			if prefix != "" && !strings.HasPrefix(strings.ToLower(c), prefix) {
+				continue
+			}
+			opts = append(opts, slashOption{Cmd: "/run " + c, Desc: "", Path: ""})
+			if len(opts) >= maxRunCands {
+				break
+			}
+		}
+		// When no match, show nothing (do not fall back to top-level slash list).
+		return opts
+	}
 	if normalizedLower == "config" || strings.HasPrefix(normalizedLower, "config ") {
 		rest := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "config"))
 		if rest == "del-remote" || strings.HasPrefix(rest, "del-remote ") {
 			filter := strings.TrimSpace(strings.TrimPrefix(rest, "del-remote"))
 			return getRemoveRemoteSlashOptions(lang, filter)
+		}
+		if rest == "del-skill" || strings.HasPrefix(rest, "del-skill ") {
+			filter := strings.TrimSpace(strings.TrimPrefix(rest, "del-skill"))
+			return getDelSkillSlashOptions(lang, filter)
 		}
 		return getConfigSubOptions(lang)
 	}
@@ -79,7 +127,84 @@ func getSlashOptionsForInput(inputVal string, lang string, currentSessionPath st
 		offOpt := slashOption{Cmd: "/remote off", Desc: i18n.T(lang, i18n.KeyDescRemoteOff), Path: ""}
 		return append([]slashOption{offOpt}, opts...)
 	}
+	if normalizedLower == "skill" || strings.HasPrefix(normalizedLower, "skill ") {
+		filter := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "skill"))
+		return getSkillSlashOptions(lang, filter)
+	}
 	return getSlashOptions(lang)
+}
+
+// getDelSkillSlashOptions returns options for /config del-skill: one option per installed skill.
+func getDelSkillSlashOptions(lang string, filter string) []slashOption {
+	list, err := skills.List()
+	if err != nil || len(list) == 0 {
+		return []slashOption{{Cmd: "/config del-skill", Desc: i18n.T(lang, i18n.KeySkillNone), Path: ""}}
+	}
+	filterLower := strings.ToLower(filter)
+	var opts []slashOption
+	for _, s := range list {
+		if filterLower != "" && !strings.Contains(strings.ToLower(s.Name), filterLower) {
+			continue
+		}
+		desc := strings.TrimSpace(s.Description)
+		if desc == "" {
+			desc = s.Name
+		}
+		cmdName := s.LocalName
+		if cmdName == "" {
+			cmdName = s.Name
+		}
+		opts = append(opts, slashOption{Cmd: "/config del-skill " + cmdName, Desc: desc, Path: ""})
+	}
+	if len(opts) == 0 {
+		return []slashOption{{Cmd: "/config del-skill", Desc: i18n.T(lang, i18n.KeySkillNone), Path: ""}}
+	}
+	return opts
+}
+
+// getSkillSlashOptions returns options for /skill: list skills only. After user picks a skill they type natural language (no script list).
+func getSkillSlashOptions(lang string, filter string) []slashOption {
+	list, _ := skills.List()
+	parts := strings.Fields(filter)
+	if len(parts) == 0 {
+		if len(list) == 0 {
+			return []slashOption{{Cmd: i18n.T(lang, i18n.KeySkillNone), Desc: "", Path: ""}}
+		}
+		opts := make([]slashOption, 0, len(list))
+		for _, s := range list {
+			cmdName := s.LocalName
+			if cmdName == "" {
+				cmdName = s.Name
+			}
+			opts = append(opts, slashOption{Cmd: "/skill " + cmdName, Desc: s.Description, Path: ""})
+		}
+		return opts
+	}
+	skillName := parts[0]
+	skillDir := skills.SkillDir(skillName)
+	if _, err := os.Stat(filepath.Join(skillDir, "SKILL.md")); err != nil {
+		// No such skill: show skills whose name contains filter
+		opts := make([]slashOption, 0)
+		filterLower := strings.ToLower(skillName)
+		for _, s := range list {
+			if strings.Contains(strings.ToLower(s.Name), filterLower) {
+				cmdName := s.LocalName
+				if cmdName == "" {
+					cmdName = s.Name
+				}
+				opts = append(opts, slashOption{Cmd: "/skill " + cmdName, Desc: s.Description, Path: ""})
+			}
+		}
+		if len(opts) == 0 && len(list) > 0 {
+			return opts
+		}
+		if len(opts) == 0 {
+			return []slashOption{{Cmd: i18n.T(lang, i18n.KeySkillNone), Desc: "", Path: ""}}
+		}
+		return opts
+	}
+	// Skill exists: no dropdown; user types natural language after "/skill <name> "
+	return []slashOption{}
 }
 
 // getRemoteSlashOptions returns slash options for remote connection; filter is the substring after "/remote ".

@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 
 	"delve-shell/internal/config"
+	"delve-shell/internal/git"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/llmtest"
 )
@@ -53,6 +54,108 @@ func (m Model) openConfigLLMOverlay() Model {
 	}
 	m.ConfigLLMMaxCharsInput.Blur()
 	return m
+}
+
+const addSkillFieldCount = 4
+
+// openAddSkillOverlay opens the Add skill dialog. url, ref, path can be pre-filled (e.g. from slash args).
+func (m Model) openAddSkillOverlay(url, ref, path string) Model {
+	m.OverlayActive = true
+	m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddSkillTitle)
+	m.AddSkillActive = true
+	m.AddSkillError = ""
+	m.AddSkillFieldIndex = 0
+	m.AddSkillURLInput = textinput.New()
+	m.AddSkillURLInput.Placeholder = "https://github.com/owner/repo or owner/repo"
+	m.AddSkillURLInput.SetValue(url)
+	m.AddSkillURLInput.Focus()
+	m.AddSkillRefInput = textinput.New()
+	m.AddSkillRefInput.Placeholder = "main"
+	m.AddSkillRefInput.SetValue(ref)
+	m.AddSkillRefInput.Blur()
+	m.AddSkillPathInput = textinput.New()
+	m.AddSkillPathInput.Placeholder = "skills/foo"
+	m.AddSkillPathInput.SetValue(path)
+	m.AddSkillPathInput.Blur()
+	m.AddSkillNameInput = textinput.New()
+	m.AddSkillNameInput.Placeholder = "local skill name"
+	// Default local name from path last segment when provided.
+	if p := strings.TrimSpace(path); p != "" {
+		if idx := strings.LastIndex(p, "/"); idx >= 0 && idx < len(p)-1 {
+			p = p[idx+1:]
+		}
+		m.AddSkillNameInput.SetValue(p)
+	} else {
+		m.AddSkillNameInput.SetValue("")
+	}
+	m.AddSkillNameInput.Blur()
+	m.AddSkillRefsFullList = nil
+	m.AddSkillRefCandidates = nil
+	m.AddSkillRefIndex = 0
+	m.AddSkillPathsFullList = nil
+	m.AddSkillPathCandidates = nil
+	m.AddSkillPathIndex = 0
+	return m
+}
+
+// RunListRefsCmd runs git.ListRefs in the background and sends AddSkillRefsLoadedMsg. Call when Ref field is focused and URL is set.
+func RunListRefsCmd(url string) tea.Cmd {
+	return func() tea.Msg {
+		refs := git.ListRefs(context.Background(), url)
+		return AddSkillRefsLoadedMsg{Refs: refs}
+	}
+}
+
+// RunListPathsCmd runs git.ListPaths in the background and sends AddSkillPathsLoadedMsg. Call when Path field is focused and URL is set.
+func RunListPathsCmd(url, ref string) tea.Cmd {
+	return func() tea.Msg {
+		paths, _ := git.ListPaths(context.Background(), url, ref)
+		return AddSkillPathsLoadedMsg{Paths: paths}
+	}
+}
+
+// addSkillPathOptions are conventional paths for the Path dropdown (same as skill discovery dirs).
+var addSkillPathOptions = []string{
+	".",
+	"skills",
+	"skills/.curated",
+	"skills/.experimental",
+	"skills/.system",
+	".agents/skills",
+	".agent/skills",
+	".claude/skills",
+}
+
+// filterByPrefix returns elements of s that have the given prefix (case-sensitive).
+func filterByPrefix(s []string, prefix string) []string {
+	if prefix == "" {
+		return s
+	}
+	var out []string
+	for _, v := range s {
+		if strings.HasPrefix(v, prefix) {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
+func (m Model) updateAddSkillPathCandidates() Model {
+	source := addSkillPathOptions
+	if len(m.AddSkillPathsFullList) > 0 {
+		source = m.AddSkillPathsFullList
+	}
+	m.AddSkillPathCandidates = filterByPrefix(source, m.AddSkillPathInput.Value())
+	m.AddSkillPathIndex = 0
+	return m
+}
+
+// skillInvocationPrompt returns the user-message payload for /skill <name> <natural language>.
+// It instructs the model to use only this skill (run_skill) and includes the full SKILL.md and the user request.
+func skillInvocationPrompt(skillName, skillContent, naturalLanguage string) string {
+	const header = `[Skill invocation] Fulfill the user's request using ONLY the skill below. Use the run_skill tool with this skill's scripts and parameters; do not suggest arbitrary shell commands unless the skill documentation explicitly allows it.`
+
+	return header + "\n\n## Skill: " + skillName + "\n\n" + skillContent + "\n\n## User request\n\n" + naturalLanguage
 }
 
 // applyConfigLLMFromOverlayStart writes config and sets ConfigLLMChecking so the UI shows "Checking...".
