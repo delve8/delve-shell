@@ -119,6 +119,55 @@ func resolveRef(ctx context.Context, repoURL, ref string, auth transport.AuthMet
 
 var errRefNotFound = errors.New("ref not found on remote")
 
+// LatestCommit returns the commit hash for repoURL at the given ref (branch or tag).
+// It does not clone the repo to disk; it only inspects remote refs.
+// When ref is empty, it tries common defaults ("main", then "master").
+func LatestCommit(ctx context.Context, repoURL, ref string) (string, error) {
+	repoURL = strings.TrimSpace(repoURL)
+	if repoURL == "" {
+		return "", errors.New("empty repo URL")
+	}
+	auth := authFromURL(repoURL)
+	remote := git.NewRemote(memory.NewStorage(), &config.RemoteConfig{
+		Name: "origin",
+		URLs: []string{repoURL},
+	})
+	refs, err := remote.ListContext(ctx, &git.ListOptions{Auth: auth})
+	if err != nil {
+		return "", err
+	}
+	// Determine which short ref to use.
+	shortRef := strings.TrimSpace(ref)
+	if shortRef == "" {
+		for _, candidate := range []string{"main", "master"} {
+			for _, re := range refs {
+				name := re.Name()
+				if (name.IsBranch() || name.IsTag()) && name.Short() == candidate {
+					shortRef = candidate
+					break
+				}
+			}
+			if shortRef != "" {
+				break
+			}
+		}
+		// If still empty, no obvious default; just fail.
+		if shortRef == "" {
+			return "", errRefNotFound
+		}
+	}
+	for _, re := range refs {
+		name := re.Name()
+		if !name.IsBranch() && !name.IsTag() {
+			continue
+		}
+		if name.Short() == shortRef {
+			return re.Hash().String(), nil
+		}
+	}
+	return "", errRefNotFound
+}
+
 // ListPaths returns directory paths in the repo at url/ref for the Path dropdown: root-level dirs plus "skills/xxx" if skills/ exists.
 // ref can be empty (uses "main" or "master"). Uses authFromURL for private repos.
 func ListPaths(ctx context.Context, repoURL, ref string) (paths []string, err error) {

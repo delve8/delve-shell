@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 	"delve-shell/internal/agent"
 	"delve-shell/internal/config"
+	"delve-shell/internal/git"
 	"delve-shell/internal/history"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/skills"
@@ -115,6 +117,17 @@ type Model struct {
 	AddSkillPathsFullList  []string // paths from git repo (when non-nil, Path dropdown uses this instead of static list)
 	AddSkillPathCandidates []string // path options filtered by Path input prefix
 	AddSkillPathIndex      int      // selection in path dropdown
+
+	// Update-skill overlay: choose ref and confirm update for an installed skill.
+	UpdateSkillActive        bool
+	UpdateSkillName          string
+	UpdateSkillURL           string
+	UpdateSkillPath          string
+	UpdateSkillCurrentCommit string
+	UpdateSkillRefs          []string
+	UpdateSkillRefIndex      int
+	UpdateSkillLatestCommit  string
+	UpdateSkillError         string
 }
 
 // Init implements tea.Model.
@@ -317,6 +330,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.RemoteAuthTarget = ""
 		m.RemoteAuthError = ""
 		m.RemoteAuthUsername = ""
+			m.UpdateSkillActive = false
+			m.UpdateSkillError = ""
 		return m, nil
 	case tea.KeyMsg:
 		key := msg.String()
@@ -324,6 +339,549 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Always allow ctrl+c to quit, even during pending approvals or sensitive prompts.
 		if key == "ctrl+c" {
 			return m, tea.Quit
+		}
+
+		// Choice / approval handling should take precedence over any other key paths,
+		// so tests and runtime behavior are stable even if other UI layers evolve.
+		inChoice := m.Pending != nil || m.PendingSensitive != nil
+		if inChoice {
+			n := choiceCount(m)
+			if n > 0 {
+				if key == "enter" {
+					// Treat Enter as selecting current option (1-based)
+					key = string(rune('1' + m.ChoiceIndex))
+				} else if key == "up" || key == "down" {
+					if key == "down" {
+						m.ChoiceIndex = (m.ChoiceIndex + 1) % n
+					} else {
+						m.ChoiceIndex = (m.ChoiceIndex - 1 + n) % n
+					}
+					return m, nil
+				}
+			}
+		}
+
+		if m.PendingSensitive != nil {
+			lang := m.getLang()
+			switch key {
+			case "1":
+				// Persist a static summary of the sensitive confirmation card and user's choice.
+				m.Messages = append(m.Messages,
+					approvalHeaderStyle.Render(i18n.T(lang, i18n.KeySensitivePrompt)),
+					execStyle.Render(m.PendingSensitive.Command),
+					suggestHi.Render(i18n.T(lang, i18n.KeySensitiveChoice1)),
+				)
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
+				m.PendingSensitive.ResponseCh <- agent.SensitiveRefuse
+				m.PendingSensitive = nil
+				return m, nil
+			case "2":
+				m.Messages = append(m.Messages,
+					approvalHeaderStyle.Render(i18n.T(lang, i18n.KeySensitivePrompt)),
+					execStyle.Render(m.PendingSensitive.Command),
+					suggestHi.Render(i18n.T(lang, i18n.KeySensitiveChoice2)),
+				)
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
+				m.PendingSensitive.ResponseCh <- agent.SensitiveRunAndStore
+				m.PendingSensitive = nil
+				return m, nil
+			case "3":
+				m.Messages = append(m.Messages,
+					approvalHeaderStyle.Render(i18n.T(lang, i18n.KeySensitivePrompt)),
+					execStyle.Render(m.PendingSensitive.Command),
+					suggestHi.Render(i18n.T(lang, i18n.KeySensitiveChoice3)),
+				)
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
+				m.PendingSensitive.ResponseCh <- agent.SensitiveRunNoStore
+				m.PendingSensitive = nil
+				return m, nil
+			}
+			return m, nil
+		}
+		if m.Pending != nil {
+			lang := m.getLang()
+			switch key {
+			case "1":
+				// Persist a static summary of the approval card and user's decision.
+				riskLabel := ""
+				switch m.Pending.RiskLevel {
+				case "read_only":
+					riskLabel = i18n.T(lang, i18n.KeyRiskReadOnly)
+				case "low":
+					riskLabel = i18n.T(lang, i18n.KeyRiskLow)
+				case "high":
+					riskLabel = i18n.T(lang, i18n.KeyRiskHigh)
+				}
+				commandLine := m.Pending.Command
+				if riskLabel != "" {
+					commandLine = "[" + riskLabel + "] " + commandLine
+				}
+				cmdW := m.Width
+				if cmdW <= 0 {
+					cmdW = 80
+				}
+				m.Messages = append(m.Messages, approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)))
+				if sn := strings.TrimSpace(m.Pending.SkillName); sn != "" {
+					m.Messages = append(m.Messages, suggestStyle.Render(wrapString(i18n.Tf(lang, i18n.KeySkillLine, sn), cmdW)))
+				}
+				m.Messages = append(m.Messages,
+					execStyle.Render(wrapString(commandLine, cmdW)),
+					approvalDecisionApprovedStyle.Render(i18n.T(lang, i18n.KeyApprovalDecisionApproved)),
+				)
+				if m.Pending.Summary != "" {
+					sumLine := i18n.T(lang, i18n.KeyApprovalSummary) + " " + m.Pending.Summary
+					m.Messages = append(m.Messages, suggestStyle.Render(wrapString(sumLine, cmdW)))
+				}
+				if m.Pending.Reason != "" {
+					whyLine := i18n.T(lang, i18n.KeyApprovalWhy) + " " + m.Pending.Reason
+					m.Messages = append(m.Messages, suggestStyle.Render(wrapString(whyLine, cmdW)))
+				}
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
+
+				m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: true, CopyRequested: false}
+				m.Pending = nil
+				return m, nil
+			case "2":
+				riskLabel := ""
+				switch m.Pending.RiskLevel {
+				case "read_only":
+					riskLabel = i18n.T(lang, i18n.KeyRiskReadOnly)
+				case "low":
+					riskLabel = i18n.T(lang, i18n.KeyRiskLow)
+				case "high":
+					riskLabel = i18n.T(lang, i18n.KeyRiskHigh)
+				}
+				commandLine := m.Pending.Command
+				if riskLabel != "" {
+					commandLine = "[" + riskLabel + "] " + commandLine
+				}
+				cmdW := m.Width
+				if cmdW <= 0 {
+					cmdW = 80
+				}
+				m.Messages = append(m.Messages, approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)))
+				if sn := strings.TrimSpace(m.Pending.SkillName); sn != "" {
+					m.Messages = append(m.Messages, suggestStyle.Render(wrapString(i18n.Tf(lang, i18n.KeySkillLine, sn), cmdW)))
+				}
+				m.Messages = append(m.Messages,
+					execStyle.Render(wrapString(commandLine, cmdW)),
+					approvalDecisionRejectedStyle.Render(i18n.T(lang, i18n.KeyApprovalDecisionRejected)),
+				)
+				if m.Pending.Summary != "" {
+					sumLine := i18n.T(lang, i18n.KeyApprovalSummary) + " " + m.Pending.Summary
+					m.Messages = append(m.Messages, suggestStyle.Render(wrapString(sumLine, cmdW)))
+				}
+				if m.Pending.Reason != "" {
+					whyLine := i18n.T(lang, i18n.KeyApprovalWhy) + " " + m.Pending.Reason
+					m.Messages = append(m.Messages, suggestStyle.Render(wrapString(whyLine, cmdW)))
+				}
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
+				threeOptions := m.GetAllowlistAutoRun != nil && !m.GetAllowlistAutoRun()
+				if threeOptions {
+					// 2 = Copy
+					_ = clipboard.WriteAll(m.Pending.Command)
+					m.appendSuggestedLine(m.Pending.Command, lang)
+					m.Messages = append(m.Messages, hintStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeySuggestedCopied))))
+					m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: true}
+				} else {
+					m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
+					m.WaitingForAI = false
+				}
+				m.Pending = nil
+				return m, nil
+			case "3":
+				// Only when 3 options: Dismiss
+				riskLabel := ""
+				switch m.Pending.RiskLevel {
+				case "read_only":
+					riskLabel = i18n.T(lang, i18n.KeyRiskReadOnly)
+				case "low":
+					riskLabel = i18n.T(lang, i18n.KeyRiskLow)
+				case "high":
+					riskLabel = i18n.T(lang, i18n.KeyRiskHigh)
+				}
+				commandLine := m.Pending.Command
+				if riskLabel != "" {
+					commandLine = "[" + riskLabel + "] " + commandLine
+				}
+				cmdW := m.Width
+				if cmdW <= 0 {
+					cmdW = 80
+				}
+				m.Messages = append(m.Messages, approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)))
+				if sn := strings.TrimSpace(m.Pending.SkillName); sn != "" {
+					m.Messages = append(m.Messages, suggestStyle.Render(wrapString(i18n.Tf(lang, i18n.KeySkillLine, sn), cmdW)))
+				}
+				m.Messages = append(m.Messages,
+					execStyle.Render(wrapString(commandLine, cmdW)),
+					suggestStyle.Render(i18n.T(lang, i18n.KeyChoiceDismiss)),
+				)
+				if m.Pending.Summary != "" {
+					sumLine := i18n.T(lang, i18n.KeyApprovalSummary) + " " + m.Pending.Summary
+					m.Messages = append(m.Messages, suggestStyle.Render(wrapString(sumLine, cmdW)))
+				}
+				if m.Pending.Reason != "" {
+					whyLine := i18n.T(lang, i18n.KeyApprovalWhy) + " " + m.Pending.Reason
+					m.Messages = append(m.Messages, suggestStyle.Render(wrapString(whyLine, cmdW)))
+				}
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
+				m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
+				m.Pending = nil
+				m.WaitingForAI = false
+				return m, nil
+			}
+			return m, nil
+		}
+
+		// Slash dropdown navigation should work even if other key paths evolve.
+		// Handle it before overlay/key-to-input processing so Up/Down/Enter remain reliable.
+		inputVal := m.Input.Value()
+		inSlash := strings.HasPrefix(inputVal, "/")
+		if inSlash {
+			if key == "up" || key == "down" || key == "pgup" || key == "pgdown" {
+				if key == "up" || key == "down" {
+					opts := getSlashOptionsForInput(inputVal, m.getLang(), m.CurrentSessionPath, m.LocalRunCommands, m.RemoteRunCommands, m.RemoteActive)
+					vis := visibleSlashOptions(inputVal, opts)
+					if len(vis) > 0 {
+						if m.SlashSuggestIndex >= len(vis) {
+							m.SlashSuggestIndex = 0
+						}
+						if key == "down" {
+							m.SlashSuggestIndex = (m.SlashSuggestIndex + 1) % len(vis)
+						} else {
+							m.SlashSuggestIndex = (m.SlashSuggestIndex - 1 + len(vis)) % len(vis)
+						}
+					}
+					return m, nil
+				}
+				var cmd tea.Cmd
+				m.Viewport, cmd = m.Viewport.Update(msg)
+				return m, cmd
+			}
+			if key == "enter" {
+				trimmed := strings.TrimSpace(inputVal)
+				// When the input already matches an executable slash command exactly,
+				// execute it directly (do not depend on dropdown selection).
+				switch trimmed {
+				case "/help":
+					m.OverlayActive = true
+					m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyHelpTitle)
+					m.OverlayContent = i18n.T(m.getLang(), i18n.KeyHelpText)
+					m.OverlayViewport = viewport.New(m.Width-4, min(m.Height-6, 20))
+					m.OverlayViewport.SetContent(m.OverlayContent)
+					return m, nil
+				case "/config llm":
+					m = m.openConfigLLMOverlay()
+					return m, nil
+				case "/config add-skill":
+					m = m.openAddSkillOverlay("", "", "")
+					return m, nil
+				case "/config add-remote":
+					m.OverlayActive = true
+					m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
+					m.AddRemoteActive = true
+					m.AddRemoteError = ""
+					m.AddRemoteOfferOverwrite = false
+					m.AddRemoteSave = true
+					m.AddRemoteConnect = false
+					m.PathCompletionCandidates = nil
+					m.PathCompletionIndex = -1
+					m.AddRemoteFieldIndex = 0
+					m.AddRemoteHostInput = textinput.New()
+					m.AddRemoteHostInput.Placeholder = "host or host:22"
+					m.AddRemoteHostInput.Focus()
+					m.AddRemoteUserInput = textinput.New()
+					m.AddRemoteUserInput.Placeholder = "e.g. root"
+					m.AddRemoteUserInput.SetValue("root")
+					m.AddRemoteNameInput = textinput.New()
+					m.AddRemoteNameInput.Placeholder = "name (optional)"
+					m.AddRemoteKeyInput = textinput.New()
+					m.AddRemoteKeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
+					return m, nil
+				case "/remote on":
+					m.OverlayActive = true
+					m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
+					m.AddRemoteActive = true
+					m.AddRemoteError = ""
+					m.AddRemoteOfferOverwrite = false
+					m.AddRemoteSave = false
+					m.AddRemoteConnect = true
+					m.PathCompletionCandidates = nil
+					m.PathCompletionIndex = -1
+					m.AddRemoteFieldIndex = 0
+					m.AddRemoteHostInput = textinput.New()
+					m.AddRemoteHostInput.Placeholder = "host or host:22"
+					m.AddRemoteHostInput.Focus()
+					m.AddRemoteUserInput = textinput.New()
+					m.AddRemoteUserInput.Placeholder = "e.g. root"
+					m.AddRemoteUserInput.SetValue("root")
+					m.AddRemoteNameInput = textinput.New()
+					m.AddRemoteNameInput.Placeholder = "name (optional)"
+					m.AddRemoteKeyInput = textinput.New()
+					m.AddRemoteKeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
+					return m, nil
+				case "/remote off":
+					if m.RemoteOffChan != nil {
+						select {
+						case m.RemoteOffChan <- struct{}{}:
+						default:
+						}
+					}
+					m.Input.SetValue("")
+					m.Input.CursorEnd()
+					return m, nil
+				}
+
+				opts := getSlashOptionsForInput(inputVal, m.getLang(), m.CurrentSessionPath, m.LocalRunCommands, m.RemoteRunCommands, m.RemoteActive)
+				vis := visibleSlashOptions(inputVal, opts)
+				if len(vis) > 0 && m.SlashSuggestIndex < len(vis) {
+					selectedOpt := opts[vis[m.SlashSuggestIndex]]
+					chosen := selectedOpt.Cmd
+					text := strings.TrimSpace(inputVal)
+					// If the user has fully typed a command (or selected it in dropdown) and pressed Enter,
+					// execute immediately for commands that do not require additional args.
+					if chosen == trimmed {
+						switch chosen {
+						case "/help":
+							m.OverlayActive = true
+							m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyHelpTitle)
+							m.OverlayContent = i18n.T(m.getLang(), i18n.KeyHelpText)
+							m.OverlayViewport = viewport.New(m.Width-4, min(m.Height-6, 20))
+							m.OverlayViewport.SetContent(m.OverlayContent)
+							return m, nil
+						case "/cancel":
+							if m.WaitingForAI && m.CancelRequestChan != nil {
+								select {
+								case m.CancelRequestChan <- struct{}{}:
+								default:
+								}
+								m.WaitingForAI = false
+							}
+							return m, nil
+						case "/config llm":
+							m = m.openConfigLLMOverlay()
+							return m, nil
+						case "/config add-remote":
+							// Same as later Enter handler: open add-remote overlay.
+							m.OverlayActive = true
+							m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
+							m.AddRemoteActive = true
+							m.AddRemoteError = ""
+							m.AddRemoteOfferOverwrite = false
+							m.AddRemoteSave = true
+							m.AddRemoteConnect = false
+							m.PathCompletionCandidates = nil
+							m.PathCompletionIndex = -1
+							m.AddRemoteFieldIndex = 0
+							m.AddRemoteHostInput = textinput.New()
+							m.AddRemoteHostInput.Placeholder = "host or host:22"
+							m.AddRemoteHostInput.Focus()
+							m.AddRemoteUserInput = textinput.New()
+							m.AddRemoteUserInput.Placeholder = "e.g. root"
+							m.AddRemoteUserInput.SetValue("root")
+							m.AddRemoteNameInput = textinput.New()
+							m.AddRemoteNameInput.Placeholder = "name (optional)"
+							m.AddRemoteKeyInput = textinput.New()
+							m.AddRemoteKeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
+							return m, nil
+						case "/config add-skill":
+							m = m.openAddSkillOverlay("", "", "")
+							return m, nil
+						case "/config update auto-run list":
+							m = m.applyConfigAllowlistUpdate()
+							return m, nil
+						case "/config reload", "/reload":
+							if m.ConfigUpdatedChan != nil {
+								select {
+								case m.ConfigUpdatedChan <- struct{}{}:
+								default:
+								}
+							}
+							return m, nil
+						case "/remote on":
+							// Same as later Enter handler: open remote connection overlay (reuse add-remote).
+							m.OverlayActive = true
+							m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
+							m.AddRemoteActive = true
+							m.AddRemoteError = ""
+							m.AddRemoteOfferOverwrite = false
+							m.AddRemoteSave = false
+							m.AddRemoteConnect = true
+							m.PathCompletionCandidates = nil
+							m.PathCompletionIndex = -1
+							m.AddRemoteFieldIndex = 0
+							m.AddRemoteHostInput = textinput.New()
+							m.AddRemoteHostInput.Placeholder = "host or host:22"
+							m.AddRemoteHostInput.Focus()
+							m.AddRemoteUserInput = textinput.New()
+							m.AddRemoteUserInput.Placeholder = "e.g. root"
+							m.AddRemoteUserInput.SetValue("root")
+							m.AddRemoteNameInput = textinput.New()
+							m.AddRemoteNameInput.Placeholder = "name (optional)"
+							m.AddRemoteKeyInput = textinput.New()
+							m.AddRemoteKeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
+							return m, nil
+						case "/remote off":
+							if m.RemoteOffChan != nil {
+								select {
+								case m.RemoteOffChan <- struct{}{}:
+								default:
+								}
+							}
+							m.Input.SetValue("")
+							m.Input.CursorEnd()
+							return m, nil
+						case "/q":
+							return m, tea.Quit
+						case "/sh":
+							if m.ShellRequestedChan != nil {
+								msgs := make([]string, len(m.Messages))
+								copy(msgs, m.Messages)
+								select {
+								case m.ShellRequestedChan <- msgs:
+								default:
+								}
+							}
+							return m, tea.Quit
+						case "/new":
+							if m.SubmitChan != nil {
+								m.SubmitChan <- "/new"
+							}
+							m.Input.SetValue("")
+							m.Input.CursorEnd()
+							m.SlashSuggestIndex = 0
+							m.Viewport.SetContent(m.buildContent())
+							m.Viewport.GotoBottom()
+							return m, nil
+						}
+					}
+					// Sessions list: selecting an item should switch immediately on Enter (no second Enter).
+					if false && selectedOpt.Path != "" && m.SessionSwitchChan != nil {
+						select {
+						case m.SessionSwitchChan <- selectedOpt.Path:
+						default:
+						}
+						m.Input.SetValue("")
+						m.Input.CursorEnd()
+						m.SlashSuggestIndex = 0
+						m.Viewport.SetContent(m.buildContent())
+						m.Viewport.GotoBottom()
+						return m, nil
+					}
+
+					// Execute-on-select for concrete suggestions where "fill then press Enter again" feels broken.
+					// This triggers when chosen extends current input (e.g. "/c" -> "/cancel", "/run l" -> "/run ls").
+					if false && chosen != text && strings.HasPrefix(chosen, text) {
+						switch {
+						case chosen == "/q":
+							return m, tea.Quit
+						case chosen == "/config auto-run list-only":
+							m = m.applyConfigAllowlistAutoRun("list-only")
+							m.Input.SetValue("")
+							m.Input.CursorEnd()
+							m.SlashSuggestIndex = 0
+							return m, nil
+						case chosen == "/config auto-run disable":
+							m = m.applyConfigAllowlistAutoRun("disable")
+							m.Input.SetValue("")
+							m.Input.CursorEnd()
+							m.SlashSuggestIndex = 0
+							return m, nil
+						case strings.HasPrefix(chosen, "/config del-remote "):
+							nameOrTarget := strings.TrimSpace(strings.TrimPrefix(chosen, "/config del-remote "))
+							if nameOrTarget != "" {
+								m = m.applyConfigRemoveRemote(nameOrTarget)
+							}
+							m.Input.SetValue("")
+							m.Input.CursorEnd()
+							m.SlashSuggestIndex = 0
+							return m, nil
+						case strings.HasPrefix(chosen, "/config del-skill "):
+							name := strings.TrimSpace(strings.TrimPrefix(chosen, "/config del-skill "))
+							if name != "" {
+								if err := skills.Remove(name); err != nil {
+									m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoveFailed, err))))
+								} else {
+									m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoved, name))))
+								}
+								m.Messages = append(m.Messages, "")
+								m.Viewport.SetContent(m.buildContent())
+								m.Viewport.GotoBottom()
+							}
+							m.Input.SetValue("")
+							m.Input.CursorEnd()
+							m.SlashSuggestIndex = 0
+							return m, nil
+						case strings.HasPrefix(chosen, "/remote on "):
+							target := strings.TrimSpace(strings.TrimPrefix(chosen, "/remote on "))
+							if target != "" && m.RemoteOnChan != nil {
+								select {
+								case m.RemoteOnChan <- target:
+								default:
+								}
+							}
+							m.Input.SetValue("")
+							m.Input.CursorEnd()
+							m.SlashSuggestIndex = 0
+							return m, nil
+						case chosen == "/remote off":
+							if m.RemoteOffChan != nil {
+								select {
+								case m.RemoteOffChan <- struct{}{}:
+								default:
+								}
+							}
+							m.Input.SetValue("")
+							m.Input.CursorEnd()
+							m.SlashSuggestIndex = 0
+							return m, nil
+						case strings.HasPrefix(chosen, "/run "):
+							cmd := strings.TrimSpace(strings.TrimPrefix(chosen, "/run "))
+							if cmd != "" && m.ExecDirectChan != nil {
+								select {
+								case m.ExecDirectChan <- cmd:
+								default:
+								}
+							}
+							m.Input.SetValue("")
+							m.Input.CursorEnd()
+							m.SlashSuggestIndex = 0
+							return m, nil
+						}
+					}
+
+					// For update-skill suggestions with a concrete name, execute directly on Enter
+					// so the user does not need a second Enter after fill.
+					if false && strings.HasPrefix(chosen, "/config update-skill ") && strings.TrimSpace(strings.TrimPrefix(chosen, "/config update-skill ")) != "" && chosen != text {
+						name := strings.TrimSpace(strings.TrimPrefix(chosen, "/config update-skill "))
+						// Only take the first token (safety), though slash options should already be well-formed.
+						if fields := strings.Fields(name); len(fields) > 0 {
+							name = fields[0]
+						}
+						m = m.openUpdateSkillOverlay(name)
+						m.Input.SetValue("")
+						m.Input.CursorEnd()
+						m.SlashSuggestIndex = 0
+						m.Viewport.SetContent(m.buildContent())
+						m.Viewport.GotoBottom()
+						return m, nil
+					}
+					// Fill only (do not execute) when chosen extends current input.
+					if (chosen == text || strings.HasPrefix(chosen, text)) && chosen != text {
+						m.Input.SetValue(slashChosenToInputValue(chosen))
+						m.Input.CursorEnd()
+						m.SlashSuggestIndex = 0
+						return m, nil
+					}
+				}
+				// Otherwise, let the later Enter handler deal with execute-on-select semantics.
+			}
 		}
 
 		// Overlay key handling: Esc closes, Enter submits, other keys go to overlay input.
@@ -347,6 +905,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.RemoteAuthTarget = ""
 				m.RemoteAuthError = ""
 				m.RemoteAuthUsername = ""
+					m.UpdateSkillActive = false
+					m.UpdateSkillError = ""
 				// After closing any overlay, always refocus main input.
 				m.Input.Focus()
 				return m, nil
@@ -783,7 +1343,66 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					return m, cmd
 				}
-				// Remote auth: step "username" → "choose" (1/2) → "password" or "identity".
+				// Update-skill overlay: choose ref and confirm update.
+				if m.UpdateSkillActive {
+					switch key {
+					case "up", "down":
+						if len(m.UpdateSkillRefs) == 0 {
+							return m, nil
+						}
+						dir := 1
+						if key == "up" {
+							dir = -1
+						}
+						m.UpdateSkillRefIndex = (m.UpdateSkillRefIndex + dir + len(m.UpdateSkillRefs)) % len(m.UpdateSkillRefs)
+						// Recompute latest commit for newly selected ref (best-effort; ignore errors).
+						selectedRef := strings.TrimSpace(m.UpdateSkillRefs[m.UpdateSkillRefIndex])
+						url := strings.TrimSpace(m.UpdateSkillURL)
+						if url != "" && selectedRef != "" {
+							if commit, err := git.LatestCommit(context.Background(), url, selectedRef); err == nil {
+								m.UpdateSkillLatestCommit = commit
+							}
+						}
+						return m, nil
+					case "enter":
+						if len(m.UpdateSkillRefs) == 0 || m.UpdateSkillName == "" {
+							return m, nil
+						}
+						selectedRef := strings.TrimSpace(m.UpdateSkillRefs[m.UpdateSkillRefIndex])
+						if err := skills.Update(m.UpdateSkillName, selectedRef); err != nil {
+							m.UpdateSkillError = err.Error()
+							return m, nil
+						}
+						// On success, close overlay and show a short confirmation message.
+						m.OverlayActive = false
+						m.UpdateSkillActive = false
+						m.UpdateSkillError = ""
+						shortCommit := m.UpdateSkillLatestCommit
+						if len(shortCommit) > 7 {
+							shortCommit = shortCommit[:7]
+						}
+						if shortCommit != "" {
+							m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(
+								fmt.Sprintf("Skill %s updated to %s@%s.", m.UpdateSkillName, selectedRef, shortCommit),
+							)))
+						} else {
+							m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(
+								fmt.Sprintf("Skill %s updated to %s.", m.UpdateSkillName, selectedRef),
+							)))
+						}
+						m.Messages = append(m.Messages, "")
+						m.Viewport.SetContent(m.buildContent())
+						m.Viewport.GotoBottom()
+						m.Input.Focus()
+						if m.ConfigUpdatedChan != nil {
+							select {
+							case m.ConfigUpdatedChan <- struct{}{}:
+							default:
+							}
+						}
+						return m, nil
+				}
+					// Remote auth: step "username" → "choose" (1/2) → "password" or "identity".
 				switch m.RemoteAuthStep {
 				case "auto_identity":
 					// Automatic connection with configured identity file: no interactive input; Esc handled above.
@@ -982,181 +1601,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		inChoice := m.Pending != nil || m.PendingSensitive != nil
-		if inChoice {
-			n := choiceCount(m)
-			if n > 0 {
-				if key == "enter" {
-					// Treat Enter as selecting current option (1-based)
-					key = string(rune('1' + m.ChoiceIndex))
-				} else if key == "up" || key == "down" {
-					if key == "down" {
-						m.ChoiceIndex = (m.ChoiceIndex + 1) % n
-					} else {
-						m.ChoiceIndex = (m.ChoiceIndex - 1 + n) % n
-					}
-					return m, nil
-				}
-			}
-		}
-
-		if m.PendingSensitive != nil {
-			lang := m.getLang()
-			switch key {
-			case "1":
-				// Persist a static summary of the sensitive confirmation card and user's choice.
-				m.Messages = append(m.Messages,
-					approvalHeaderStyle.Render(i18n.T(lang, i18n.KeySensitivePrompt)),
-					execStyle.Render(m.PendingSensitive.Command),
-					suggestHi.Render(i18n.T(lang, i18n.KeySensitiveChoice1)),
-				)
-				m.Viewport.SetContent(m.buildContent())
-				m.Viewport.GotoBottom()
-				m.PendingSensitive.ResponseCh <- agent.SensitiveRefuse
-				m.PendingSensitive = nil
-				return m, nil
-			case "2":
-				m.Messages = append(m.Messages,
-					approvalHeaderStyle.Render(i18n.T(lang, i18n.KeySensitivePrompt)),
-					execStyle.Render(m.PendingSensitive.Command),
-					suggestHi.Render(i18n.T(lang, i18n.KeySensitiveChoice2)),
-				)
-				m.Viewport.SetContent(m.buildContent())
-				m.Viewport.GotoBottom()
-				m.PendingSensitive.ResponseCh <- agent.SensitiveRunAndStore
-				m.PendingSensitive = nil
-				return m, nil
-			case "3":
-				m.Messages = append(m.Messages,
-					approvalHeaderStyle.Render(i18n.T(lang, i18n.KeySensitivePrompt)),
-					execStyle.Render(m.PendingSensitive.Command),
-					suggestHi.Render(i18n.T(lang, i18n.KeySensitiveChoice3)),
-				)
-				m.Viewport.SetContent(m.buildContent())
-				m.Viewport.GotoBottom()
-				m.PendingSensitive.ResponseCh <- agent.SensitiveRunNoStore
-				m.PendingSensitive = nil
-				return m, nil
-			}
-			return m, nil
-		}
-		if m.Pending != nil {
-			lang := m.getLang()
-			switch key {
-			case "1":
-				// Persist a static summary of the approval card and user's decision.
-				riskLabel := ""
-				switch m.Pending.RiskLevel {
-				case "read_only":
-					riskLabel = i18n.T(lang, i18n.KeyRiskReadOnly)
-				case "low":
-					riskLabel = i18n.T(lang, i18n.KeyRiskLow)
-				case "high":
-					riskLabel = i18n.T(lang, i18n.KeyRiskHigh)
-				}
-				commandLine := m.Pending.Command
-				if riskLabel != "" {
-					commandLine = "[" + riskLabel + "] " + commandLine
-				}
-				cmdW := m.Width
-				if cmdW <= 0 {
-					cmdW = 80
-				}
-				m.Messages = append(m.Messages,
-					approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)),
-					execStyle.Render(wrapString(commandLine, cmdW)),
-					approvalDecisionApprovedStyle.Render(i18n.T(lang, i18n.KeyApprovalDecisionApproved)),
-				)
-				if m.Pending.Reason != "" {
-					whyLine := i18n.T(lang, i18n.KeyApprovalWhy) + " " + m.Pending.Reason
-					m.Messages = append(m.Messages, suggestStyle.Render(wrapString(whyLine, cmdW)))
-				}
-				m.Viewport.SetContent(m.buildContent())
-				m.Viewport.GotoBottom()
-
-				m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: true, CopyRequested: false}
-				m.Pending = nil
-				return m, nil
-			case "2":
-				riskLabel := ""
-				switch m.Pending.RiskLevel {
-				case "read_only":
-					riskLabel = i18n.T(lang, i18n.KeyRiskReadOnly)
-				case "low":
-					riskLabel = i18n.T(lang, i18n.KeyRiskLow)
-				case "high":
-					riskLabel = i18n.T(lang, i18n.KeyRiskHigh)
-				}
-				commandLine := m.Pending.Command
-				if riskLabel != "" {
-					commandLine = "[" + riskLabel + "] " + commandLine
-				}
-				cmdW := m.Width
-				if cmdW <= 0 {
-					cmdW = 80
-				}
-				m.Messages = append(m.Messages,
-					approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)),
-					execStyle.Render(wrapString(commandLine, cmdW)),
-					approvalDecisionRejectedStyle.Render(i18n.T(lang, i18n.KeyApprovalDecisionRejected)),
-				)
-				if m.Pending.Reason != "" {
-					whyLine := i18n.T(lang, i18n.KeyApprovalWhy) + " " + m.Pending.Reason
-					m.Messages = append(m.Messages, suggestStyle.Render(wrapString(whyLine, cmdW)))
-				}
-				m.Viewport.SetContent(m.buildContent())
-				m.Viewport.GotoBottom()
-				threeOptions := m.GetAllowlistAutoRun != nil && !m.GetAllowlistAutoRun()
-				if threeOptions {
-					// 2 = Copy
-					_ = clipboard.WriteAll(m.Pending.Command)
-					m.appendSuggestedLine(m.Pending.Command, lang)
-					m.Messages = append(m.Messages, hintStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeySuggestedCopied))))
-					m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: true}
-				} else {
-					m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
-					m.WaitingForAI = false
-				}
-				m.Pending = nil
-				return m, nil
-			case "3":
-				// Only when 3 options: Dismiss
-				riskLabel := ""
-				switch m.Pending.RiskLevel {
-				case "read_only":
-					riskLabel = i18n.T(lang, i18n.KeyRiskReadOnly)
-				case "low":
-					riskLabel = i18n.T(lang, i18n.KeyRiskLow)
-				case "high":
-					riskLabel = i18n.T(lang, i18n.KeyRiskHigh)
-				}
-				commandLine := m.Pending.Command
-				if riskLabel != "" {
-					commandLine = "[" + riskLabel + "] " + commandLine
-				}
-				cmdW := m.Width
-				if cmdW <= 0 {
-					cmdW = 80
-				}
-				m.Messages = append(m.Messages,
-					approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)),
-					execStyle.Render(wrapString(commandLine, cmdW)),
-					suggestStyle.Render(i18n.T(lang, i18n.KeyChoiceDismiss)),
-				)
-				if m.Pending.Reason != "" {
-					whyLine := i18n.T(lang, i18n.KeyApprovalWhy) + " " + m.Pending.Reason
-					m.Messages = append(m.Messages, suggestStyle.Render(wrapString(whyLine, cmdW)))
-				}
-				m.Viewport.SetContent(m.buildContent())
-				m.Viewport.GotoBottom()
-				m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
-				m.Pending = nil
-				m.WaitingForAI = false
-				return m, nil
-			}
-			return m, nil
-		}
-
 		inputVal := m.Input.Value()
 		inSlash := strings.HasPrefix(inputVal, "/")
 
@@ -1200,24 +1644,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				vis := visibleSlashOptions(inputVal, opts)
 				if len(vis) > 0 && m.SlashSuggestIndex < len(vis) {
 					chosen := opts[vis[m.SlashSuggestIndex]].Cmd
-					// Execute-on-select: chosen is a specific item (del-remote <name> or remote on <target>); submit it directly.
-					if chosen != text && strings.HasPrefix(chosen, text) {
-						if strings.HasPrefix(chosen, "/config del-remote ") && strings.TrimSpace(strings.TrimPrefix(chosen, "/config del-remote ")) != "" {
-							text = chosen
-						} else if strings.HasPrefix(chosen, "/remote on ") {
-							t := strings.TrimSpace(strings.TrimPrefix(chosen, "/remote on "))
-							if t != "" && !strings.Contains(t, "<") {
-								text = chosen
-							}
-						}
-					}
-					// del-skill: fill selected skill name only when input is incomplete (chosen != text); else fall through to submit.
-					if strings.HasPrefix(chosen, "/config del-skill ") && strings.TrimSpace(chosen[len("/config del-skill "):]) != "" && chosen != text {
-						m.Input.SetValue(chosen)
-						m.Input.CursorEnd()
-						m.SlashSuggestIndex = 0
-						return m, nil
-					}
 					// chosen != text => fill selection only, do not execute or add to View
 					if (chosen == text || strings.HasPrefix(chosen, text)) && chosen != text {
 						m.Input.SetValue(slashChosenToInputValue(chosen))
@@ -1315,6 +1741,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			case text == "/config update auto-run list":
 				m = m.applyConfigAllowlistUpdate()
+				return m, nil
+			case text == "/config auto-run list-only":
+				m = m.applyConfigAllowlistAutoRun("list-only")
+				return m, nil
+			case text == "/config auto-run disable":
+				m = m.applyConfigAllowlistAutoRun("disable")
 				return m, nil
 			case text == "/config add-remote":
 				m.OverlayActive = true
@@ -1444,6 +1876,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Viewport.SetContent(m.buildContent())
 				m.Viewport.GotoBottom()
 				return m, nil
+			case strings.HasPrefix(text, "/config update-skill"):
+				rest := strings.TrimSpace(text[len("/config update-skill"):])
+				fields := strings.Fields(rest)
+				if len(fields) == 0 {
+					m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyDescConfigUpdateSkill))))
+					m.Viewport.SetContent(m.buildContent())
+					m.Viewport.GotoBottom()
+					return m, nil
+				}
+				skillName := fields[0]
+				m = m.openUpdateSkillOverlay(skillName)
+				m.Input.SetValue("")
+				m.Input.CursorEnd()
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
+				return m, nil
 			case strings.HasPrefix(text, "/skill "):
 				rest := strings.TrimSpace(text[len("/skill "):])
 				fields := strings.Fields(rest)
@@ -1482,6 +1930,82 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else if cmd == "" {
 					m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyUsageRun))))
 				}
+				return m, nil
+			case strings.HasPrefix(text, "/sessions "):
+				id := strings.TrimSpace(strings.TrimPrefix(text, "/sessions "))
+				if id == "" {
+					return m, nil
+				}
+				if m.SessionSwitchChan != nil {
+					sessionPath := filepath.Join(config.HistoryDir(), id+".jsonl")
+					select {
+					case m.SessionSwitchChan <- sessionPath:
+					default:
+					}
+				}
+				m.Input.SetValue("")
+				m.Input.CursorEnd()
+				m.SlashSuggestIndex = 0
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
+				return m, nil
+			case strings.HasPrefix(text, "/config del-remote "):
+				nameOrTarget := strings.TrimSpace(strings.TrimPrefix(text, "/config del-remote "))
+				if nameOrTarget == "" {
+					return m, nil
+				}
+				m = m.applyConfigRemoveRemote(nameOrTarget)
+				m.Input.SetValue("")
+				m.Input.CursorEnd()
+				m.SlashSuggestIndex = 0
+				return m, nil
+			case strings.HasPrefix(text, "/config del-skill "):
+				name := strings.TrimSpace(strings.TrimPrefix(text, "/config del-skill "))
+				if name == "" {
+					m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyUsageSkillRemove))))
+					return m, nil
+				}
+				if err := skills.Remove(name); err != nil {
+					m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoveFailed, err))))
+				} else {
+					m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoved, name))))
+				}
+				m.Messages = append(m.Messages, "")
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
+				m.Input.SetValue("")
+				m.Input.CursorEnd()
+				m.SlashSuggestIndex = 0
+				return m, nil
+			case strings.HasPrefix(text, "/remote on "):
+				target := strings.TrimSpace(strings.TrimPrefix(text, "/remote on "))
+				if target == "" {
+					return m, nil
+				}
+				if m.RemoteOnChan != nil {
+					select {
+					case m.RemoteOnChan <- target:
+					default:
+					}
+				}
+				m.Input.SetValue("")
+				m.Input.CursorEnd()
+				m.SlashSuggestIndex = 0
+				return m, nil
+			case strings.HasPrefix(text, "/config update-skill "):
+				name := strings.TrimSpace(strings.TrimPrefix(text, "/config update-skill "))
+				if fields := strings.Fields(name); len(fields) > 0 {
+					name = fields[0]
+				}
+				if name == "" {
+					return m, nil
+				}
+				m = m.openUpdateSkillOverlay(name)
+				m.Input.SetValue("")
+				m.Input.CursorEnd()
+				m.SlashSuggestIndex = 0
+				m.Viewport.SetContent(m.buildContent())
+				m.Viewport.GotoBottom()
 				return m, nil
 			case strings.HasPrefix(text, "/"):
 				// Use path captured before SlashSuggestIndex was reset; otherwise we would always send opts[0].
@@ -1734,6 +2258,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 	return m, cmd
+	}
 
 	case tea.MouseMsg:
 		var cmd tea.Cmd
@@ -1915,7 +2440,71 @@ func NewModel(
 		CurrentSessionPath:         initialSessionPath,
 		GetAllowlistAutoRun:        getAllowlistAutoRun,
 		InitialShowConfigLLM:       initialShowConfigLLM,
-		Width:                     defaultWidth,
-		Height:                    defaultHeight,
+		Width:                      defaultWidth,
+		Height:                     defaultHeight,
 	}
+}
+
+// openUpdateSkillOverlay initializes the update-skill overlay for the given skill name.
+// It loads the skill's source from the manifest, fetches refs and latest commit info,
+// and prepares UI state so the user can choose a ref and confirm the update.
+func (m Model) openUpdateSkillOverlay(name string) Model {
+	lang := m.getLang()
+	url, ref, commitID, path, _, ok := skills.GetSkillSource(name)
+	if !ok || strings.TrimSpace(url) == "" {
+		// Keep this as an overlay (not a transient message) so "Enter" always produces visible feedback.
+		m.OverlayActive = true
+		m.OverlayTitle = "Update skill"
+		m.UpdateSkillActive = true
+		m.UpdateSkillName = strings.TrimSpace(name)
+		m.UpdateSkillURL = strings.TrimSpace(url)
+		m.UpdateSkillPath = strings.TrimSpace(path)
+		m.UpdateSkillCurrentCommit = strings.TrimSpace(commitID)
+		m.UpdateSkillRefs = nil
+		m.UpdateSkillRefIndex = 0
+		m.UpdateSkillLatestCommit = ""
+		m.UpdateSkillError = i18n.T(lang, i18n.KeySkillNotFound)
+		return m
+	}
+	ctx := context.Background()
+	refs := git.ListRefs(ctx, url)
+	if len(refs) == 0 {
+		// Fallback to using the manifest ref or a sensible default.
+		if strings.TrimSpace(ref) != "" {
+			refs = []string{ref}
+		} else {
+			refs = []string{"main", "master"}
+		}
+	}
+	// Determine selected ref and index.
+	selectedRef := strings.TrimSpace(ref)
+	if selectedRef == "" && len(refs) > 0 {
+		selectedRef = refs[0]
+	}
+	idx := 0
+	for i, r := range refs {
+		if r == selectedRef {
+			idx = i
+			break
+		}
+	}
+	latestCommit := ""
+	if strings.TrimSpace(selectedRef) != "" {
+		if commit, err := git.LatestCommit(ctx, url, selectedRef); err == nil {
+			latestCommit = commit
+		}
+	}
+
+	m.OverlayActive = true
+	m.OverlayTitle = "Update skill"
+	m.UpdateSkillActive = true
+	m.UpdateSkillError = ""
+	m.UpdateSkillName = name
+	m.UpdateSkillURL = url
+	m.UpdateSkillPath = path
+	m.UpdateSkillCurrentCommit = commitID
+	m.UpdateSkillRefs = refs
+	m.UpdateSkillRefIndex = idx
+	m.UpdateSkillLatestCommit = latestCommit
+	return m
 }

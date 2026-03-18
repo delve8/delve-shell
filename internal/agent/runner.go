@@ -52,9 +52,9 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		return nil, err
 	}
 
-	requestApproval := func(cmd, reason, riskLevel string) ApprovalResponse {
+	requestApproval := func(cmd, summary, reason, riskLevel, skillName string) ApprovalResponse {
 		ch := make(chan ApprovalResponse, 1)
-		opts.ApprovalChan <- &ApprovalRequest{Command: cmd, Reason: reason, RiskLevel: riskLevel, ResponseCh: ch}
+		opts.ApprovalChan <- &ApprovalRequest{Command: cmd, Summary: summary, Reason: reason, RiskLevel: riskLevel, SkillName: strings.TrimSpace(skillName), ResponseCh: ch}
 		return <-ch
 	}
 	requestSensitiveConfirmation := func(cmd string) SensitiveChoice {

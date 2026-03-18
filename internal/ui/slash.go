@@ -1,11 +1,14 @@
 package ui
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"delve-shell/internal/config"
+	"delve-shell/internal/git"
 	"delve-shell/internal/history"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/skills"
@@ -45,6 +48,7 @@ func getConfigSubOptions(lang string) []slashOption {
 		{"/config del-remote", i18n.T(lang, i18n.KeyDescConfigRemoveRemote), ""},
 		{"/config add-skill", i18n.T(lang, i18n.KeyDescSkillInstall), ""},
 		{"/config del-skill", i18n.T(lang, i18n.KeyDescSkillRemove), ""},
+		{"/config update-skill", i18n.T(lang, i18n.KeyDescConfigUpdateSkill), ""},
 		{"/config auto-run list-only", i18n.T(lang, i18n.KeyDescAutoRunListOnly), ""},
 		{"/config auto-run disable", i18n.T(lang, i18n.KeyDescAutoRunDisable), ""},
 		{"/config update auto-run list", i18n.T(lang, i18n.KeyDescConfigAllowlistUpdate), ""},
@@ -106,6 +110,10 @@ func getSlashOptionsForInput(inputVal string, lang string, currentSessionPath st
 			filter := strings.TrimSpace(strings.TrimPrefix(rest, "del-skill"))
 			return getDelSkillSlashOptions(lang, filter)
 		}
+		if rest == "update-skill" || strings.HasPrefix(rest, "update-skill ") {
+			filter := strings.TrimSpace(strings.TrimPrefix(rest, "update-skill"))
+			return getUpdateSkillSlashOptions(lang, filter)
+		}
 		return getConfigSubOptions(lang)
 	}
 	if normalizedLower == "sessions" || strings.HasPrefix(normalizedLower, "sessions ") {
@@ -158,6 +166,68 @@ func getDelSkillSlashOptions(lang string, filter string) []slashOption {
 	}
 	if len(opts) == 0 {
 		return []slashOption{{Cmd: "/config del-skill", Desc: i18n.T(lang, i18n.KeySkillNone), Path: ""}}
+	}
+	return opts
+}
+
+// getUpdateSkillSlashOptions returns options for /config update-skill:
+// one option per installed skill with git source; skills with a newer commit
+// at their tracked ref are marked with "*" after the name.
+func getUpdateSkillSlashOptions(lang string, filter string) []slashOption {
+	sources, err := skills.ListSources()
+	if err != nil || len(sources) == 0 {
+		return []slashOption{{Cmd: "/config update-skill", Desc: i18n.T(lang, i18n.KeySkillNone), Path: ""}}
+	}
+	filterLower := strings.ToLower(filter)
+	ctx := context.Background()
+	var opts []slashOption
+	for name, src := range sources {
+		if filterLower != "" && !strings.Contains(strings.ToLower(name), filterLower) {
+			continue
+		}
+		labelName := name
+		descParts := make([]string, 0, 3)
+		if src.Ref != "" {
+			descParts = append(descParts, fmt.Sprintf("ref: %s", src.Ref))
+		}
+		if strings.TrimSpace(src.Path) != "" {
+			descParts = append(descParts, fmt.Sprintf("path: %s", src.Path))
+		}
+		latest := ""
+		if strings.TrimSpace(src.URL) != "" {
+			if commit, e := git.LatestCommit(ctx, src.URL, src.Ref); e == nil && commit != "" {
+				latest = commit
+				if src.CommitID != "" && src.CommitID != commit {
+					labelName = labelName + "*"
+				}
+			}
+		}
+		if src.CommitID != "" {
+			short := src.CommitID
+			if len(short) > 7 {
+				short = short[:7]
+			}
+			descParts = append(descParts, fmt.Sprintf("current: %s", short))
+		}
+		if latest != "" {
+			short := latest
+			if len(short) > 7 {
+				short = short[:7]
+			}
+			descParts = append(descParts, fmt.Sprintf("latest: %s", short))
+		}
+		desc := strings.Join(descParts, ", ")
+		if desc == "" {
+			desc = src.URL
+		}
+		opts = append(opts, slashOption{
+			Cmd:  "/config update-skill " + name,
+			Desc: desc,
+			Path: "",
+		})
+	}
+	if len(opts) == 0 {
+		return []slashOption{{Cmd: "/config update-skill", Desc: i18n.T(lang, i18n.KeySkillNone), Path: ""}}
 	}
 	return opts
 }
@@ -280,12 +350,10 @@ func getSessionSlashOptions(filter string, currentSessionPath string) []slashOpt
 				continue
 			}
 		}
-		// Use session id as primary (stable); mtime changes on write.
-		cmd := s.ID
-		if s.Snippet != "" {
-			cmd += "  " + s.Snippet
-		}
-		opts = append(opts, slashOption{Cmd: cmd, Desc: "", Path: s.Path})
+		// Use a runnable slash command so Enter can fill then execute consistently.
+		cmd := "/sessions " + s.ID
+		desc := s.Snippet
+		opts = append(opts, slashOption{Cmd: cmd, Desc: desc, Path: s.Path})
 	}
 	if len(opts) == 0 {
 		return []slashOption{{Cmd: i18n.T("en", i18n.KeySessionNone), Desc: "", Path: ""}} // Path empty = no session to switch to

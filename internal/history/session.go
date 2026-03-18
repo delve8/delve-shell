@@ -91,7 +91,8 @@ func (s *Session) AppendLLMResponse(payload interface{}) error {
 }
 
 // AppendCommand records a command about to run; reason and riskLevel are optional, for audit.
-func (s *Session) AppendCommand(command string, approved bool, reason, riskLevel string) error {
+// kind is empty for shell (execute_command); use "skill" for run_skill. skillName is set when kind is "skill".
+func (s *Session) AppendCommand(command string, approved bool, reason, riskLevel, kind, skillName string) error {
 	payload := map[string]interface{}{"command": command, "approved": approved}
 	if reason != "" {
 		payload["reason"] = reason
@@ -99,17 +100,29 @@ func (s *Session) AppendCommand(command string, approved bool, reason, riskLevel
 	if riskLevel != "" {
 		payload["risk_level"] = riskLevel
 	}
+	if kind != "" {
+		payload["kind"] = kind
+	}
+	if skillName != "" {
+		payload["skill_name"] = skillName
+	}
 	return s.append("command", payload)
 }
 
 // AppendSuggestedCommand records a command that was only suggested (not executed), e.g. in suggest mode.
-func (s *Session) AppendSuggestedCommand(command, reason, riskLevel string) error {
+func (s *Session) AppendSuggestedCommand(command, reason, riskLevel, kind, skillName string) error {
 	payload := map[string]interface{}{"command": command, "approved": false, "suggested": true}
 	if reason != "" {
 		payload["reason"] = reason
 	}
 	if riskLevel != "" {
 		payload["risk_level"] = riskLevel
+	}
+	if kind != "" {
+		payload["kind"] = kind
+	}
+	if skillName != "" {
+		payload["skill_name"] = skillName
 	}
 	return s.append("command", payload)
 }

@@ -22,7 +22,6 @@ type SkillMeta struct {
 	// Optional extensions (defaults used when empty)
 	Summary          string `yaml:"summary,omitempty"`
 	RiskLevel        string `yaml:"risk_level,omitempty"`
-	AlwaysConfirm    bool   `yaml:"always_confirm,omitempty"`
 	Scope            string `yaml:"scope,omitempty"`             // local, remote, both
 	RemoteUploadDir  string `yaml:"remote_upload_dir,omitempty"` // default /tmp/
 	// LocalName is the directory name under ~/.delve-shell/skills (used for /skill and /config del-skill commands).
@@ -157,8 +156,13 @@ func ScriptPath(skillDir, scriptName string) (string, error) {
 // BuildCommand builds the shell command to run scriptName from skillDir with args: cd scripts && bash scriptName args...
 // Uses bash so scripts do not need execute permission. skillDir is the skill root (e.g. ~/.delve-shell/skills/foo).
 func BuildCommand(skillDir, scriptName string, args []string) (string, error) {
-	scriptsDir := ScriptsDir(skillDir)
-	abs, err := filepath.Abs(scriptsDir)
+	return BuildCommandInDir(ScriptsDir(skillDir), scriptName, args)
+}
+
+// BuildCommandInDir builds the shell command to run scriptName from baseDir with args: cd baseDir && bash scriptName args...
+// baseDir should be the scripts directory (local or remote). Uses bash so scripts do not need execute permission.
+func BuildCommandInDir(baseDir, scriptName string, args []string) (string, error) {
+	abs, err := filepath.Abs(baseDir)
 	if err != nil {
 		return "", err
 	}
@@ -464,6 +468,17 @@ func GetSkillSource(name string) (url, ref, commitID, path, installedAt string, 
 	return s.URL, s.Ref, s.CommitID, s.Path, s.InstalledAt, true
 }
 
+// ListSources returns the manifest entries for installed skills (name -> SkillSource).
+// It is used for status display and update checks; order is undefined.
+func ListSources() (map[string]SkillSource, error) {
+	m, err := loadManifest()
+	if err != nil {
+		return nil, err
+	}
+	// Return the map directly; callers must treat it as read-only.
+	return m.Skills, nil
+}
+
 // InstallFromGit fetches the repo at url (ref optional branch/tag) and writes the skill into ~/.delve-shell/skills/<name> (no .git dir).
 // path: optional subpath within the repo (e.g. "skills/foo"); empty means auto-discover (conventional dirs then recursive).
 // name defaults to the last path component when path is set (e.g. "skills/foo" -> "foo"), otherwise NameFromGitURL(url).
@@ -560,6 +575,107 @@ func InstallFromGit(url, ref, name, path string) (finalName string, err error) {
 	_ = saveManifest(m)
 	appendSkillAudit("install", url, ref, name)
 	return name, nil
+}
+
+// Update fetches the latest version of a skill from its git source and atomically
+// replaces the local skill directory. newRef, when non-empty, overrides the
+// manifest ref (branch/tag); when empty, the manifest ref is reused.
+func Update(name, newRef string) error {
+	name = strings.TrimSpace(name)
+	if !safeSkillName(name) {
+		return os.ErrInvalid
+	}
+	m, err := loadManifest()
+	if err != nil {
+		return err
+	}
+	src, ok := m.Skills[name]
+	if !ok {
+		return os.ErrNotExist
+	}
+	ref := strings.TrimSpace(newRef)
+	if ref == "" {
+		ref = strings.TrimSpace(src.Ref)
+	}
+	ctx := context.Background()
+
+	// Prepare temp repo dir.
+	tmpRepoDir, err := os.MkdirTemp("", "delve-shell-skill-update-*")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpRepoDir)
+
+	var (
+		commitID          string
+		downloadedSkillDir string
+	)
+	if strings.TrimSpace(src.Path) != "" {
+		// Explicit path: fetch only that subtree into tmpRepoDir.
+		commitID, err = git.FetchRepoTree(ctx, src.URL, ref, tmpRepoDir, src.Path)
+		if err != nil {
+			return err
+		}
+		downloadedSkillDir = tmpRepoDir
+	} else {
+		// Auto-discover: fetch full repo to tmpRepoDir, then find the skill dir.
+		commitID, err = git.FetchRepoTree(ctx, src.URL, ref, tmpRepoDir, "")
+		if err != nil {
+			return err
+		}
+		subpath, discoverErr := DiscoverSkillDir(tmpRepoDir)
+		if discoverErr != nil {
+			return discoverErr
+		}
+		downloadedSkillDir = filepath.Join(tmpRepoDir, filepath.FromSlash(subpath))
+	}
+
+	// Validate structure: require SKILL.md.
+	if _, statErr := os.Stat(filepath.Join(downloadedSkillDir, "SKILL.md")); statErr != nil {
+		return fmt.Errorf("updated skill missing SKILL.md: %w", statErr)
+	}
+
+	skillsRoot := config.SkillsDir()
+	oldDir := filepath.Join(skillsRoot, name)
+	if _, statErr := os.Stat(oldDir); statErr != nil {
+		if os.IsNotExist(statErr) {
+			return os.ErrNotExist
+		}
+		return statErr
+	}
+	newDir := filepath.Join(skillsRoot, name+".new")
+	_ = os.RemoveAll(newDir)
+	if err := copyDir(newDir, downloadedSkillDir); err != nil {
+		_ = os.RemoveAll(newDir)
+		return err
+	}
+
+	// Atomic replacement with backup.
+	timeSuffix := time.Now().UTC().Format("20060102-150405")
+	bakDir := oldDir + ".bak-" + timeSuffix
+	if err := os.Rename(oldDir, bakDir); err != nil {
+		_ = os.RemoveAll(newDir)
+		return err
+	}
+	if err := os.Rename(newDir, oldDir); err != nil {
+		// Best-effort rollback.
+		_ = os.RemoveAll(newDir)
+		_ = os.Rename(bakDir, oldDir)
+		return err
+	}
+	_ = os.RemoveAll(bakDir)
+
+	// Update manifest and audit.
+	installedAt := time.Now().UTC().Format(time.RFC3339)
+	src.Ref = ref
+	src.CommitID = commitID
+	src.InstalledAt = installedAt
+	m.Skills[name] = src
+	if err := saveManifest(m); err != nil {
+		return err
+	}
+	appendSkillAudit("update", src.URL, ref, name)
+	return nil
 }
 
 // Remove deletes a skill directory. name must be safe (no path traversal).

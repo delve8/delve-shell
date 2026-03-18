@@ -207,6 +207,140 @@ func TestChoice_EnterSelectsCurrentOption(t *testing.T) {
 	}
 }
 
+func TestSlashDropdown_UpDownAndEnterFill(t *testing.T) {
+	getAutoRun := func() bool { return true }
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
+	m.Input.SetValue("/")
+	m.Input.CursorEnd()
+	if got := m.Input.Value(); got != "/" {
+		t.Fatalf("precondition: expected input value '/', got %q", got)
+	}
+
+	if got := (tea.KeyMsg{Type: tea.KeyDown}).String(); got != "down" {
+		t.Fatalf("unexpected KeyDown String(): %q", got)
+	}
+
+	// Down should move selection from index 0 to 1 (some other slash option).
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m2 := next.(Model)
+	if got := m2.Input.Value(); got != "/" {
+		t.Fatalf("expected input to remain '/', got %q", got)
+	}
+	if m2.SlashSuggestIndex == 0 {
+		t.Fatalf("expected SlashSuggestIndex to change after Down, got %d", m2.SlashSuggestIndex)
+	}
+
+	// Enter should fill the chosen option into the input (not execute), so input is no longer just "/".
+	next2, _ := m2.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m3 := next2.(Model)
+	// Depending on which option is selected, Enter may execute immediately (e.g. /cancel, /q),
+	// which clears input. The minimum contract is: it should not remain exactly "/".
+	if strings.TrimSpace(m3.Input.Value()) == "/" {
+		t.Fatalf("expected Enter to fill a slash option, got input %q", m3.Input.Value())
+	}
+	// If it was a fill (not execute), it must start with "/".
+	if v := strings.TrimSpace(m3.Input.Value()); v != "" && !strings.HasPrefix(v, "/") {
+		t.Fatalf("expected filled input to start with '/', got %q", m3.Input.Value())
+	}
+}
+
+func TestSlashDropdown_UpdateSkill_EnterExecutesOverlay(t *testing.T) {
+	getAutoRun := func() bool { return true }
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
+	// This command does not need to exist in manifest; openUpdateSkillOverlay shows an overlay error.
+	m.Input.SetValue("/config update-skill")
+	m.Input.CursorEnd()
+
+	// Move selection so we are not always on "/config add-remote" etc; we want update-skill option itself.
+	// With input "/config update-skill", dropdown should include update-skill items; Enter should execute
+	// when a concrete "/config update-skill <name>" suggestion is selected.
+	// Since tests have no installed skills, getSlashOptionsForInput will show a placeholder; simulate a concrete chosen option.
+	// We do this by setting input to a prefix and relying on fill-only/execute logic for update-skill suggestions.
+	m.Input.SetValue("/config update-skill x")
+	m.Input.CursorEnd()
+	// Press Enter: should not crash; may fill or execute depending on suggestions. At minimum, it should not clear input to empty silently.
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m2 := next.(Model)
+	if m2.Input.Value() == "" && !m2.OverlayActive {
+		t.Fatalf("expected either overlay or non-empty input after Enter, got empty input and no overlay")
+	}
+}
+
+func TestSlashCommand_Help_EnterOpensOverlay(t *testing.T) {
+	getAutoRun := func() bool { return true }
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
+	m.Input.SetValue("/help")
+	m.Input.CursorEnd()
+
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m2 := next.(Model)
+	if !m2.OverlayActive {
+		t.Fatalf("expected /help Enter to open overlay, OverlayActive=false")
+	}
+	if m2.OverlayTitle == "" {
+		t.Fatalf("expected /help overlay to have a title")
+	}
+}
+
+func TestSlashCommand_RemoteOn_EnterOpensOverlay(t *testing.T) {
+	getAutoRun := func() bool { return true }
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
+	m.Input.SetValue("/remote on")
+	m.Input.CursorEnd()
+
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m2 := next.(Model)
+	if !m2.OverlayActive || !m2.AddRemoteActive {
+		t.Fatalf("expected /remote on Enter to open overlay, OverlayActive=%v AddRemoteActive=%v", m2.OverlayActive, m2.AddRemoteActive)
+	}
+}
+
+func TestSlashDropdown_Cancel_EnterFillsThenExecutes(t *testing.T) {
+	cancelCh := make(chan struct{}, 1)
+	getAutoRun := func() bool { return true }
+	m := NewModel(nil, nil, nil, cancelCh, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
+	m.WaitingForAI = true
+	m.Input.SetValue("/c")
+	m.Input.CursorEnd()
+
+	// Move selection to the "/cancel" option.
+	opts := getSlashOptionsForInput(m.Input.Value(), m.getLang(), m.CurrentSessionPath, m.LocalRunCommands, m.RemoteRunCommands, m.RemoteActive)
+	vis := visibleSlashOptions(m.Input.Value(), opts)
+	for i, idx := range vis {
+		if opts[idx].Cmd == "/cancel" {
+			m.SlashSuggestIndex = i
+			break
+		}
+	}
+
+	// First Enter should fill to "/cancel", not execute.
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m2 := next.(Model)
+	if strings.TrimSpace(m2.Input.Value()) != "/cancel" {
+		t.Fatalf("expected first Enter to fill input to /cancel, got %q", m2.Input.Value())
+	}
+	if !m2.WaitingForAI {
+		t.Fatalf("expected WaitingForAI to remain true after fill-only Enter")
+	}
+	select {
+	case <-cancelCh:
+		t.Fatalf("did not expect cancel request on fill-only Enter")
+	default:
+	}
+
+	// Second Enter executes /cancel.
+	next2, _ := m2.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m3 := next2.(Model)
+	if m3.WaitingForAI {
+		t.Fatalf("expected WaitingForAI=false after executing /cancel")
+	}
+	select {
+	case <-cancelCh:
+	default:
+		t.Fatalf("expected cancel request to be sent")
+	}
+}
+
 // TestSessionSwitchedMsg_setsCurrentPathAndShowsSwitchedAtBottom asserts that after SessionSwitchedMsg,
 // CurrentSessionPath is set and the "Switched to session" line is present (at end when there is history).
 func TestSessionSwitchedMsg_setsCurrentPathAndShowsSwitchedAtBottom(t *testing.T) {

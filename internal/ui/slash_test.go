@@ -3,7 +3,6 @@ package ui
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -34,8 +33,8 @@ func TestGetSessionSlashOptions_excludesCurrentSession(t *testing.T) {
 	if opts[0].Path != bPath {
 		t.Errorf("expected remaining option to be b, got %s", opts[0].Path)
 	}
-	if !strings.HasPrefix(opts[0].Cmd, "b") {
-		t.Errorf("option Cmd should start with session id b, got %q", opts[0].Cmd)
+	if opts[0].Cmd != "/sessions b" {
+		t.Errorf("option Cmd should be %q, got %q", "/sessions b", opts[0].Cmd)
 	}
 }
 

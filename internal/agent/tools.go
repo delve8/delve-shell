@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -26,8 +27,10 @@ type ApprovalResponse struct {
 // ApprovalRequest is sent to HIL: pending command and response channel.
 type ApprovalRequest struct {
 	Command    string // command to run
+	Summary    string // optional short summary (e.g. from SKILL.md); shown separately from Reason
 	Reason     string // AI explanation (why, expected effect); may be empty
 	RiskLevel  string // read_only | low | high; empty if not provided
+	SkillName  string // non-empty when pending command is from run_skill (shown on approval card)
 	ResponseCh chan ApprovalResponse
 }
 
@@ -62,7 +65,7 @@ type ExecuteCommandTool struct {
 	AllowlistAutoRun bool // when false, no command auto-runs; card has Run/Copy/Dismiss
 	Allowlist        *hil.Allowlist
 	SensitiveMatcher            *hil.SensitiveMatcher
-	RequestApproval             func(command, reason, riskLevel string) ApprovalResponse
+	RequestApproval             func(command, summary, reason, riskLevel, skillName string) ApprovalResponse
 	RequestSensitiveConfirmation func(command string) SensitiveChoice
 	Session                     *history.Session
 	OnExec                      func(command string, allowed bool, result string, sensitive bool, suggested bool)
@@ -130,13 +133,13 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 			t.Allowlist.AllowStrict(command)
 	}
 	if !allowed {
-		resp := t.RequestApproval(command, reason, riskLevel)
+		resp := t.RequestApproval(command, "", reason, riskLevel, "")
 		if t.Session != nil {
-			_ = t.Session.AppendCommand(command, resp.Approved, reason, riskLevel)
+			_ = t.Session.AppendCommand(command, resp.Approved, reason, riskLevel, "", "")
 		}
 		if resp.CopyRequested {
 			if t.Session != nil {
-				_ = t.Session.AppendSuggestedCommand(command, reason, riskLevel)
+				_ = t.Session.AppendSuggestedCommand(command, reason, riskLevel, "", "")
 			}
 			return "The user copied the command and did not run it. Continue with your reply or suggest next steps.", nil
 		}
@@ -144,7 +147,7 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 			return "The user declined to run this command: " + command + ". Continue without running it; you may suggest an alternative or ask what they prefer.", nil
 		}
 	} else if t.Session != nil {
-		_ = t.Session.AppendCommand(command, true, "", "")
+		_ = t.Session.AppendCommand(command, true, "", "", "", "")
 	}
 
 	// When command may access sensitive path(s), ask user: refuse / run+store / run+no store.
@@ -352,7 +355,7 @@ func (t *GetSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 
 // RunSkillTool runs a skill script via HIL approval; same approval/execution flow as execute_command.
 type RunSkillTool struct {
-	RequestApproval             func(command, reason, riskLevel string) ApprovalResponse
+	RequestApproval             func(command, summary, reason, riskLevel, skillName string) ApprovalResponse
 	RequestSensitiveConfirmation func(command string) SensitiveChoice
 	SensitiveMatcher            *hil.SensitiveMatcher
 	Session                     *history.Session
@@ -429,7 +432,57 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 	if _, err := skills.ScriptPath(skillDir, scriptName); err != nil {
 		return "Script not found in skill: " + scriptName + ". Use get_skill(skill_name=\"" + skillName + "\") to see scripts and SKILL.md.", nil
 	}
-	cmd, err := skills.BuildCommand(skillDir, scriptName, input.Args)
+	// Load metadata once for risk level, summary, scope, and potential remote upload directory.
+	meta, _ := skills.LoadSKILL(skillDir)
+
+	// Determine executor up front so we know whether commands will run locally or on a remote host.
+	executor := execenv.CommandExecutor(execenv.LocalExecutor{})
+	if t.ExecutorProvider != nil {
+		if e := t.ExecutorProvider(); e != nil {
+			executor = e
+		}
+	}
+	// When executor is SSH, scripts run on a remote host and must be synced first.
+	_, isRemote := executor.(*execenv.SSHExecutor)
+
+	// Decide working directory and shell command string used for approval and execution.
+	localScriptsDir := skills.ScriptsDir(skillDir)
+	var remoteScriptsDir string
+	if isRemote {
+		base := ""
+		if meta != nil && strings.TrimSpace(meta.RemoteUploadDir) != "" {
+			base = strings.TrimSpace(meta.RemoteUploadDir)
+		}
+		if base == "" {
+			base = "/tmp"
+		}
+		base = strings.TrimRight(base, "/")
+		if base == "" {
+			base = "/tmp"
+		}
+		remoteScriptsDir = base + "/delve-shell-skills/" + skillName + "/scripts"
+	}
+	var cmd string
+	var err error
+	// Enforce scope: local / remote / both (empty => both).
+	if meta != nil {
+		scope := strings.TrimSpace(strings.ToLower(meta.Scope))
+		switch scope {
+		case "local":
+			if isRemote {
+				return "Skill " + skillName + " is local-only (scope=local); connect locally and retry.", nil
+			}
+		case "remote":
+			if !isRemote {
+				return "Skill " + skillName + " is remote-only (scope=remote); connect to a remote host and retry.", nil
+			}
+		}
+	}
+	if isRemote {
+		cmd, err = skills.BuildCommandInDir(remoteScriptsDir, scriptName, input.Args)
+	} else {
+		cmd, err = skills.BuildCommand(skillDir, scriptName, input.Args)
+	}
 	if err != nil {
 		return "Failed to build skill command: " + err.Error(), nil
 	}
@@ -438,28 +491,24 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 	if reason == "" {
 		reason = "Run skill " + skillName + " script " + scriptName
 	}
-	riskLevel := strings.TrimSpace(strings.ToLower(input.RiskLevel))
-	if riskLevel != "" && riskLevel != "read_only" && riskLevel != "low" && riskLevel != "high" {
-		riskLevel = ""
+	summary := ""
+	if meta != nil && strings.TrimSpace(meta.Summary) != "" {
+		summary = strings.TrimSpace(meta.Summary)
 	}
-	if riskLevel == "" {
-		meta, _ := skills.LoadSKILL(skillDir)
-		if meta != nil && meta.RiskLevel != "" {
-			riskLevel = strings.TrimSpace(strings.ToLower(meta.RiskLevel))
-		}
-	}
-	if riskLevel == "" {
-		riskLevel = "low"
+	// For run_skill, risk_level is determined solely by SKILL.md; ignore tool input risk_level.
+	riskLevel := ""
+	if meta != nil && meta.RiskLevel != "" {
+		riskLevel = strings.TrimSpace(strings.ToLower(meta.RiskLevel))
 	}
 
 	// Always request approval for run_skill (no allowlist shortcut).
-	resp := t.RequestApproval(cmd, reason, riskLevel)
+	resp := t.RequestApproval(cmd, summary, reason, riskLevel, skillName)
 	if t.Session != nil {
-		_ = t.Session.AppendCommand(cmd, resp.Approved, reason, riskLevel)
+		_ = t.Session.AppendCommand(cmd, resp.Approved, reason, riskLevel, "skill", skillName)
 	}
 	if resp.CopyRequested {
 		if t.Session != nil {
-			_ = t.Session.AppendSuggestedCommand(cmd, reason, riskLevel)
+			_ = t.Session.AppendSuggestedCommand(cmd, reason, riskLevel, "skill", skillName)
 		}
 		return "The user copied the command and did not run it. Continue with your reply or suggest next steps.", nil
 	}
@@ -483,10 +532,10 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 		sensitive = true
 	}
 
-	executor := execenv.CommandExecutor(execenv.LocalExecutor{})
-	if t.ExecutorProvider != nil {
-		if e := t.ExecutorProvider(); e != nil {
-			executor = e
+	// For remote executors, sync local skill scripts/ to a remote temp dir before running.
+	if isRemote && remoteScriptsDir != "" {
+		if err := syncSkillScriptsToRemote(ctx, executor, localScriptsDir, remoteScriptsDir); err != nil {
+			return "Failed to sync skill scripts to remote: " + err.Error(), nil
 		}
 	}
 	outStr, errStr, exitCode, err := executor.Run(ctx, cmd)
@@ -516,4 +565,82 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 		msg += "\nerror: " + err.Error()
 	}
 	return msg, nil
+}
+
+// syncSkillScriptsToRemote ensures that the local scriptsDir contents are present on the remote host under remoteScriptsDir.
+// It compares remote and local file contents and only updates when they differ. No tar/gzip or extra tools are required;
+// all operations use basic sh + mkdir + cat.
+func syncSkillScriptsToRemote(ctx context.Context, executor execenv.CommandExecutor, scriptsDir, remoteScriptsDir string) error {
+	if scriptsDir == "" || remoteScriptsDir == "" {
+		return nil
+	}
+	if _, ok := executor.(*execenv.SSHExecutor); !ok {
+		// Local executor: nothing to sync.
+		return nil
+	}
+	info, err := os.Stat(scriptsDir)
+	if err != nil || !info.IsDir() {
+		return nil
+	}
+	// Ensure remote root directory exists.
+	if _, _, _, err := executor.Run(ctx, "sh -c "+quoteForSh("mkdir -p "+remoteScriptsDir)); err != nil {
+		return err
+	}
+	return filepath.WalkDir(scriptsDir, func(path string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if d.IsDir() {
+			return nil
+		}
+		rel, err := filepath.Rel(scriptsDir, path)
+		if err != nil {
+			return err
+		}
+		rel = filepath.ToSlash(rel)
+		if rel == "" || rel == "." {
+			return nil
+		}
+		localData, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		remoteFile := remoteScriptsDir + "/" + rel
+		remoteDir := remoteScriptsDir
+		if idx := strings.LastIndex(remoteFile, "/"); idx > 0 {
+			remoteDir = remoteFile[:idx]
+		}
+		// Read remote content if file exists.
+		readCmd := "if [ -f " + quoteForSh(remoteFile) + " ]; then cat " + quoteForSh(remoteFile) + "; fi"
+		remoteOut, _, _, _ := executor.Run(ctx, "sh -c "+quoteForSh(readCmd))
+		if remoteOut == string(localData) {
+			return nil
+		}
+		// Create parent dir and upload file via here-doc.
+		uploadBuilder := &strings.Builder{}
+		uploadBuilder.WriteString("mkdir -p ")
+		uploadBuilder.WriteString(quoteForSh(remoteDir))
+		uploadBuilder.WriteString(" && cat > ")
+		uploadBuilder.WriteString(quoteForSh(remoteFile))
+		// Use a delimiter that is very unlikely to appear in scripts.
+		delimiter := "EOF_DELVE_SKILL"
+		uploadBuilder.WriteString(" << '")
+		uploadBuilder.WriteString(delimiter)
+		uploadBuilder.WriteString("'\n")
+		uploadBuilder.Write(localData)
+		if !strings.HasSuffix(uploadBuilder.String(), "\n") {
+			uploadBuilder.WriteString("\n")
+		}
+		uploadBuilder.WriteString(delimiter)
+		uploadBuilder.WriteString("\n")
+		if _, _, _, err := executor.Run(ctx, "sh -c "+quoteForSh(uploadBuilder.String())); err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+// quoteForSh wraps s in single quotes and escapes single quotes as '\''.
+func quoteForSh(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", "'\"'\"'") + "'"
 }

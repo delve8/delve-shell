@@ -162,9 +162,18 @@ func sessionEventsToMessages(events []history.Event, lang string, width int) []s
 				Command   string `json:"command"`
 				Approved  bool   `json:"approved"`
 				Suggested bool   `json:"suggested"`
+				Kind      string `json:"kind"`
+				SkillName string `json:"skill_name"`
 			}
 			if json.Unmarshal(ev.Payload, &p) != nil || p.Command == "" {
 				continue
+			}
+			if p.Kind == "skill" && strings.TrimSpace(p.SkillName) != "" {
+				skillLine := i18n.Tf(lang, i18n.KeySkillLine, strings.TrimSpace(p.SkillName))
+				if width > 0 {
+					skillLine = wrapString(skillLine, width)
+				}
+				out = append(out, suggestStyle.Render(skillLine))
 			}
 			tag := i18n.T(lang, i18n.KeyRunTagApproved)
 			if p.Suggested {
@@ -277,6 +286,10 @@ func (m Model) buildContent() string {
 		if w <= 0 {
 			w = 80
 		}
+		if sn := strings.TrimSpace(m.Pending.SkillName); sn != "" {
+			line := i18n.Tf(lang, i18n.KeySkillLine, sn)
+			b.WriteString(suggestStyle.Render(wrapString(line, w)) + "\n")
+		}
 		switch m.Pending.RiskLevel {
 		case "read_only":
 			line := "[" + i18n.T(lang, i18n.KeyRiskReadOnly) + "] " + m.Pending.Command
@@ -289,6 +302,9 @@ func (m Model) buildContent() string {
 			b.WriteString(riskHighStyle.Render(wrapString(line, w)) + "\n")
 		default:
 			b.WriteString(execStyle.Render(wrapString(m.Pending.Command, w)) + "\n")
+		}
+		if m.Pending.Summary != "" {
+			b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeyApprovalSummary)+" "+m.Pending.Summary) + "\n")
 		}
 		if m.Pending.Reason != "" {
 			b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeyApprovalWhy)+" "+m.Pending.Reason) + "\n")
@@ -702,6 +718,47 @@ func (m Model) renderOverlay(base string) string {
 		b.WriteString("SSH auth for " + config.HostFromTarget(m.RemoteAuthTarget) + "\n\n")
 		b.WriteString(suggestStyle.Render("Connecting with configured SSH key...") + "\n\n")
 		b.WriteString("Esc to cancel.")
+		content = b.String()
+	} else if m.UpdateSkillActive {
+		lang := m.getLang()
+		var b strings.Builder
+		if m.UpdateSkillError != "" {
+			b.WriteString(errStyle.Render(m.UpdateSkillError) + "\n\n")
+		}
+		b.WriteString("Update skill\n\n")
+		b.WriteString("Skill: " + m.UpdateSkillName + "\n")
+		b.WriteString("URL:   " + m.UpdateSkillURL + "\n")
+		path := m.UpdateSkillPath
+		if strings.TrimSpace(path) == "" {
+			path = "."
+		}
+		b.WriteString("Path:  " + path + "\n\n")
+		b.WriteString("Ref (Up/Down to change, Enter to update, Esc to cancel):\n")
+		for i, r := range m.UpdateSkillRefs {
+			line := "  " + r
+			if i == m.UpdateSkillRefIndex {
+				b.WriteString(suggestHi.Render(line) + "\n")
+			} else {
+				b.WriteString(suggestStyle.Render(line) + "\n")
+			}
+		}
+		b.WriteString("\n")
+		current := strings.TrimSpace(m.UpdateSkillCurrentCommit)
+		if current == "" {
+			current = "(unknown)"
+		} else if len(current) > 7 {
+			current = current[:7]
+		}
+		latest := strings.TrimSpace(m.UpdateSkillLatestCommit)
+		if latest == "" {
+			latest = "(unknown)"
+		} else if len(latest) > 7 {
+			latest = latest[:7]
+		}
+		b.WriteString("Current commit: " + current + "\n")
+		b.WriteString("Latest commit:  " + latest + "\n")
+		b.WriteString("\n")
+		b.WriteString(i18n.T(lang, i18n.KeyDescConfigUpdateSkill))
 		content = b.String()
 	} else {
 		// Generic overlay: scrollable viewport.

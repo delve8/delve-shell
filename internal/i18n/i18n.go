@@ -29,6 +29,7 @@ const (
 	KeyChoiceDismiss            = "choice_dismiss"
 	KeyTitleHeader              = "title_header"
 	KeyApprovalPrompt           = "approval_prompt"
+	KeyApprovalSummary          = "approval_summary"
 	KeyApprovalWhy              = "approval_why"
 	KeyApproveYN                = "approve_yn"       // 2 options
 	KeyApproveYNThree           = "approve_yn_three" // 3 options: Run, Copy, Dismiss
@@ -51,6 +52,7 @@ const (
 	KeyAILabel                  = "ai_label"
 	KeyDelveLabel               = "delve_label" // tool/system message prefix, e.g. "Delve:"
 	KeyRunLabel                 = "run_label"
+	KeySkillLine                = "skill_line" // format: Skill: %s
 	// Slash option descriptions (cmd as suffix for consistency)
 	KeyDescExit   = "desc_exit"
 	KeyDescRun    = "desc_run"
@@ -146,6 +148,7 @@ const (
 	KeySkillNone           = "skill_none"
 	KeyDescSkillInstall    = "desc_skill_install"
 	KeyDescSkillRemove     = "desc_skill_remove"
+	KeyDescConfigUpdateSkill = "desc_config_update_skill"
 	KeyAddSkillTitle       = "add_skill_title"
 	KeyAddSkillURLLabel    = "add_skill_url_label"
 	KeyAddSkillRefLabel    = "add_skill_ref_label"
@@ -191,6 +194,8 @@ Slash commands (each line: command, next line: description):
     Install a skill from a git repo (path = subpath if repo has multiple skills)
   /config del-skill <skill_name>
     Remove an installed skill
+  /config update-skill <skill_name>
+    Update an installed skill from its git source (branch/tag selectable in dialog)
   /config auto-run list-only
     Allowlist runs without confirmation
   /config auto-run disable
@@ -247,6 +252,7 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyChoiceDismiss:                 "Dismiss",
 		KeyTitleHeader:                   "delve-shell — Enter to send, ctrl+c to quit | Up/Down/PgUp/PgDown scroll",
 		KeyApprovalPrompt:                "Command to run (approval required):",
+		KeyApprovalSummary:               "Summary:",
 		KeyApprovalWhy:                   "Why:",
 		KeyApproveYN:                     "1=approve, 2=reject",
 		KeyApproveYNThree:                "1=Run, 2=Copy, 3=Dismiss",
@@ -268,6 +274,7 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyUserLabel:                     "User: ",
 		KeyAILabel:                       "AI: ",
 		KeyRunLabel:                      "Run: ",
+		KeySkillLine:                     "Skill: %s",
 		KeyDescExit:                      "Quit delve-shell",
 		KeyDescRun:                       "Run a command directly (no AI)",
 		KeyDescSh:                        "Spawn bash; return here when done",
@@ -351,6 +358,7 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeySkillNone:                     "No skills (add dirs with SKILL.md under ~/.delve-shell/skills/)",
 		KeyDescSkillInstall:              "Install a skill from a git repo",
 		KeyDescSkillRemove:               "Remove an installed skill",
+		KeyDescConfigUpdateSkill:         "Update an installed skill from its git source",
 		KeyAddSkillTitle:                 "Add skill",
 		KeyAddSkillURLLabel:              "Git URL:",
 		KeyAddSkillRefLabel:              "Ref — branch or tag:",
@@ -365,7 +373,7 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeySkillRemoveFailed:             "Skill remove failed: %v",
 		KeyUsageSkillInstall:             "Usage: /config add-skill <url> [ref] [path] — path required if repo has multiple skills (e.g. skills/foo)",
 		KeyUsageSkillRemove:              "Usage: /config del-skill <skill_name>",
-		KeySkillAlreadyExists:            "Skill already exists. Remove it first or use another name.",
+		KeySkillAlreadyExists:            "Skill already exists. Remove it first or use another name, or use /config update-skill <name> to update it.",
 	},
 }
 

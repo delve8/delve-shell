@@ -132,10 +132,16 @@ func getSessionSummary(path string, mtime time.Time) SessionSummary {
 			}
 		case "command":
 			var payload struct {
-				Command string `json:"command"`
+				Command   string `json:"command"`
+				Kind      string `json:"kind"`
+				SkillName string `json:"skill_name"`
 			}
 			if json.Unmarshal(ev.Payload, &payload) == nil && payload.Command != "" {
-				snippet = payload.Command
+				if payload.Kind == "skill" && strings.TrimSpace(payload.SkillName) != "" {
+					snippet = "Skill: " + strings.TrimSpace(payload.SkillName)
+				} else {
+					snippet = payload.Command
+				}
 				if len(snippet) > snippetMaxLen {
 					snippet = snippet[:snippetMaxLen] + "..."
 				}

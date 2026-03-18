@@ -7,6 +7,36 @@ import (
 	"testing"
 )
 
+func TestSession_AppendCommand_SkillAuditPayload(t *testing.T) {
+	dir := t.TempDir()
+	s := &Session{id: "skill-audit", path: filepath.Join(dir, "skill-audit.jsonl")}
+	defer s.Close()
+	if err := s.AppendCommand("./run.sh", true, "why", "low", "skill", "my-skill"); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(s.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ev Event
+	if err := json.Unmarshal([]byte(firstLine(string(data))), &ev); err != nil {
+		t.Fatal(err)
+	}
+	if ev.Type != "command" {
+		t.Errorf("type: %q", ev.Type)
+	}
+	var payload map[string]interface{}
+	if err := json.Unmarshal(ev.Payload, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["kind"] != "skill" {
+		t.Errorf("kind: %v", payload["kind"])
+	}
+	if payload["skill_name"] != "my-skill" {
+		t.Errorf("skill_name: %v", payload["skill_name"])
+	}
+}
+
 func TestSession_AppendCommandResult_RedactsBeforeWrite(t *testing.T) {
 	dir := t.TempDir()
 	// create session that writes under temp dir
