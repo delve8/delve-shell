@@ -11,7 +11,7 @@ import (
 	"os/exec"
 	"sort"
 	"strings"
-	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/charmbracelet/bubbletea"
@@ -19,9 +19,11 @@ import (
 	"github.com/spf13/cobra"
 
 	"delve-shell/internal/agent"
+	"delve-shell/internal/app/runtime/executormgr"
+	"delve-shell/internal/app/runtime/runnermgr"
+	"delve-shell/internal/app/runtime/sessionmgr"
 	"delve-shell/internal/config"
 	"delve-shell/internal/execenv"
-	"delve-shell/internal/hil"
 	"delve-shell/internal/history"
 	"delve-shell/internal/modelinfo"
 	"delve-shell/internal/rules"
@@ -30,6 +32,10 @@ import (
 
 func runRun(cmd *cobra.Command, args []string) error {
 	_ = args
+
+	// stop is closed only when the whole CLI run exits (not when /sh temporarily leaves the TUI).
+	stop := make(chan struct{})
+	defer close(stop)
 
 	if err := config.EnsureRootDir(); err != nil {
 		return err
@@ -51,7 +57,8 @@ func runRun(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("create session: %w", err)
 	}
-	defer session.Close()
+	sessions := sessionmgr.New(session)
+	defer sessions.CloseAll()
 
 	approvalChan := make(chan *agent.ApprovalRequest, 4)
 	sensitiveConfirmationChan := make(chan *agent.SensitiveConfirmationRequest, 4)
@@ -60,74 +67,37 @@ func runRun(cmd *cobra.Command, args []string) error {
 	allowlistAutoRunChangeChan := make(chan bool, 1)
 
 	cfg0, _ := loadConfig()
-	currentAllowlistAutoRun := true
+	var currentAllowlistAutoRun atomic.Bool
+	currentAllowlistAutoRun.Store(true)
 	if cfg0 != nil {
-		currentAllowlistAutoRun = cfg0.AllowlistAutoRunResolved()
+		currentAllowlistAutoRun.Store(cfg0.AllowlistAutoRunResolved())
 	}
 
-	var runner *agent.Runner
-	var runnerMu sync.Mutex
-
-	// currentExecutor is the active command executor (local or remote).
-	var currentExecutor execenv.CommandExecutor = execenv.LocalExecutor{}
-	// executorMu protects currentExecutor access from concurrent goroutines.
-	var executorMu sync.Mutex
-
-	// remoteCred stores in-memory SSH auth for a host (password or identity file).
-	// Secrets are never written to disk; they live only for this process and are cleared on /remote off.
-	type remoteCred struct {
-		Kind     string // "password" or "identity"
-		Username string
-		Secret   string // password or identity file path
-	}
-	var remoteCredMu sync.Mutex
-	remoteCreds := make(map[string]remoteCred) // key: host (without username)
+	executors := executormgr.New()
 
 	// getExecutor returns the current executor for the Runner.
 	getExecutor := func() execenv.CommandExecutor {
-		executorMu.Lock()
-		defer executorMu.Unlock()
-		return currentExecutor
+		return executors.Get()
 	}
 
-	getRunner := func() (*agent.Runner, error) {
-		runnerMu.Lock()
-		defer runnerMu.Unlock()
-		if runner != nil {
-			return runner, nil
-		}
-		cfg2, err := loadConfig()
-		if err != nil {
-			return nil, err
-		}
-		allowlistEntries, err := config.LoadAllowlist()
-		if err != nil {
-			return nil, fmt.Errorf("load allowlist: %w", err)
-		}
-		allowlist := hil.NewAllowlist(allowlistEntries)
-		sensitivePatterns, err := config.LoadSensitivePatterns()
-		if err != nil {
-			return nil, fmt.Errorf("load sensitive patterns: %w", err)
-		}
-		sensitiveMatcher := hil.NewSensitiveMatcher(sensitivePatterns)
-		r, err := agent.NewRunner(context.Background(), agent.RunnerOptions{
-			Config:                    cfg2,
-			AllowlistAutoRun:          &currentAllowlistAutoRun,
-			Allowlist:                 allowlist,
-			SensitiveMatcher:          sensitiveMatcher,
-			Session:                   session,
-			RulesText:                 rulesText,
-			ApprovalChan:              approvalChan,
-			SensitiveConfirmationChan: sensitiveConfirmationChan,
-			ExecEventChan:             execEventChan,
-			ExecutorProvider:          getExecutor,
-		})
-		if err != nil {
-			return nil, err
-		}
-		runner = r
-		return runner, nil
-	}
+	runners := runnermgr.New(runnermgr.Options{
+		RulesText: rulesText,
+		LoadConfig: func() (*config.Config, error) {
+			return loadConfig()
+		},
+		LoadAllowlist: func() ([]config.AllowlistEntry, error) {
+			return config.LoadAllowlist()
+		},
+		LoadSensitivePatterns: func() ([]string, error) {
+			return config.LoadSensitivePatterns()
+		},
+		SessionProvider:  func() *history.Session { return sessions.Current() },
+		ExecutorProvider: getExecutor,
+		AllowlistAutoRun: currentAllowlistAutoRun.Load(),
+		ApprovalChan:     approvalChan,
+		SensitiveConfirmationChan: sensitiveConfirmationChan,
+		ExecEventChan:             execEventChan,
+	})
 
 	submitChan := make(chan string, 4)
 	execDirectChan := make(chan string, 4)
@@ -138,15 +108,47 @@ func runRun(cmd *cobra.Command, args []string) error {
 	remoteOffChan := make(chan struct{}, 1)
 	remoteAuthRespChan := make(chan ui.RemoteAuthResponse, 1)
 	var savedMessages []string
-	var currentP *tea.Program
+	var currentP atomic.Pointer[tea.Program]
+	// uiMsgChan serializes UI messages across goroutines so p.Send is called from one place.
+	uiMsgChan := make(chan tea.Msg, 256)
+	go func() {
+		for {
+			select {
+			case <-stop:
+				return
+			case m := <-uiMsgChan:
+				if m == nil {
+					continue
+				}
+				if p := currentP.Load(); p != nil {
+					p.Send(m)
+				}
+			}
+		}
+	}()
+	sendToUI := func(msg tea.Msg) {
+		if msg == nil {
+			return
+		}
+		select {
+		case uiMsgChan <- msg:
+		default:
+			// Best-effort: avoid blocking background goroutines on UI congestion.
+		}
+	}
 
 	// updateRemoteRunCompletion fetches a one-time /run completion cache from the remote host.
 	// It runs best-effort and never blocks the main connection flow.
 	updateRemoteRunCompletion := func(exec execenv.CommandExecutor, remoteLabel string) {
-		if currentP == nil || exec == nil || strings.TrimSpace(remoteLabel) == "" {
+		if currentP.Load() == nil || exec == nil || strings.TrimSpace(remoteLabel) == "" {
 			return
 		}
 		go func() {
+			select {
+			case <-stop:
+				return
+			default:
+			}
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			// Use bash compgen for a reasonably complete command list.
@@ -176,76 +178,79 @@ func runRun(cmd *cobra.Command, args []string) error {
 				}
 			}
 			sort.Strings(cmds)
-			if currentP != nil {
-				currentP.Send(ui.RunCompletionCacheMsg{RemoteLabel: remoteLabel, Commands: cmds})
-			}
+			sendToUI(ui.RunCompletionCacheMsg{RemoteLabel: remoteLabel, Commands: cmds})
 		}()
 	}
 
 	go func() {
-		for path := range sessionSwitchChan {
-			oldSession := session
-			newSession, err := history.OpenSession(path)
-			if err != nil {
-				if currentP != nil {
-					currentP.Send(ui.AgentReplyMsg{Err: fmt.Errorf("open session: %w", err)})
+		for {
+			select {
+			case <-stop:
+				return
+			case path := <-sessionSwitchChan:
+				_, err := sessions.SwitchTo(path)
+				if err != nil {
+					sendToUI(ui.AgentReplyMsg{Err: err})
+					continue
 				}
-				continue
-			}
-			_ = oldSession.Close()
-			session = newSession
-			runnerMu.Lock()
-			runner = nil
-			runnerMu.Unlock()
-			if currentP != nil {
-				currentP.Send(ui.SessionSwitchedMsg{Path: path})
+				runners.Invalidate()
+				sendToUI(ui.SessionSwitchedMsg{Path: path})
 			}
 		}
 	}()
 	go func() {
 		for {
 			select {
+			case <-stop:
+				return
 			case <-configUpdatedChan:
 				if cfg, err := loadConfig(); err == nil && cfg != nil {
-					currentAllowlistAutoRun = cfg.AllowlistAutoRunResolved()
+					currentAllowlistAutoRun.Store(cfg.AllowlistAutoRunResolved())
 				}
-				runnerMu.Lock()
-				runner = nil
-				runnerMu.Unlock()
-				if currentP != nil {
-					currentP.Send(ui.ConfigReloadedMsg{})
-				}
+				runners.SetAllowlistAutoRun(currentAllowlistAutoRun.Load())
+				sendToUI(ui.ConfigReloadedMsg{})
 			case newAutoRun := <-allowlistAutoRunChangeChan:
-				currentAllowlistAutoRun = newAutoRun
-				runnerMu.Lock()
-				runner = nil
-				runnerMu.Unlock()
+				currentAllowlistAutoRun.Store(newAutoRun)
+				runners.SetAllowlistAutoRun(newAutoRun)
 			}
 		}
 	}()
 	go func() {
-		for req := range approvalChan {
-			if currentP != nil {
-				currentP.Send(req)
+		for {
+			select {
+			case <-stop:
+				return
+			case req := <-approvalChan:
+				sendToUI(req)
 			}
 		}
 	}()
 	go func() {
-		for req := range sensitiveConfirmationChan {
-			if currentP != nil {
-				currentP.Send(req)
+		for {
+			select {
+			case <-stop:
+				return
+			case req := <-sensitiveConfirmationChan:
+				sendToUI(req)
 			}
 		}
 	}()
 	go func() {
-		for ev := range execEventChan {
-			if currentP != nil {
-				currentP.Send(ui.CommandExecutedMsg{Command: ev.Command, Allowed: ev.Allowed, Result: ev.Result, Sensitive: ev.Sensitive, Suggested: ev.Suggested})
+		for {
+			select {
+			case <-stop:
+				return
+			case ev := <-execEventChan:
+				sendToUI(ui.CommandExecutedMsg{Command: ev.Command, Allowed: ev.Allowed, Result: ev.Result, Sensitive: ev.Sensitive, Suggested: ev.Suggested})
 			}
 		}
 	}()
 	go func() {
-		for cmd := range execDirectChan {
+		for {
+			select {
+			case <-stop:
+				return
+			case cmd := <-execDirectChan:
 			executor := getExecutor()
 			stdout, stderrStr, exitCode, runErr := executor.Run(context.Background(), cmd)
 			result := stdout
@@ -259,13 +264,16 @@ func runRun(cmd *cobra.Command, args []string) error {
 			if runErr != nil && exitCode == 0 {
 				result += "\nerror: " + runErr.Error()
 			}
-			if currentP != nil {
-				currentP.Send(ui.CommandExecutedMsg{Command: cmd, Direct: true, Result: result})
+			sendToUI(ui.CommandExecutedMsg{Command: cmd, Direct: true, Result: result})
 			}
 		}
 	}()
 	go func() {
-		for target := range remoteOnChan {
+		for {
+			select {
+			case <-stop:
+				return
+			case target := <-remoteOnChan:
 			// Resolve target against remotes: allow name, full target, or host-only.
 			identityFile := ""
 			label := target
@@ -289,214 +297,81 @@ func runRun(cmd *cobra.Command, args []string) error {
 
 			hostOnly := config.HostFromTarget(target)
 
-			// First, try any cached credential for this host (password or identity).
-			remoteCredMu.Lock()
-			cred, hasCred := remoteCreds[hostOnly]
-			remoteCredMu.Unlock()
-			if hasCred {
-				targetForSSH := target
-				if cred.Username != "" {
-					targetForSSH = cred.Username + "@" + hostOnly
-				}
-				var cachedExec execenv.CommandExecutor
-				var err error
-				switch cred.Kind {
-				case "identity":
-					cachedExec, _, err = execenv.NewSSHExecutor(targetForSSH, cred.Secret)
-				default: // "password"
-					cachedExec, _, err = execenv.NewSSHExecutorWithPassword(targetForSSH, "", cred.Secret)
-				}
-				if err == nil {
-					if label == "" {
-						label = hostOnly
-					}
-					executorMu.Lock()
-					currentExecutor = cachedExec
-					executorMu.Unlock()
-					updateRemoteRunCompletion(cachedExec, label)
-					if currentP != nil {
-						currentP.Send(ui.RemoteStatusMsg{Active: true, Label: label})
-						currentP.Send(ui.SystemNotifyMsg{Text: fmt.Sprintf("Connected to remote: %s", label)})
-						currentP.Send(ui.RemoteConnectDoneMsg{Success: true, Label: label})
-					}
-					continue
-				}
-				// Cached credential failed; drop it and fall back to config identityFile or interactive auth.
-				remoteCredMu.Lock()
-				delete(remoteCreds, hostOnly)
-				remoteCredMu.Unlock()
+			_ = hostOnly
+			res := executors.Connect(target, label, identityFile)
+			if res.AuthPrompt != nil {
+				sendToUI(*res.AuthPrompt)
 			}
-
-			// When an identity file is configured for this remote and there is no cached credential,
-			// open Remote Auth dialog in "connecting with configured key" mode so the user sees the action,
-			// then attempt the SSH connection immediately.
-			if identityFile != "" {
-				if currentP != nil {
-					info := fmt.Sprintf("Using configured SSH key: %s", identityFile)
-					currentP.Send(ui.RemoteAuthPromptMsg{
-						Target:               target,
-						Err:                  info,
-						UseConfiguredIdentity: true,
-					})
-				}
-				sshExec, _, err := execenv.NewSSHExecutor(target, identityFile)
-				if err != nil {
-					// On failure, fall back to interactive auth; keep Remote Auth dialog open and show error.
-					if currentP != nil {
-						msg := fmt.Sprintf("Remote connect failed for %s: %v", hostOnly, err)
-						currentP.Send(ui.RemoteAuthPromptMsg{Target: target, Err: msg})
-					}
-					continue
-				}
-				if label == "" {
-					label = hostOnly
-				}
-				executorMu.Lock()
-				currentExecutor = sshExec
-				executorMu.Unlock()
-				updateRemoteRunCompletion(sshExec, label)
-				if currentP != nil {
-					currentP.Send(ui.RemoteStatusMsg{Active: true, Label: label})
-					currentP.Send(ui.SystemNotifyMsg{Text: fmt.Sprintf("Connected to remote: %s", label)})
-					currentP.Send(ui.RemoteConnectDoneMsg{Success: true, Label: label})
-				}
+			if !res.Connected {
 				continue
 			}
-
-			// No identity file configured and no cached credential: try plain SSH and prompt on failure.
-			sshExec, _, err := execenv.NewSSHExecutor(target, identityFile)
-			if err != nil {
-				// Authentication-related errors should trigger interactive auth prompt.
-				if currentP != nil {
-					msg := fmt.Sprintf("Remote connect failed for %s: %v", hostOnly, err)
-					currentP.Send(ui.RemoteAuthPromptMsg{Target: target, Err: msg})
-				}
-				continue
-			}
-
-			if label == "" {
-				label = hostOnly
-			}
-			executorMu.Lock()
-			currentExecutor = sshExec
-			executorMu.Unlock()
-			updateRemoteRunCompletion(sshExec, label)
-			if currentP != nil {
-				currentP.Send(ui.RemoteStatusMsg{Active: true, Label: label})
-				currentP.Send(ui.SystemNotifyMsg{Text: fmt.Sprintf("Connected to remote: %s", label)})
-				currentP.Send(ui.RemoteConnectDoneMsg{Success: true, Label: label})
+			updateRemoteRunCompletion(res.Executor, res.Label)
+			sendToUI(ui.RemoteStatusMsg{Active: true, Label: res.Label})
+			sendToUI(ui.SystemNotifyMsg{Text: fmt.Sprintf("Connected to remote: %s", res.Label)})
+			sendToUI(ui.RemoteConnectDoneMsg{Success: true, Label: res.Label})
 			}
 		}
 	}()
 	go func() {
-		for range remoteOffChan {
-			executorMu.Lock()
-			// If current executor is SSH, close it.
-			if sshExec, ok := currentExecutor.(*execenv.SSHExecutor); ok {
-				_ = sshExec.Close()
-			}
-			currentExecutor = execenv.LocalExecutor{}
-			executorMu.Unlock()
-			// Clear any cached remote credentials when switching back to local.
-			remoteCredMu.Lock()
-			for k := range remoteCreds {
-				delete(remoteCreds, k)
-			}
-			remoteCredMu.Unlock()
-			if currentP != nil {
-				currentP.Send(ui.RemoteStatusMsg{Active: false, Label: ""})
-				currentP.Send(ui.SystemNotifyMsg{Text: "Switched back to local executor."})
+		for {
+			select {
+			case <-stop:
+				return
+			case <-remoteOffChan:
+				executors.SwitchToLocal()
+			sendToUI(ui.RemoteStatusMsg{Active: false, Label: ""})
+			sendToUI(ui.SystemNotifyMsg{Text: "Switched back to local executor."})
 			}
 		}
 	}()
 	go func() {
-		for resp := range remoteAuthRespChan {
+		for {
+			select {
+			case <-stop:
+				return
+			case resp := <-remoteAuthRespChan:
 			if resp.Password == "" {
 				continue
 			}
-			// Use username from overlay if set; otherwise keep target as-is (user@host from config).
-			targetForSSH := resp.Target
-			hostOnly := config.HostFromTarget(resp.Target)
-			if resp.Username != "" {
-				targetForSSH = resp.Username + "@" + hostOnly
-			}
-			var sshExec execenv.CommandExecutor
-			var err error
-			switch resp.Kind {
-			case "identity":
-				sshExec, _, err = execenv.NewSSHExecutor(targetForSSH, resp.Password)
-			default: // "password"
-				sshExec, _, err = execenv.NewSSHExecutorWithPassword(targetForSSH, "", resp.Password)
-			}
+			labelStr, err := executors.HandleRemoteAuthResponse(resp)
 			if err != nil {
-				// Best effort to clear password string on failure as well.
-				resp.Password = ""
-				if currentP != nil {
-					currentP.Send(ui.RemoteAuthPromptMsg{
-						Target: resp.Target,
-						Err:   fmt.Sprintf("Auth failed: %v", err),
-					})
-				}
+				sendToUI(ui.RemoteAuthPromptMsg{
+					Target: resp.Target,
+					Err:   fmt.Sprintf("Auth failed: %v", err),
+				})
 				continue
 			}
-			// Cache credential for this host so subsequent /remote on can reuse without prompting again.
-			kind := resp.Kind
-			if kind != "identity" {
-				kind = "password"
-			}
-			remoteCredMu.Lock()
-			remoteCreds[hostOnly] = remoteCred{
-				Kind:     kind,
-				Username: resp.Username,
-				Secret:   resp.Password,
-			}
-			remoteCredMu.Unlock()
-			// Best effort to clear password string after caching in-memory.
-			resp.Password = ""
-			executorMu.Lock()
-			currentExecutor = sshExec
-			executorMu.Unlock()
-			labelStr := config.HostFromTarget(targetForSSH)
-			updateRemoteRunCompletion(sshExec, labelStr)
-			if currentP != nil {
-				currentP.Send(ui.RemoteStatusMsg{Active: true, Label: labelStr})
-				currentP.Send(ui.SystemNotifyMsg{Text: fmt.Sprintf("Connected to remote: %s", labelStr)})
-				currentP.Send(ui.RemoteConnectDoneMsg{Success: true, Label: labelStr})
+			updateRemoteRunCompletion(getExecutor(), labelStr)
+			sendToUI(ui.RemoteStatusMsg{Active: true, Label: labelStr})
+			sendToUI(ui.SystemNotifyMsg{Text: fmt.Sprintf("Connected to remote: %s", labelStr)})
+			sendToUI(ui.RemoteConnectDoneMsg{Success: true, Label: labelStr})
 			}
 		}
 	}()
 	go func() {
-		for userMsg := range submitChan {
+		for {
+			select {
+			case <-stop:
+				return
+			case userMsg := <-submitChan:
 			if userMsg == "/new" {
-				oldSession := session
-				sessionID := time.Now().Format("060102-150405") + "-" + randHex2()
-				newSession, err := history.NewSession(sessionID)
+				newSession, err := sessions.NewSession(randHex2)
 				if err != nil {
-					if currentP != nil {
-						currentP.Send(ui.AgentReplyMsg{Err: fmt.Errorf("new session: %w", err)})
-					}
+					sendToUI(ui.AgentReplyMsg{Err: err})
 					continue
 				}
-				_ = oldSession.Close()
-				session = newSession
-				runnerMu.Lock()
-				runner = nil
-				runnerMu.Unlock()
-				if currentP != nil {
-					currentP.Send(ui.SessionSwitchedMsg{Path: session.Path()})
-				}
+				runners.Invalidate()
+				sendToUI(ui.SessionSwitchedMsg{Path: newSession.Path()})
 				continue
 			}
 			// Always record user input before calling the agent so audit history has the question
 			// even if the LLM run fails (e.g. max steps exceeded, 5xx, or cancelled).
-			if session != nil {
-				_ = session.AppendUserInput(userMsg)
+			if s := sessions.Current(); s != nil {
+				_ = s.AppendUserInput(userMsg)
 			}
-			r, err := getRunner()
+			r, err := runners.Get(context.Background())
 			if err != nil {
-				if currentP != nil {
-					currentP.Send(ui.AgentReplyMsg{Err: err})
-				}
+				sendToUI(ui.AgentReplyMsg{Err: err})
 				continue
 			}
 			reqCtx, cancel := context.WithCancel(context.Background())
@@ -506,8 +381,8 @@ func runRun(cmd *cobra.Command, args []string) error {
 			go func() {
 				defer close(done)
 				var historyMsgs []*schema.Message
-				if session != nil {
-					events, _ := history.ReadRecent(session.Path(), agent.MaxConversationEvents)
+				if s := sessions.Current(); s != nil {
+					events, _ := history.ReadRecent(s.Path(), agent.MaxConversationEvents)
 					historyMsgs = agent.BuildConversationMessages(events)
 					if cfg, err := loadConfig(); err == nil && cfg != nil {
 						maxMsg := cfg.MaxContextMessagesResolved()
@@ -532,35 +407,37 @@ func runRun(cmd *cobra.Command, args []string) error {
 					if strings.Contains(runErr.Error(), "404") {
 						runErr = errors.Join(runErr, fmt.Errorf("%s", "Hint: For DashScope, ensure LLM_BASE_URL and API Key region match (Beijing vs International). See README for curl test."))
 					}
-					if currentP != nil {
-						currentP.Send(ui.AgentReplyMsg{Err: runErr})
-					}
+					sendToUI(ui.AgentReplyMsg{Err: runErr})
 					continue
 				}
-				_ = session.AppendLLMResponse(map[string]string{"reply": reply})
-				if currentP != nil {
-					currentP.Send(ui.AgentReplyMsg{Reply: reply})
+				if s := sessions.Current(); s != nil {
+					_ = s.AppendLLMResponse(map[string]string{"reply": reply})
 				}
+				sendToUI(ui.AgentReplyMsg{Reply: reply})
 			case <-cancelRequestChan:
 				cancel()
 				<-done
-				if currentP != nil {
-					currentP.Send(ui.AgentReplyMsg{Err: runErr})
-				}
+				sendToUI(ui.AgentReplyMsg{Err: runErr})
+			}
 			}
 		}
 	}()
 
-	getAllowlistAutoRun := func() bool { return currentAllowlistAutoRun }
+	getAllowlistAutoRun := func() bool { return currentAllowlistAutoRun.Load() }
 	initialShowConfigLLM := needConfigLLM
 	for {
-		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, allowlistAutoRunChangeChan, sessionSwitchChan, remoteOnChan, remoteOffChan, remoteAuthRespChan, getAllowlistAutoRun, savedMessages, session.Path(), initialShowConfigLLM)
+		s := sessions.Current()
+		sessionPath := ""
+		if s != nil {
+			sessionPath = s.Path()
+		}
+		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, allowlistAutoRunChangeChan, sessionSwitchChan, remoteOnChan, remoteOffChan, remoteAuthRespChan, getAllowlistAutoRun, savedMessages, sessionPath, initialShowConfigLLM)
 		initialShowConfigLLM = false
 		// do not use WithMouse* so the terminal can use mouse for text selection; scroll with Up/Down/PgUp/PgDown
 		p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithReportFocus())
-		currentP = p
+		currentP.Store(p)
 		_, err = p.Run()
-		currentP = nil
+		currentP.Store(nil)
 		if err != nil {
 			return err
 		}

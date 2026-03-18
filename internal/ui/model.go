@@ -3,7 +3,6 @@ package ui
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +11,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/agent"
+	"delve-shell/internal/app/service/skillsvc"
+	"delve-shell/internal/app/service/remotesvc"
 	"delve-shell/internal/config"
 	"delve-shell/internal/git"
 	"delve-shell/internal/history"
@@ -541,8 +542,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Slash dropdown navigation should work even if other key paths evolve.
 		// Handle it before overlay/key-to-input processing so Up/Down/Enter remain reliable.
-		inputVal := m.Input.Value()
-		inSlash := strings.HasPrefix(inputVal, "/")
+		var inputVal string
+		var inSlash bool
+		inputVal = m.Input.Value()
+		inSlash = strings.HasPrefix(inputVal, "/")
 		if inSlash {
 			if key == "up" || key == "down" || key == "pgup" || key == "pgdown" {
 				if key == "up" || key == "down" {
@@ -805,7 +808,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						case strings.HasPrefix(chosen, "/config del-skill "):
 							name := strings.TrimSpace(strings.TrimPrefix(chosen, "/config del-skill "))
 							if name != "" {
-								if err := skills.Remove(name); err != nil {
+								if err := skillsvc.Remove(name); err != nil {
 									m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoveFailed, err))))
 								} else {
 									m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoved, name))))
@@ -912,152 +915,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			default:
 				// Add-skill overlay: URL, ref, path.
-				if m.AddSkillActive {
-					switch key {
-					case "tab":
-						if m.AddSkillFieldIndex == 1 && len(m.AddSkillRefCandidates) > 0 && m.AddSkillRefIndex >= 0 && m.AddSkillRefIndex < len(m.AddSkillRefCandidates) {
-							m.AddSkillRefInput.SetValue(m.AddSkillRefCandidates[m.AddSkillRefIndex])
-							m.AddSkillRefInput.CursorEnd()
-							m.AddSkillRefCandidates = nil
-							m.AddSkillRefIndex = 0
-							return m, nil
-						}
-						if m.AddSkillFieldIndex == 2 && len(m.AddSkillPathCandidates) > 0 && m.AddSkillPathIndex >= 0 && m.AddSkillPathIndex < len(m.AddSkillPathCandidates) {
-							m.AddSkillPathInput.SetValue(m.AddSkillPathCandidates[m.AddSkillPathIndex])
-							m.AddSkillPathInput.CursorEnd()
-							m.AddSkillPathCandidates = nil
-							m.AddSkillPathIndex = 0
-							return m, nil
-						}
-					case "up", "down":
-						dir := 1
-						if key == "up" {
-							dir = -1
-						}
-						if m.AddSkillFieldIndex == 1 && len(m.AddSkillRefCandidates) > 0 {
-							m.AddSkillRefIndex = (m.AddSkillRefIndex + dir + len(m.AddSkillRefCandidates)) % len(m.AddSkillRefCandidates)
-							return m, nil
-						}
-						if m.AddSkillFieldIndex == 2 && len(m.AddSkillPathCandidates) > 0 {
-							m.AddSkillPathIndex = (m.AddSkillPathIndex + dir + len(m.AddSkillPathCandidates)) % len(m.AddSkillPathCandidates)
-							return m, nil
-						}
-						m.AddSkillFieldIndex = (m.AddSkillFieldIndex + dir + addSkillFieldCount) % addSkillFieldCount
-						m.AddSkillURLInput.Blur()
-						m.AddSkillRefInput.Blur()
-						m.AddSkillPathInput.Blur()
-						m.AddSkillNameInput.Blur()
-						switch m.AddSkillFieldIndex {
-						case 0:
-							m.AddSkillURLInput.Focus()
-						case 1:
-							m.AddSkillRefInput.Focus()
-							m.AddSkillRefCandidates = nil
-							m.AddSkillRefIndex = 0
-							urlForRefs := strings.TrimSpace(m.AddSkillURLInput.Value())
-							if urlForRefs != "" {
-								return m, RunListRefsCmd(urlForRefs)
-							}
-						case 2:
-							m.AddSkillPathInput.Focus()
-							m = m.updateAddSkillPathCandidates()
-							urlForPaths := strings.TrimSpace(m.AddSkillURLInput.Value())
-							if urlForPaths != "" {
-								refForPaths := strings.TrimSpace(m.AddSkillRefInput.Value())
-								return m, RunListPathsCmd(urlForPaths, refForPaths)
-							}
-						case 3:
-							m.AddSkillNameInput.Focus()
-						}
-						return m, nil
-					case "enter":
-						// In Ref field with ref candidates: pick selected and fill
-						if m.AddSkillFieldIndex == 1 && len(m.AddSkillRefCandidates) > 0 {
-							if m.AddSkillRefIndex >= 0 && m.AddSkillRefIndex < len(m.AddSkillRefCandidates) {
-								m.AddSkillRefInput.SetValue(m.AddSkillRefCandidates[m.AddSkillRefIndex])
-								m.AddSkillRefInput.CursorEnd()
-								m.AddSkillRefCandidates = nil
-								m.AddSkillRefIndex = 0
-							}
-							return m, nil
-						}
-						// In Path field with path candidates: pick selected and fill
-						if m.AddSkillFieldIndex == 2 && len(m.AddSkillPathCandidates) > 0 {
-							if m.AddSkillPathIndex >= 0 && m.AddSkillPathIndex < len(m.AddSkillPathCandidates) {
-								chosenPath := m.AddSkillPathCandidates[m.AddSkillPathIndex]
-								m.AddSkillPathInput.SetValue(chosenPath)
-								m.AddSkillPathInput.CursorEnd()
-								m.AddSkillPathCandidates = nil
-								m.AddSkillPathIndex = 0
-								// Auto-fill local name from chosen path last segment when name is empty.
-								if strings.TrimSpace(m.AddSkillNameInput.Value()) == "" {
-									p := strings.TrimSpace(chosenPath)
-									if idx := strings.LastIndex(p, "/"); idx >= 0 && idx < len(p)-1 {
-										p = p[idx+1:]
-									}
-									m.AddSkillNameInput.SetValue(p)
-									m.AddSkillNameInput.CursorEnd()
-								}
-							}
-							return m, nil
-						}
-						// Submit form
-						url := strings.TrimSpace(m.AddSkillURLInput.Value())
-						ref := strings.TrimSpace(m.AddSkillRefInput.Value())
-						path := strings.TrimSpace(m.AddSkillPathInput.Value())
-						nameInput := strings.TrimSpace(m.AddSkillNameInput.Value())
-						if path == "." {
-							path = ""
-						}
-						if url == "" {
-							m.AddSkillError = i18n.T(m.getLang(), i18n.KeyAddSkillURLRequired)
-							return m, nil
-						}
-						m.AddSkillError = ""
-						name, err := skills.InstallFromGit(url, ref, nameInput, path)
-						if err != nil {
-							if errors.Is(err, os.ErrExist) {
-								m.AddSkillError = i18n.T(m.getLang(), i18n.KeySkillAlreadyExists)
-							} else {
-								m.AddSkillError = i18n.Tf(m.getLang(), i18n.KeySkillInstallFailed, err)
-							}
-							return m, nil
-						}
-						m.OverlayActive = false
-						m.AddSkillActive = false
-						m.OverlayTitle = ""
-						m.OverlayContent = ""
-						m.Input.Focus()
-						m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillInstalled, name))))
-						m.Viewport.SetContent(m.buildContent())
-						m.Viewport.GotoBottom()
-						return m, nil
-					}
-					var cmd tea.Cmd
-					switch m.AddSkillFieldIndex {
-					case 0:
-						m.AddSkillURLInput, cmd = m.AddSkillURLInput.Update(msg)
-					case 1:
-						m.AddSkillRefInput, cmd = m.AddSkillRefInput.Update(msg)
-						m.AddSkillRefCandidates = filterByPrefix(m.AddSkillRefsFullList, m.AddSkillRefInput.Value())
-						m.AddSkillRefIndex = 0
-					case 2:
-						m.AddSkillPathInput, cmd = m.AddSkillPathInput.Update(msg)
-						m = m.updateAddSkillPathCandidates()
-						// Auto-fill local name from path last segment when name is empty.
-						if strings.TrimSpace(m.AddSkillNameInput.Value()) == "" {
-							if p := strings.TrimSpace(m.AddSkillPathInput.Value()); p != "" {
-								if idx := strings.LastIndex(p, "/"); idx >= 0 && idx < len(p)-1 {
-									p = p[idx+1:]
-								}
-								m.AddSkillNameInput.SetValue(p)
-								m.AddSkillNameInput.CursorEnd()
-							}
-						}
-					case 3:
-						m.AddSkillNameInput, cmd = m.AddSkillNameInput.Update(msg)
-					}
-					return m, cmd
+				if m2, cmd, handled := m.handleAddSkillOverlayKey(key, msg); handled {
+					return m2, cmd
 				}
 				// Add-remote overlay: form with 5 fields (host, username, name, key path, save-as-remote checkbox).
 				if m.AddRemoteActive {
@@ -1147,7 +1006,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 								return m, nil
 							}
 							target := user + "@" + host
-							if err := config.UpdateRemote(target, name, keyPath); err != nil {
+							if err := remotesvc.Update(target, name, keyPath); err != nil {
 								m.AddRemoteError = err.Error()
 								m.AddRemoteOfferOverwrite = false
 								return m, nil
@@ -1218,7 +1077,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						target := user + "@" + host
 						// Optionally save/update remote config when requested.
 						if m.AddRemoteSave {
-							if err := config.AddRemote(target, name, keyPath); err != nil {
+							if err := remotesvc.Add(target, name, keyPath); err != nil {
 								m.AddRemoteError = err.Error()
 								m.AddRemoteOfferOverwrite = strings.Contains(err.Error(), "already exists")
 								return m, nil
@@ -1344,65 +1203,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, cmd
 				}
 				// Update-skill overlay: choose ref and confirm update.
-				if m.UpdateSkillActive {
-					switch key {
-					case "up", "down":
-						if len(m.UpdateSkillRefs) == 0 {
-							return m, nil
-						}
-						dir := 1
-						if key == "up" {
-							dir = -1
-						}
-						m.UpdateSkillRefIndex = (m.UpdateSkillRefIndex + dir + len(m.UpdateSkillRefs)) % len(m.UpdateSkillRefs)
-						// Recompute latest commit for newly selected ref (best-effort; ignore errors).
-						selectedRef := strings.TrimSpace(m.UpdateSkillRefs[m.UpdateSkillRefIndex])
-						url := strings.TrimSpace(m.UpdateSkillURL)
-						if url != "" && selectedRef != "" {
-							if commit, err := git.LatestCommit(context.Background(), url, selectedRef); err == nil {
-								m.UpdateSkillLatestCommit = commit
-							}
-						}
-						return m, nil
-					case "enter":
-						if len(m.UpdateSkillRefs) == 0 || m.UpdateSkillName == "" {
-							return m, nil
-						}
-						selectedRef := strings.TrimSpace(m.UpdateSkillRefs[m.UpdateSkillRefIndex])
-						if err := skills.Update(m.UpdateSkillName, selectedRef); err != nil {
-							m.UpdateSkillError = err.Error()
-							return m, nil
-						}
-						// On success, close overlay and show a short confirmation message.
-						m.OverlayActive = false
-						m.UpdateSkillActive = false
-						m.UpdateSkillError = ""
-						shortCommit := m.UpdateSkillLatestCommit
-						if len(shortCommit) > 7 {
-							shortCommit = shortCommit[:7]
-						}
-						if shortCommit != "" {
-							m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(
-								fmt.Sprintf("Skill %s updated to %s@%s.", m.UpdateSkillName, selectedRef, shortCommit),
-							)))
-						} else {
-							m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(
-								fmt.Sprintf("Skill %s updated to %s.", m.UpdateSkillName, selectedRef),
-							)))
-						}
-						m.Messages = append(m.Messages, "")
-						m.Viewport.SetContent(m.buildContent())
-						m.Viewport.GotoBottom()
-						m.Input.Focus()
-						if m.ConfigUpdatedChan != nil {
-							select {
-							case m.ConfigUpdatedChan <- struct{}{}:
-							default:
-							}
-						}
-						return m, nil
+				if m2, cmd, handled := m.handleUpdateSkillOverlayKey(key); handled {
+					return m2, cmd
 				}
-					// Remote auth: step "username" → "choose" (1/2) → "password" or "identity".
+				// Remote auth: step "username" → "choose" (1/2) → "password" or "identity".
 				switch m.RemoteAuthStep {
 				case "auto_identity":
 					// Automatic connection with configured identity file: no interactive input; Esc handled above.
@@ -1601,8 +1405,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		inputVal := m.Input.Value()
-		inSlash := strings.HasPrefix(inputVal, "/")
+		inputVal = m.Input.Value()
+		inSlash = strings.HasPrefix(inputVal, "/")
 
 		// scroll keys: Up/Down change selection in slash mode, else go to viewport with PgUp/PgDown
 		if key == "up" || key == "down" || key == "pgup" || key == "pgdown" {
@@ -1866,7 +1670,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				skillNameToRemove := fields[0]
-				if err := skills.Remove(skillNameToRemove); err != nil {
+				if err := skillsvc.Remove(skillNameToRemove); err != nil {
 					m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoveFailed, err))))
 				} else {
 					m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoved, skillNameToRemove))))
@@ -1965,7 +1769,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyUsageSkillRemove))))
 					return m, nil
 				}
-				if err := skills.Remove(name); err != nil {
+				if err := skillsvc.Remove(name); err != nil {
 					m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoveFailed, err))))
 				} else {
 					m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoved, name))))
@@ -2066,7 +1870,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						if strings.HasPrefix(chosen, "/config del-skill ") {
 							name := strings.TrimSpace(chosen[len("/config del-skill "):])
 							if name != "" {
-								if err := skills.Remove(name); err != nil {
+								if err := skillsvc.Remove(name); err != nil {
 									m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoveFailed, err))))
 								} else {
 									m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoved, name))))
@@ -2258,7 +2062,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 	return m, cmd
-	}
 
 	case tea.MouseMsg:
 		var cmd tea.Cmd
@@ -2382,9 +2185,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	var cmd tea.Cmd
-	m.Input, cmd = m.Input.Update(msg)
-	return m, cmd
+	return m, nil
 }
 
 // NewModel creates a Model with default input (slash commands and viewport scrolling).

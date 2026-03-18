@@ -9,19 +9,17 @@ import (
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/textinput"
 
+	"delve-shell/internal/app/service/configsvc"
+	"delve-shell/internal/app/service/remotesvc"
 	"delve-shell/internal/config"
 	"delve-shell/internal/git"
 	"delve-shell/internal/i18n"
-	"delve-shell/internal/llmtest"
 )
 
 // openConfigLLMOverlay opens the Config LLM overlay with current config values pre-filled.
 // If config file is missing, uses config.Default() so the overlay still opens (user can save to create the file).
 func (m Model) openConfigLLMOverlay() Model {
-	cfg, err := config.Load()
-	if err != nil {
-		cfg = config.Default()
-	}
+	cfg := configsvc.LoadOrDefault()
 	m.OverlayActive = true
 	m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyConfigLLMTitle)
 	m.ConfigLLMActive = true
@@ -168,34 +166,13 @@ func (m Model) applyConfigLLMFromOverlayStart(baseURL, apiKey, model, maxMessage
 	if model == "" {
 		return m // caller sets ConfigLLMError
 	}
-	cfg, err := config.Load()
-	if err != nil {
-		cfg = config.Default()
-		if err := config.EnsureRootDir(); err != nil {
-			m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-			m.Viewport.SetContent(m.buildContent())
-			m.Viewport.GotoBottom()
-			return m
-		}
-	}
-	cfg.LLM.BaseURL = baseURL
-	cfg.LLM.APIKey = apiKey
-	cfg.LLM.Model = model
-	if s := strings.TrimSpace(maxMessagesStr); s != "" {
-		if n, err := strconv.Atoi(s); err == nil && n >= 0 {
-			cfg.LLM.MaxContextMessages = n
-		}
-	} else {
-		cfg.LLM.MaxContextMessages = 0
-	}
-	if s := strings.TrimSpace(maxCharsStr); s != "" {
-		if n, err := strconv.Atoi(s); err == nil && n >= 0 {
-			cfg.LLM.MaxContextChars = n
-		}
-	} else {
-		cfg.LLM.MaxContextChars = 0
-	}
-	if err := config.Write(cfg); err != nil {
+	if err := configsvc.SaveLLMFromOverlay(configsvc.SaveLLMParams{
+		BaseURL:     baseURL,
+		APIKey:      apiKey,
+		Model:       model,
+		MaxMessages: maxMessagesStr,
+		MaxChars:    maxCharsStr,
+	}); err != nil {
 		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
 		m.Viewport.SetContent(m.buildContent())
 		m.Viewport.GotoBottom()
@@ -210,27 +187,16 @@ func (m Model) applyConfigLLMFromOverlayStart(baseURL, apiKey, model, maxMessage
 // If the URL fails and does not end with /v1, retries with /v1 and updates config on success.
 func RunConfigLLMCheckCmd() tea.Cmd {
 	return func() tea.Msg {
-		cfg, err := config.Load()
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		corrected, err := configsvc.CheckLLMAndMaybeAutoCorrect(ctx, nil)
 		if err != nil {
 			return ConfigLLMCheckDoneMsg{Err: err}
 		}
-		resolvedBaseURL, resolvedAPIKey, resolvedModel := cfg.LLMResolved()
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		defer cancel()
-		checkErr := llmtest.TestConnection(ctx, resolvedBaseURL, resolvedAPIKey, resolvedModel)
-		if checkErr != nil && resolvedBaseURL != "" && !strings.HasSuffix(resolvedBaseURL, "/v1") {
-			tryURL := resolvedBaseURL + "/v1"
-			ctx2, cancel2 := context.WithTimeout(context.Background(), 15*time.Second)
-			retryErr := llmtest.TestConnection(ctx2, tryURL, resolvedAPIKey, resolvedModel)
-			cancel2()
-			if retryErr == nil {
-				cfg.LLM.BaseURL = tryURL
-				if writeErr := config.Write(cfg); writeErr == nil {
-					return ConfigLLMCheckDoneMsg{CorrectedBaseURL: tryURL}
-				}
-			}
+		if corrected != "" {
+			return ConfigLLMCheckDoneMsg{CorrectedBaseURL: corrected}
 		}
-		return ConfigLLMCheckDoneMsg{Err: checkErr}
+		return ConfigLLMCheckDoneMsg{Err: nil}
 	}
 }
 
@@ -406,7 +372,7 @@ func (m Model) applyConfigAddRemote(args string) Model {
 	if len(parts) >= 3 {
 		identityFile = parts[2]
 	}
-	if err := config.AddRemote(target, name, identityFile); err != nil {
+	if err := remotesvc.Add(target, name, identityFile); err != nil {
 		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
 		m.Viewport.SetContent(m.buildContent())
 		m.Viewport.GotoBottom()
@@ -439,7 +405,7 @@ func (m Model) applyConfigRemoveRemote(nameOrTarget string) Model {
 		m.Viewport.GotoBottom()
 		return m
 	}
-	if err := config.RemoveRemoteByName(nameOrTarget); err != nil {
+	if err := remotesvc.Remove(nameOrTarget); err != nil {
 		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
 		m.Viewport.SetContent(m.buildContent())
 		m.Viewport.GotoBottom()

@@ -2,7 +2,9 @@ package history
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -32,26 +34,29 @@ func ReadRecent(sessionPath string, maxLines int) ([]Event, error) {
 	}
 	defer f.Close()
 	var events []Event
-	sc := bufio.NewScanner(f)
-	for sc.Scan() {
-		line := sc.Text()
-		if line == "" {
-			continue
+	r := bufio.NewReader(f)
+	for {
+		lineBytes, readErr := r.ReadBytes('\n')
+		if len(lineBytes) > 0 {
+			lineBytes = bytes.TrimRight(lineBytes, "\r\n")
+			if len(lineBytes) > 0 {
+				var ev Event
+				if json.Unmarshal(lineBytes, &ev) == nil {
+					events = append(events, ev)
+					if maxLines > 0 && len(events) > maxLines {
+						events = events[len(events)-maxLines:]
+					}
+				}
+			}
 		}
-		var ev Event
-		if err := json.Unmarshal([]byte(line), &ev); err != nil {
-			continue
-		}
-		events = append(events, ev)
-		if maxLines > 0 && len(events) >= maxLines {
-			// keep last maxLines
-			events = events[len(events)-maxLines:]
+		if readErr != nil {
+			if readErr == io.EOF {
+				break
+			}
+			return events, readErr
 		}
 	}
-	if maxLines > 0 && len(events) > maxLines {
-		events = events[len(events)-maxLines:]
-	}
-	return events, sc.Err()
+	return events, nil
 }
 
 // ListSessions lists all session files under HistoryDir (returns absolute paths).
