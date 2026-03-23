@@ -251,14 +251,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.RemoteAuthUsernameInput.Focus()
 		return m, nil
 	case OverlayShowMsg:
-		m.OverlayActive = true
-		m.OverlayTitle = msg.Title
-		m.OverlayContent = msg.Content
-		m.OverlayViewport = viewport.New(m.Width-4, min(m.Height-6, 20))
-		m.OverlayViewport.SetContent(m.OverlayContent)
-		return m, nil
+		return m.handleOverlayShowMsg(msg)
 	case OverlayCloseMsg:
-		return m.closeOverlayCommon(false)
+		return m.handleOverlayCloseMsg()
 	case tea.KeyMsg:
 		return m.handleKeyMsg(msg)
 
