@@ -273,8 +273,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
-		if handledModel, handled := m.handlePendingChoiceKey(key); handled {
-			return handledModel, nil
+		state := m.currentUIState()
+		if state == uiStatePendingSensitive || state == uiStatePendingApproval {
+			if handledModel, handled := m.handlePendingChoiceKey(key); handled {
+				return handledModel, nil
+			}
 		}
 
 		// Slash dropdown navigation should work even if other key paths evolve.
@@ -446,7 +449,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		// Overlay key handling: Esc closes, Enter submits, other keys go to overlay input.
-		if m.OverlayActive {
+		if m.currentUIState() == uiStateOverlay {
 			switch key {
 			case "esc":
 				return m.closeOverlayCommon(true)
@@ -1028,6 +1031,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Input.SetValue("")
 			m.Input.CursorEnd()
 			m.SlashSuggestIndex = 0
+			switch text {
+			case "/help", "/config llm", "/config add-skill", "/config add-remote", "/remote on", "/remote off", "/config update auto-run list", "/config reload", "/reload":
+				if m2, cmd, handled := m.dispatchSlashExact(text); handled {
+					return m2, cmd
+				}
+			}
 
 			switch {
 			case text == "/q":
@@ -1056,16 +1065,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.Viewport.GotoBottom()
 				}
 				return m, nil
-			case text == "/help":
-				m.OverlayActive = true
-				m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyHelpTitle)
-				m.OverlayContent = i18n.T(m.getLang(), i18n.KeyHelpText)
-				m.OverlayViewport = viewport.New(m.Width-4, min(m.Height-6, 20))
-				m.OverlayViewport.SetContent(m.OverlayContent)
-				return m, nil
-			case text == "/config llm":
-				m = m.openConfigLLMOverlay()
-				return m, nil
 			case strings.HasPrefix(text, "/config llm base_url "):
 				m = m.applyConfigLLM("base_url", strings.TrimPrefix(text, "/config llm base_url "))
 				return m, nil
@@ -1080,36 +1079,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Viewport.SetContent(m.buildContent())
 				m.Viewport.GotoBottom()
 				return m, nil
-			case text == "/config update auto-run list":
-				m = m.applyConfigAllowlistUpdate()
-				return m, nil
 			case text == "/config auto-run list-only":
 				m = m.applyConfigAllowlistAutoRun("list-only")
 				return m, nil
 			case text == "/config auto-run disable":
 				m = m.applyConfigAllowlistAutoRun("disable")
-				return m, nil
-			case text == "/config add-remote":
-				m.OverlayActive = true
-				m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
-				m.AddRemoteActive = true
-				m.AddRemoteError = ""
-				m.AddRemoteOfferOverwrite = false
-				m.AddRemoteSave = true // config always saves by default
-				m.AddRemoteConnect = false
-				m.PathCompletionCandidates = nil
-				m.PathCompletionIndex = -1
-				m.AddRemoteFieldIndex = 0
-				m.AddRemoteHostInput = textinput.New()
-				m.AddRemoteHostInput.Placeholder = "host or host:22"
-				m.AddRemoteHostInput.Focus()
-				m.AddRemoteUserInput = textinput.New()
-				m.AddRemoteUserInput.Placeholder = "e.g. root"
-				m.AddRemoteUserInput.SetValue("root")
-				m.AddRemoteNameInput = textinput.New()
-				m.AddRemoteNameInput.Placeholder = "name (optional)"
-				m.AddRemoteKeyInput = textinput.New()
-				m.AddRemoteKeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
 				return m, nil
 			case strings.HasPrefix(text, "/config add-remote "):
 				m = m.applyConfigAddRemote(strings.TrimPrefix(text, "/config add-remote "))
@@ -1121,52 +1095,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				arg := strings.TrimSpace(strings.TrimPrefix(text, "/config auto-run "))
 				m = m.applyConfigAllowlistAutoRun(arg)
 				return m, nil
-			case text == "/reload", text == "/config reload":
-				if m.ConfigUpdatedChan != nil {
-					select {
-					case m.ConfigUpdatedChan <- struct{}{}:
-					default:
-					}
-				}
-				return m, nil
-			case text == "/remote on":
-				// Reuse the Add Remote overlay so the user can enter host/user/name/key in one place.
-				m.OverlayActive = true
-				m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
-				m.AddRemoteActive = true
-				m.AddRemoteError = ""
-				m.AddRemoteOfferOverwrite = false
-				m.AddRemoteSave = false // default: do not save when using /remote on
-				m.AddRemoteConnect = true
-				m.PathCompletionCandidates = nil
-				m.PathCompletionIndex = -1
-				m.AddRemoteFieldIndex = 0
-				m.AddRemoteHostInput = textinput.New()
-				m.AddRemoteHostInput.Placeholder = "host or host:22"
-				m.AddRemoteHostInput.Focus()
-				m.AddRemoteUserInput = textinput.New()
-				m.AddRemoteUserInput.Placeholder = "e.g. root"
-				m.AddRemoteUserInput.SetValue("root")
-				m.AddRemoteNameInput = textinput.New()
-				m.AddRemoteNameInput.Placeholder = "name (optional)"
-				m.AddRemoteKeyInput = textinput.New()
-				m.AddRemoteKeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
-				return m, nil
 			case strings.HasPrefix(text, "/remote on "):
 				target := strings.TrimSpace(strings.TrimPrefix(text, "/remote on "))
 				if target != "" && m.RemoteOnChan != nil {
 					select {
 					case m.RemoteOnChan <- target:
-					default:
-					}
-				}
-				m.Input.SetValue("")
-				m.Input.CursorEnd()
-				return m, nil
-			case text == "/remote off":
-				if m.RemoteOffChan != nil {
-					select {
-					case m.RemoteOffChan <- struct{}{}:
 					default:
 					}
 				}
