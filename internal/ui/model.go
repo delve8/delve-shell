@@ -149,46 +149,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case RunCompletionCacheMsg:
 		return m.handleRunCompletionCacheMsg(msg)
 	case ConfigLLMCheckDoneMsg:
-		m.ConfigLLMChecking = false
-		lang := m.getLang()
-		if msg.Err != nil {
-			m.ConfigLLMError = i18n.Tf(lang, i18n.KeyConfigLLMCheckFailed, msg.Err)
-			m.Viewport.SetContent(m.buildContent())
-			return m, nil
-		}
-		m.ConfigLLMError = ""
-		m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyConfigSavedLLM))))
-		if msg.CorrectedBaseURL != "" {
-			m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyConfigLLMBaseURLAutoCorrected, msg.CorrectedBaseURL))))
-		}
-		m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyConfigLLMCheckOK))))
-		m.Messages = append(m.Messages, "")
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		m.OverlayActive = false
-		m.ConfigLLMActive = false
-		m.OverlayTitle = ""
-		m.OverlayContent = ""
-		if m.ConfigUpdatedChan != nil {
-			select {
-			case m.ConfigUpdatedChan <- struct{}{}:
-			default:
-			}
-		}
-		return m, nil
+		return m.handleConfigLLMCheckDoneMsg(msg)
 	case AddSkillRefsLoadedMsg:
-		if m.AddSkillActive {
-			m.AddSkillRefsFullList = msg.Refs
-			m.AddSkillRefCandidates = filterByPrefix(msg.Refs, m.AddSkillRefInput.Value())
-			m.AddSkillRefIndex = 0
-		}
-		return m, nil
+		return m.handleAddSkillRefsLoadedMsg(msg)
 	case AddSkillPathsLoadedMsg:
-		if m.AddSkillActive {
-			m.AddSkillPathsFullList = msg.Paths
-			m = m.updateAddSkillPathCandidates()
-		}
-		return m, nil
+		return m.handleAddSkillPathsLoadedMsg(msg)
 	case RemoteConnectDoneMsg:
 		return m.handleRemoteConnectDoneMsg(msg)
 	case RemoteAuthPromptMsg:
