@@ -104,10 +104,10 @@ func init() {
 
 	ui.RegisterOverlayKeyProvider(func(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
 		if m.AddSkillActive {
-			return m.HandleAddSkillOverlayKey(key, msg)
+			return handleAddSkillOverlayKey(m, key, msg)
 		}
 		if m.UpdateSkillActive {
-			return m.HandleUpdateSkillOverlayKey(key)
+			return handleUpdateSkillOverlayKey(m, key)
 		}
 		return m, nil, false
 	})

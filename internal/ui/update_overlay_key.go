@@ -69,10 +69,6 @@ func (m Model) handleOverlayKey(key string, msg tea.KeyMsg) (Model, tea.Cmd, boo
 		m, cmd := m.closeOverlayCommon(true)
 		return m, cmd, true
 	default:
-		// Add-skill overlay: URL, ref, path.
-		if m2, cmd, handled := m.handleAddSkillOverlayKey(key, msg); handled {
-			return m2, cmd, true
-		}
 		// Add-remote overlay: form with 5 fields (host, username, name, key path, save-as-remote checkbox).
 		if m.AddRemoteActive {
 			switch key {
@@ -356,10 +352,6 @@ func (m Model) handleOverlayKey(key string, msg tea.KeyMsg) (Model, tea.Cmd, boo
 				m.ConfigLLMMaxCharsInput, cmd = m.ConfigLLMMaxCharsInput.Update(msg)
 			}
 			return m, cmd, true
-		}
-		// Update-skill overlay: choose ref and confirm update.
-		if m2, cmd, handled := m.handleUpdateSkillOverlayKey(key); handled {
-			return m2, cmd, true
 		}
 		// Remote auth: step "username" -> "choose" (1/2) -> "password" or "identity".
 		switch m.RemoteAuthStep {
