@@ -6,7 +6,6 @@ import (
 	"strings"
 	"unicode"
 
-	"delve-shell/internal/config"
 	"delve-shell/internal/history"
 	"delve-shell/internal/i18n"
 
@@ -565,204 +564,19 @@ func (m Model) renderOverlay(base string) string {
 		b.WriteString("\n\n")
 		b.WriteString(i18n.T(lang, i18n.KeyConfigLLMHint))
 		content = b.String()
-	} else if m.AddSkillActive {
-		lang := m.getLang()
-		var b strings.Builder
-		if m.AddSkillError != "" {
-			b.WriteString(errStyle.Render(m.AddSkillError) + "\n\n")
-		}
-		b.WriteString(i18n.T(lang, i18n.KeyAddSkillURLLabel) + "\n")
-		b.WriteString(m.AddSkillURLInput.View())
-		b.WriteString("\n\n")
-		b.WriteString(i18n.T(lang, i18n.KeyAddSkillRefLabel) + "\n")
-		b.WriteString(m.AddSkillRefInput.View())
-		if m.AddSkillFieldIndex == 1 && len(m.AddSkillRefCandidates) > 0 {
-			b.WriteString("\n")
-			b.WriteString("  (Up/Down select, Enter or Tab to pick)\n")
-			for i, c := range m.AddSkillRefCandidates {
-				line := "  " + c
-				if i == m.AddSkillRefIndex {
-					b.WriteString(suggestHi.Render(line) + "\n")
-				} else {
-					b.WriteString(suggestStyle.Render(line) + "\n")
-				}
-			}
-		}
-		b.WriteString("\n\n")
-		b.WriteString(i18n.T(lang, i18n.KeyAddSkillPathLabel) + "\n")
-		b.WriteString(m.AddSkillPathInput.View())
-		if m.AddSkillFieldIndex == 2 && len(m.AddSkillPathCandidates) > 0 {
-			b.WriteString("\n")
-			b.WriteString("  (Up/Down select, Enter or Tab to pick)\n")
-			for i, c := range m.AddSkillPathCandidates {
-				line := "  " + c
-				if i == m.AddSkillPathIndex {
-					b.WriteString(suggestHi.Render(line) + "\n")
-				} else {
-					b.WriteString(suggestStyle.Render(line) + "\n")
-				}
-			}
-		}
-		b.WriteString("\n\n")
-		b.WriteString(i18n.T(lang, i18n.KeyAddSkillNameLabel) + "\n")
-		b.WriteString(m.AddSkillNameInput.View())
-		b.WriteString("\n\n")
-		b.WriteString(i18n.T(lang, i18n.KeyAddSkillHint))
-		content = b.String()
-	} else if m.AddRemoteActive {
-		var b strings.Builder
-		if m.AddRemoteConnecting {
-			b.WriteString("Add remote\n\n")
-			b.WriteString(suggestStyle.Render("Connecting...") + "\n\n")
-			b.WriteString("Esc to cancel.")
-			content = b.String()
-		} else {
-			if m.AddRemoteError != "" {
-				b.WriteString(errStyle.Render(m.AddRemoteError) + "\n\n")
-				if m.AddRemoteOfferOverwrite {
-					b.WriteString("Press y to overwrite, or change host/username and try again.\n\n")
-				}
-			}
-			b.WriteString("Add remote\n\n")
-			b.WriteString("Host (address or host:port):\n")
-			b.WriteString(m.AddRemoteHostInput.View())
-			b.WriteString("\n\n")
-			b.WriteString("Username:\n")
-			b.WriteString(m.AddRemoteUserInput.View())
-			b.WriteString("\n\n")
-			b.WriteString("Name (optional):\n")
-			b.WriteString(m.AddRemoteNameInput.View())
-			b.WriteString("\n\n")
-			b.WriteString("Key path (optional):\n")
-			b.WriteString(m.AddRemoteKeyInput.View())
-			b.WriteString("\n\n")
-			if m.AddRemoteFieldIndex == 3 && len(m.PathCompletionCandidates) > 0 {
-				b.WriteString("\n\n")
-				b.WriteString("Path completion (Up/Down select, Enter or Tab to pick):\n")
-				for i, c := range m.PathCompletionCandidates {
-					line := "  " + c
-					if i == m.PathCompletionIndex {
-						b.WriteString(suggestHi.Render(line) + "\n")
-					} else {
-						b.WriteString(suggestStyle.Render(line) + "\n")
-					}
-				}
-			}
-			// Save-as-remote checkbox is only shown when the dialog is opened via /remote on.
-			if m.AddRemoteConnect {
-				saveLabel := "[ ]"
-				if m.AddRemoteSave {
-					saveLabel = "[X]"
-				}
-				saveLine := saveLabel + " Save as remote (Space to toggle)"
-				if m.AddRemoteFieldIndex == 4 {
-					b.WriteString(suggestHi.Render(saveLine) + "\n\n")
-				} else {
-					b.WriteString(suggestStyle.Render(saveLine) + "\n\n")
-				}
-			}
-			b.WriteString("Up/Down to move between fields, Enter to apply, Esc to cancel.")
-			content = b.String()
-		}
-	} else if m.RemoteAuthStep == "username" {
-		var b strings.Builder
-		if m.RemoteAuthError != "" {
-			b.WriteString(errStyle.Render(m.RemoteAuthError) + "\n\n")
-		}
-		b.WriteString("SSH auth for " + config.HostFromTarget(m.RemoteAuthTarget) + "\n\n")
-		b.WriteString("Username:\n")
-		b.WriteString(m.RemoteAuthUsernameInput.View())
-		b.WriteString("\n\n")
-		b.WriteString("Press Enter to continue, Esc to cancel.")
-		content = b.String()
-	} else if m.RemoteAuthStep == "choose" {
-		var b strings.Builder
-		if m.RemoteAuthError != "" {
-			b.WriteString(errStyle.Render(m.RemoteAuthError) + "\n\n")
-		}
-		b.WriteString("Choose authentication method:\n")
-		b.WriteString("  1. Password\n")
-		b.WriteString("  2. Key file (identity file)\n\n")
-		b.WriteString("Press 1 or 2 to select, Esc to cancel.")
-		content = b.String()
-	} else if m.RemoteAuthStep == "password" {
-		var b strings.Builder
-		b.WriteString(m.OverlayContent)
-		b.WriteString("\n\n")
-		b.WriteString(m.RemoteAuthInput.View())
-		content = b.String()
-	} else if m.RemoteAuthStep == "identity" {
-		var b strings.Builder
-		b.WriteString(m.OverlayContent)
-		b.WriteString("\n\n")
-		b.WriteString(m.RemoteAuthInput.View())
-		if len(m.PathCompletionCandidates) > 0 {
-			b.WriteString("\n\n")
-			b.WriteString("Path completion (Up/Down select, Enter or Tab to pick):\n")
-			for i, c := range m.PathCompletionCandidates {
-				line := "  " + c
-				if i == m.PathCompletionIndex {
-					b.WriteString(suggestHi.Render(line) + "\n")
-				} else {
-					b.WriteString(suggestStyle.Render(line) + "\n")
-				}
-			}
-		}
-		content = b.String()
-	} else if m.RemoteAuthStep == "auto_identity" {
-		// Automatic connection with configured identity file: show host and optional error, plus "Connecting..." hint.
-		var b strings.Builder
-		if m.RemoteAuthError != "" {
-			b.WriteString(errStyle.Render(m.RemoteAuthError) + "\n\n")
-		}
-		b.WriteString("SSH auth for " + config.HostFromTarget(m.RemoteAuthTarget) + "\n\n")
-		b.WriteString(suggestStyle.Render("Connecting with configured SSH key...") + "\n\n")
-		b.WriteString("Esc to cancel.")
-		content = b.String()
-	} else if m.UpdateSkillActive {
-		lang := m.getLang()
-		var b strings.Builder
-		if m.UpdateSkillError != "" {
-			b.WriteString(errStyle.Render(m.UpdateSkillError) + "\n\n")
-		}
-		b.WriteString("Update skill\n\n")
-		b.WriteString("Skill: " + m.UpdateSkillName + "\n")
-		b.WriteString("URL:   " + m.UpdateSkillURL + "\n")
-		path := m.UpdateSkillPath
-		if strings.TrimSpace(path) == "" {
-			path = "."
-		}
-		b.WriteString("Path:  " + path + "\n\n")
-		b.WriteString("Ref (Up/Down to change, Enter to update, Esc to cancel):\n")
-		for i, r := range m.UpdateSkillRefs {
-			line := "  " + r
-			if i == m.UpdateSkillRefIndex {
-				b.WriteString(suggestHi.Render(line) + "\n")
-			} else {
-				b.WriteString(suggestStyle.Render(line) + "\n")
-			}
-		}
-		b.WriteString("\n")
-		current := strings.TrimSpace(m.UpdateSkillCurrentCommit)
-		if current == "" {
-			current = "(unknown)"
-		} else if len(current) > 7 {
-			current = current[:7]
-		}
-		latest := strings.TrimSpace(m.UpdateSkillLatestCommit)
-		if latest == "" {
-			latest = "(unknown)"
-		} else if len(latest) > 7 {
-			latest = latest[:7]
-		}
-		b.WriteString("Current commit: " + current + "\n")
-		b.WriteString("Latest commit:  " + latest + "\n")
-		b.WriteString("\n")
-		b.WriteString(i18n.T(lang, i18n.KeyDescConfigUpdateSkill))
-		content = b.String()
 	} else {
-		// Generic overlay: scrollable viewport.
-		content = m.OverlayViewport.View()
+		for _, p := range overlayContentProviders {
+			if c, handled := p(m); handled {
+				content = c
+				break
+			}
+		}
+		if content != "" {
+			// content is provided by registered feature package.
+		} else {
+			// Generic overlay: scrollable viewport.
+			content = m.OverlayViewport.View()
+		}
 	}
 
 	// Border styles.

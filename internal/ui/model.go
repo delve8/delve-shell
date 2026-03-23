@@ -156,14 +156,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleRunCompletionCacheMsg(msg)
 	case ConfigLLMCheckDoneMsg:
 		return m.handleConfigLLMCheckDoneMsg(msg)
-	case AddSkillRefsLoadedMsg:
-		return m.handleAddSkillRefsLoadedMsg(msg)
-	case AddSkillPathsLoadedMsg:
-		return m.handleAddSkillPathsLoadedMsg(msg)
-	case RemoteConnectDoneMsg:
-		return m.handleRemoteConnectDoneMsg(msg)
-	case RemoteAuthPromptMsg:
-		return m.handleRemoteAuthPromptMsg(msg)
 	case OverlayShowMsg:
 		return m.handleOverlayShowMsg(msg)
 	case OverlayCloseMsg:
@@ -179,9 +171,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case SensitiveConfirmationRequestMsg:
 		return m.handleSensitiveConfirmationRequestMsg(msg)
-
-	case SessionSwitchedMsg:
-		return m.handleSessionSwitchedMsg(msg)
 
 	case ConfigReloadedMsg:
 		return m.handleConfigReloadedMsg()

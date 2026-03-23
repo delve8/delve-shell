@@ -114,6 +114,10 @@ func init() {
 		return handleRemoteOverlayKey(m, key, msg)
 	})
 
+	ui.RegisterOverlayContentProvider(func(m ui.Model) (string, bool) {
+		return buildRemoteOverlayContent(m)
+	})
+
 	// Delegate remote async messages (connect done / auth prompt) to ui handlers.
 	ui.RegisterMessageProvider(func(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		switch t := msg.(type) {

@@ -3,15 +3,12 @@ package ui
 import (
 	"context"
 	"errors"
-	"path/filepath"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/agent"
 	"delve-shell/internal/config"
-	"delve-shell/internal/history"
 	"delve-shell/internal/i18n"
 )
 
@@ -39,29 +36,6 @@ func (m Model) handleRunCompletionCacheMsg(msg RunCompletionCacheMsg) (Model, te
 	}
 	m.RemoteRunLabel = msg.RemoteLabel
 	m.RemoteRunCommands = msg.Commands
-	return m, nil
-}
-
-func (m Model) handleSessionSwitchedMsg(msg SessionSwitchedMsg) (Model, tea.Cmd) {
-	lang := m.getLang()
-	m.CurrentSessionPath = msg.Path
-	sessionID := ""
-	if msg.Path != "" {
-		sessionID = strings.TrimSuffix(filepath.Base(msg.Path), ".jsonl")
-	}
-	switchedLine := sessionSwitchedStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeySessionSwitchedTo, sessionID)))
-	if msg.Path != "" {
-		events, _ := history.ReadRecent(msg.Path, maxSessionHistoryEvents)
-		msgs := sessionEventsToMessages(events, lang, m.Width)
-		m.Messages = make([]string, 0, len(msgs)+2)
-		m.Messages = append(m.Messages, msgs...)
-		m.Messages = append(m.Messages, switchedLine)
-	} else {
-		m.Messages = []string{switchedLine}
-	}
-	m.Messages = append(m.Messages, "")
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
 	return m, nil
 }
 
@@ -146,69 +120,6 @@ func (m Model) handleCommandExecutedMsg(msg CommandExecutedMsg) (Model, tea.Cmd)
 	return m, nil
 }
 
-func (m Model) handleRemoteConnectDoneMsg(msg RemoteConnectDoneMsg) (Model, tea.Cmd) {
-	// Connection attempt finished: clear any "connecting" states for add-remote or remote auth.
-	m.AddRemoteConnecting = false
-	m.AddRemoteError = ""
-	m.AddRemoteOfferOverwrite = false
-	m.RemoteAuthConnecting = false
-
-	// When Remote Auth overlay is active, close it on successful connection.
-	if m.RemoteAuthStep != "" {
-		if msg.Success {
-			m.OverlayActive = false
-			m.OverlayTitle = ""
-			m.OverlayContent = ""
-			m.RemoteAuthStep = ""
-			m.RemoteAuthTarget = ""
-			m.RemoteAuthError = ""
-			m.RemoteAuthUsername = ""
-			m.PathCompletionCandidates = nil
-			m.PathCompletionIndex = -1
-			m.Input.Focus()
-		}
-		return m, nil
-	}
-
-	// Fallback: add-remote overlay (opened via /remote on or /config add-remote).
-	m.AddRemoteActive = false
-	m.OverlayTitle = ""
-	m.OverlayContent = ""
-	if msg.Success {
-		m.OverlayActive = false
-		m.Input.Focus()
-	}
-	return m, nil
-}
-
-func (m Model) handleRemoteAuthPromptMsg(msg RemoteAuthPromptMsg) (Model, tea.Cmd) {
-	m.AddRemoteConnecting = false
-	m.AddRemoteActive = false
-	m.OverlayActive = true
-	m.OverlayTitle = "Remote Auth"
-	m.RemoteAuthTarget = msg.Target
-	m.RemoteAuthError = msg.Err
-	m.ChoiceIndex = 0
-	// When UseConfiguredIdentity is true, show a non-interactive "connecting with configured key" state.
-	if msg.UseConfiguredIdentity {
-		m.RemoteAuthStep = "auto_identity"
-		m.RemoteAuthConnecting = true
-		return m, nil
-	}
-	// Default: interactive auth flow starting from username.
-	m.RemoteAuthConnecting = false
-	m.RemoteAuthStep = "username" // first step: username only; Enter then shows "choose" (1/2) so username can contain 1 or 2
-	m.RemoteAuthUsernameInput = textinput.New()
-	m.RemoteAuthUsernameInput.Placeholder = "root"
-	if i := strings.Index(msg.Target, "@"); i > 0 && i < len(msg.Target)-1 {
-		m.RemoteAuthUsernameInput.SetValue(msg.Target[:i])
-	} else {
-		m.RemoteAuthUsernameInput.SetValue("root")
-	}
-	m.RemoteAuthUsernameInput.Focus()
-	return m, nil
-}
-
 func (m Model) handleConfigLLMCheckDoneMsg(msg ConfigLLMCheckDoneMsg) (Model, tea.Cmd) {
 	m.ConfigLLMChecking = false
 	lang := m.getLang()
@@ -235,23 +146,6 @@ func (m Model) handleConfigLLMCheckDoneMsg(msg ConfigLLMCheckDoneMsg) (Model, te
 		case m.ConfigUpdatedChan <- struct{}{}:
 		default:
 		}
-	}
-	return m, nil
-}
-
-func (m Model) handleAddSkillRefsLoadedMsg(msg AddSkillRefsLoadedMsg) (Model, tea.Cmd) {
-	if m.AddSkillActive {
-		m.AddSkillRefsFullList = msg.Refs
-		m.AddSkillRefCandidates = filterByPrefix(msg.Refs, m.AddSkillRefInput.Value())
-		m.AddSkillRefIndex = 0
-	}
-	return m, nil
-}
-
-func (m Model) handleAddSkillPathsLoadedMsg(msg AddSkillPathsLoadedMsg) (Model, tea.Cmd) {
-	if m.AddSkillActive {
-		m.AddSkillPathsFullList = msg.Paths
-		m = m.updateAddSkillPathCandidates()
 	}
 	return m, nil
 }

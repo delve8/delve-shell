@@ -53,3 +53,18 @@ func RegisterMessageProvider(p MessageProvider) {
 	}
 	messageProviders = append(messageProviders, p)
 }
+
+// OverlayContentProvider can provide overlay content for a model.
+// When handled==true, returned content should be used by ui overlay renderer.
+type OverlayContentProvider func(m Model) (content string, handled bool)
+
+var overlayContentProviders []OverlayContentProvider
+
+// RegisterOverlayContentProvider registers an overlay content provider.
+// Providers are executed in registration order; the first one that returns handled=true wins.
+func RegisterOverlayContentProvider(p OverlayContentProvider) {
+	if p == nil {
+		return
+	}
+	overlayContentProviders = append(overlayContentProviders, p)
+}

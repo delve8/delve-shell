@@ -1,10 +1,12 @@
 package ui
 
 import (
+	"path/filepath"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/history"
 	"delve-shell/internal/i18n"
 )
 
@@ -47,5 +49,32 @@ func init() {
 			mm.Viewport.GotoBottom()
 			return mm, nil, true
 		},
+	})
+
+	RegisterMessageProvider(func(m Model, msg tea.Msg) (Model, tea.Cmd, bool) {
+		switch t := msg.(type) {
+		case SessionSwitchedMsg:
+			lang := m.getLang()
+			m.CurrentSessionPath = t.Path
+			sessionID := ""
+			if t.Path != "" {
+				sessionID = strings.TrimSuffix(filepath.Base(t.Path), ".jsonl")
+			}
+			switchedLine := sessionSwitchedStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeySessionSwitchedTo, sessionID)))
+			if t.Path != "" {
+				events, _ := history.ReadRecent(t.Path, maxSessionHistoryEvents)
+				msgs := sessionEventsToMessages(events, lang, m.Width)
+				m.Messages = make([]string, 0, len(msgs)+2)
+				m.Messages = append(m.Messages, msgs...)
+				m.Messages = append(m.Messages, switchedLine)
+			} else {
+				m.Messages = []string{switchedLine}
+			}
+			m.Messages = append(m.Messages, "")
+			m = m.RefreshViewport()
+			return m, nil, true
+		default:
+			return m, nil, false
+		}
 	})
 }

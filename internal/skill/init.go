@@ -132,6 +132,10 @@ func init() {
 			return m, nil, false
 		}
 	})
+
+	ui.RegisterOverlayContentProvider(func(m ui.Model) (string, bool) {
+		return buildSkillOverlayContent(m)
+	})
 }
 
 func openAddSkillOverlay(m ui.Model, url, ref, path string) ui.Model {
