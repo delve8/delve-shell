@@ -1270,33 +1270,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.SlashSuggestIndex = 0
 						return m, nil
 					}
-					if strings.HasPrefix(chosen, "/skill ") {
-						// Fill so user can type natural language after the skill name.
-						m.Input.SetValue(chosen + " ")
-						m.Input.CursorEnd()
-						m.SlashSuggestIndex = 0
-						return m, nil
-					}
-					if strings.HasPrefix(chosen, "/config add-remote ") {
-						m.Input.SetValue("/config add-remote ")
-						m.Input.CursorEnd()
-						return m, nil
-					}
-					if strings.HasPrefix(chosen, "/config del-remote ") {
-						nameOrTarget := strings.TrimSpace(strings.TrimPrefix(chosen, "/config del-remote "))
-						if nameOrTarget != "" {
-							m = m.applyConfigRemoveRemote(nameOrTarget)
-							return m, nil
-						}
-						m.Input.SetValue("/config del-remote ")
-						m.Input.CursorEnd()
-						return m, nil
-					}
-					if chosen == "/config del-remote" {
-						m.Input.SetValue("/config del-remote ")
-						m.Input.CursorEnd()
-						return m, nil
-					}
 					if chosen == "/config auto-run list-only" {
 						m = m.applyConfigAllowlistAutoRun("list-only")
 						return m, nil
@@ -1309,19 +1282,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m = m.openConfigLLMOverlay()
 						return m, nil
 					}
-					if chosen == "/config" {
-						m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyConfigHint))))
-						m.Viewport.SetContent(m.buildContent())
-						m.Viewport.GotoBottom()
-						return m, nil
-					}
-					if strings.HasPrefix(chosen, "/config ") {
-						// Unhandled /config subcommand; show hint
-						m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyConfigHint))))
-						m.Viewport.SetContent(m.buildContent())
-						m.Viewport.GotoBottom()
-						return m, nil
-					}
 					if chosen == "/new" {
 						if m.SubmitChan != nil {
 							m.SubmitChan <- "/new"
@@ -1332,6 +1292,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.Viewport.SetContent(m.buildContent())
 						m.Viewport.GotoBottom()
 						return m, nil
+					}
+					if m2, cmd, handled := m.handleSlashSelectedFallback(chosen); handled {
+						return m2, cmd
 					}
 				}
 				m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyUnknownCmd))))
