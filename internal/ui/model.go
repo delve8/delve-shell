@@ -266,23 +266,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleMouseMsg(msg)
 
 	case ApprovalRequestMsg:
-		// When an approval is requested, immediately refresh the viewport so the
-		// approval card becomes visible, and scroll to bottom.
-		m.Pending = msg
-		m.ChoiceIndex = 0
-		m.syncInputPlaceholder()
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m, nil
+		return m.handleApprovalRequestMsg(msg)
 
 	case SensitiveConfirmationRequestMsg:
-		// Same as approval: ensure the sensitive confirmation card is visible.
-		m.PendingSensitive = msg
-		m.ChoiceIndex = 0
-		m.syncInputPlaceholder()
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m, nil
+		return m.handleSensitiveConfirmationRequestMsg(msg)
 
 	case SessionSwitchedMsg:
 		return m.handleSessionSwitchedMsg(msg)
