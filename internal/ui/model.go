@@ -310,11 +310,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// execute it directly (do not depend on dropdown selection).
 				switch trimmed {
 				case "/help":
-					m.OverlayActive = true
-					m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyHelpTitle)
-					m.OverlayContent = i18n.T(m.getLang(), i18n.KeyHelpText)
-					m.OverlayViewport = viewport.New(m.Width-4, min(m.Height-6, 20))
-					m.OverlayViewport.SetContent(m.OverlayContent)
+					m = m.openHelpOverlay()
 					return m, nil
 				case "/config llm":
 					m = m.openConfigLLMOverlay()
@@ -323,48 +319,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m = m.openAddSkillOverlay("", "", "")
 					return m, nil
 				case "/config add-remote":
-					m.OverlayActive = true
-					m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
-					m.AddRemoteActive = true
-					m.AddRemoteError = ""
-					m.AddRemoteOfferOverwrite = false
-					m.AddRemoteSave = true
-					m.AddRemoteConnect = false
-					m.PathCompletionCandidates = nil
-					m.PathCompletionIndex = -1
-					m.AddRemoteFieldIndex = 0
-					m.AddRemoteHostInput = textinput.New()
-					m.AddRemoteHostInput.Placeholder = "host or host:22"
-					m.AddRemoteHostInput.Focus()
-					m.AddRemoteUserInput = textinput.New()
-					m.AddRemoteUserInput.Placeholder = "e.g. root"
-					m.AddRemoteUserInput.SetValue("root")
-					m.AddRemoteNameInput = textinput.New()
-					m.AddRemoteNameInput.Placeholder = "name (optional)"
-					m.AddRemoteKeyInput = textinput.New()
-					m.AddRemoteKeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
+					m = m.openAddRemoteOverlay(true, false)
 					return m, nil
 				case "/remote on":
-					m.OverlayActive = true
-					m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
-					m.AddRemoteActive = true
-					m.AddRemoteError = ""
-					m.AddRemoteOfferOverwrite = false
-					m.AddRemoteSave = false
-					m.AddRemoteConnect = true
-					m.PathCompletionCandidates = nil
-					m.PathCompletionIndex = -1
-					m.AddRemoteFieldIndex = 0
-					m.AddRemoteHostInput = textinput.New()
-					m.AddRemoteHostInput.Placeholder = "host or host:22"
-					m.AddRemoteHostInput.Focus()
-					m.AddRemoteUserInput = textinput.New()
-					m.AddRemoteUserInput.Placeholder = "e.g. root"
-					m.AddRemoteUserInput.SetValue("root")
-					m.AddRemoteNameInput = textinput.New()
-					m.AddRemoteNameInput.Placeholder = "name (optional)"
-					m.AddRemoteKeyInput = textinput.New()
-					m.AddRemoteKeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
+					m = m.openAddRemoteOverlay(false, true)
 					return m, nil
 				case "/remote off":
 					if m.RemoteOffChan != nil {
@@ -389,11 +347,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if chosen == trimmed {
 						switch chosen {
 						case "/help":
-							m.OverlayActive = true
-							m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyHelpTitle)
-							m.OverlayContent = i18n.T(m.getLang(), i18n.KeyHelpText)
-							m.OverlayViewport = viewport.New(m.Width-4, min(m.Height-6, 20))
-							m.OverlayViewport.SetContent(m.OverlayContent)
+							m = m.openHelpOverlay()
 							return m, nil
 						case "/cancel":
 							if m.WaitingForAI && m.CancelRequestChan != nil {
@@ -409,26 +363,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							return m, nil
 						case "/config add-remote":
 							// Same as later Enter handler: open add-remote overlay.
-							m.OverlayActive = true
-							m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
-							m.AddRemoteActive = true
-							m.AddRemoteError = ""
-							m.AddRemoteOfferOverwrite = false
-							m.AddRemoteSave = true
-							m.AddRemoteConnect = false
-							m.PathCompletionCandidates = nil
-							m.PathCompletionIndex = -1
-							m.AddRemoteFieldIndex = 0
-							m.AddRemoteHostInput = textinput.New()
-							m.AddRemoteHostInput.Placeholder = "host or host:22"
-							m.AddRemoteHostInput.Focus()
-							m.AddRemoteUserInput = textinput.New()
-							m.AddRemoteUserInput.Placeholder = "e.g. root"
-							m.AddRemoteUserInput.SetValue("root")
-							m.AddRemoteNameInput = textinput.New()
-							m.AddRemoteNameInput.Placeholder = "name (optional)"
-							m.AddRemoteKeyInput = textinput.New()
-							m.AddRemoteKeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
+							m = m.openAddRemoteOverlay(true, false)
 							return m, nil
 						case "/config add-skill":
 							m = m.openAddSkillOverlay("", "", "")
@@ -446,26 +381,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							return m, nil
 						case "/remote on":
 							// Same as later Enter handler: open remote connection overlay (reuse add-remote).
-							m.OverlayActive = true
-							m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
-							m.AddRemoteActive = true
-							m.AddRemoteError = ""
-							m.AddRemoteOfferOverwrite = false
-							m.AddRemoteSave = false
-							m.AddRemoteConnect = true
-							m.PathCompletionCandidates = nil
-							m.PathCompletionIndex = -1
-							m.AddRemoteFieldIndex = 0
-							m.AddRemoteHostInput = textinput.New()
-							m.AddRemoteHostInput.Placeholder = "host or host:22"
-							m.AddRemoteHostInput.Focus()
-							m.AddRemoteUserInput = textinput.New()
-							m.AddRemoteUserInput.Placeholder = "e.g. root"
-							m.AddRemoteUserInput.SetValue("root")
-							m.AddRemoteNameInput = textinput.New()
-							m.AddRemoteNameInput.Placeholder = "name (optional)"
-							m.AddRemoteKeyInput = textinput.New()
-							m.AddRemoteKeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
+							m = m.openAddRemoteOverlay(false, true)
 							return m, nil
 						case "/remote off":
 							if m.RemoteOffChan != nil {
