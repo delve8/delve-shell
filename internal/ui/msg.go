@@ -2,10 +2,10 @@ package ui
 
 import "delve-shell/internal/agent"
 
-// ApprovalRequestMsg is a command pending user approval (forwarded from agent to TUI via channel).
+// ApprovalRequestMsg is a command pending user approval (forwarded from agent on UIEvents).
 type ApprovalRequestMsg = *agent.ApprovalRequest
 
-// SensitiveConfirmationRequestMsg is a command that may access sensitive file(s); user chooses refuse / run+store / run+no store.
+// SensitiveConfirmationRequestMsg is a command that may access sensitive file(s) (forwarded on UIEvents).
 type SensitiveConfirmationRequestMsg = *agent.SensitiveConfirmationRequest
 
 // AgentReplyMsg is the agent's reply to the user message.

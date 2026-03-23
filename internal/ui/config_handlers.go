@@ -9,8 +9,8 @@ import (
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/textinput"
 
-	"delve-shell/internal/app/service/configsvc"
-	"delve-shell/internal/app/service/remotesvc"
+	"delve-shell/internal/service/configsvc"
+	"delve-shell/internal/service/remotesvc"
 	"delve-shell/internal/config"
 	"delve-shell/internal/git"
 	"delve-shell/internal/i18n"

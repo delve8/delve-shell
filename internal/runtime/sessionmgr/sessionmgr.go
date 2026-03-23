@@ -3,7 +3,6 @@ package sessionmgr
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"delve-shell/internal/history"
 )
@@ -46,15 +45,10 @@ func (m *Manager) SwitchTo(path string) (*history.Session, error) {
 	return s, nil
 }
 
-// NewSession creates a new session id using the provided suffix generator, makes it current,
-// and closes the previous session (if any). The new session is created lazily on first write
-// by the history package, but it is returned immediately.
-func (m *Manager) NewSession(idSuffix func() string) (*history.Session, error) {
-	id := time.Now().Format("060102-150405")
-	if idSuffix != nil {
-		id += "-" + idSuffix()
-	}
-	s, err := history.NewSession(id)
+// NewSession allocates a new session id, makes it current, and closes the previous session (if any).
+// The new session file is created lazily on first write by the history package, but it is returned immediately.
+func (m *Manager) NewSession() (*history.Session, error) {
+	s, err := history.NewSession()
 	if err != nil {
 		return nil, fmt.Errorf("new session: %w", err)
 	}

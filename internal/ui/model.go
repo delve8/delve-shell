@@ -11,8 +11,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/agent"
-	"delve-shell/internal/app/service/skillsvc"
-	"delve-shell/internal/app/service/remotesvc"
+	"delve-shell/internal/service/skillsvc"
+	"delve-shell/internal/service/remotesvc"
 	"delve-shell/internal/config"
 	"delve-shell/internal/git"
 	"delve-shell/internal/history"

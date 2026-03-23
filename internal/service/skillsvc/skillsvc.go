@@ -7,7 +7,7 @@ import (
 	"delve-shell/internal/skills"
 )
 
-// Small indirection layer so UI can call app/service code and tests can stub behavior.
+// Small indirection layer so UI can call internal/service code and tests can stub behavior.
 var (
 	installFromGitFn = skills.InstallFromGit
 	updateFn         = skills.Update

@@ -6,7 +6,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 )
 
-// Agent wraps the eino agent; will be wired to ReAct + execute_command / view_context tools.
+// Agent is a placeholder; the live ReAct runner is Runner in runner.go. LLM tools: internal/agent/tools.
 type Agent struct{}
 
 // New creates an agent (placeholder; model, tools, rules to be injected later).

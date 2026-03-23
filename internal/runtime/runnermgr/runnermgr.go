@@ -29,9 +29,7 @@ type Manager struct {
 
 	allowlistAutoRun atomic.Bool
 
-	approvalChan             chan<- *agent.ApprovalRequest
-	sensitiveConfirmationChan chan<- *agent.SensitiveConfirmationRequest
-	execEventChan            chan<- agent.ExecEvent
+	uiEvents chan<- any
 }
 
 type Options struct {
@@ -46,22 +44,18 @@ type Options struct {
 
 	AllowlistAutoRun bool
 
-	ApprovalChan              chan<- *agent.ApprovalRequest
-	SensitiveConfirmationChan chan<- *agent.SensitiveConfirmationRequest
-	ExecEventChan             chan<- agent.ExecEvent
+	UIEvents chan<- any // *ApprovalRequest | *SensitiveConfirmationRequest | ExecEvent
 }
 
 func New(opts Options) *Manager {
 	m := &Manager{
-		loadConfig:              opts.LoadConfig,
-		loadAllowlist:           opts.LoadAllowlist,
-		loadSensitivePatterns:   opts.LoadSensitivePatterns,
-		sessionProvider:         opts.SessionProvider,
-		executorProvider:        opts.ExecutorProvider,
-		rulesText:               opts.RulesText,
-		approvalChan:            opts.ApprovalChan,
-		sensitiveConfirmationChan: opts.SensitiveConfirmationChan,
-		execEventChan:           opts.ExecEventChan,
+		loadConfig:            opts.LoadConfig,
+		loadAllowlist:         opts.LoadAllowlist,
+		loadSensitivePatterns: opts.LoadSensitivePatterns,
+		sessionProvider:       opts.SessionProvider,
+		executorProvider:      opts.ExecutorProvider,
+		rulesText:             opts.RulesText,
+		uiEvents:              opts.UIEvents,
 	}
 	m.allowlistAutoRun.Store(opts.AllowlistAutoRun)
 	return m
@@ -107,16 +101,14 @@ func (m *Manager) Get(ctx context.Context) (*agent.Runner, error) {
 
 	autoRun := m.allowlistAutoRun.Load()
 	r, err := agent.NewRunner(ctx, agent.RunnerOptions{
-		Config:                    cfg,
-		AllowlistAutoRun:          &autoRun,
-		Allowlist:                 allowlist,
-		SensitiveMatcher:          sensitiveMatcher,
-		Session:                   m.sessionProvider(),
-		RulesText:                 m.rulesText,
-		ApprovalChan:              m.approvalChan,
-		SensitiveConfirmationChan: m.sensitiveConfirmationChan,
-		ExecEventChan:             m.execEventChan,
-		ExecutorProvider:          m.executorProvider,
+		Config:           cfg,
+		AllowlistAutoRun: &autoRun,
+		Allowlist:        allowlist,
+		SensitiveMatcher: sensitiveMatcher,
+		Session:          m.sessionProvider(),
+		RulesText:        m.rulesText,
+		UIEvents:         m.uiEvents,
+		ExecutorProvider: m.executorProvider,
 	})
 	if err != nil {
 		return nil, err
@@ -124,4 +116,3 @@ func (m *Manager) Get(ctx context.Context) (*agent.Runner, error) {
 	m.r = r
 	return r, nil
 }
-

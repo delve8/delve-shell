@@ -7,7 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/app/service/skillsvc"
+	"delve-shell/internal/service/skillsvc"
 	"delve-shell/internal/git"
 )
 

@@ -1,6 +1,8 @@
 package history
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"os"
@@ -27,14 +29,28 @@ type Session struct {
 	f    *os.File
 }
 
-// NewSession creates a new session; file is created on first write to avoid empty files.
-func NewSession(id string) (*Session, error) {
+// NewSession creates a new session with a generated id (YYMMDD-HHMMSS + random hex suffix);
+// file is created on first write to avoid empty files.
+func NewSession() (*Session, error) {
+	id := newSessionID()
 	dir := config.HistoryDir()
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return nil, err
 	}
 	path := filepath.Join(dir, id+".jsonl")
 	return &Session{id: id, path: path, f: nil}, nil
+}
+
+func newSessionID() string {
+	return time.Now().Format("060102-150405") + "-" + randomHex2()
+}
+
+func randomHex2() string {
+	b := make([]byte, 1)
+	if _, err := rand.Read(b); err != nil {
+		return hex.EncodeToString([]byte{byte(time.Now().UnixNano() % 256)})
+	}
+	return hex.EncodeToString(b)
 }
 
 // OpenSession opens an existing session file for appending (e.g. to continue a previous session).

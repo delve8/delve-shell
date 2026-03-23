@@ -24,12 +24,12 @@ type Config struct {
 
 // LLMConfig is the LLM API config.
 type LLMConfig struct {
-	BaseURL             string `yaml:"base_url,omitempty"`              // OpenAI-compatible API URL; empty = official; not written when default model
-	APIKey              string `yaml:"api_key"`                         // API key; supports $VAR
-	Model               string `yaml:"model,omitempty"`                 // model name; empty = default gpt-4o-mini; not written when default
-	SystemPrompt        string `yaml:"system_prompt"`                   // system prompt; empty = built-in default; supports $VAR and multiline
-	MaxContextMessages  int    `yaml:"max_context_messages,omitempty"` // max user+assistant messages to send as history; 0 = default 50; reduce for small-context models
-	MaxContextChars     int    `yaml:"max_context_chars,omitempty"`     // approximate max chars for conversation history; 0 = no limit; helps avoid overflow on fixed-context models
+	BaseURL            string `yaml:"base_url,omitempty"`             // OpenAI-compatible API URL; empty = official; not written when default model
+	APIKey             string `yaml:"api_key"`                        // API key; supports $VAR
+	Model              string `yaml:"model,omitempty"`                // model name; empty = default gpt-4o-mini; not written when default
+	SystemPrompt       string `yaml:"system_prompt"`                  // system prompt; empty = built-in default; supports $VAR and multiline
+	MaxContextMessages int    `yaml:"max_context_messages,omitempty"` // max user+assistant messages to send as history; 0 = default 50; reduce for small-context models
+	MaxContextChars    int    `yaml:"max_context_chars,omitempty"`    // approximate max chars for conversation history; 0 = no limit; helps avoid overflow on fixed-context models
 }
 
 // RemoteTarget is one named remote host that can be selected via /remote on.
@@ -78,12 +78,12 @@ func Load() (*Config, error) {
 	}
 	// Decode with optional remotes for migration from old config.yaml.
 	var file struct {
-		Language        string          `yaml:"language"`
-		Remotes         []RemoteTarget  `yaml:"remotes,omitempty"`
-		LLM             LLMConfig       `yaml:"llm"`
-		History         HistoryConfig   `yaml:"history"`
+		Language         string         `yaml:"language"`
+		Remotes          []RemoteTarget `yaml:"remotes,omitempty"`
+		LLM              LLMConfig      `yaml:"llm"`
+		History          HistoryConfig  `yaml:"history"`
 		AllowlistAutoRun *bool          `yaml:"allowlist_auto_run,omitempty"`
-		Mode            string         `yaml:"mode,omitempty"`
+		Mode             string         `yaml:"mode,omitempty"`
 	}
 	if err := yaml.Unmarshal(data, &file); err != nil {
 		return nil, err
@@ -101,13 +101,21 @@ func Load() (*Config, error) {
 		}
 	}
 	c := &Config{
-		Language:        file.Language,
-		LLM:             file.LLM,
-		History:         file.History,
+		Language:         file.Language,
+		LLM:              file.LLM,
+		History:          file.History,
 		AllowlistAutoRun: file.AllowlistAutoRun,
-		Mode:            file.Mode,
+		Mode:             file.Mode,
 	}
 	return c, nil
+}
+
+// LoadEnsured ensures the config root directory exists, then loads config from config.yaml.
+func LoadEnsured() (*Config, error) {
+	if err := EnsureRootDir(); err != nil {
+		return nil, err
+	}
+	return Load()
 }
 
 // Default returns the default config (allowlist is separate: allowlist.yaml / LoadAllowlist).
@@ -155,9 +163,6 @@ func (c *Config) LLMSummary() string {
 	if baseURL == "" {
 		baseURL = "(default)"
 	}
-	if model == "" {
-		model = "gpt-4o-mini"
-	}
 	sp := c.LLM.SystemPrompt
 	if sp == "" {
 		sp = "(default)"
@@ -198,9 +203,6 @@ func (c *Config) LLMResolved() (baseURL, apiKey, model string) {
 	baseURL = strings.TrimRight(baseURL, "/")
 	apiKey = strings.TrimSpace(ExpandEnv(c.LLM.APIKey))
 	model = strings.TrimSpace(ExpandEnv(c.LLM.Model))
-	if model == "" {
-		model = "gpt-4o-mini"
-	}
 	if baseURL == "" && apiKey != "" {
 		baseURL = "https://api.openai.com/v1"
 	}
@@ -614,7 +616,7 @@ func defaultAllowlist() []AllowlistEntry {
 		{Pattern: `(^|\s)md5sum(\s|$)`},
 		{Pattern: `(^|\s)sha256sum(\s|$)`},
 		{Pattern: `(^|\s)sha1sum(\s|$)`},
-		{Pattern: `(^|\s)shasum(\s|$)`},   // macOS
+		{Pattern: `(^|\s)shasum(\s|$)`}, // macOS
 		{Pattern: `(^|\s)base64(\s|$)`},
 		{Pattern: `(^|\s)cksum(\s|$)`},
 		// find: common read-only usage only (-name/-type/-maxdepth), no -exec/-delete
