@@ -95,13 +95,8 @@ func init() {
 		return nil, false
 	})
 
-	// Delegate remote overlay key handling (AddRemoteActive / RemoteAuthStep)
-	// back to internal/ui without re-implementing all overlay logic.
 	ui.RegisterOverlayKeyProvider(func(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
-		if m.AddRemoteActive || m.RemoteAuthStep != "" {
-			return m.HandleOverlayKeyDelegated(key, msg)
-		}
-		return m, nil, false
+		return handleRemoteOverlayKey(m, key, msg)
 	})
 
 	// Delegate remote async messages (connect done / auth prompt) to ui handlers.
