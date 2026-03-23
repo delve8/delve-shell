@@ -3,9 +3,31 @@ package ui
 import (
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
+	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/i18n"
 )
+
+func init() {
+	registerSlashExact("/help", slashDispatchEntry{
+		handle: func(m Model) (Model, tea.Cmd) {
+			return m.openHelpOverlay(), nil
+		},
+		clearInput: true,
+	})
+	registerSlashExact("/config add-remote", slashDispatchEntry{
+		handle: func(m Model) (Model, tea.Cmd) {
+			return m.openAddRemoteOverlay(true, false), nil
+		},
+		clearInput: true,
+	})
+	registerSlashExact("/remote on", slashDispatchEntry{
+		handle: func(m Model) (Model, tea.Cmd) {
+			return m.openAddRemoteOverlay(false, true), nil
+		},
+		clearInput: true,
+	})
+}
 
 func (m Model) openHelpOverlay() Model {
 	m.OverlayActive = true
