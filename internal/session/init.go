@@ -2,6 +2,7 @@ package session
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"path/filepath"
 	"strings"
 
@@ -10,6 +11,10 @@ import (
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/ui"
 )
+
+var sessionSwitchedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Italic(true)
+
+const maxSessionHistoryEvents = 500
 
 func init() {
 	ui.RegisterSlashExact("/new", ui.SlashExactDispatchEntry{
@@ -47,8 +52,25 @@ func init() {
 	ui.RegisterMessageProvider(func(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		switch t := msg.(type) {
 		case ui.SessionSwitchedMsg:
-			m2, cmd := m.HandleSessionSwitchedMsg(t)
-			return m2, cmd, true
+			lang := "en"
+			m.CurrentSessionPath = t.Path
+			sessionID := ""
+			if t.Path != "" {
+				sessionID = strings.TrimSuffix(filepath.Base(t.Path), ".jsonl")
+			}
+			switchedLine := sessionSwitchedStyle.Render(i18n.T(lang, i18n.KeyDelveLabel) + " " + i18n.Tf(lang, i18n.KeySessionSwitchedTo, sessionID))
+			if t.Path != "" {
+				events, _ := history.ReadRecent(t.Path, maxSessionHistoryEvents)
+				msgs := ui.SessionEventsToMessages(events, lang, m.Width)
+				m.Messages = make([]string, 0, len(msgs)+2)
+				m.Messages = append(m.Messages, msgs...)
+				m.Messages = append(m.Messages, switchedLine)
+			} else {
+				m.Messages = []string{switchedLine}
+			}
+			m.Messages = append(m.Messages, "")
+			m = m.RefreshViewport()
+			return m, nil, true
 		default:
 			return m, nil, false
 		}
