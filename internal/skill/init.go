@@ -116,11 +116,18 @@ func init() {
 	ui.RegisterMessageProvider(func(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		switch t := msg.(type) {
 		case ui.AddSkillRefsLoadedMsg:
-			m2, cmd := m.HandleAddSkillRefsLoadedMsg(t)
-			return m2, cmd, true
+			if m.AddSkillActive {
+				m.AddSkillRefsFullList = t.Refs
+				m.AddSkillRefCandidates = filterByPrefix(t.Refs, m.AddSkillRefInput.Value())
+				m.AddSkillRefIndex = 0
+			}
+			return m, nil, true
 		case ui.AddSkillPathsLoadedMsg:
-			m2, cmd := m.HandleAddSkillPathsLoadedMsg(t)
-			return m2, cmd, true
+			if m.AddSkillActive {
+				m.AddSkillPathsFullList = t.Paths
+				m = updateAddSkillPathCandidates(m)
+			}
+			return m, nil, true
 		default:
 			return m, nil, false
 		}
