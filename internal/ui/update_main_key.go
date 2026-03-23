@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+
+	"delve-shell/internal/i18n"
 )
 
 func (m Model) handleMainScrollKey(key string, msg tea.KeyMsg, inputVal string) (Model, tea.Cmd, bool) {
@@ -55,4 +57,66 @@ func (m Model) captureSlashSelectionForEnter(inputVal string, text string) (Mode
 		}
 	}
 	return m, slashSelectedPath, slashSelectedIndex, false
+}
+
+func (m Model) handleMainInputUpdate(msg tea.KeyMsg) (Model, tea.Cmd) {
+	var cmd tea.Cmd
+	m.Input, cmd = m.Input.Update(msg)
+	m.syncSlashSuggestIndex()
+	return m, cmd
+}
+
+// syncSlashSuggestIndex keeps slash suggestion selection in a valid range
+// when the user edits slash input.
+func (m *Model) syncSlashSuggestIndex() {
+	if !strings.HasPrefix(m.Input.Value(), "/") {
+		return
+	}
+	inputVal := m.Input.Value()
+	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.CurrentSessionPath, m.LocalRunCommands, m.RemoteRunCommands, m.RemoteActive)
+	vis := visibleSlashOptions(inputVal, opts)
+	// Session list (Path set): do not reset index on every keystroke so user can pick another session with Enter
+	if len(opts) == 0 || opts[0].Path == "" {
+		m.SlashSuggestIndex = 0
+	}
+	if len(vis) > 0 && m.SlashSuggestIndex >= len(vis) {
+		m.SlashSuggestIndex = 0
+	}
+}
+
+func (m Model) handleNewSessionCommandIfNeeded(text string) (Model, bool) {
+	// /new sends to run loop only; do not append to Messages
+	if text != "/new" {
+		return m, false
+	}
+	if m.SubmitChan != nil {
+		m.SubmitChan <- text
+	}
+	m.Input.SetValue("")
+	m.Input.CursorEnd()
+	m.SlashSuggestIndex = 0
+	m.Viewport.SetContent(m.buildContent())
+	m.Viewport.GotoBottom()
+	return m, true
+}
+
+func (m Model) appendUserInputLine(text string) Model {
+	userLine := i18n.T(m.getLang(), i18n.KeyUserLabel) + text
+	w := m.Width
+	if w <= 0 {
+		w = 80
+	}
+	sepW := w
+	sepLine := separatorStyle.Render(strings.Repeat("─", sepW))
+	if len(m.Messages) > 0 && m.Messages[len(m.Messages)-1] != sepLine {
+		m.Messages = append(m.Messages, sepLine)
+	}
+	m.Messages = append(m.Messages, wrapString(userLine, w))
+	m.Messages = append(m.Messages, "") // blank line before command or AI reply
+	m.Viewport.SetContent(m.buildContent())
+	m.Viewport.GotoBottom()
+	m.Input.SetValue("")
+	m.Input.CursorEnd()
+	m.SlashSuggestIndex = 0
+	return m
 }

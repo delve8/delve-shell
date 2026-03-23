@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/agent"
@@ -140,6 +141,137 @@ func (m Model) handleCommandExecutedMsg(msg CommandExecutedMsg) (Model, tea.Cmd)
 		m.Messages = append(m.Messages, resultStyle.Render(wrapString(msg.Result, w)))
 	}
 	m.Messages = append(m.Messages, "") // blank line after command output
+	m.Viewport.SetContent(m.buildContent())
+	m.Viewport.GotoBottom()
+	return m, nil
+}
+
+func (m Model) handleRemoteConnectDoneMsg(msg RemoteConnectDoneMsg) (Model, tea.Cmd) {
+	// Connection attempt finished: clear any "connecting" states for add-remote or remote auth.
+	m.AddRemoteConnecting = false
+	m.AddRemoteError = ""
+	m.AddRemoteOfferOverwrite = false
+	m.RemoteAuthConnecting = false
+
+	// When Remote Auth overlay is active, close it on successful connection.
+	if m.RemoteAuthStep != "" {
+		if msg.Success {
+			m.OverlayActive = false
+			m.OverlayTitle = ""
+			m.OverlayContent = ""
+			m.RemoteAuthStep = ""
+			m.RemoteAuthTarget = ""
+			m.RemoteAuthError = ""
+			m.RemoteAuthUsername = ""
+			m.PathCompletionCandidates = nil
+			m.PathCompletionIndex = -1
+			m.Input.Focus()
+		}
+		return m, nil
+	}
+
+	// Fallback: add-remote overlay (opened via /remote on or /config add-remote).
+	m.AddRemoteActive = false
+	m.OverlayTitle = ""
+	m.OverlayContent = ""
+	if msg.Success {
+		m.OverlayActive = false
+		m.Input.Focus()
+	}
+	return m, nil
+}
+
+func (m Model) handleRemoteAuthPromptMsg(msg RemoteAuthPromptMsg) (Model, tea.Cmd) {
+	m.AddRemoteConnecting = false
+	m.AddRemoteActive = false
+	m.OverlayActive = true
+	m.OverlayTitle = "Remote Auth"
+	m.RemoteAuthTarget = msg.Target
+	m.RemoteAuthError = msg.Err
+	m.ChoiceIndex = 0
+	// When UseConfiguredIdentity is true, show a non-interactive "connecting with configured key" state.
+	if msg.UseConfiguredIdentity {
+		m.RemoteAuthStep = "auto_identity"
+		m.RemoteAuthConnecting = true
+		return m, nil
+	}
+	// Default: interactive auth flow starting from username.
+	m.RemoteAuthConnecting = false
+	m.RemoteAuthStep = "username" // first step: username only; Enter then shows "choose" (1/2) so username can contain 1 or 2
+	m.RemoteAuthUsernameInput = textinput.New()
+	m.RemoteAuthUsernameInput.Placeholder = "root"
+	if i := strings.Index(msg.Target, "@"); i > 0 && i < len(msg.Target)-1 {
+		m.RemoteAuthUsernameInput.SetValue(msg.Target[:i])
+	} else {
+		m.RemoteAuthUsernameInput.SetValue("root")
+	}
+	m.RemoteAuthUsernameInput.Focus()
+	return m, nil
+}
+
+func (m Model) handleConfigLLMCheckDoneMsg(msg ConfigLLMCheckDoneMsg) (Model, tea.Cmd) {
+	m.ConfigLLMChecking = false
+	lang := m.getLang()
+	if msg.Err != nil {
+		m.ConfigLLMError = i18n.Tf(lang, i18n.KeyConfigLLMCheckFailed, msg.Err)
+		m.Viewport.SetContent(m.buildContent())
+		return m, nil
+	}
+	m.ConfigLLMError = ""
+	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyConfigSavedLLM))))
+	if msg.CorrectedBaseURL != "" {
+		m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyConfigLLMBaseURLAutoCorrected, msg.CorrectedBaseURL))))
+	}
+	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyConfigLLMCheckOK))))
+	m.Messages = append(m.Messages, "")
+	m.Viewport.SetContent(m.buildContent())
+	m.Viewport.GotoBottom()
+	m.OverlayActive = false
+	m.ConfigLLMActive = false
+	m.OverlayTitle = ""
+	m.OverlayContent = ""
+	if m.ConfigUpdatedChan != nil {
+		select {
+		case m.ConfigUpdatedChan <- struct{}{}:
+		default:
+		}
+	}
+	return m, nil
+}
+
+func (m Model) handleAddSkillRefsLoadedMsg(msg AddSkillRefsLoadedMsg) (Model, tea.Cmd) {
+	if m.AddSkillActive {
+		m.AddSkillRefsFullList = msg.Refs
+		m.AddSkillRefCandidates = filterByPrefix(msg.Refs, m.AddSkillRefInput.Value())
+		m.AddSkillRefIndex = 0
+	}
+	return m, nil
+}
+
+func (m Model) handleAddSkillPathsLoadedMsg(msg AddSkillPathsLoadedMsg) (Model, tea.Cmd) {
+	if m.AddSkillActive {
+		m.AddSkillPathsFullList = msg.Paths
+		m = m.updateAddSkillPathCandidates()
+	}
+	return m, nil
+}
+
+func (m Model) handleApprovalRequestMsg(msg ApprovalRequestMsg) (Model, tea.Cmd) {
+	// When an approval is requested, immediately refresh the viewport so the
+	// approval card becomes visible, and scroll to bottom.
+	m.Pending = msg
+	m.ChoiceIndex = 0
+	m.syncInputPlaceholder()
+	m.Viewport.SetContent(m.buildContent())
+	m.Viewport.GotoBottom()
+	return m, nil
+}
+
+func (m Model) handleSensitiveConfirmationRequestMsg(msg SensitiveConfirmationRequestMsg) (Model, tea.Cmd) {
+	// Same as approval: ensure the sensitive confirmation card is visible.
+	m.PendingSensitive = msg
+	m.ChoiceIndex = 0
+	m.syncInputPlaceholder()
 	m.Viewport.SetContent(m.buildContent())
 	m.Viewport.GotoBottom()
 	return m, nil

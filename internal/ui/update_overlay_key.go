@@ -4,12 +4,53 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/service/remotesvc"
 )
+
+func (m Model) closeOverlayCommon(refocusInput bool) (Model, tea.Cmd) {
+	m.OverlayActive = false
+	m.OverlayTitle = ""
+	m.OverlayContent = ""
+	m.AddRemoteActive = false
+	m.AddRemoteConnecting = false
+	m.AddRemoteError = ""
+	m.AddRemoteOfferOverwrite = false
+	m.RemoteAuthConnecting = false
+	m.AddSkillActive = false
+	m.AddSkillError = ""
+	m.ConfigLLMActive = false
+	m.ConfigLLMChecking = false
+	m.ConfigLLMError = ""
+	m.RemoteAuthStep = ""
+	m.RemoteAuthTarget = ""
+	m.RemoteAuthError = ""
+	m.RemoteAuthUsername = ""
+	m.UpdateSkillActive = false
+	m.UpdateSkillError = ""
+	if refocusInput {
+		// Esc path keeps prior behavior: always refocus main input after closing overlays.
+		m.Input.Focus()
+	}
+	return m, nil
+}
+
+func (m Model) handleOverlayShowMsg(msg OverlayShowMsg) (Model, tea.Cmd) {
+	m.OverlayActive = true
+	m.OverlayTitle = msg.Title
+	m.OverlayContent = msg.Content
+	m.OverlayViewport = viewport.New(m.Width-4, min(m.Height-6, 20))
+	m.OverlayViewport.SetContent(m.OverlayContent)
+	return m, nil
+}
+
+func (m Model) handleOverlayCloseMsg() (Model, tea.Cmd) {
+	return m.closeOverlayCommon(false)
+}
 
 // handleOverlayKey routes key input when overlay is active.
 func (m Model) handleOverlayKey(key string, msg tea.KeyMsg) (Model, tea.Cmd, bool) {
