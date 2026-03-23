@@ -306,34 +306,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			if key == "enter" {
 				trimmed := strings.TrimSpace(inputVal)
-				// When the input already matches an executable slash command exactly,
-				// execute it directly (do not depend on dropdown selection).
-				switch trimmed {
-				case "/help":
-					m = m.openHelpOverlay()
-					return m, nil
-				case "/config llm":
-					m = m.openConfigLLMOverlay()
-					return m, nil
-				case "/config add-skill":
-					m = m.openAddSkillOverlay("", "", "")
-					return m, nil
-				case "/config add-remote":
-					m = m.openAddRemoteOverlay(true, false)
-					return m, nil
-				case "/remote on":
-					m = m.openAddRemoteOverlay(false, true)
-					return m, nil
-				case "/remote off":
-					if m.RemoteOffChan != nil {
-						select {
-						case m.RemoteOffChan <- struct{}{}:
-						default:
-						}
-					}
-					m.Input.SetValue("")
-					m.Input.CursorEnd()
-					return m, nil
+				// Execute exact slash commands through a single dispatch path.
+				if m2, cmd, handled := m.dispatchSlashExact(trimmed); handled {
+					return m2, cmd
 				}
 
 				opts := getSlashOptionsForInput(inputVal, m.getLang(), m.CurrentSessionPath, m.LocalRunCommands, m.RemoteRunCommands, m.RemoteActive)
@@ -342,79 +317,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					selectedOpt := opts[vis[m.SlashSuggestIndex]]
 					chosen := selectedOpt.Cmd
 					text := strings.TrimSpace(inputVal)
-					// If the user has fully typed a command (or selected it in dropdown) and pressed Enter,
-					// execute immediately for commands that do not require additional args.
 					if chosen == trimmed {
-						switch chosen {
-						case "/help":
-							m = m.openHelpOverlay()
-							return m, nil
-						case "/cancel":
-							if m.WaitingForAI && m.CancelRequestChan != nil {
-								select {
-								case m.CancelRequestChan <- struct{}{}:
-								default:
-								}
-								m.WaitingForAI = false
-							}
-							return m, nil
-						case "/config llm":
-							m = m.openConfigLLMOverlay()
-							return m, nil
-						case "/config add-remote":
-							// Same as later Enter handler: open add-remote overlay.
-							m = m.openAddRemoteOverlay(true, false)
-							return m, nil
-						case "/config add-skill":
-							m = m.openAddSkillOverlay("", "", "")
-							return m, nil
-						case "/config update auto-run list":
-							m = m.applyConfigAllowlistUpdate()
-							return m, nil
-						case "/config reload", "/reload":
-							if m.ConfigUpdatedChan != nil {
-								select {
-								case m.ConfigUpdatedChan <- struct{}{}:
-								default:
-								}
-							}
-							return m, nil
-						case "/remote on":
-							// Same as later Enter handler: open remote connection overlay (reuse add-remote).
-							m = m.openAddRemoteOverlay(false, true)
-							return m, nil
-						case "/remote off":
-							if m.RemoteOffChan != nil {
-								select {
-								case m.RemoteOffChan <- struct{}{}:
-								default:
-								}
-							}
-							m.Input.SetValue("")
-							m.Input.CursorEnd()
-							return m, nil
-						case "/q":
-							return m, tea.Quit
-						case "/sh":
-							if m.ShellRequestedChan != nil {
-								msgs := make([]string, len(m.Messages))
-								copy(msgs, m.Messages)
-								select {
-								case m.ShellRequestedChan <- msgs:
-								default:
-								}
-							}
-							return m, tea.Quit
-						case "/new":
-							if m.SubmitChan != nil {
-								m.SubmitChan <- "/new"
-							}
-							m.Input.SetValue("")
-							m.Input.CursorEnd()
-							m.SlashSuggestIndex = 0
-							m.Viewport.SetContent(m.buildContent())
-							m.Viewport.GotoBottom()
-							return m, nil
+						if m2, cmd, handled := m.dispatchSlashExact(chosen); handled {
+							return m2, cmd
 						}
 					}
 					// Sessions list: selecting an item should switch immediately on Enter (no second Enter).
