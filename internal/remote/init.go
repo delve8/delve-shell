@@ -10,6 +10,20 @@ import (
 )
 
 func init() {
+	ui.RegisterSlashExact("/config add-remote", ui.SlashExactDispatchEntry{
+		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
+			return m.OpenAddRemoteOverlay(true, false), nil
+		},
+		ClearInput: true,
+	})
+
+	ui.RegisterSlashExact("/remote on", ui.SlashExactDispatchEntry{
+		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
+			return m.OpenAddRemoteOverlay(false, true), nil
+		},
+		ClearInput: true,
+	})
+
 	ui.RegisterSlashExact("/remote off", ui.SlashExactDispatchEntry{
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
 			if m.RemoteOffChan != nil {

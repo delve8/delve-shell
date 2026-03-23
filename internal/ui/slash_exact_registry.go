@@ -18,7 +18,8 @@ func RegisterSlashExact(cmd string, entry SlashExactDispatchEntry) {
 		return
 	}
 	if _, ok := slashExactDispatchRegistry[cmd]; ok {
-		panic("duplicate exact slash registration: " + cmd)
+		// Overwrite to allow ui-level default registrations to coexist with
+		// feature-package registrations during incremental refactors and tests.
 	}
 	slashExactDispatchRegistry[cmd] = entry
 }

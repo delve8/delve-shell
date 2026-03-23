@@ -61,3 +61,9 @@ func (m Model) openAddRemoteOverlay(save, connect bool) Model {
 	m.AddRemoteKeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
 	return m
 }
+
+// OpenAddRemoteOverlay is an exported wrapper so feature packages can
+// trigger the add-remote overlay without implementing ui internals.
+func (m Model) OpenAddRemoteOverlay(save, connect bool) Model {
+	return m.openAddRemoteOverlay(save, connect)
+}

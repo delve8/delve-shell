@@ -64,8 +64,8 @@ func init() {
 		},
 	})
 
-	// Keep update-skill prefix registration in ui so ui unit tests
-	// can run without relying on feature package init() registration.
+	// Keep update-skill prefix registration in ui for unit tests.
+	// Runtime feature packages may overwrite via registry.
 	registerSlashPrefix("/config update-skill", SlashPrefixDispatchEntry{
 		Prefix: "/config update-skill",
 		Handle: func(mm Model, rest string) (Model, tea.Cmd, bool) {
