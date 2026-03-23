@@ -27,7 +27,8 @@ Tasks below are ordered **simple → complex**. Check off when done.
 ## P2 — Large refactor (do incrementally)
 
 - [ ] **Split `internal/ui/model.go`** (~2.3k lines)  
-  Continue extracting by feature: pending approval/sensitive, remote, config overlays, slash routing — match patterns already used for `overlay_*`, `config_handlers`, `slash.go`.
+  Continue extracting by feature: pending approval/sensitive, remote, config overlays, slash routing — match patterns already used for `overlay_*`, `config_handlers`, `slash.go`.  
+  **Progress:** `openUpdateSkillOverlay` lives in `overlay_update_skill.go` with `handleUpdateSkillOverlayKey`.
 
 - [ ] **Optional: `e2e` location**  
   If desired, move `internal/e2e` to repo-root `e2e/` or `test/e2e` for clearer separation from libraries (style only).
