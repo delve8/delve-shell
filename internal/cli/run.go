@@ -11,15 +11,18 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
-	"delve-shell/internal/runtime/executormgr"
-	"delve-shell/internal/runtime/runnermgr"
-	"delve-shell/internal/runtime/sessionmgr"
 	"delve-shell/internal/cli/hostfsm"
 	"delve-shell/internal/cli/hostloop"
 	"delve-shell/internal/config"
 	"delve-shell/internal/execenv"
 	"delve-shell/internal/history"
+	_ "delve-shell/internal/remote"
 	"delve-shell/internal/rules"
+	"delve-shell/internal/runtime/executormgr"
+	"delve-shell/internal/runtime/runnermgr"
+	"delve-shell/internal/runtime/sessionmgr"
+	_ "delve-shell/internal/session"
+	_ "delve-shell/internal/skill"
 	"delve-shell/internal/ui"
 )
 

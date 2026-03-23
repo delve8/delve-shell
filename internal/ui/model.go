@@ -136,6 +136,12 @@ func (m Model) delveMsg(msg string) string {
 // Update implements tea.Model.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.syncInputPlaceholder()
+
+	for _, p := range messageProviders {
+		if m2, cmd, handled := p(m, msg); handled {
+			return m2, cmd
+		}
+	}
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		return m.handleWindowSizeMsg(msg)

@@ -9,23 +9,23 @@ import (
 )
 
 func init() {
-	registerSlashExact("/help", slashDispatchEntry{
-		handle: func(m Model) (Model, tea.Cmd) {
+	registerSlashExact("/help", SlashExactDispatchEntry{
+		Handle: func(m Model) (Model, tea.Cmd) {
 			return m.openHelpOverlay(), nil
 		},
-		clearInput: true,
+		ClearInput: true,
 	})
-	registerSlashExact("/config add-remote", slashDispatchEntry{
-		handle: func(m Model) (Model, tea.Cmd) {
+	registerSlashExact("/config add-remote", SlashExactDispatchEntry{
+		Handle: func(m Model) (Model, tea.Cmd) {
 			return m.openAddRemoteOverlay(true, false), nil
 		},
-		clearInput: true,
+		ClearInput: true,
 	})
-	registerSlashExact("/remote on", slashDispatchEntry{
-		handle: func(m Model) (Model, tea.Cmd) {
+	registerSlashExact("/remote on", SlashExactDispatchEntry{
+		Handle: func(m Model) (Model, tea.Cmd) {
 			return m.openAddRemoteOverlay(false, true), nil
 		},
-		clearInput: true,
+		ClearInput: true,
 	})
 }
 

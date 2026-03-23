@@ -16,8 +16,8 @@ func (m Model) dispatchSlashExact(cmd string) (Model, tea.Cmd, bool) {
 	if !ok {
 		return m, nil, false
 	}
-	m, outCmd := entry.handle(m)
-	if entry.clearInput {
+	m, outCmd := entry.Handle(m)
+	if entry.ClearInput {
 		m = m.clearSlashInput()
 	}
 	return m, outCmd, true

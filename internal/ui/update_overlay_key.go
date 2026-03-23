@@ -58,6 +58,12 @@ func (m Model) handleOverlayKey(key string, msg tea.KeyMsg) (Model, tea.Cmd, boo
 		return m, nil, false
 	}
 
+	for _, p := range overlayKeyProviders {
+		if m2, cmd, handled := p(m, key, msg); handled {
+			return m2, cmd, true
+		}
+	}
+
 	switch key {
 	case "esc":
 		m, cmd := m.closeOverlayCommon(true)

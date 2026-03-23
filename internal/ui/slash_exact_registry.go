@@ -2,16 +2,18 @@ package ui
 
 import tea "github.com/charmbracelet/bubbletea"
 
-// slashDispatchEntry defines an exact slash command handler.
-// The registry is populated via init() functions in feature files.
-type slashDispatchEntry struct {
-	handle     func(Model) (Model, tea.Cmd)
-	clearInput bool
+// SlashExactDispatchEntry defines an exact slash command handler.
+// The registry is populated via init() functions in feature packages.
+type SlashExactDispatchEntry struct {
+	Handle     func(Model) (Model, tea.Cmd)
+	ClearInput bool
 }
 
-var slashExactDispatchRegistry = map[string]slashDispatchEntry{}
+var slashExactDispatchRegistry = map[string]SlashExactDispatchEntry{}
 
-func registerSlashExact(cmd string, entry slashDispatchEntry) {
+// RegisterSlashExact registers an exact slash command handler.
+// Intended to be called from feature packages' init() functions.
+func RegisterSlashExact(cmd string, entry SlashExactDispatchEntry) {
 	if cmd == "" {
 		return
 	}
@@ -19,4 +21,9 @@ func registerSlashExact(cmd string, entry slashDispatchEntry) {
 		panic("duplicate exact slash registration: " + cmd)
 	}
 	slashExactDispatchRegistry[cmd] = entry
+}
+
+// registerSlashExact is kept for internal callers during incremental refactors.
+func registerSlashExact(cmd string, entry SlashExactDispatchEntry) {
+	RegisterSlashExact(cmd, entry)
 }

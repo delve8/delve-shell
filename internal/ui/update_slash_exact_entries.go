@@ -8,54 +8,34 @@ import (
 
 func init() {
 	// Overlay-opening exact commands.
-	registerSlashExact("/config llm", slashDispatchEntry{
-		handle: func(m Model) (Model, tea.Cmd) {
+	registerSlashExact("/config llm", SlashExactDispatchEntry{
+		Handle: func(m Model) (Model, tea.Cmd) {
 			return m.openConfigLLMOverlay(), nil
 		},
-		clearInput: true,
+		ClearInput: true,
 	})
-	registerSlashExact("/config show", slashDispatchEntry{
-		handle: func(m Model) (Model, tea.Cmd) {
+	registerSlashExact("/config show", SlashExactDispatchEntry{
+		Handle: func(m Model) (Model, tea.Cmd) {
 			m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyConfigHint))))
 			m.Viewport.SetContent(m.buildContent())
 			m.Viewport.GotoBottom()
 			return m, nil
 		},
-		clearInput: false,
+		ClearInput: false,
 	})
-	registerSlashExact("/config", slashDispatchEntry{
-		handle: func(m Model) (Model, tea.Cmd) {
+	registerSlashExact("/config", SlashExactDispatchEntry{
+		Handle: func(m Model) (Model, tea.Cmd) {
 			m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyConfigHint))))
 			m.Viewport.SetContent(m.buildContent())
 			m.Viewport.GotoBottom()
 			return m, nil
 		},
-		clearInput: false,
+		ClearInput: false,
 	})
-	registerSlashExact("/config add-skill", slashDispatchEntry{
-		handle: func(m Model) (Model, tea.Cmd) {
-			return m.openAddSkillOverlay("", "", ""), nil
-		},
-		clearInput: true,
-	})
-
 	// Connection toggles.
-	registerSlashExact("/remote off", slashDispatchEntry{
-		handle: func(m Model) (Model, tea.Cmd) {
-			if m.RemoteOffChan != nil {
-				select {
-				case m.RemoteOffChan <- struct{}{}:
-				default:
-				}
-			}
-			return m, nil
-		},
-		clearInput: true,
-	})
-
 	// Agent cancel.
-	registerSlashExact("/cancel", slashDispatchEntry{
-		handle: func(m Model) (Model, tea.Cmd) {
+	registerSlashExact("/cancel", SlashExactDispatchEntry{
+		Handle: func(m Model) (Model, tea.Cmd) {
 			if m.WaitingForAI && m.CancelRequestChan != nil {
 				select {
 				case m.CancelRequestChan <- struct{}{}:
@@ -72,18 +52,18 @@ func init() {
 			m.Viewport.GotoBottom()
 			return m, nil
 		},
-		clearInput: false,
+		ClearInput: false,
 	})
 
 	// Config updates/reloads.
-	registerSlashExact("/config update auto-run list", slashDispatchEntry{
-		handle: func(m Model) (Model, tea.Cmd) {
+	registerSlashExact("/config update auto-run list", SlashExactDispatchEntry{
+		Handle: func(m Model) (Model, tea.Cmd) {
 			return m.applyConfigAllowlistUpdate(), nil
 		},
-		clearInput: true,
+		ClearInput: true,
 	})
-	registerSlashExact("/config reload", slashDispatchEntry{
-		handle: func(m Model) (Model, tea.Cmd) {
+	registerSlashExact("/config reload", SlashExactDispatchEntry{
+		Handle: func(m Model) (Model, tea.Cmd) {
 			if m.ConfigUpdatedChan != nil {
 				select {
 				case m.ConfigUpdatedChan <- struct{}{}:
@@ -92,10 +72,10 @@ func init() {
 			}
 			return m, nil
 		},
-		clearInput: true,
+		ClearInput: true,
 	})
-	registerSlashExact("/reload", slashDispatchEntry{
-		handle: func(m Model) (Model, tea.Cmd) {
+	registerSlashExact("/reload", SlashExactDispatchEntry{
+		Handle: func(m Model) (Model, tea.Cmd) {
 			if m.ConfigUpdatedChan != nil {
 				select {
 				case m.ConfigUpdatedChan <- struct{}{}:
@@ -104,18 +84,18 @@ func init() {
 			}
 			return m, nil
 		},
-		clearInput: true,
+		ClearInput: true,
 	})
 
 	// App lifecycle.
-	registerSlashExact("/q", slashDispatchEntry{
-		handle: func(m Model) (Model, tea.Cmd) {
+	registerSlashExact("/q", SlashExactDispatchEntry{
+		Handle: func(m Model) (Model, tea.Cmd) {
 			return m, tea.Quit
 		},
-		clearInput: false,
+		ClearInput: false,
 	})
-	registerSlashExact("/sh", slashDispatchEntry{
-		handle: func(m Model) (Model, tea.Cmd) {
+	registerSlashExact("/sh", SlashExactDispatchEntry{
+		Handle: func(m Model) (Model, tea.Cmd) {
 			if m.ShellRequestedChan != nil {
 				msgs := make([]string, len(m.Messages))
 				copy(msgs, m.Messages)
@@ -126,19 +106,6 @@ func init() {
 			}
 			return m, tea.Quit
 		},
-		clearInput: false,
-	})
-	registerSlashExact("/new", slashDispatchEntry{
-		handle: func(m Model) (Model, tea.Cmd) {
-			if m.SubmitChan != nil {
-				m.SubmitChan <- "/new"
-			}
-			// /new consumes input and refreshes content.
-			m = m.clearSlashInput()
-			m.Viewport.SetContent(m.buildContent())
-			m.Viewport.GotoBottom()
-			return m, nil
-		},
-		clearInput: false,
+		ClearInput: false,
 	})
 }

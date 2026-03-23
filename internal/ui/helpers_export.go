@@ -1,0 +1,16 @@
+package ui
+
+// ClearSlashInput resets slash input-related UI state.
+// It is exported so feature packages can implement exact slash handlers
+// without depending on unexported ui internals.
+func (m Model) ClearSlashInput() Model {
+	return m.clearSlashInput()
+}
+
+// RefreshViewport rebuilds the view content and scrolls to bottom.
+// This is used by exact slash handlers that need immediate UI feedback.
+func (m Model) RefreshViewport() Model {
+	m.Viewport.SetContent(m.buildContent())
+	m.Viewport.GotoBottom()
+	return m
+}

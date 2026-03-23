@@ -24,8 +24,13 @@ type slashOption struct {
 	Path string // session file path when this option is a session to switch to
 }
 
+// SlashOption is the exported view-model row for slash command suggestions.
+// It is an alias to the internal type so feature packages can build providers
+// without being able to reference the unexported name.
+type SlashOption = slashOption
+
 // getSlashOptions returns top-level slash commands (shown when input starts with "/"); order: help, cancel, config, remote, new, sessions, skill, run, sh, quit.
-func getSlashOptions(lang string) []slashOption {
+func getSlashOptions(lang string) []SlashOption {
 	return []slashOption{
 		{"/help", i18n.T(lang, i18n.KeyDescHelp), ""},
 		{"/cancel", i18n.T(lang, i18n.KeyDescCancel), ""},
@@ -42,7 +47,7 @@ func getSlashOptions(lang string) []slashOption {
 
 // getConfigSubOptions returns /config sub-options (shown when input starts with "/config").
 // Order: frequent first (remote, auto-run/allowlist, LLM), reload last.
-func getConfigSubOptions(lang string) []slashOption {
+func getConfigSubOptions(lang string) []SlashOption {
 	return []slashOption{
 		{"/config add-remote", i18n.T(lang, i18n.KeyDescConfigAddRemote), ""},
 		{"/config del-remote", i18n.T(lang, i18n.KeyDescConfigRemoveRemote), ""},
@@ -58,7 +63,13 @@ func getConfigSubOptions(lang string) []slashOption {
 }
 
 // getSlashOptionsForInput returns slash options to show: when input is "/config" or "/config xxx" returns only /config sub-options; when "/sessions" or "/sessions xxx" returns session list (with Path set) for switch, excluding currentSessionPath so first option is another session; else top-level commands.
-func getSlashOptionsForInput(inputVal string, lang string, currentSessionPath string, localRunCommands []string, remoteRunCommands []string, remoteActive bool) []slashOption {
+func getSlashOptionsForInput(inputVal string, lang string, currentSessionPath string, localRunCommands []string, remoteRunCommands []string, remoteActive bool) []SlashOption {
+	for _, p := range slashOptionsProviders {
+		if opts, handled := p(inputVal, lang, currentSessionPath, localRunCommands, remoteRunCommands, remoteActive); handled {
+			return opts
+		}
+	}
+
 	normalized := strings.TrimPrefix(inputVal, "/")
 	normalized = strings.TrimSpace(normalized)
 	normalizedLower := strings.ToLower(normalized)
@@ -143,7 +154,7 @@ func getSlashOptionsForInput(inputVal string, lang string, currentSessionPath st
 }
 
 // getDelSkillSlashOptions returns options for /config del-skill: one option per installed skill.
-func getDelSkillSlashOptions(lang string, filter string) []slashOption {
+func getDelSkillSlashOptions(lang string, filter string) []SlashOption {
 	list, err := skills.List()
 	if err != nil || len(list) == 0 {
 		return []slashOption{{Cmd: "/config del-skill", Desc: i18n.T(lang, i18n.KeySkillNone), Path: ""}}
@@ -173,7 +184,7 @@ func getDelSkillSlashOptions(lang string, filter string) []slashOption {
 // getUpdateSkillSlashOptions returns options for /config update-skill:
 // one option per installed skill with git source; skills with a newer commit
 // at their tracked ref are marked with "*" after the name.
-func getUpdateSkillSlashOptions(lang string, filter string) []slashOption {
+func getUpdateSkillSlashOptions(lang string, filter string) []SlashOption {
 	sources, err := skills.ListSources()
 	if err != nil || len(sources) == 0 {
 		return []slashOption{{Cmd: "/config update-skill", Desc: i18n.T(lang, i18n.KeySkillNone), Path: ""}}
@@ -233,7 +244,7 @@ func getUpdateSkillSlashOptions(lang string, filter string) []slashOption {
 }
 
 // getSkillSlashOptions returns options for /skill: list skills only. After user picks a skill they type natural language (no script list).
-func getSkillSlashOptions(lang string, filter string) []slashOption {
+func getSkillSlashOptions(lang string, filter string) []SlashOption {
 	list, _ := skills.List()
 	parts := strings.Fields(filter)
 	if len(parts) == 0 {
@@ -279,7 +290,7 @@ func getSkillSlashOptions(lang string, filter string) []slashOption {
 
 // getRemoteSlashOptions returns slash options for remote connection; filter is the substring after "/remote ".
 // Shows configured remotes first, then manual input option.
-func getRemoteSlashOptions(filter string, lang string) []slashOption {
+func getRemoteSlashOptions(filter string, lang string) []SlashOption {
 	var opts []slashOption
 	remotes, err := config.LoadRemotes()
 	if err == nil && len(remotes) > 0 {
@@ -303,7 +314,7 @@ func getRemoteSlashOptions(filter string, lang string) []slashOption {
 }
 
 // getRemoveRemoteSlashOptions returns slash options for /config del-remote: one option per configured remote (select to remove).
-func getRemoveRemoteSlashOptions(lang string, filter string) []slashOption {
+func getRemoveRemoteSlashOptions(lang string, filter string) []SlashOption {
 	remotes, err := config.LoadRemotes()
 	if err != nil || len(remotes) == 0 {
 		return []slashOption{{Cmd: "/config del-remote", Desc: i18n.T(lang, i18n.KeyRemoteNone), Path: ""}}
@@ -330,7 +341,7 @@ func getRemoveRemoteSlashOptions(lang string, filter string) []slashOption {
 
 // getSessionSlashOptions returns slash options for session list; filter is the substring after "/sessions " (e.g. date or time to filter).
 // currentSessionPath is excluded so the first option is always another session (avoids "switch" loading same session).
-func getSessionSlashOptions(filter string, currentSessionPath string) []slashOption {
+func getSessionSlashOptions(filter string, currentSessionPath string) []SlashOption {
 	summaries, err := history.ListSessionsWithSummary(maxSessionsInSlash)
 	if err != nil || len(summaries) == 0 {
 		return []slashOption{{Cmd: i18n.T("en", i18n.KeySessionNone), Desc: "", Path: ""}}
@@ -363,7 +374,7 @@ func getSessionSlashOptions(filter string, currentSessionPath string) []slashOpt
 
 // visibleSlashOptions filters options by input prefix and returns matching indices.
 // For session options (Path != ""), the input part after "/sessions " filters by substring match on Cmd.
-func visibleSlashOptions(input string, opts []slashOption) []int {
+func visibleSlashOptions(input string, opts []SlashOption) []int {
 	input = strings.TrimPrefix(input, "/")
 	input = strings.TrimSpace(input)
 	inputLower := strings.ToLower(input)
