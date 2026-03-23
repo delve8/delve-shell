@@ -68,6 +68,7 @@ func handleSubmit(fsmCtx *hostfsm.Context, d *Deps, cancelRequestChan <-chan str
 				maxMsg := cfg.MaxContextMessagesResolved()
 				maxChars := cfg.MaxContextCharsResolved()
 				if maxChars == 0 {
+					// Best-effort context budget: FetchModelContextLength uses HTTP (cached); 0 => fall back to maxMsg-only trim.
 					baseURL, apiKey, modelName := cfg.LLMResolved()
 					ctxTokens := modelinfo.FetchModelContextLength(baseURL, apiKey, modelName)
 					if ctxTokens > 0 {

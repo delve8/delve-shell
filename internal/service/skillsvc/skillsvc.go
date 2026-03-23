@@ -1,3 +1,5 @@
+// Package skillsvc is a thin facade over internal/skills for install/update/remove.
+// UI should use this instead of calling skills directly; tests may use SetImplForTest.
 package skillsvc
 
 import (
@@ -7,7 +9,6 @@ import (
 	"delve-shell/internal/skills"
 )
 
-// Small indirection layer so UI can call internal/service code and tests can stub behavior.
 var (
 	installFromGitFn = skills.InstallFromGit
 	updateFn         = skills.Update
@@ -44,4 +45,3 @@ func Remove(name string) error {
 	}
 	return err
 }
-

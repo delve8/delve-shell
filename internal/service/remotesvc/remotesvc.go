@@ -1,11 +1,10 @@
+// Package remotesvc is a thin facade over internal/config for remote target CRUD.
+// Call from UI instead of importing config for these mutations; tests may use SetImplForTest.
 package remotesvc
 
 import (
 	"delve-shell/internal/config"
 )
-
-// Thin application-layer wrapper for remote config mutations.
-// This keeps UI from directly writing config and allows unit tests to stub.
 
 var (
 	addFn    = config.AddRemote
@@ -37,4 +36,3 @@ func Update(target, name, identityFile string) error {
 func Remove(nameOrTarget string) error {
 	return removeFn(nameOrTarget)
 }
-

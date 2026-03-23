@@ -1,4 +1,6 @@
-// Package hiltypes holds HIL / host–UI wire types shared by agent runner and tools (no import cycle with agent).
+// Package hiltypes defines messages exchanged between the agent runner and the host UI (approval, sensitive
+// confirmation, exec notifications). It is orthogonal to package hil (allowlist and sensitive-path policy).
+// Canonical types live here; package agent re-exports aliases for stable imports from UI code.
 package hiltypes
 
 // ApprovalResponse is the user's choice for a pending command: Run, Reject, or Copy (copy to clipboard, do not run).
