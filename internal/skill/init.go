@@ -26,7 +26,7 @@ func init() {
 	ui.RegisterSlashPrefix("/skill ", ui.SlashPrefixDispatchEntry{
 		Prefix: "/skill ",
 		Handle: func(m ui.Model, rest string) (ui.Model, tea.Cmd, bool) {
-			return m.SlashSkillPrefix(rest), nil, true
+			return handleSlashSkillPrefix(m, rest), nil, true
 		},
 	})
 
@@ -59,14 +59,14 @@ func init() {
 	ui.RegisterSlashPrefix("/config update-skill", ui.SlashPrefixDispatchEntry{
 		Prefix: "/config update-skill",
 		Handle: func(m ui.Model, rest string) (ui.Model, tea.Cmd, bool) {
-			return m.SlashConfigUpdateSkillPrefix(rest), nil, true
+			return handleSlashConfigUpdateSkillPrefix(m, rest), nil, true
 		},
 	})
 
 	ui.RegisterSlashPrefix("/config del-skill ", ui.SlashPrefixDispatchEntry{
 		Prefix: "/config del-skill ",
 		Handle: func(m ui.Model, rest string) (ui.Model, tea.Cmd, bool) {
-			return m.SlashConfigDelSkillPrefix(rest), nil, true
+			return handleSlashConfigDelSkillPrefix(m, rest), nil, true
 		},
 	})
 

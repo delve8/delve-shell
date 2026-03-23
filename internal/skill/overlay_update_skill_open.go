@@ -1,4 +1,4 @@
-package ui
+package skill
 
 import (
 	"context"
@@ -7,16 +7,14 @@ import (
 	"delve-shell/internal/git"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/skills"
+	"delve-shell/internal/ui"
 )
 
-// openUpdateSkillOverlay initializes the update-skill overlay for the given skill name.
-// It loads the skill's source from the manifest, fetches refs and latest commit info,
-// and prepares UI state so the user can choose a ref and confirm the update.
-func (m Model) openUpdateSkillOverlay(name string) Model {
-	lang := m.getLang()
+// openUpdateSkillOverlay initializes update-skill overlay state.
+func openUpdateSkillOverlay(m ui.Model, name string) ui.Model {
+	lang := "en"
 	url, ref, commitID, path, _, ok := skills.GetSkillSource(name)
 	if !ok || strings.TrimSpace(url) == "" {
-		// Keep this as an overlay (not a transient message) so "Enter" always produces visible feedback.
 		m.OverlayActive = true
 		m.OverlayTitle = "Update skill"
 		m.UpdateSkillActive = true
@@ -30,17 +28,17 @@ func (m Model) openUpdateSkillOverlay(name string) Model {
 		m.UpdateSkillError = i18n.T(lang, i18n.KeySkillNotFound)
 		return m
 	}
+
 	ctx := context.Background()
 	refs := git.ListRefs(ctx, url)
 	if len(refs) == 0 {
-		// Fallback to using the manifest ref or a sensible default.
 		if strings.TrimSpace(ref) != "" {
 			refs = []string{ref}
 		} else {
 			refs = []string{"main", "master"}
 		}
 	}
-	// Determine selected ref and index.
+
 	selectedRef := strings.TrimSpace(ref)
 	if selectedRef == "" && len(refs) > 0 {
 		selectedRef = refs[0]
@@ -52,6 +50,7 @@ func (m Model) openUpdateSkillOverlay(name string) Model {
 			break
 		}
 	}
+
 	latestCommit := ""
 	if strings.TrimSpace(selectedRef) != "" {
 		if commit, err := git.LatestCommit(ctx, url, selectedRef); err == nil {

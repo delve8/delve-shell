@@ -15,18 +15,6 @@ func init() {
 		},
 		ClearInput: true,
 	})
-	registerSlashExact("/config add-remote", SlashExactDispatchEntry{
-		Handle: func(m Model) (Model, tea.Cmd) {
-			return m.openAddRemoteOverlay(true, false), nil
-		},
-		ClearInput: true,
-	})
-	registerSlashExact("/remote on", SlashExactDispatchEntry{
-		Handle: func(m Model) (Model, tea.Cmd) {
-			return m.openAddRemoteOverlay(false, true), nil
-		},
-		ClearInput: true,
-	})
 }
 
 func (m Model) openHelpOverlay() Model {

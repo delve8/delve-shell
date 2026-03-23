@@ -16,6 +16,7 @@ import (
 )
 
 var suggestStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
+var errStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
 
 const addSkillFieldCount = 4
 

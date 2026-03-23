@@ -64,29 +64,5 @@ func init() {
 		},
 	})
 
-	// Keep update-skill prefix registration in ui for unit tests.
-	// Runtime feature packages may overwrite via registry.
-	registerSlashPrefix("/config update-skill", SlashPrefixDispatchEntry{
-		Prefix: "/config update-skill",
-		Handle: func(mm Model, rest string) (Model, tea.Cmd, bool) {
-			rest = strings.TrimSpace(rest)
-			fields := strings.Fields(rest)
-			if len(fields) == 0 {
-				mm.Messages = append(mm.Messages, errStyle.Render(mm.delveMsg(i18n.T(mm.getLang(), i18n.KeyDescConfigUpdateSkill))))
-				mm.Viewport.SetContent(mm.buildContent())
-				mm.Viewport.GotoBottom()
-				return mm, nil, true
-			}
-			skillName := fields[0]
-			mm = mm.openUpdateSkillOverlay(skillName)
-			mm.Input.SetValue("")
-			mm.Input.CursorEnd()
-			mm.SlashSuggestIndex = 0
-			mm.Viewport.SetContent(mm.buildContent())
-			mm.Viewport.GotoBottom()
-			return mm, nil, true
-		},
-	})
-
 	// NOTE: skill/remote/session prefix handlers moved to feature packages.
 }
