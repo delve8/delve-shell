@@ -264,26 +264,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.OverlayViewport.SetContent(m.OverlayContent)
 		return m, nil
 	case OverlayCloseMsg:
-		m.OverlayActive = false
-		m.OverlayTitle = ""
-		m.OverlayContent = ""
-		m.AddRemoteActive = false
-		m.AddRemoteConnecting = false
-		m.AddRemoteError = ""
-		m.AddRemoteOfferOverwrite = false
-		m.RemoteAuthConnecting = false
-		m.AddSkillActive = false
-		m.AddSkillError = ""
-		m.ConfigLLMActive = false
-		m.ConfigLLMChecking = false
-		m.ConfigLLMError = ""
-		m.RemoteAuthStep = ""
-		m.RemoteAuthTarget = ""
-		m.RemoteAuthError = ""
-		m.RemoteAuthUsername = ""
-		m.UpdateSkillActive = false
-		m.UpdateSkillError = ""
-		return m, nil
+		return m.closeOverlayCommon(false)
 	case tea.KeyMsg:
 		key := msg.String()
 
@@ -647,28 +628,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.OverlayActive {
 			switch key {
 			case "esc":
-				m.OverlayActive = false
-				m.AddRemoteActive = false
-				m.AddRemoteConnecting = false
-				m.AddRemoteError = ""
-				m.AddRemoteOfferOverwrite = false
-				m.RemoteAuthConnecting = false
-				m.AddSkillActive = false
-				m.AddSkillError = ""
-				m.ConfigLLMActive = false
-				m.ConfigLLMChecking = false
-				m.ConfigLLMError = ""
-				m.OverlayTitle = ""
-				m.OverlayContent = ""
-				m.RemoteAuthStep = ""
-				m.RemoteAuthTarget = ""
-				m.RemoteAuthError = ""
-				m.RemoteAuthUsername = ""
-				m.UpdateSkillActive = false
-				m.UpdateSkillError = ""
-				// After closing any overlay, always refocus main input.
-				m.Input.Focus()
-				return m, nil
+				return m.closeOverlayCommon(true)
 			default:
 				// Add-skill overlay: URL, ref, path.
 				if m2, cmd, handled := m.handleAddSkillOverlayKey(key, msg); handled {
