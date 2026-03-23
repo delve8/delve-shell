@@ -1252,39 +1252,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// input must match chosen command; skip when only "/". "Fill only" already returned above.
 				if len(strings.TrimSpace(strings.TrimPrefix(text, "/"))) > 0 && (chosen == text || strings.HasPrefix(chosen, text)) {
 					// user input matches chosen (full input then Enter) => execute
-					if chosen == "/q" {
-						return m, tea.Quit
+					if m2, cmd, handled := m.dispatchSlashExact(chosen); handled {
+						return m2, cmd
 					}
-					if chosen == "/sh" {
-						if m.ShellRequestedChan != nil {
-							msgs := make([]string, len(m.Messages))
-							copy(msgs, m.Messages)
-							select {
-							case m.ShellRequestedChan <- msgs:
-							default:
-							}
-						}
-						return m, tea.Quit
+					if m2, cmd, handled := m.dispatchSlashPrefix(chosen); handled {
+						return m2, cmd
 					}
 					if chosen == "/run <cmd>" {
 						m.Input.SetValue("/run ")
 						m.Input.CursorEnd()
-						return m, nil
-					}
-					if strings.HasPrefix(chosen, "/config del-skill ") {
-						name := strings.TrimSpace(chosen[len("/config del-skill "):])
-						if name != "" {
-							if err := skillsvc.Remove(name); err != nil {
-								m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoveFailed, err))))
-							} else {
-								m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoved, name))))
-							}
-							m.Viewport.SetContent(m.buildContent())
-							m.Viewport.GotoBottom()
-						}
-						m.Input.SetValue("")
-						m.Input.CursorEnd()
-						m.SlashSuggestIndex = 0
 						return m, nil
 					}
 					if chosen == "/config add-skill" {
@@ -1299,49 +1275,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.Input.SetValue(chosen + " ")
 						m.Input.CursorEnd()
 						m.SlashSuggestIndex = 0
-						return m, nil
-					}
-					if chosen == "/cancel" {
-						if m.WaitingForAI && m.CancelRequestChan != nil {
-							select {
-							case m.CancelRequestChan <- struct{}{}:
-							default:
-							}
-							m.WaitingForAI = false
-						}
-						return m, nil
-					}
-					if chosen == "/help" {
-						m.OverlayActive = true
-						m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyHelpTitle)
-						m.OverlayContent = i18n.T(m.getLang(), i18n.KeyHelpText)
-						m.OverlayViewport = viewport.New(m.Width-4, min(m.Height-6, 20))
-						m.OverlayViewport.SetContent(m.OverlayContent)
-						return m, nil
-					}
-					if chosen == "/config update auto-run list" {
-						m = m.applyConfigAllowlistUpdate()
-						return m, nil
-					}
-					if chosen == "/config add-remote" {
-						m.OverlayActive = true
-						m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
-						m.AddRemoteActive = true
-						m.AddRemoteError = ""
-						m.AddRemoteOfferOverwrite = false
-						m.PathCompletionCandidates = nil
-						m.PathCompletionIndex = -1
-						m.AddRemoteFieldIndex = 0
-						m.AddRemoteHostInput = textinput.New()
-						m.AddRemoteHostInput.Placeholder = "host or host:22"
-						m.AddRemoteHostInput.Focus()
-						m.AddRemoteUserInput = textinput.New()
-						m.AddRemoteUserInput.Placeholder = "e.g. root"
-						m.AddRemoteUserInput.SetValue("root")
-						m.AddRemoteNameInput = textinput.New()
-						m.AddRemoteNameInput.Placeholder = "name (optional)"
-						m.AddRemoteKeyInput = textinput.New()
-						m.AddRemoteKeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
 						return m, nil
 					}
 					if strings.HasPrefix(chosen, "/config add-remote ") {
@@ -1389,47 +1322,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.Viewport.GotoBottom()
 						return m, nil
 					}
-					if chosen == "/reload" || chosen == "/config reload" {
-						if m.ConfigUpdatedChan != nil {
-							select {
-							case m.ConfigUpdatedChan <- struct{}{}:
-							default:
-							}
-						}
-						return m, nil
-					}
 					if chosen == "/new" {
 						if m.SubmitChan != nil {
 							m.SubmitChan <- "/new"
-						}
-						m.Input.SetValue("")
-						m.Input.CursorEnd()
-						m.SlashSuggestIndex = 0
-						m.Viewport.SetContent(m.buildContent())
-						m.Viewport.GotoBottom()
-						return m, nil
-					}
-					if strings.HasPrefix(chosen, "/remote on ") {
-						target := strings.TrimSpace(strings.TrimPrefix(chosen, "/remote on "))
-						if target != "" && m.RemoteOnChan != nil {
-							select {
-							case m.RemoteOnChan <- target:
-							default:
-							}
-						}
-						m.Input.SetValue("")
-						m.Input.CursorEnd()
-						m.SlashSuggestIndex = 0
-						m.Viewport.SetContent(m.buildContent())
-						m.Viewport.GotoBottom()
-						return m, nil
-					}
-					if chosen == "/remote off" {
-						if m.RemoteOffChan != nil {
-							select {
-							case m.RemoteOffChan <- struct{}{}:
-							default:
-							}
 						}
 						m.Input.SetValue("")
 						m.Input.CursorEnd()
