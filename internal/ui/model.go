@@ -296,28 +296,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		inputVal = m.Input.Value()
-		inSlash = strings.HasPrefix(inputVal, "/")
-
-		// scroll keys: Up/Down change selection in slash mode, else go to viewport with PgUp/PgDown
-		if key == "up" || key == "down" || key == "pgup" || key == "pgdown" {
-			if inSlash && (key == "up" || key == "down") {
-				opts := getSlashOptionsForInput(inputVal, m.getLang(), m.CurrentSessionPath, m.LocalRunCommands, m.RemoteRunCommands, m.RemoteActive)
-				vis := visibleSlashOptions(inputVal, opts)
-				if len(vis) > 0 {
-					if m.SlashSuggestIndex >= len(vis) {
-						m.SlashSuggestIndex = 0
-					}
-					if key == "down" {
-						m.SlashSuggestIndex = (m.SlashSuggestIndex + 1) % len(vis)
-					} else {
-						m.SlashSuggestIndex = (m.SlashSuggestIndex - 1 + len(vis)) % len(vis)
-					}
-				}
-				return m, nil
-			}
-			var cmd tea.Cmd
-			m.Viewport, cmd = m.Viewport.Update(msg)
-			return m, cmd
+		if m2, cmd, handled := m.handleMainScrollKey(key, msg, inputVal); handled {
+			return m2, cmd
 		}
 
 		if key == "enter" {
@@ -329,27 +309,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.WaitingForAI && !strings.HasPrefix(text, "/") {
 				return m, nil
 			}
-			// Save selected slash option before any state change; Enter handler resets SlashSuggestIndex below, so we must capture now.
-			// Use inputVal (not text) for slash options so we match what the view shows and get correct opts/vis when user has trailing space.
+			// Save selected slash option before any state change; Enter handler resets SlashSuggestIndex below.
+			// Use inputVal (not text) so we match what the view shows and get correct opts/vis with trailing space.
 			var slashSelectedPath string
-			var slashSelectedIndex int = -1
-			if strings.HasPrefix(inputVal, "/") {
-				opts := getSlashOptionsForInput(inputVal, m.getLang(), m.CurrentSessionPath, m.LocalRunCommands, m.RemoteRunCommands, m.RemoteActive)
-				vis := visibleSlashOptions(inputVal, opts)
-				if len(vis) > 0 && m.SlashSuggestIndex < len(vis) {
-					chosen := opts[vis[m.SlashSuggestIndex]].Cmd
-					// chosen != text => fill selection only, do not execute or add to View
-					if (chosen == text || strings.HasPrefix(chosen, text)) && chosen != text {
-						m.Input.SetValue(slashChosenToInputValue(chosen))
-						m.Input.CursorEnd()
-						m.SlashSuggestIndex = 0 // reset so next Enter (new opts set, e.g. skill list) uses index 0
-						return m, nil
-					}
-					slashSelectedIndex = m.SlashSuggestIndex
-					if opts[vis[m.SlashSuggestIndex]].Path != "" {
-						slashSelectedPath = opts[vis[m.SlashSuggestIndex]].Path
-					}
-				}
+			var slashSelectedIndex int
+			var filled bool
+			m, slashSelectedPath, slashSelectedIndex, filled = m.captureSlashSelectionForEnter(inputVal, text)
+			if filled {
+				return m, nil
 			}
 			// /new sends to run loop only; do not append to Messages
 			if text == "/new" {
