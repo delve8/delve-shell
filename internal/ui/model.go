@@ -384,21 +384,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleMainEnterCommand(text, slashSelectedPath, slashSelectedIndex)
 		}
 
-		var cmd tea.Cmd
-		m.Input, cmd = m.Input.Update(msg)
-		if strings.HasPrefix(m.Input.Value(), "/") {
-			inputVal := m.Input.Value()
-			opts := getSlashOptionsForInput(inputVal, m.getLang(), m.CurrentSessionPath, m.LocalRunCommands, m.RemoteRunCommands, m.RemoteActive)
-			vis := visibleSlashOptions(inputVal, opts)
-			// Session list (Path set): do not reset index on every keystroke so user can pick another session with Enter
-			if len(opts) == 0 || opts[0].Path == "" {
-				m.SlashSuggestIndex = 0
-			}
-			if len(vis) > 0 && m.SlashSuggestIndex >= len(vis) {
-				m.SlashSuggestIndex = 0
-			}
-		}
-		return m, cmd
+		return m.handleMainInputUpdate(msg)
 
 	case tea.MouseMsg:
 		return m.handleMouseMsg(msg)
