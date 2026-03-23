@@ -15,42 +15,83 @@ func (m Model) showConfigHint() Model {
 	return m
 }
 
+type slashSelectedEntry struct {
+	exact  string
+	prefix string
+	handle func(Model, string) (Model, tea.Cmd, bool) // chosen (full) passed
+}
+
 // handleSlashSelectedFallback handles suggestion-selected slash commands
 // that are intentionally not routed through exact/prefix dispatcher.
 func (m Model) handleSlashSelectedFallback(chosen string) (Model, tea.Cmd, bool) {
-	if chosen == "/run <cmd>" {
-		m.Input.SetValue("/run ")
-		m.Input.CursorEnd()
-		return m, nil, true
+	entries := []slashSelectedEntry{
+		{
+			exact: "/run <cmd>",
+			handle: func(mm Model, _ string) (Model, tea.Cmd, bool) {
+				mm.Input.SetValue("/run ")
+				mm.Input.CursorEnd()
+				return mm, nil, true
+			},
+		},
+		{
+			prefix: "/skill ",
+			handle: func(mm Model, chosen string) (Model, tea.Cmd, bool) {
+				// Fill so user can type natural language after the skill name.
+				mm.Input.SetValue(chosen + " ")
+				mm.Input.CursorEnd()
+				mm.SlashSuggestIndex = 0
+				return mm, nil, true
+			},
+		},
+		{
+			prefix: "/config add-remote ",
+			handle: func(mm Model, _ string) (Model, tea.Cmd, bool) {
+				mm.Input.SetValue("/config add-remote ")
+				mm.Input.CursorEnd()
+				return mm, nil, true
+			},
+		},
+		{
+			prefix: "/config del-remote ",
+			handle: func(mm Model, chosen string) (Model, tea.Cmd, bool) {
+				nameOrTarget := strings.TrimSpace(strings.TrimPrefix(chosen, "/config del-remote "))
+				if nameOrTarget != "" {
+					return mm.applyConfigRemoveRemote(nameOrTarget), nil, true
+				}
+				mm.Input.SetValue("/config del-remote ")
+				mm.Input.CursorEnd()
+				return mm, nil, true
+			},
+		},
+		{
+			exact: "/config del-remote",
+			handle: func(mm Model, _ string) (Model, tea.Cmd, bool) {
+				mm.Input.SetValue("/config del-remote ")
+				mm.Input.CursorEnd()
+				return mm, nil, true
+			},
+		},
+		{
+			exact: "/config",
+			handle: func(mm Model, _ string) (Model, tea.Cmd, bool) {
+				return mm.showConfigHint(), nil, true
+			},
+		},
+		{
+			prefix: "/config ",
+			handle: func(mm Model, _ string) (Model, tea.Cmd, bool) {
+				return mm.showConfigHint(), nil, true
+			},
+		},
 	}
-	if strings.HasPrefix(chosen, "/skill ") {
-		// Fill so user can type natural language after the skill name.
-		m.Input.SetValue(chosen + " ")
-		m.Input.CursorEnd()
-		m.SlashSuggestIndex = 0
-		return m, nil, true
-	}
-	if strings.HasPrefix(chosen, "/config add-remote ") {
-		m.Input.SetValue("/config add-remote ")
-		m.Input.CursorEnd()
-		return m, nil, true
-	}
-	if strings.HasPrefix(chosen, "/config del-remote ") {
-		nameOrTarget := strings.TrimSpace(strings.TrimPrefix(chosen, "/config del-remote "))
-		if nameOrTarget != "" {
-			return m.applyConfigRemoveRemote(nameOrTarget), nil, true
+
+	for _, e := range entries {
+		if e.exact != "" && chosen == e.exact {
+			return e.handle(m, chosen)
 		}
-		m.Input.SetValue("/config del-remote ")
-		m.Input.CursorEnd()
-		return m, nil, true
-	}
-	if chosen == "/config del-remote" {
-		m.Input.SetValue("/config del-remote ")
-		m.Input.CursorEnd()
-		return m, nil, true
-	}
-	if chosen == "/config" || strings.HasPrefix(chosen, "/config ") {
-		return m.showConfigHint(), nil, true
+		if e.prefix != "" && strings.HasPrefix(chosen, e.prefix) {
+			return e.handle(m, chosen)
+		}
 	}
 	return m, nil, false
 }

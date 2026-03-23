@@ -11,66 +11,98 @@ import (
 	"delve-shell/internal/service/skillsvc"
 )
 
+type slashPrefixEntry struct {
+	prefix string
+	handle func(Model, string) (Model, tea.Cmd, bool) // rest after prefix
+}
+
 // dispatchSlashPrefix handles slash commands with arguments.
 // It is intended for the Enter-submit path where input is already consumed.
 func (m Model) dispatchSlashPrefix(text string) (Model, tea.Cmd, bool) {
-	switch {
-	case strings.HasPrefix(text, "/run "):
-		cmd := strings.TrimSpace(text[len("/run "):])
-		if m.ExecDirectChan != nil && cmd != "" {
-			m.ExecDirectChan <- cmd
-		} else if cmd == "" {
-			m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyUsageRun))))
+	entries := []slashPrefixEntry{
+		{
+			prefix: "/run ",
+			handle: func(mm Model, rest string) (Model, tea.Cmd, bool) {
+				cmd := strings.TrimSpace(rest)
+				if mm.ExecDirectChan != nil && cmd != "" {
+					mm.ExecDirectChan <- cmd
+				} else if cmd == "" {
+					mm.Messages = append(mm.Messages, errStyle.Render(mm.delveMsg(i18n.T(mm.getLang(), i18n.KeyUsageRun))))
+				}
+				return mm, nil, true
+			},
+		},
+		{
+			prefix: "/sessions ",
+			handle: func(mm Model, rest string) (Model, tea.Cmd, bool) {
+				id := strings.TrimSpace(rest)
+				if id == "" {
+					return mm, nil, true
+				}
+				if mm.SessionSwitchChan != nil {
+					sessionPath := filepath.Join(config.HistoryDir(), id+".jsonl")
+					select {
+					case mm.SessionSwitchChan <- sessionPath:
+					default:
+					}
+				}
+				mm.Viewport.SetContent(mm.buildContent())
+				mm.Viewport.GotoBottom()
+				return mm, nil, true
+			},
+		},
+		{
+			prefix: "/config del-remote ",
+			handle: func(mm Model, rest string) (Model, tea.Cmd, bool) {
+				nameOrTarget := strings.TrimSpace(rest)
+				if nameOrTarget == "" {
+					return mm, nil, true
+				}
+				return mm.applyConfigRemoveRemote(nameOrTarget), nil, true
+			},
+		},
+		{
+			prefix: "/config del-skill ",
+			handle: func(mm Model, rest string) (Model, tea.Cmd, bool) {
+				name := strings.TrimSpace(rest)
+				if name == "" {
+					mm.Messages = append(mm.Messages, errStyle.Render(mm.delveMsg(i18n.T(mm.getLang(), i18n.KeyUsageSkillRemove))))
+					return mm, nil, true
+				}
+				if err := skillsvc.Remove(name); err != nil {
+					mm.Messages = append(mm.Messages, errStyle.Render(mm.delveMsg(i18n.Tf(mm.getLang(), i18n.KeySkillRemoveFailed, err))))
+				} else {
+					mm.Messages = append(mm.Messages, suggestStyle.Render(mm.delveMsg(i18n.Tf(mm.getLang(), i18n.KeySkillRemoved, name))))
+				}
+				mm.Messages = append(mm.Messages, "")
+				mm.Viewport.SetContent(mm.buildContent())
+				mm.Viewport.GotoBottom()
+				return mm, nil, true
+			},
+		},
+		{
+			prefix: "/remote on ",
+			handle: func(mm Model, rest string) (Model, tea.Cmd, bool) {
+				target := strings.TrimSpace(rest)
+				if target == "" {
+					return mm, nil, true
+				}
+				if mm.RemoteOnChan != nil {
+					select {
+					case mm.RemoteOnChan <- target:
+					default:
+					}
+				}
+				return mm, nil, true
+			},
+		},
+	}
+
+	for _, e := range entries {
+		if strings.HasPrefix(text, e.prefix) {
+			rest := strings.TrimPrefix(text, e.prefix)
+			return e.handle(m, rest)
 		}
-		return m, nil, true
-	case strings.HasPrefix(text, "/sessions "):
-		id := strings.TrimSpace(strings.TrimPrefix(text, "/sessions "))
-		if id == "" {
-			return m, nil, true
-		}
-		if m.SessionSwitchChan != nil {
-			sessionPath := filepath.Join(config.HistoryDir(), id+".jsonl")
-			select {
-			case m.SessionSwitchChan <- sessionPath:
-			default:
-			}
-		}
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m, nil, true
-	case strings.HasPrefix(text, "/config del-remote "):
-		nameOrTarget := strings.TrimSpace(strings.TrimPrefix(text, "/config del-remote "))
-		if nameOrTarget == "" {
-			return m, nil, true
-		}
-		return m.applyConfigRemoveRemote(nameOrTarget), nil, true
-	case strings.HasPrefix(text, "/config del-skill "):
-		name := strings.TrimSpace(strings.TrimPrefix(text, "/config del-skill "))
-		if name == "" {
-			m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyUsageSkillRemove))))
-			return m, nil, true
-		}
-		if err := skillsvc.Remove(name); err != nil {
-			m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoveFailed, err))))
-		} else {
-			m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(m.getLang(), i18n.KeySkillRemoved, name))))
-		}
-		m.Messages = append(m.Messages, "")
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m, nil, true
-	case strings.HasPrefix(text, "/remote on "):
-		target := strings.TrimSpace(strings.TrimPrefix(text, "/remote on "))
-		if target == "" {
-			return m, nil, true
-		}
-		if m.RemoteOnChan != nil {
-			select {
-			case m.RemoteOnChan <- target:
-			default:
-			}
-		}
-		return m, nil, true
 	}
 	return m, nil, false
 }
