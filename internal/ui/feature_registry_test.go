@@ -16,13 +16,53 @@ import (
 func init() {
 	registerSlashExact("/config add-remote", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
-			return m.openAddRemoteOverlay(true, false), nil
+			m.OverlayActive = true
+			m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
+			m.AddRemoteActive = true
+			m.AddRemoteError = ""
+			m.AddRemoteOfferOverwrite = false
+			m.AddRemoteSave = true
+			m.AddRemoteConnect = false
+			m.PathCompletionCandidates = nil
+			m.PathCompletionIndex = -1
+			m.AddRemoteFieldIndex = 0
+			m.AddRemoteHostInput = textinput.New()
+			m.AddRemoteHostInput.Placeholder = "host or host:22"
+			m.AddRemoteHostInput.Focus()
+			m.AddRemoteUserInput = textinput.New()
+			m.AddRemoteUserInput.Placeholder = "e.g. root"
+			m.AddRemoteUserInput.SetValue("root")
+			m.AddRemoteNameInput = textinput.New()
+			m.AddRemoteNameInput.Placeholder = "name (optional)"
+			m.AddRemoteKeyInput = textinput.New()
+			m.AddRemoteKeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
+			return m, nil
 		},
 		ClearInput: true,
 	})
 	registerSlashExact("/remote on", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
-			return m.openAddRemoteOverlay(false, true), nil
+			m.OverlayActive = true
+			m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
+			m.AddRemoteActive = true
+			m.AddRemoteError = ""
+			m.AddRemoteOfferOverwrite = false
+			m.AddRemoteSave = false
+			m.AddRemoteConnect = true
+			m.PathCompletionCandidates = nil
+			m.PathCompletionIndex = -1
+			m.AddRemoteFieldIndex = 0
+			m.AddRemoteHostInput = textinput.New()
+			m.AddRemoteHostInput.Placeholder = "host or host:22"
+			m.AddRemoteHostInput.Focus()
+			m.AddRemoteUserInput = textinput.New()
+			m.AddRemoteUserInput.Placeholder = "e.g. root"
+			m.AddRemoteUserInput.SetValue("root")
+			m.AddRemoteNameInput = textinput.New()
+			m.AddRemoteNameInput.Placeholder = "name (optional)"
+			m.AddRemoteKeyInput = textinput.New()
+			m.AddRemoteKeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
+			return m, nil
 		},
 		ClearInput: true,
 	})
