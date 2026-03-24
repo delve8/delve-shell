@@ -4,4 +4,5 @@ func init() {
 	registerSlashExactHandlers()
 	registerSlashPrefixHandlers()
 	registerProviders()
+	registerOverlayCloseHook()
 }

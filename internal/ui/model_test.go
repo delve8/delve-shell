@@ -282,6 +282,23 @@ func TestSlashCommand_Help_EnterOpensOverlay(t *testing.T) {
 	}
 }
 
+func TestOverlayEsc_CloseHooksClearFeatureFlags(t *testing.T) {
+	getAutoRun := func() bool { return true }
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
+	m.OverlayActive = true
+	m.OverlayTitle = "x"
+	m.AddRemoteActive = true
+
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m2 := next.(Model)
+	if m2.OverlayActive {
+		t.Fatal("expected overlay closed after Esc")
+	}
+	if m2.AddRemoteActive {
+		t.Fatal("expected RegisterOverlayCloseHook to clear AddRemoteActive")
+	}
+}
+
 func TestSlashCommand_RemoteOn_EnterOpensOverlay(t *testing.T) {
 	getAutoRun := func() bool { return true }
 	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)

@@ -15,6 +15,27 @@ import (
 // remote/session (avoids heavy deps). internal/run cannot be imported here: run → ui
 // would form a cycle with ui tests; mirror SlashRunUsageOption handling below instead.
 func init() {
+	// Mirror overlay close resets from remote/skill/configllm (those packages are not imported here).
+	RegisterOverlayCloseHook(func(m Model) Model {
+		m.AddRemoteActive = false
+		m.AddRemoteConnecting = false
+		m.AddRemoteError = ""
+		m.AddRemoteOfferOverwrite = false
+		m.RemoteAuthConnecting = false
+		m.RemoteAuthStep = ""
+		m.RemoteAuthTarget = ""
+		m.RemoteAuthError = ""
+		m.RemoteAuthUsername = ""
+		m.AddSkillActive = false
+		m.AddSkillError = ""
+		m.UpdateSkillActive = false
+		m.UpdateSkillError = ""
+		m.ConfigLLMActive = false
+		m.ConfigLLMChecking = false
+		m.ConfigLLMError = ""
+		return m
+	})
+
 	registerSlashExact("/config add-remote", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
 			m.OverlayActive = true

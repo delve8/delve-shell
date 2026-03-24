@@ -83,3 +83,18 @@ func RegisterOverlayContentProvider(p OverlayContentProvider) {
 	}
 	overlayContentProviders = append(overlayContentProviders, p)
 }
+
+// OverlayCloseHook resets feature-specific model fields when an overlay is dismissed
+// (Esc or programmatic close). Hooks run after generic overlay chrome is cleared.
+type OverlayCloseHook func(m Model) Model
+
+var overlayCloseHooks []OverlayCloseHook
+
+// RegisterOverlayCloseHook registers an overlay-dismiss reset hook.
+// Hooks run in registration order; each receives and returns the model by value.
+func RegisterOverlayCloseHook(h OverlayCloseHook) {
+	if h == nil {
+		return
+	}
+	overlayCloseHooks = append(overlayCloseHooks, h)
+}
