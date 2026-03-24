@@ -47,12 +47,21 @@
 
 - **事实**：`internal/run` → `internal/ui`；若 `internal/ui` 的 `*_test.go` 再 `_ import "delve-shell/internal/run"`，则形成 **`ui`（测试）→ `run` → `ui`**，Go 禁止。
 - **后果**：`/run` 的 `RegisterSlashSelectedProvider`（及同类）在 **`feature_registry_test.go` 的 `init()` 里必须镜像一份**，并与 `ui.SlashRunUsageOption` 常量保持语义一致。
-- **后续若要去重**：需要 **第三包**（仅承载「注册表 + 弱类型回调」、或把 `Model` 换成接口）打破环；工作量大，属 P2。
+- **架构判断**：循环依赖应视为架构告警，不应长期靠测试镜像兜底。  
+- **后续去重方向**：  
+  1) 引入 **registry core**（第三包，脱离 `ui.Model` 直接依赖）；或  
+  2) 将 `internal/ui` 测试逐步迁移到 `package ui_test`（减少对未导出符号耦合）。  
+  当前两条可并行小步推进，优先保持行为稳定与可回滚。
 
 ### 3.2 `feature_registry_test.go` 的定位
 
 - **目的**：`go test ./internal/ui` 时不 import `remote` / `session` / `configllm` / `skill` / `run`（避免循环或过重依赖）。
-- **内容**：测试用 `registerSlashExact`、MessageProvider 替身、`RegisterSlashOptionsProvider`（sessions）、`RegisterSlashSelectedProvider`（skill、/run 镜像）、**`RegisterTitleBarFragmentProvider`**（remote 标题镜像）。
+- **内容（现状）**：测试镜像已从单文件拆分为按领域文件：  
+  - `feature_registry_remote_configllm_test.go`  
+  - `feature_registry_skill_test.go`  
+  - `feature_registry_session_test.go`  
+  - `feature_registry_slash_exact_test.go`  
+  `feature_registry_test.go` 保留汇总入口（init 调度），降低单文件耦合。
 - **Overlay 复位**：`internal/ui/overlay_close_feature_reset.go` 中 **`ApplyOverlayCloseFeatureResets`** + `init()` 单次 `RegisterOverlayCloseHook`；新增业务 overlay 字段时只改该函数（及对应 overlay 打开逻辑），**不再**在 remote/skill/configllm 各写一份 hook。
 
 ---
@@ -102,8 +111,11 @@
    - 结论：**状态仍留在 `ui.Model`**，feature 包通过 `Register*` + 约定字段协作。  
    - **Bubble Tea 约束**：子 `textinput.Model` 的 `Update` 仍在 `ui` 或 `overlay_key` 链路上，后续继续拆分时别破坏 `tea.Model` 更新顺序。
 
-5. **打破 `ui` 测试与 `run` 的循环（可选）**  
-   - 例如：`package slashreg` 仅含 `[]func()` 与弱类型注册——易脏，**仅当测试重复成为明显负担时再做**。
+5. **打破 `ui` 测试与 `run` 的循环（进行中）**  
+   - 已做：slash exact/prefix 命令注册从 `ui` 下沉到 `internal/run`；`ui` 仅保留壳层分发与 registry API。  
+   - 已做：删除 `ui` 内部 `registerSlashExact` 别名，只保留 `RegisterSlashExact`。  
+   - 已做：测试镜像按领域拆分，减轻“单点大文件”维护成本。  
+   - 待做（结构性）：`registry core` 设计与最小链路迁移；评估 `ui_test` 外部包迁移成本。
 
 ### P3 — 产品/仓库卫生
 
@@ -143,6 +155,8 @@
 
 | 日期 | 说明 |
 |------|------|
+| 2025-03-24 | slash 注册下沉：`/config*`、`/cancel`、`/q`、`/sh`、`/help`、`/config auto-run` 从 `ui` 迁到 `run/feature` 包；删除 `ui.registerSlashExact` 别名 |
+| 2025-03-24 | `internal/ui` 测试镜像重组：`feature_registry_test.go` 拆分为 remote/configllm、skill、session、slash-exact 多文件，主文件仅做汇总 init |
 | 2025-03-24 | P2：`Model` 再收敛 `Layout`/`Startup`/`Approval`；新增 `hasPendingApproval`、`contentWidth`、`OpenOverlay`、`CloseOverlayVisual` 等 helper 并替换重复逻辑 |
 | 2025-03-24 | P2：`Model` 状态分组（`ConfigLLM`/`RemoteAuth`/`AddRemote`/`AddSkill`/`UpdateSkill`/`PathCompletion`）+ `UIPorts` |
 | 2025-03-24 | 集中 overlay 关闭复位：`ApplyOverlayCloseFeatureResets`（移除 remote/skill/configllm 分散 hook） |
