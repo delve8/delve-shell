@@ -56,7 +56,9 @@ func (m Model) handleSlashSelectedFallback(chosen string) (Model, tea.Cmd, bool)
 			handle: func(mm Model, chosen string) (Model, tea.Cmd, bool) {
 				nameOrTarget := strings.TrimSpace(strings.TrimPrefix(chosen, "/config del-remote "))
 				if nameOrTarget != "" {
-					return mm.applyConfigRemoveRemote(nameOrTarget), nil, true
+					if m2, cmd, handled := mm.dispatchSlashPrefix(chosen); handled {
+						return m2, cmd, true
+					}
 				}
 				mm.Input.SetValue("/config del-remote ")
 				mm.Input.CursorEnd()

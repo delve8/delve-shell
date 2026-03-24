@@ -41,7 +41,7 @@ func init() {
 	ui.RegisterSlashPrefix("/config add-remote ", ui.SlashPrefixDispatchEntry{
 		Prefix: "/config add-remote ",
 		Handle: func(m ui.Model, rest string) (ui.Model, tea.Cmd, bool) {
-			return m.ApplyConfigAddRemoteArgs(strings.TrimSpace(rest)), nil, true
+			return applyConfigAddRemote(m, strings.TrimSpace(rest)), nil, true
 		},
 	})
 
@@ -52,7 +52,7 @@ func init() {
 			if nameOrTarget == "" {
 				return m, nil, true
 			}
-			return m.ApplyConfigRemoveRemote(nameOrTarget), nil, true
+			return applyConfigRemoveRemote(m, nameOrTarget), nil, true
 		},
 	})
 
