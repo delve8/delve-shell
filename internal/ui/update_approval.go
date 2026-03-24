@@ -12,7 +12,7 @@ import (
 func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 	// Choice / approval handling should take precedence over any other key paths,
 	// so tests and runtime behavior are stable even if other UI layers evolve.
-	inChoice := m.Pending != nil || m.PendingSensitive != nil
+	inChoice := m.Approval.Pending != nil || m.Approval.PendingSensitive != nil
 	if inChoice {
 		n := choiceCount(m)
 		if n > 0 {
@@ -30,53 +30,53 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 		}
 	}
 
-	if m.PendingSensitive != nil {
+	if m.Approval.PendingSensitive != nil {
 		lang := m.getLang()
 		switch key {
 		case "1":
 			// Persist a static summary of the sensitive confirmation card and user's choice.
 			m.Messages = append(m.Messages,
 				approvalHeaderStyle.Render(i18n.T(lang, i18n.KeySensitivePrompt)),
-				execStyle.Render(m.PendingSensitive.Command),
+				execStyle.Render(m.Approval.PendingSensitive.Command),
 				suggestHi.Render(i18n.T(lang, i18n.KeySensitiveChoice1)),
 			)
 			m.Viewport.SetContent(m.buildContent())
 			m.Viewport.GotoBottom()
-			m.PendingSensitive.ResponseCh <- agent.SensitiveRefuse
-			m.PendingSensitive = nil
+			m.Approval.PendingSensitive.ResponseCh <- agent.SensitiveRefuse
+			m.Approval.PendingSensitive = nil
 			return m, true
 		case "2":
 			m.Messages = append(m.Messages,
 				approvalHeaderStyle.Render(i18n.T(lang, i18n.KeySensitivePrompt)),
-				execStyle.Render(m.PendingSensitive.Command),
+				execStyle.Render(m.Approval.PendingSensitive.Command),
 				suggestHi.Render(i18n.T(lang, i18n.KeySensitiveChoice2)),
 			)
 			m.Viewport.SetContent(m.buildContent())
 			m.Viewport.GotoBottom()
-			m.PendingSensitive.ResponseCh <- agent.SensitiveRunAndStore
-			m.PendingSensitive = nil
+			m.Approval.PendingSensitive.ResponseCh <- agent.SensitiveRunAndStore
+			m.Approval.PendingSensitive = nil
 			return m, true
 		case "3":
 			m.Messages = append(m.Messages,
 				approvalHeaderStyle.Render(i18n.T(lang, i18n.KeySensitivePrompt)),
-				execStyle.Render(m.PendingSensitive.Command),
+				execStyle.Render(m.Approval.PendingSensitive.Command),
 				suggestHi.Render(i18n.T(lang, i18n.KeySensitiveChoice3)),
 			)
 			m.Viewport.SetContent(m.buildContent())
 			m.Viewport.GotoBottom()
-			m.PendingSensitive.ResponseCh <- agent.SensitiveRunNoStore
-			m.PendingSensitive = nil
+			m.Approval.PendingSensitive.ResponseCh <- agent.SensitiveRunNoStore
+			m.Approval.PendingSensitive = nil
 			return m, true
 		}
 		return m, true
 	}
-	if m.Pending != nil {
+	if m.Approval.Pending != nil {
 		lang := m.getLang()
 		switch key {
 		case "1":
 			// Persist a static summary of the approval card and user's decision.
 			riskLabel := ""
-			switch m.Pending.RiskLevel {
+			switch m.Approval.Pending.RiskLevel {
 			case "read_only":
 				riskLabel = i18n.T(lang, i18n.KeyRiskReadOnly)
 			case "low":
@@ -84,7 +84,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 			case "high":
 				riskLabel = i18n.T(lang, i18n.KeyRiskHigh)
 			}
-			commandLine := m.Pending.Command
+			commandLine := m.Approval.Pending.Command
 			if riskLabel != "" {
 				commandLine = "[" + riskLabel + "] " + commandLine
 			}
@@ -93,30 +93,30 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 				cmdW = 80
 			}
 			m.Messages = append(m.Messages, approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)))
-			if sn := strings.TrimSpace(m.Pending.SkillName); sn != "" {
+			if sn := strings.TrimSpace(m.Approval.Pending.SkillName); sn != "" {
 				m.Messages = append(m.Messages, suggestStyle.Render(wrapString(i18n.Tf(lang, i18n.KeySkillLine, sn), cmdW)))
 			}
 			m.Messages = append(m.Messages,
 				execStyle.Render(wrapString(commandLine, cmdW)),
 				approvalDecisionApprovedStyle.Render(i18n.T(lang, i18n.KeyApprovalDecisionApproved)),
 			)
-			if m.Pending.Summary != "" {
-				sumLine := i18n.T(lang, i18n.KeyApprovalSummary) + " " + m.Pending.Summary
+			if m.Approval.Pending.Summary != "" {
+				sumLine := i18n.T(lang, i18n.KeyApprovalSummary) + " " + m.Approval.Pending.Summary
 				m.Messages = append(m.Messages, suggestStyle.Render(wrapString(sumLine, cmdW)))
 			}
-			if m.Pending.Reason != "" {
-				whyLine := i18n.T(lang, i18n.KeyApprovalWhy) + " " + m.Pending.Reason
+			if m.Approval.Pending.Reason != "" {
+				whyLine := i18n.T(lang, i18n.KeyApprovalWhy) + " " + m.Approval.Pending.Reason
 				m.Messages = append(m.Messages, suggestStyle.Render(wrapString(whyLine, cmdW)))
 			}
 			m.Viewport.SetContent(m.buildContent())
 			m.Viewport.GotoBottom()
 
-			m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: true, CopyRequested: false}
-			m.Pending = nil
+			m.Approval.Pending.ResponseCh <- agent.ApprovalResponse{Approved: true, CopyRequested: false}
+			m.Approval.Pending = nil
 			return m, true
 		case "2":
 			riskLabel := ""
-			switch m.Pending.RiskLevel {
+			switch m.Approval.Pending.RiskLevel {
 			case "read_only":
 				riskLabel = i18n.T(lang, i18n.KeyRiskReadOnly)
 			case "low":
@@ -124,7 +124,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 			case "high":
 				riskLabel = i18n.T(lang, i18n.KeyRiskHigh)
 			}
-			commandLine := m.Pending.Command
+			commandLine := m.Approval.Pending.Command
 			if riskLabel != "" {
 				commandLine = "[" + riskLabel + "] " + commandLine
 			}
@@ -133,19 +133,19 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 				cmdW = 80
 			}
 			m.Messages = append(m.Messages, approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)))
-			if sn := strings.TrimSpace(m.Pending.SkillName); sn != "" {
+			if sn := strings.TrimSpace(m.Approval.Pending.SkillName); sn != "" {
 				m.Messages = append(m.Messages, suggestStyle.Render(wrapString(i18n.Tf(lang, i18n.KeySkillLine, sn), cmdW)))
 			}
 			m.Messages = append(m.Messages,
 				execStyle.Render(wrapString(commandLine, cmdW)),
 				approvalDecisionRejectedStyle.Render(i18n.T(lang, i18n.KeyApprovalDecisionRejected)),
 			)
-			if m.Pending.Summary != "" {
-				sumLine := i18n.T(lang, i18n.KeyApprovalSummary) + " " + m.Pending.Summary
+			if m.Approval.Pending.Summary != "" {
+				sumLine := i18n.T(lang, i18n.KeyApprovalSummary) + " " + m.Approval.Pending.Summary
 				m.Messages = append(m.Messages, suggestStyle.Render(wrapString(sumLine, cmdW)))
 			}
-			if m.Pending.Reason != "" {
-				whyLine := i18n.T(lang, i18n.KeyApprovalWhy) + " " + m.Pending.Reason
+			if m.Approval.Pending.Reason != "" {
+				whyLine := i18n.T(lang, i18n.KeyApprovalWhy) + " " + m.Approval.Pending.Reason
 				m.Messages = append(m.Messages, suggestStyle.Render(wrapString(whyLine, cmdW)))
 			}
 			m.Viewport.SetContent(m.buildContent())
@@ -153,20 +153,20 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 			threeOptions := m.Ports.GetAllowlistAutoRun != nil && !m.Ports.GetAllowlistAutoRun()
 			if threeOptions {
 				// 2 = Copy
-				_ = clipboard.WriteAll(m.Pending.Command)
-				m.appendSuggestedLine(m.Pending.Command, lang)
+				_ = clipboard.WriteAll(m.Approval.Pending.Command)
+				m.appendSuggestedLine(m.Approval.Pending.Command, lang)
 				m.Messages = append(m.Messages, hintStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeySuggestedCopied))))
-				m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: true}
+				m.Approval.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: true}
 			} else {
-				m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
+				m.Approval.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
 				m.Interaction.WaitingForAI = false
 			}
-			m.Pending = nil
+			m.Approval.Pending = nil
 			return m, true
 		case "3":
 			// Only when 3 options: Dismiss
 			riskLabel := ""
-			switch m.Pending.RiskLevel {
+			switch m.Approval.Pending.RiskLevel {
 			case "read_only":
 				riskLabel = i18n.T(lang, i18n.KeyRiskReadOnly)
 			case "low":
@@ -174,7 +174,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 			case "high":
 				riskLabel = i18n.T(lang, i18n.KeyRiskHigh)
 			}
-			commandLine := m.Pending.Command
+			commandLine := m.Approval.Pending.Command
 			if riskLabel != "" {
 				commandLine = "[" + riskLabel + "] " + commandLine
 			}
@@ -183,25 +183,25 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 				cmdW = 80
 			}
 			m.Messages = append(m.Messages, approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)))
-			if sn := strings.TrimSpace(m.Pending.SkillName); sn != "" {
+			if sn := strings.TrimSpace(m.Approval.Pending.SkillName); sn != "" {
 				m.Messages = append(m.Messages, suggestStyle.Render(wrapString(i18n.Tf(lang, i18n.KeySkillLine, sn), cmdW)))
 			}
 			m.Messages = append(m.Messages,
 				execStyle.Render(wrapString(commandLine, cmdW)),
 				suggestStyle.Render(i18n.T(lang, i18n.KeyChoiceDismiss)),
 			)
-			if m.Pending.Summary != "" {
-				sumLine := i18n.T(lang, i18n.KeyApprovalSummary) + " " + m.Pending.Summary
+			if m.Approval.Pending.Summary != "" {
+				sumLine := i18n.T(lang, i18n.KeyApprovalSummary) + " " + m.Approval.Pending.Summary
 				m.Messages = append(m.Messages, suggestStyle.Render(wrapString(sumLine, cmdW)))
 			}
-			if m.Pending.Reason != "" {
-				whyLine := i18n.T(lang, i18n.KeyApprovalWhy) + " " + m.Pending.Reason
+			if m.Approval.Pending.Reason != "" {
+				whyLine := i18n.T(lang, i18n.KeyApprovalWhy) + " " + m.Approval.Pending.Reason
 				m.Messages = append(m.Messages, suggestStyle.Render(wrapString(whyLine, cmdW)))
 			}
 			m.Viewport.SetContent(m.buildContent())
 			m.Viewport.GotoBottom()
-			m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
-			m.Pending = nil
+			m.Approval.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
+			m.Approval.Pending = nil
 			m.Interaction.WaitingForAI = false
 			return m, true
 		}

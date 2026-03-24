@@ -11,12 +11,12 @@ type choiceOption struct {
 // choiceCount returns the number of options when in a choice state (approval 2 or 3, sensitive 3, or session list N).
 func choiceCount(m Model) int {
 	switch {
-	case m.Pending != nil:
+	case m.Approval.Pending != nil:
 		if m.Ports.GetAllowlistAutoRun != nil && !m.Ports.GetAllowlistAutoRun() {
 			return 3 // Run, Copy, Dismiss
 		}
 		return 2 // Run, Reject
-	case m.PendingSensitive != nil:
+	case m.Approval.PendingSensitive != nil:
 		return 3
 	default:
 		return 0
@@ -26,7 +26,7 @@ func choiceCount(m Model) int {
 // getChoiceOptions returns the option list for the current choice state (approval 2 or 3 options / sensitive / session list).
 func getChoiceOptions(m Model, lang string) []choiceOption {
 	switch {
-	case m.Pending != nil:
+	case m.Approval.Pending != nil:
 		if m.Ports.GetAllowlistAutoRun != nil && !m.Ports.GetAllowlistAutoRun() {
 			return []choiceOption{
 				{1, i18n.T(lang, i18n.KeyChoiceApprove)},
@@ -38,7 +38,7 @@ func getChoiceOptions(m Model, lang string) []choiceOption {
 			{1, i18n.T(lang, i18n.KeyChoiceApprove)},
 			{2, i18n.T(lang, i18n.KeyChoiceReject)},
 		}
-	case m.PendingSensitive != nil:
+	case m.Approval.PendingSensitive != nil:
 		return []choiceOption{
 			{1, i18n.T(lang, i18n.KeyChoiceRefuse)},
 			{2, i18n.T(lang, i18n.KeyChoiceRunStore)},
@@ -53,13 +53,13 @@ func getChoiceOptions(m Model, lang string) []choiceOption {
 func (m *Model) syncInputPlaceholder() {
 	lang := m.getLang()
 	switch {
-	case m.Pending != nil:
+	case m.Approval.Pending != nil:
 		if m.Ports.GetAllowlistAutoRun != nil && !m.Ports.GetAllowlistAutoRun() {
 			m.Input.Placeholder = i18n.T(lang, i18n.KeyInputHintApproveThree)
 		} else {
 			m.Input.Placeholder = i18n.T(lang, i18n.KeyInputHintApprove)
 		}
-	case m.PendingSensitive != nil:
+	case m.Approval.PendingSensitive != nil:
 		m.Input.Placeholder = i18n.T(lang, i18n.KeyInputHintSensitive)
 	default:
 		m.Input.Placeholder = i18n.T(lang, i18n.KeyPlaceholderInput)

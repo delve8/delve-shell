@@ -126,7 +126,7 @@ func (m Model) handleConfigLLMCheckDoneMsg(msg ConfigLLMCheckDoneMsg) (Model, te
 func (m Model) handleApprovalRequestMsg(msg ApprovalRequestMsg) (Model, tea.Cmd) {
 	// When an approval is requested, immediately refresh the viewport so the
 	// approval card becomes visible, and scroll to bottom.
-	m.Pending = msg
+	m.Approval.Pending = msg
 	m.Interaction.ChoiceIndex = 0
 	m.syncInputPlaceholder()
 	m.Viewport.SetContent(m.buildContent())
@@ -136,7 +136,7 @@ func (m Model) handleApprovalRequestMsg(msg ApprovalRequestMsg) (Model, tea.Cmd)
 
 func (m Model) handleSensitiveConfirmationRequestMsg(msg SensitiveConfirmationRequestMsg) (Model, tea.Cmd) {
 	// Same as approval: ensure the sensitive confirmation card is visible.
-	m.PendingSensitive = msg
+	m.Approval.PendingSensitive = msg
 	m.Interaction.ChoiceIndex = 0
 	m.syncInputPlaceholder()
 	m.Viewport.SetContent(m.buildContent())

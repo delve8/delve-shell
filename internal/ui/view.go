@@ -16,7 +16,7 @@ func (m Model) View() string {
 	sepLine := separatorStyle.Render(strings.Repeat("─", sepW))
 	header := m.titleLine() + "\n" + sepLine + "\n"
 
-	inChoice := m.Pending != nil || m.PendingSensitive != nil
+	inChoice := m.Approval.Pending != nil || m.Approval.PendingSensitive != nil
 	if m.Layout.Height <= 4 {
 		out := header + m.buildContent() + "\n" + m.Input.View()
 		out += m.waitingLineBelowInput(lang)

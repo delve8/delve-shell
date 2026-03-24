@@ -22,7 +22,7 @@ func TestApprovalCard_ShowsCommandReasonAndRisk(t *testing.T) {
 	getAutoRun := func() bool { return true }
 	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
 	ch := make(chan agent.ApprovalResponse, 1)
-	m.Pending = &agent.ApprovalRequest{
+	m.Approval.Pending = &agent.ApprovalRequest{
 		Command:    "kubectl get pods",
 		Reason:     "List pods to check status",
 		RiskLevel:  "read_only",
@@ -45,7 +45,7 @@ func TestApprovalCard_ShowsCommandReasonAndRisk(t *testing.T) {
 func TestApprovalCard_HighRiskLabel(t *testing.T) {
 	getAutoRun := func() bool { return true }
 	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
-	m.Pending = &agent.ApprovalRequest{
+	m.Approval.Pending = &agent.ApprovalRequest{
 		Command:    "rm -rf /tmp/foo",
 		RiskLevel:  "high",
 		ResponseCh: make(chan agent.ApprovalResponse, 1),
@@ -64,12 +64,12 @@ func TestApprovalCard_Approve1ClearsPending(t *testing.T) {
 	ch := make(chan agent.ApprovalResponse, 1)
 	getAutoRun := func() bool { return true }
 	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
-	m.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
+	m.Approval.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
 
 	// simulate user pressing 1 (approve)
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("1")})
 	m2 := next.(Model)
-	if m2.Pending != nil {
+	if m2.Approval.Pending != nil {
 		t.Error("pending should be cleared after 1")
 	}
 	select {
@@ -86,11 +86,11 @@ func TestApprovalCard_Approve2ClearsPendingAndSendsFalse(t *testing.T) {
 	ch := make(chan agent.ApprovalResponse, 1)
 	getAutoRun := func() bool { return true }
 	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
-	m.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
+	m.Approval.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
 
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("2")})
 	m2 := next.(Model)
-	if m2.Pending != nil {
+	if m2.Approval.Pending != nil {
 		t.Error("pending should be cleared after 2")
 	}
 	select {
@@ -128,7 +128,7 @@ func TestView_HeaderAlwaysShown(t *testing.T) {
 
 	// With Pending, header shows [NEED APPROVAL] or [待确认]
 	ch := make(chan agent.ApprovalResponse, 1)
-	m.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
+	m.Approval.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
 	m.Layout.Height = 24
 	viewPending := m.View()
 	if !strings.Contains(viewPending, "[NEED APPROVAL]") && !strings.Contains(viewPending, "[待确认]") {
@@ -140,7 +140,7 @@ func TestView_HeaderAlwaysShown(t *testing.T) {
 	m2 := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, func() bool { return true }, nil, "", false)
 	m2.Layout.Height = 12
 	m2.Layout.Width = 80
-	m2.PendingSensitive = &agent.SensitiveConfirmationRequest{Command: "cat /etc/shadow", ResponseCh: make(chan agent.SensitiveChoice, 1)}
+	m2.Approval.PendingSensitive = &agent.SensitiveConfirmationRequest{Command: "cat /etc/shadow", ResponseCh: make(chan agent.SensitiveChoice, 1)}
 	viewChoice := m2.View()
 	lines := strings.Split(viewChoice, "\n")
 	if len(lines) > m2.Layout.Height {
@@ -169,12 +169,12 @@ func TestChoice_EnterSelectsCurrentOption(t *testing.T) {
 	ch := make(chan agent.ApprovalResponse, 1)
 	getAutoRun := func() bool { return true }
 	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
-	m.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
+	m.Approval.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
 	m.Interaction.ChoiceIndex = 0
 
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m2 := next.(Model)
-	if m2.Pending != nil {
+	if m2.Approval.Pending != nil {
 		t.Error("pending should be cleared after Enter")
 	}
 	select {
@@ -189,12 +189,12 @@ func TestChoice_EnterSelectsCurrentOption(t *testing.T) {
 	// Approval: ChoiceIndex 1 = reject, Enter should send Approved false
 	ch2 := make(chan agent.ApprovalResponse, 1)
 	m3 := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
-	m3.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch2}
+	m3.Approval.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch2}
 	m3.Interaction.ChoiceIndex = 1
 
 	next2, _ := m3.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m4 := next2.(Model)
-	if m4.Pending != nil {
+	if m4.Approval.Pending != nil {
 		t.Error("pending should be cleared after Enter on option 2")
 	}
 	select {

@@ -10,8 +10,10 @@ import (
 func TestAppendApprovalViewportContent_sensitive(t *testing.T) {
 	m := Model{
 		Layout: LayoutState{Width: 80},
-		PendingSensitive: &agent.SensitiveConfirmationRequest{
-			Command: "rm -rf /",
+		Approval: ApprovalState{
+			PendingSensitive: &agent.SensitiveConfirmationRequest{
+				Command: "rm -rf /",
+			},
 		},
 	}
 	var b strings.Builder
@@ -27,12 +29,14 @@ func TestAppendApprovalViewportContent_sensitive(t *testing.T) {
 func TestAppendApprovalViewportContent_pendingRisk(t *testing.T) {
 	m := Model{
 		Layout: LayoutState{Width: 80},
-		Pending: &agent.ApprovalRequest{
-			Command:    "kubectl get pods",
-			RiskLevel:  "read_only",
-			SkillName:  "k8s",
-			Summary:    "list pods",
-			Reason:     "debug",
+		Approval: ApprovalState{
+			Pending: &agent.ApprovalRequest{
+				Command:   "kubectl get pods",
+				RiskLevel: "read_only",
+				SkillName: "k8s",
+				Summary:   "list pods",
+				Reason:    "debug",
+			},
 		},
 	}
 	var b strings.Builder

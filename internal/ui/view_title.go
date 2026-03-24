@@ -6,7 +6,7 @@ import (
 
 // statusKey returns the i18n key for current state: idle, running, or pending approval.
 func (m Model) statusKey() string {
-	if m.Pending != nil || m.PendingSensitive != nil {
+	if m.Approval.Pending != nil || m.Approval.PendingSensitive != nil {
 		return i18n.KeyStatusPendingApproval
 	}
 	if m.Interaction.WaitingForAI {

@@ -185,7 +185,7 @@ func (m Model) choiceLinesBelowInput(lang string) string {
 
 // waitingLineBelowInput returns the "wait or /cancel" hint when AI is running (empty if not applicable).
 func (m Model) waitingLineBelowInput(lang string) string {
-	inChoice := m.Pending != nil || m.PendingSensitive != nil
+	inChoice := m.Approval.Pending != nil || m.Approval.PendingSensitive != nil
 	if m.Interaction.WaitingForAI && !inChoice {
 		return "\n" + suggestStyle.Render(i18n.T(lang, i18n.KeyWaitOrCancel))
 	}

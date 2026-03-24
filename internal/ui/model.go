@@ -19,8 +19,7 @@ type Model struct {
 	Input                      textinput.Model
 	Viewport                   viewport.Model
 	Messages                   []string
-	Pending                    *agent.ApprovalRequest
-	PendingSensitive           *agent.SensitiveConfirmationRequest
+	Approval                   ApprovalState
 	Ports                      UIPorts
 	Context                    RuntimeContextState
 	// /run completion cache (best-effort).
@@ -40,8 +39,8 @@ type Model struct {
 	// Path completion (shared): used for any path input with dropdown (auth identity key path, add-remote key path).
 	PathCompletion PathCompletionState
 
-	// InitialShowConfigLLM: when true, open Config LLM overlay on first WindowSizeMsg (e.g. no config / model empty at startup).
-	InitialShowConfigLLM bool
+	// Startup stores one-time startup toggles consumed in lifecycle handlers.
+	Startup StartupState
 	// Config LLM overlay state.
 	ConfigLLM ConfigLLMOverlayState
 
@@ -149,10 +148,23 @@ type InteractionState struct {
 	WaitingForAI      bool // when true only blocks submitting new messages (Enter); /xxx slash commands always allowed
 }
 
+// ApprovalState stores current pending approvals.
+type ApprovalState struct {
+	Pending          *agent.ApprovalRequest
+	PendingSensitive *agent.SensitiveConfirmationRequest
+}
+
 // LayoutState stores terminal layout dimensions for rendering.
 type LayoutState struct {
 	Width  int
 	Height int
+}
+
+// StartupState stores one-shot startup flags.
+type StartupState struct {
+	// InitialShowConfigLLM: when true, open Config LLM overlay on first WindowSizeMsg
+	// (e.g. no config / model empty at startup).
+	InitialShowConfigLLM bool
 }
 
 // OverlayState stores generic modal overlay state shared across features.
@@ -298,7 +310,9 @@ func NewModel(
 		Context: RuntimeContextState{
 			CurrentSessionPath: initialSessionPath,
 		},
-		InitialShowConfigLLM:       initialShowConfigLLM,
+		Startup: StartupState{
+			InitialShowConfigLLM: initialShowConfigLLM,
+		},
 		Layout: LayoutState{
 			Width:  defaultWidth,
 			Height: defaultHeight,
