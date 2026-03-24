@@ -2,7 +2,6 @@ package ui
 
 import (
 	"context"
-	"strconv"
 	"strings"
 	"time"
 
@@ -15,44 +14,6 @@ import (
 	"delve-shell/internal/service/configsvc"
 	"delve-shell/internal/service/remotesvc"
 )
-
-// openConfigLLMOverlay opens the Config LLM overlay with current config values pre-filled.
-// If config file is missing, uses config.Default() so the overlay still opens (user can save to create the file).
-func (m Model) openConfigLLMOverlay() Model {
-	cfg := configsvc.LoadOrDefault()
-	m.OverlayActive = true
-	m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyConfigLLMTitle)
-	m.ConfigLLMActive = true
-	m.ConfigLLMChecking = false
-	m.ConfigLLMError = ""
-	m.ConfigLLMFieldIndex = 0
-	m.ConfigLLMBaseURLInput = textinput.New()
-	m.ConfigLLMBaseURLInput.Placeholder = "https://api.openai.com/v1 (optional)"
-	m.ConfigLLMBaseURLInput.SetValue(cfg.LLM.BaseURL)
-	m.ConfigLLMBaseURLInput.Focus()
-	m.ConfigLLMApiKeyInput = textinput.New()
-	m.ConfigLLMApiKeyInput.Placeholder = "sk-... or $API_KEY"
-	m.ConfigLLMApiKeyInput.EchoMode = textinput.EchoPassword
-	m.ConfigLLMApiKeyInput.SetValue(cfg.LLM.APIKey)
-	m.ConfigLLMApiKeyInput.Blur()
-	m.ConfigLLMModelInput = textinput.New()
-	m.ConfigLLMModelInput.Placeholder = "gpt-4o-mini (optional)"
-	m.ConfigLLMModelInput.SetValue(cfg.LLM.Model)
-	m.ConfigLLMModelInput.Blur()
-	m.ConfigLLMMaxMessagesInput = textinput.New()
-	m.ConfigLLMMaxMessagesInput.Placeholder = ""
-	if cfg.LLM.MaxContextMessages > 0 {
-		m.ConfigLLMMaxMessagesInput.SetValue(strconv.Itoa(cfg.LLM.MaxContextMessages))
-	}
-	m.ConfigLLMMaxMessagesInput.Blur()
-	m.ConfigLLMMaxCharsInput = textinput.New()
-	m.ConfigLLMMaxCharsInput.Placeholder = ""
-	if cfg.LLM.MaxContextChars > 0 {
-		m.ConfigLLMMaxCharsInput.SetValue(strconv.Itoa(cfg.LLM.MaxContextChars))
-	}
-	m.ConfigLLMMaxCharsInput.Blur()
-	return m
-}
 
 const addSkillFieldCount = 4
 

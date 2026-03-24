@@ -1,10 +1,13 @@
 package configllm
 
-import tea "github.com/charmbracelet/bubbletea"
+import (
+	tea "github.com/charmbracelet/bubbletea"
 
-import "delve-shell/internal/ui"
+	"delve-shell/internal/ui"
+)
 
 func init() {
+	registerSlashExact()
 	ui.RegisterOverlayContentProvider(func(m ui.Model) (string, bool) {
 		return buildConfigLLMOverlayContent(m)
 	})

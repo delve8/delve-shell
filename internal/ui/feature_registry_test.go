@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/history"
@@ -22,6 +23,28 @@ func init() {
 	registerSlashExact("/remote on", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
 			return m.openAddRemoteOverlay(false, true), nil
+		},
+		ClearInput: true,
+	})
+	registerSlashExact("/config llm", SlashExactDispatchEntry{
+		Handle: func(m Model) (Model, tea.Cmd) {
+			m.OverlayActive = true
+			m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyConfigLLMTitle)
+			m.ConfigLLMActive = true
+			m.ConfigLLMChecking = false
+			m.ConfigLLMError = ""
+			m.ConfigLLMFieldIndex = 0
+			m.ConfigLLMBaseURLInput = textinput.New()
+			m.ConfigLLMBaseURLInput.Focus()
+			m.ConfigLLMApiKeyInput = textinput.New()
+			m.ConfigLLMApiKeyInput.Blur()
+			m.ConfigLLMModelInput = textinput.New()
+			m.ConfigLLMModelInput.Blur()
+			m.ConfigLLMMaxMessagesInput = textinput.New()
+			m.ConfigLLMMaxMessagesInput.Blur()
+			m.ConfigLLMMaxCharsInput = textinput.New()
+			m.ConfigLLMMaxCharsInput.Blur()
+			return m, nil
 		},
 		ClearInput: true,
 	})

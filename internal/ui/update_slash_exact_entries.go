@@ -8,12 +8,6 @@ import (
 
 func init() {
 	// Overlay-opening exact commands.
-	registerSlashExact("/config llm", SlashExactDispatchEntry{
-		Handle: func(m Model) (Model, tea.Cmd) {
-			return m.openConfigLLMOverlay(), nil
-		},
-		ClearInput: true,
-	})
 	registerSlashExact("/config show", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
 			m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyConfigHint))))
