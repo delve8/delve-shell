@@ -99,15 +99,16 @@ type OverlayState struct {
 
 // UIPorts are side-effect channels/getters injected by CLI host loop.
 type UIPorts struct {
-	SubmitChan          chan<- string
-	ExecDirectChan      chan<- string
-	ShellRequestedChan  chan<- []string           // on /sh send current Messages to preserve after return
-	CancelRequestChan   chan<- struct{}           // on /cancel request cancel of in-flight AI
-	ConfigUpdatedChan   chan<- struct{}           // on /config save or /config reload, invalidate runner so next message reloads config/allowlist
-	RemoteOnChan        chan<- string             // on /remote on <target>, send resolved target/name to CLI
-	RemoteOffChan       chan<- struct{}           // on /remote off, switch back to local
-	RemoteAuthRespChan  chan<- RemoteAuthResponse // on remote password entry, send credentials back to CLI
-	GetAllowlistAutoRun func() bool               // for header and Pending card 2 vs 3 options
+	SubmitChan           chan<- string
+	ExecDirectChan       chan<- string
+	ShellRequestedChan   chan<- []string           // on /sh send current Messages to preserve after return
+	CancelRequestChan    chan<- struct{}           // on /cancel request cancel of in-flight AI
+	ConfigUpdatedChan    chan<- struct{}           // on /config save or /config reload, invalidate runner so next message reloads config/allowlist
+	SyncAllowlistAutoRun func(bool)                // after /config auto-run list-only|disable: update in-memory flag and runners without ConfigReloadedMsg
+	RemoteOnChan         chan<- string             // on /remote on <target>, send resolved target/name to CLI
+	RemoteOffChan        chan<- struct{}           // on /remote off, switch back to local
+	RemoteAuthRespChan   chan<- RemoteAuthResponse // on remote password entry, send credentials back to CLI
+	GetAllowlistAutoRun  func() bool               // for header and Pending card 2 vs 3 options
 }
 
 // Init implements tea.Model.

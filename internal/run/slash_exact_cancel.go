@@ -21,6 +21,6 @@ func init() {
 			m.Messages = append(m.Messages, delveMsg("en", i18n.T("en", i18n.KeyNoRequestInProgress)))
 			return m.RefreshViewport(), nil
 		},
-		ClearInput: false,
+		ClearInput: true,
 	})
 }

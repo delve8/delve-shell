@@ -9,25 +9,29 @@ import (
 )
 
 func getRemoteSlashOptions(filter string, lang string) []ui.SlashOption {
-	var opts []ui.SlashOption
+	manualOpt := ui.SlashOption{Cmd: "/remote on", Desc: i18n.T(lang, i18n.KeyRemoteManualHint)}
 	remotes, err := config.LoadRemotes()
-	if err == nil && len(remotes) > 0 {
-		filterLower := strings.ToLower(filter)
-		for _, r := range remotes {
-			line := r.Target + " " + r.Name
-			if filterLower != "" && !strings.Contains(strings.ToLower(line), filterLower) {
-				continue
-			}
-			desc := r.Name
-			opts = append(opts, ui.SlashOption{
-				Cmd:  "/remote on " + config.HostFromTarget(r.Target),
-				Desc: desc,
-			})
-		}
+	if err != nil || len(remotes) == 0 {
+		return []ui.SlashOption{manualOpt}
 	}
 
-	manual := ui.SlashOption{Cmd: "/remote on", Desc: i18n.T(lang, i18n.KeyRemoteManualHint)}
-	return append(opts, manual)
+	filterLower := strings.ToLower(filter)
+	var hostOpts []ui.SlashOption
+	for _, r := range remotes {
+		line := r.Target + " " + r.Name
+		if filterLower != "" && !strings.Contains(strings.ToLower(line), filterLower) {
+			continue
+		}
+		desc := r.Name
+		hostOpts = append(hostOpts, ui.SlashOption{
+			Cmd:  "/remote on " + config.HostFromTarget(r.Target),
+			Desc: desc,
+		})
+	}
+	if len(hostOpts) == 0 {
+		return []ui.SlashOption{manualOpt}
+	}
+	return append([]ui.SlashOption{manualOpt}, hostOpts...)
 }
 
 func getRemoveRemoteSlashOptions(lang string, filter string) []ui.SlashOption {
@@ -35,6 +39,8 @@ func getRemoveRemoteSlashOptions(lang string, filter string) []ui.SlashOption {
 	if err != nil || len(remotes) == 0 {
 		return []ui.SlashOption{{Cmd: "/config del-remote", Desc: i18n.T(lang, i18n.KeyRemoteNone)}}
 	}
+
+	manualBase := ui.SlashOption{Cmd: "/config del-remote", Desc: i18n.T(lang, i18n.KeyDelRemoteManualHint)}
 
 	filterLower := strings.ToLower(filter)
 	var opts []ui.SlashOption
@@ -54,5 +60,5 @@ func getRemoveRemoteSlashOptions(lang string, filter string) []ui.SlashOption {
 	if len(opts) == 0 {
 		return []ui.SlashOption{{Cmd: "/config del-remote", Desc: i18n.T(lang, i18n.KeyRemoteNone)}}
 	}
-	return opts
+	return append([]ui.SlashOption{manualBase}, opts...)
 }

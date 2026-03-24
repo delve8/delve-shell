@@ -43,11 +43,8 @@ func applyConfigAllowlistAutoRun(m ui.Model, value string) ui.Model {
 	m.Messages = append(m.Messages, delveMsg("en", i18n.Tf("en", i18n.KeyConfigSavedAllowlistAutoRun, display)))
 	m.Messages = append(m.Messages, "")
 	m = m.RefreshViewport()
-	if m.Ports.ConfigUpdatedChan != nil {
-		select {
-		case m.Ports.ConfigUpdatedChan <- struct{}{}:
-		default:
-		}
+	if m.Ports.SyncAllowlistAutoRun != nil {
+		m.Ports.SyncAllowlistAutoRun(on)
 	}
 	return m
 }

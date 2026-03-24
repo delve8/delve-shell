@@ -24,11 +24,7 @@ func init() {
 
 	ui.RegisterSlashExact("/config show", ui.SlashExactDispatchEntry{
 		Handle:     appendConfigHint,
-		ClearInput: false,
-	})
-	ui.RegisterSlashExact("/config", ui.SlashExactDispatchEntry{
-		Handle:     appendConfigHint,
-		ClearInput: false,
+		ClearInput: true,
 	})
 	ui.RegisterSlashExact("/config update auto-run list", ui.SlashExactDispatchEntry{
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {

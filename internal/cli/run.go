@@ -136,6 +136,10 @@ func Run(cmd *cobra.Command, args []string) error {
 			syncSessionPath(s.Path())
 		}
 		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, remoteOnChan, remoteOffChan, remoteAuthRespChan, getAllowlistAutoRun, savedMessages, initialShowConfigLLM)
+		model.Ports.SyncAllowlistAutoRun = func(v bool) {
+			currentAllowlistAutoRun.Store(v)
+			runners.SetAllowlistAutoRun(v)
+		}
 		model.Context.ConfigPath = config.ConfigPath()
 		initialShowConfigLLM = false
 		p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithReportFocus())

@@ -10,6 +10,18 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+// appendUserSubmittedEcho appends the same "User: …" transcript line as the main Enter path.
+func (m Model) appendUserSubmittedEcho(text string) Model {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return m
+	}
+	w := m.contentWidth()
+	sepLine := renderSeparator(w)
+	m.Messages = maininput.AppendUserInputLines(m.Messages, i18n.T(m.getLang(), i18n.KeyUserLabel), text, w, sepLine)
+	return m.RefreshViewport()
+}
+
 func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 	key := msg.String()
 
@@ -83,6 +95,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 			return m, nil
 		}
 		if maininput.IsNewSessionCommand(text) {
+			m = m.appendUserSubmittedEcho(text)
 			if m.Ports.SubmitChan != nil {
 				m.Ports.SubmitChan <- text
 			}
@@ -92,10 +105,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 			m = m.RefreshViewport()
 			return m, nil
 		}
-		w := m.contentWidth()
-		sepLine := renderSeparator(w)
-		m.Messages = maininput.AppendUserInputLines(m.Messages, i18n.T(m.getLang(), i18n.KeyUserLabel), text, w, sepLine)
-		m = m.RefreshViewport()
+		m = m.appendUserSubmittedEcho(text)
 		m.Input.SetValue("")
 		m.Input.CursorEnd()
 		m.Interaction.SlashSuggestIndex = 0

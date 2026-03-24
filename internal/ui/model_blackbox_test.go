@@ -100,6 +100,9 @@ func TestBlackboxSlashCancelSendsCancelRequest(t *testing.T) {
 	if got.Interaction.WaitingForAI {
 		t.Fatalf("expected waiting flag to be cleared after /cancel")
 	}
+	if strings.TrimSpace(got.Input.Value()) != "" {
+		t.Fatalf("expected input cleared after /cancel, got %q", got.Input.Value())
+	}
 	select {
 	case <-f.cancelRequest:
 	default:
@@ -110,6 +113,9 @@ func TestBlackboxSlashCancelSendsCancelRequest(t *testing.T) {
 func TestBlackboxSlashCancelWhenIdleShowsHint(t *testing.T) {
 	f := newBlackboxFixture()
 	got := enterText(f.model, "/cancel")
+	if strings.TrimSpace(got.Input.Value()) != "" {
+		t.Fatalf("expected input cleared after idle /cancel, got %q", got.Input.Value())
+	}
 	if len(got.Messages) == 0 {
 		t.Fatalf("expected feedback message when /cancel has no in-flight request")
 	}
@@ -126,8 +132,12 @@ func TestBlackboxSlashShSendsMessagesToShell(t *testing.T) {
 	_ = enterText(f.model, "/sh")
 	select {
 	case msgs := <-f.shellRequested:
-		if len(msgs) != 2 || msgs[0] != "a" || msgs[1] != "b" {
-			t.Fatalf("unexpected shell message snapshot: %#v", msgs)
+		if len(msgs) < 2 || msgs[0] != "a" || msgs[1] != "b" {
+			t.Fatalf("unexpected shell message snapshot prefix: %#v", msgs)
+		}
+		joined := strings.Join(msgs, "\n")
+		if !strings.Contains(joined, "User: /sh") {
+			t.Fatalf("expected User echo for /sh in snapshot, got %#v", msgs)
 		}
 	default:
 		t.Fatalf("expected /sh to send message snapshot")
@@ -160,6 +170,14 @@ func TestBlackboxSlashConfigDelRemoteFillsInput(t *testing.T) {
 	got := enterText(f.model, "/config del-remote")
 	if got.Input.Value() != "/config del-remote " {
 		t.Fatalf("expected /config del-remote to fill trailing space, got %q", got.Input.Value())
+	}
+}
+
+func TestBlackboxSlashConfigFillsToFirstSubcommandOnEnter(t *testing.T) {
+	f := newBlackboxFixture()
+	got := enterText(f.model, "/config")
+	if got.Input.Value() != "/config add-remote" {
+		t.Fatalf("expected /config to fill to first subcommand, got %q", got.Input.Value())
 	}
 }
 
@@ -213,6 +231,9 @@ func TestBlackboxSlashDropdownCancelFillThenExecute(t *testing.T) {
 	m3 := next2.(ui.Model)
 	if m3.Interaction.WaitingForAI {
 		t.Fatalf("expected waiting flag false after executing /cancel")
+	}
+	if strings.TrimSpace(m3.Input.Value()) != "" {
+		t.Fatalf("expected input cleared after executing /cancel, got %q", m3.Input.Value())
 	}
 	select {
 	case <-f.cancelRequest:

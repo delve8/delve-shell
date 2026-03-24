@@ -49,13 +49,14 @@ func (m Model) dispatchSlashPrefix(text string) (Model, tea.Cmd, bool) {
 	return m, nil, false
 }
 
+// handleSlashEnterKey handles Enter when input starts with "/".
+// Apply the highlighted suggestion (fill or exact) before dispatchSlashExact(trimmed),
+// so a row like "/config del-remote host" is not overridden by exact "/config del-remote".
+// Lists that mix a parent row with longer rows should put the parent first (see remote slash options).
 func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 	trimmed := strings.TrimSpace(inputVal)
 	if trimmed == "" {
 		return m, nil, false
-	}
-	if m2, cmd, handled := m.dispatchSlashExact(trimmed); handled {
-		return m2, cmd, true
 	}
 	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
 	vis := visibleSlashOptions(inputVal, opts)
@@ -63,6 +64,9 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 	result := slashflow.EvaluateSlashEnter(inputVal, trimmed, selected, ok)
 	switch result.Action {
 	case slashflow.EnterKeyDispatchExactChosen:
+		if _, regOK := slashExactDispatchRegistry.Get(selected.Cmd); regOK {
+			m = m.appendUserSubmittedEcho(trimmed)
+		}
 		if m2, cmd, handled := m.dispatchSlashExact(selected.Cmd); handled {
 			return m2, cmd, true
 		}
@@ -71,6 +75,12 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 		m.Input.CursorEnd()
 		m.Interaction.SlashSuggestIndex = 0
 		return m, nil, true
+	}
+	if _, regOK := slashExactDispatchRegistry.Get(trimmed); regOK {
+		m = m.appendUserSubmittedEcho(trimmed)
+	}
+	if m2, cmd, handled := m.dispatchSlashExact(trimmed); handled {
+		return m2, cmd, true
 	}
 	return m, nil, false
 }

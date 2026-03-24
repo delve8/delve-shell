@@ -118,7 +118,8 @@ const (
 	KeySessionSelect                 = "session_select"
 	KeyDescSessions                  = "desc_sessions"
 	KeySessionNone                   = "session_none"
-	KeyRemoteNone                    = "remote_none" // No remotes configured
+	KeyRemoteNone                    = "remote_none"            // No remotes configured
+	KeyDelRemoteManualHint           = "del_remote_manual_hint" // first row when listing saved remotes to remove
 	KeyDescRemoteOn                  = "desc_remote_on"
 	KeyDescRemoteOff                 = "desc_remote_off"
 	KeyRemoteManualHint              = "remote_manual_hint" // hint when no remotes or "or type user@host"
@@ -141,29 +142,29 @@ const (
 	KeyDescConfigLLM                 = "desc_config_llm"
 	KeyConfigHint                    = "config_hint" // when /config or /config show is used: point to /config llm and header
 	// Skill
-	KeyDescSkill           = "desc_skill"
-	KeyUsageSkill          = "usage_skill"
-	KeySkillNotFound       = "skill_not_found"
-	KeySkillScriptNotFound = "skill_script_not_found"
-	KeySkillNone           = "skill_none"
-	KeyDescSkillInstall    = "desc_skill_install"
-	KeyDescSkillRemove     = "desc_skill_remove"
+	KeyDescSkill             = "desc_skill"
+	KeyUsageSkill            = "usage_skill"
+	KeySkillNotFound         = "skill_not_found"
+	KeySkillScriptNotFound   = "skill_script_not_found"
+	KeySkillNone             = "skill_none"
+	KeyDescSkillInstall      = "desc_skill_install"
+	KeyDescSkillRemove       = "desc_skill_remove"
 	KeyDescConfigUpdateSkill = "desc_config_update_skill"
-	KeyAddSkillTitle       = "add_skill_title"
-	KeyAddSkillURLLabel    = "add_skill_url_label"
-	KeyAddSkillRefLabel    = "add_skill_ref_label"
-	KeyAddSkillPathLabel   = "add_skill_path_label"
-	KeyAddSkillNameLabel   = "add_skill_name_label"
-	KeyAddSkillHint        = "add_skill_hint"
-	KeyAddSkillAuthHint    = "add_skill_auth_hint"
-	KeyAddSkillURLRequired = "add_skill_url_required"
-	KeySkillInstalled      = "skill_installed"
-	KeySkillRemoved        = "skill_removed"
-	KeySkillInstallFailed  = "skill_install_failed"
-	KeySkillRemoveFailed   = "skill_remove_failed"
-	KeyUsageSkillInstall   = "usage_skill_install"
-	KeyUsageSkillRemove    = "usage_skill_remove"
-	KeySkillAlreadyExists  = "skill_already_exists"
+	KeyAddSkillTitle         = "add_skill_title"
+	KeyAddSkillURLLabel      = "add_skill_url_label"
+	KeyAddSkillRefLabel      = "add_skill_ref_label"
+	KeyAddSkillPathLabel     = "add_skill_path_label"
+	KeyAddSkillNameLabel     = "add_skill_name_label"
+	KeyAddSkillHint          = "add_skill_hint"
+	KeyAddSkillAuthHint      = "add_skill_auth_hint"
+	KeyAddSkillURLRequired   = "add_skill_url_required"
+	KeySkillInstalled        = "skill_installed"
+	KeySkillRemoved          = "skill_removed"
+	KeySkillInstallFailed    = "skill_install_failed"
+	KeySkillRemoveFailed     = "skill_remove_failed"
+	KeyUsageSkillInstall     = "usage_skill_install"
+	KeyUsageSkillRemove      = "usage_skill_remove"
+	KeySkillAlreadyExists    = "skill_already_exists"
 )
 
 var messages = map[string]map[string]string{
@@ -302,7 +303,7 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyAutoRunListOnly:               "List Only",
 		KeyAutoRunNone:                   "Disabled",
 		KeyAllowlistAutoRunSetTo:         "Auto-Run set to %s (this session only).",
-		KeyConfigSavedAllowlistAutoRun:   "Config saved (auto-run: %s). Use /config reload to apply as default.",
+		KeyConfigSavedAllowlistAutoRun:   "Config saved (auto-run: %s).",
 		KeyConfigAutoRunRequired:         "auto-run: use list-only or disable",
 		KeyConfigRemoteAdded:             "Remote added: %s.",
 		KeyConfigRemoteRemoved:           "Remote removed: %s.",
@@ -330,6 +331,7 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyDescSessions:                  "Switch session",
 		KeySessionNone:                   "No previous sessions.",
 		KeyRemoteNone:                    "No remotes configured.",
+		KeyDelRemoteManualHint:           "Enter: type host — Down: pick saved remote",
 		KeyDescRemoteOn:                  "Connect to a remote host",
 		KeyDescRemoteOff:                 "Disconnect from remote and run commands locally",
 		KeyRemoteManualHint:              "Open remote connection dialog",

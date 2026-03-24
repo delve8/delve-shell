@@ -60,11 +60,5 @@ func applyConfigRemoveRemote(m ui.Model, nameOrTarget string) ui.Model {
 	m.Messages = append(m.Messages, ui.SuggestStyleRender(prefix+i18n.Tf(lang, i18n.KeyConfigRemoteRemoved, nameOrTarget)))
 	m.Messages = append(m.Messages, "")
 	m = m.RefreshViewport()
-	if m.Ports.ConfigUpdatedChan != nil {
-		select {
-		case m.Ports.ConfigUpdatedChan <- struct{}{}:
-		default:
-		}
-	}
 	return m
 }

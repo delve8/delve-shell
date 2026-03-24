@@ -14,8 +14,8 @@ func init() {
 		ClearInput: true,
 	})
 	ui.RegisterSlashExact("/q", ui.SlashExactDispatchEntry{
-		Handle: func(m ui.Model) (ui.Model, tea.Cmd) { return m, tea.Quit },
-		ClearInput: false,
+		Handle:     func(m ui.Model) (ui.Model, tea.Cmd) { return m, tea.Quit },
+		ClearInput: true,
 	})
 	ui.RegisterSlashExact("/sh", ui.SlashExactDispatchEntry{
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
@@ -29,6 +29,6 @@ func init() {
 			}
 			return m, tea.Quit
 		},
-		ClearInput: false,
+		ClearInput: true,
 	})
 }
