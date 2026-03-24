@@ -173,6 +173,7 @@
 | 2025-03-24 | 审批文案组装下沉：新增 `internal/approvalview/blocks.go` 承接敏感/审批卡片文案规则，`ui/view_approval_card.go` 改为样式渲染适配层 |
 | 2025-03-24 | 审批选项规则下沉：新增 `internal/approvalview/choices.go`（选项数、选项文案、输入占位符规则），`ui/view_choices.go` 改为调用适配层 |
 | 2025-03-24 | 审批决策回写下沉：`update_approval.go` 中审批/敏感决策文案拼装改为调用 `approvalview.BuildDecision`，`ui` 仅保留样式映射与状态流转 |
+| 2025-03-24 | 审批按键解释下沉：新增 `internal/approvalflow/choice.go`，`up/down/enter/数字键` 到决策动作的映射从 `ui` 抽离，`update_approval.go` 聚焦执行动作与状态更新 |
 | 2025-03-24 | slash 注册下沉：`/config*`、`/cancel`、`/q`、`/sh`、`/help`、`/config auto-run` 从 `ui` 迁到 `run/feature` 包；删除 `ui.registerSlashExact` 别名 |
 | 2025-03-24 | `internal/ui` 测试镜像重组：`feature_registry_test.go` 拆分为 remote/configllm、skill、session、slash-exact 多文件，主文件仅做汇总 init |
 | 2025-03-24 | P2：`Model` 再收敛 `Layout`/`Startup`/`Approval`；新增 `hasPendingApproval`、`contentWidth`、`OpenOverlay`、`CloseOverlayVisual` 等 helper 并替换重复逻辑 |

@@ -6,93 +6,32 @@ import (
 	"github.com/atotto/clipboard"
 
 	"delve-shell/internal/agent"
+	"delve-shell/internal/approvalflow"
 	"delve-shell/internal/approvalview"
 	"delve-shell/internal/i18n"
 )
 
 func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
-	// Choice / approval handling should take precedence over any other key paths,
-	// so tests and runtime behavior are stable even if other UI layers evolve.
-	inChoice := m.hasPendingApproval()
-	if inChoice {
-		n := choiceCount(m)
-		if n > 0 {
-			if key == "enter" {
-				// Treat Enter as selecting current option (1-based)
-				key = string(rune('1' + m.Interaction.ChoiceIndex))
-			} else if key == "up" || key == "down" {
-				if key == "down" {
-					m.Interaction.ChoiceIndex = (m.Interaction.ChoiceIndex + 1) % n
-				} else {
-					m.Interaction.ChoiceIndex = (m.Interaction.ChoiceIndex - 1 + n) % n
-				}
-				return m, true
-			}
-		}
+	allowlistAutoRunEnabled := true
+	if m.Ports.GetAllowlistAutoRun != nil {
+		allowlistAutoRunEnabled = m.Ports.GetAllowlistAutoRun()
 	}
-
-	if m.Approval.PendingSensitive != nil {
-		lang := m.getLang()
-		switch key {
-		case "1":
-			m.appendDecisionLines(approvalview.DecisionSensitiveRefuse, lang)
-			m = m.RefreshViewport()
-			m.Approval.PendingSensitive.ResponseCh <- agent.SensitiveRefuse
-			m.Approval.PendingSensitive = nil
-			return m, true
-		case "2":
-			m.appendDecisionLines(approvalview.DecisionSensitiveRunStore, lang)
-			m = m.RefreshViewport()
-			m.Approval.PendingSensitive.ResponseCh <- agent.SensitiveRunAndStore
-			m.Approval.PendingSensitive = nil
-			return m, true
-		case "3":
-			m.appendDecisionLines(approvalview.DecisionSensitiveRunNoStore, lang)
-			m = m.RefreshViewport()
-			m.Approval.PendingSensitive.ResponseCh <- agent.SensitiveRunNoStore
-			m.Approval.PendingSensitive = nil
-			return m, true
-		}
+	res := approvalflow.Evaluate(
+		key,
+		m.Approval.Pending != nil,
+		m.Approval.PendingSensitive != nil,
+		allowlistAutoRunEnabled,
+		m.Interaction.ChoiceIndex,
+		choiceCount(m),
+	)
+	if !res.Handled {
+		return m, false
+	}
+	if res.ChoiceChanged {
+		m.Interaction.ChoiceIndex = res.ChoiceIndex
 		return m, true
 	}
-	if m.Approval.Pending != nil {
-		lang := m.getLang()
-		switch key {
-		case "1":
-			m.appendDecisionLines(approvalview.DecisionApprove, lang)
-			m = m.RefreshViewport()
-
-			m.Approval.Pending.ResponseCh <- agent.ApprovalResponse{Approved: true, CopyRequested: false}
-			m.Approval.Pending = nil
-			return m, true
-		case "2":
-			m.appendDecisionLines(approvalview.DecisionReject, lang)
-			m = m.RefreshViewport()
-			threeOptions := m.Ports.GetAllowlistAutoRun != nil && !m.Ports.GetAllowlistAutoRun()
-			if threeOptions {
-				// 2 = Copy
-				_ = clipboard.WriteAll(m.Approval.Pending.Command)
-				m.appendSuggestedLine(m.Approval.Pending.Command, lang)
-				m.Messages = append(m.Messages, hintStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeySuggestedCopied))))
-				m.Approval.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: true}
-			} else {
-				m.Approval.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
-				m.Interaction.WaitingForAI = false
-			}
-			m.Approval.Pending = nil
-			return m, true
-		case "3":
-			m.appendDecisionLines(approvalview.DecisionDismiss, lang)
-			m = m.RefreshViewport()
-			m.Approval.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
-			m.Approval.Pending = nil
-			m.Interaction.WaitingForAI = false
-			return m, true
-		}
-		return m, true
-	}
-
-	return m, false
+	return m.applyApprovalDecision(res.Decision)
 }
 
 func (m *Model) appendDecisionLines(decision approvalview.DecisionKind, lang string) {
@@ -140,5 +79,60 @@ func (m *Model) appendDecisionLines(decision approvalview.DecisionKind, lang str
 			rendered = riskHighStyle.Render(line.Text)
 		}
 		m.Messages = append(m.Messages, rendered)
+	}
+}
+
+func (m Model) applyApprovalDecision(d approvalflow.Decision) (Model, bool) {
+	lang := m.getLang()
+	switch d {
+	case approvalflow.DecisionSensitiveRefuse:
+		m.appendDecisionLines(approvalview.DecisionSensitiveRefuse, lang)
+		m = m.RefreshViewport()
+		m.Approval.PendingSensitive.ResponseCh <- agent.SensitiveRefuse
+		m.Approval.PendingSensitive = nil
+		return m, true
+	case approvalflow.DecisionSensitiveRunStore:
+		m.appendDecisionLines(approvalview.DecisionSensitiveRunStore, lang)
+		m = m.RefreshViewport()
+		m.Approval.PendingSensitive.ResponseCh <- agent.SensitiveRunAndStore
+		m.Approval.PendingSensitive = nil
+		return m, true
+	case approvalflow.DecisionSensitiveRunNoStore:
+		m.appendDecisionLines(approvalview.DecisionSensitiveRunNoStore, lang)
+		m = m.RefreshViewport()
+		m.Approval.PendingSensitive.ResponseCh <- agent.SensitiveRunNoStore
+		m.Approval.PendingSensitive = nil
+		return m, true
+	case approvalflow.DecisionApprove:
+		m.appendDecisionLines(approvalview.DecisionApprove, lang)
+		m = m.RefreshViewport()
+		m.Approval.Pending.ResponseCh <- agent.ApprovalResponse{Approved: true, CopyRequested: false}
+		m.Approval.Pending = nil
+		return m, true
+	case approvalflow.DecisionReject:
+		m.appendDecisionLines(approvalview.DecisionReject, lang)
+		m = m.RefreshViewport()
+		m.Approval.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
+		m.Approval.Pending = nil
+		m.Interaction.WaitingForAI = false
+		return m, true
+	case approvalflow.DecisionCopy:
+		m.appendDecisionLines(approvalview.DecisionReject, lang)
+		m = m.RefreshViewport()
+		_ = clipboard.WriteAll(m.Approval.Pending.Command)
+		m.appendSuggestedLine(m.Approval.Pending.Command, lang)
+		m.Messages = append(m.Messages, hintStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeySuggestedCopied))))
+		m.Approval.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: true}
+		m.Approval.Pending = nil
+		return m, true
+	case approvalflow.DecisionDismiss:
+		m.appendDecisionLines(approvalview.DecisionDismiss, lang)
+		m = m.RefreshViewport()
+		m.Approval.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
+		m.Approval.Pending = nil
+		m.Interaction.WaitingForAI = false
+		return m, true
+	default:
+		return m, true
 	}
 }
