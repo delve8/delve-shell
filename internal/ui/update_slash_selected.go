@@ -4,16 +4,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-
-	"delve-shell/internal/i18n"
 )
-
-func (m Model) showConfigHint() Model {
-	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyConfigHint))))
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
-	return m
-}
 
 type slashSelectedEntry struct {
 	exact  string
@@ -41,18 +32,6 @@ func (m Model) handleSlashSelectedFallback(chosen string) (Model, tea.Cmd, bool)
 				mm.Input.CursorEnd()
 				mm.SlashSuggestIndex = 0
 				return mm, nil, true
-			},
-		},
-		{
-			exact: "/config",
-			handle: func(mm Model, _ string) (Model, tea.Cmd, bool) {
-				return mm.showConfigHint(), nil, true
-			},
-		},
-		{
-			prefix: "/config ",
-			handle: func(mm Model, _ string) (Model, tea.Cmd, bool) {
-				return mm.showConfigHint(), nil, true
 			},
 		},
 	}
