@@ -168,6 +168,7 @@
 | 2025-03-24 | `ui` 测试 mirror 去重：remote/configllm mirror 抽出共享 helper（overlay 初始化逻辑），降低重复维护成本 |
 | 2025-03-24 | 启动 `ui_test` 黑盒迁移：新增 `internal/ui/model_blackbox_test.go`，直接加载真实 feature 注册链验证 slash/overlay 关键路径，减少对 mirror 的结构依赖 |
 | 2025-03-24 | 黑盒迁移加速：`model_blackbox_test.go` 扩展至 cancel/run/sh/new/sessions 等真实链路，并从 `model_test.go` 移除重复的包内 slash 行为用例 |
+| 2025-03-24 | 继续压缩 `package ui` 内 slash 下拉测试：将 Up/Down+Enter、`/cancel` 双 Enter、`/config update-skill` 等迁移到 `ui_test` 黑盒，进一步削减 mirror 依赖面 |
 | 2025-03-24 | slash 注册下沉：`/config*`、`/cancel`、`/q`、`/sh`、`/help`、`/config auto-run` 从 `ui` 迁到 `run/feature` 包；删除 `ui.registerSlashExact` 别名 |
 | 2025-03-24 | `internal/ui` 测试镜像重组：`feature_registry_test.go` 拆分为 remote/configllm、skill、session、slash-exact 多文件，主文件仅做汇总 init |
 | 2025-03-24 | P2：`Model` 再收敛 `Layout`/`Startup`/`Approval`；新增 `hasPendingApproval`、`contentWidth`、`OpenOverlay`、`CloseOverlayVisual` 等 helper 并替换重复逻辑 |

@@ -171,6 +171,77 @@ func TestBlackboxSlashConfigDelRemoteFillsInput(t *testing.T) {
 	}
 }
 
+func TestBlackboxSlashDropdownUpDownAndEnterFill(t *testing.T) {
+	f := newBlackboxFixture()
+	m := f.model
+	m.Input.SetValue("/")
+	m.Input.CursorEnd()
+
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m2 := next.(ui.Model)
+	if m2.Input.Value() != "/" {
+		t.Fatalf("expected input to remain '/', got %q", m2.Input.Value())
+	}
+
+	next2, _ := m2.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m3 := next2.(ui.Model)
+	if strings.TrimSpace(m3.Input.Value()) == "/" {
+		t.Fatalf("expected enter to fill a concrete slash option, got %q", m3.Input.Value())
+	}
+	if v := strings.TrimSpace(m3.Input.Value()); v != "" && !strings.HasPrefix(v, "/") {
+		t.Fatalf("expected filled value to start with '/', got %q", m3.Input.Value())
+	}
+}
+
+func TestBlackboxSlashDropdownCancelFillThenExecute(t *testing.T) {
+	f := newBlackboxFixture()
+	f.model.Interaction.WaitingForAI = true
+
+	m := f.model
+	m.Input.SetValue("/c")
+	m.Input.CursorEnd()
+
+	// First Enter should fill to /cancel (not execute yet).
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m2 := next.(ui.Model)
+	if strings.TrimSpace(m2.Input.Value()) != "/cancel" {
+		t.Fatalf("expected first enter to fill /cancel, got %q", m2.Input.Value())
+	}
+	if !m2.Interaction.WaitingForAI {
+		t.Fatalf("expected waiting flag to remain true after fill-only enter")
+	}
+	select {
+	case <-f.cancelRequest:
+		t.Fatalf("did not expect cancel signal on fill-only enter")
+	default:
+	}
+
+	// Second Enter executes /cancel.
+	next2, _ := m2.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m3 := next2.(ui.Model)
+	if m3.Interaction.WaitingForAI {
+		t.Fatalf("expected waiting flag false after executing /cancel")
+	}
+	select {
+	case <-f.cancelRequest:
+	default:
+		t.Fatalf("expected cancel signal on second enter")
+	}
+}
+
+func TestBlackboxSlashUpdateSkillEnterDoesNotSilentlyDrop(t *testing.T) {
+	f := newBlackboxFixture()
+	m := f.model
+	m.Input.SetValue("/config update-skill x")
+	m.Input.CursorEnd()
+
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	got := next.(ui.Model)
+	if got.Input.Value() == "" && !got.Overlay.Active {
+		t.Fatalf("expected either overlay opened or non-empty input after enter")
+	}
+}
+
 func TestBlackboxSlashNewSubmitsCommand(t *testing.T) {
 	f := newBlackboxFixture()
 	got := enterText(f.model, "/new")
