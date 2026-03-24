@@ -46,23 +46,18 @@
 ### 3.1 `internal/ui` 测试包 vs `internal/run` 的 **import cycle**
 
 - **事实**：`internal/run` → `internal/ui`；若 `internal/ui` 的 `*_test.go` 再 `_ import "delve-shell/internal/run"`，则形成 **`ui`（测试）→ `run` → `ui`**，Go 禁止。
-- **后果**：`/run` 的 `RegisterSlashSelectedProvider`（及同类）在 **`feature_registry_test.go` 的 `init()` 里必须镜像一份**，并与 `ui.SlashRunUsageOption` 常量保持语义一致。
+- **现状变化**：`ui` 行为链路测试已迁移到 `package ui_test` 黑盒（真实 feature 注册链），不再依赖 `feature_registry_*_test.go` 的镜像注册。
 - **架构判断**：循环依赖应视为架构告警，不应长期靠测试镜像兜底。  
 - **后续去重方向**：  
   1) 引入 **registry core**（第三包，脱离 `ui.Model` 直接依赖）；或  
   2) 将 `internal/ui` 测试逐步迁移到 `package ui_test`（减少对未导出符号耦合）。  
   当前两条可并行小步推进，优先保持行为稳定与可回滚。
 
-### 3.2 `feature_registry_test.go` 的定位
+### 3.2 `ui_test` 黑盒测试定位
 
-- **目的**：`go test ./internal/ui` 时不 import `remote` / `session` / `configllm` / `skill` / `run`（避免循环或过重依赖）。
-- **内容（现状）**：测试镜像已从单文件拆分为按领域文件：  
-  - `feature_registry_remote_configllm_test.go`  
-  - `feature_registry_skill_test.go`  
-  - `feature_registry_session_test.go`  
-  - `feature_registry_slash_exact_test.go`  
-  `feature_registry_test.go` 保留汇总入口（init 调度），降低单文件耦合。
-- **Overlay 复位**：已迁至 `internal/run` 注册侧统一挂载 `RegisterOverlayCloseHook`；`ui` 仅执行 hook，不持有业务复位实现。`internal/ui` 测试通过 mirror 保持隔离。
+- **目的**：以真实注册链验证 UI 行为，直接覆盖 slash/overlay 主链路，降低测试结构对 `ui` 内部未导出实现与镜像脚手架的耦合。
+- **内容（现状）**：`internal/ui/model_blackbox_test.go` 使用 `package ui_test` + 空白导入 feature 包，已覆盖 `/help`、`/remote on`、`/cancel`、`/run`、`/new`、`/sessions`、startup overlay 等关键路径。
+- **结果**：`feature_registry_*_test.go` 与 `main_test.go` 镜像装配层已删除。
 
 ---
 
@@ -138,8 +133,8 @@
 ## 7. 关键文件速查
 
 - Registry 定义：`internal/ui/feature_providers.go`（含 `TitleBarFragmentProvider`）、`slash_exact_registry.go`、`slash_prefix_registry.go`  
-- Overlay 关闭：`internal/ui/update_overlay_key.go` + `internal/ui/overlay_close_feature_reset.go`  
-- 测试替身：`internal/ui/feature_registry_test.go`  
+- Overlay 关闭：`internal/ui/update_overlay_key.go` + `internal/run/overlay_close_hook.go`  
+- 黑盒测试入口：`internal/ui/model_blackbox_test.go`  
 - CLI 接线：`internal/cli/run.go`（空白 import 列表）  
 - 结构任务总表：`.cursor/code-structure-tasks.md`（若仓库跟踪该文件）
 
@@ -170,6 +165,8 @@
 | 2025-03-24 | 黑盒迁移加速：`model_blackbox_test.go` 扩展至 cancel/run/sh/new/sessions 等真实链路，并从 `model_test.go` 移除重复的包内 slash 行为用例 |
 | 2025-03-24 | 继续压缩 `package ui` 内 slash 下拉测试：将 Up/Down+Enter、`/cancel` 双 Enter、`/config update-skill` 等迁移到 `ui_test` 黑盒，进一步削减 mirror 依赖面 |
 | 2025-03-24 | 测试装配显式化：`feature_registry_test.go` 从 `init` 改为 `sync.Once` 注册，并通过 `main_test.go` 的 `TestMain` 显式注入 mirror，降低隐式副作用 |
+| 2025-03-24 | mirror 覆盖面继续收缩：移除 startup overlay mirror 注册（`package ui` 测试不再依赖该镜像），由 `ui_test` 黑盒覆盖启动 overlay 行为 |
+| 2025-03-24 | 镜像测试层整批删除：移除 `feature_registry_*_test.go`、`main_test.go`、`config_handlers_test_helpers_test.go`，`internal/ui` 行为测试改由 `model_blackbox_test.go` 驱动真实 feature 注册链 |
 | 2025-03-24 | slash 注册下沉：`/config*`、`/cancel`、`/q`、`/sh`、`/help`、`/config auto-run` 从 `ui` 迁到 `run/feature` 包；删除 `ui.registerSlashExact` 别名 |
 | 2025-03-24 | `internal/ui` 测试镜像重组：`feature_registry_test.go` 拆分为 remote/configllm、skill、session、slash-exact 多文件，主文件仅做汇总 init |
 | 2025-03-24 | P2：`Model` 再收敛 `Layout`/`Startup`/`Approval`；新增 `hasPendingApproval`、`contentWidth`、`OpenOverlay`、`CloseOverlayVisual` 等 helper 并替换重复逻辑 |
