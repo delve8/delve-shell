@@ -25,8 +25,7 @@ type Model struct {
 	Context                    RuntimeContextState
 	// /run completion cache (best-effort).
 	RunCompletion RunCompletionState
-	Width       int
-	Height      int
+	Layout      LayoutState
 	Interaction InteractionState
 
 	// Overlay state: when Overlay.Active is true, a modal is rendered on top of the main UI.
@@ -148,6 +147,12 @@ type InteractionState struct {
 	SlashSuggestIndex int  // 0..len(visible)-1 when input starts with /
 	ChoiceIndex       int  // 0-based selection when in Pending/PendingSensitive/PendingSuggested; Up/Down to move, Enter to confirm
 	WaitingForAI      bool // when true only blocks submitting new messages (Enter); /xxx slash commands always allowed
+}
+
+// LayoutState stores terminal layout dimensions for rendering.
+type LayoutState struct {
+	Width  int
+	Height int
 }
 
 // OverlayState stores generic modal overlay state shared across features.
@@ -294,7 +299,9 @@ func NewModel(
 			CurrentSessionPath: initialSessionPath,
 		},
 		InitialShowConfigLLM:       initialShowConfigLLM,
-		Width:                      defaultWidth,
-		Height:                     defaultHeight,
+		Layout: LayoutState{
+			Width:  defaultWidth,
+			Height: defaultHeight,
+		},
 	}
 }

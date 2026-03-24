@@ -3,18 +3,18 @@ package ui
 import tea "github.com/charmbracelet/bubbletea"
 
 func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
-	m.Width = msg.Width
-	m.Height = msg.Height
+	m.Layout.Width = msg.Width
+	m.Layout.Height = msg.Height
 	// Use full terminal width for input so long lines don't scroll until they exceed the line.
-	if m.Width > 4 {
-		m.Input.Width = m.Width - 4 // leave margin for prompt "> " and right edge
+	if m.Layout.Width > 4 {
+		m.Input.Width = m.Layout.Width - 4 // leave margin for prompt "> " and right edge
 	}
-	if m.Height > 4 {
-		vh := m.Height - 10 // header + sep + viewport; bottom 2 lines for input + slash/choice dropdown
+	if m.Layout.Height > 4 {
+		vh := m.Layout.Height - 10 // header + sep + viewport; bottom 2 lines for input + slash/choice dropdown
 		if vh < 1 {
 			vh = 1
 		}
-		m.Viewport.Width = m.Width
+		m.Viewport.Width = m.Layout.Width
 		m.Viewport.Height = vh
 	}
 	m.Viewport.SetContent(m.buildContent())

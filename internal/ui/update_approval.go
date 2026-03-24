@@ -88,7 +88,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 			if riskLabel != "" {
 				commandLine = "[" + riskLabel + "] " + commandLine
 			}
-			cmdW := m.Width
+			cmdW := m.Layout.Width
 			if cmdW <= 0 {
 				cmdW = 80
 			}
@@ -128,7 +128,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 			if riskLabel != "" {
 				commandLine = "[" + riskLabel + "] " + commandLine
 			}
-			cmdW := m.Width
+			cmdW := m.Layout.Width
 			if cmdW <= 0 {
 				cmdW = 80
 			}
@@ -178,7 +178,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 			if riskLabel != "" {
 				commandLine = "[" + riskLabel + "] " + commandLine
 			}
-			cmdW := m.Width
+			cmdW := m.Layout.Width
 			if cmdW <= 0 {
 				cmdW = 80
 			}

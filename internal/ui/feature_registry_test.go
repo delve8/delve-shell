@@ -149,7 +149,7 @@ func init() {
 			switchedLine := sessionSwitchedStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeySessionSwitchedTo, sessionID)))
 			if t.Path != "" {
 				events, _ := history.ReadRecent(t.Path, maxSessionHistoryEvents)
-				msgs := sessionEventsToMessages(events, lang, m.Width)
+				msgs := sessionEventsToMessages(events, lang, m.Layout.Width)
 				m.Messages = make([]string, 0, len(msgs)+2)
 				m.Messages = append(m.Messages, msgs...)
 				m.Messages = append(m.Messages, switchedLine)

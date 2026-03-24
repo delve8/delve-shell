@@ -9,7 +9,7 @@ import (
 // View implements tea.Model.
 func (m Model) View() string {
 	lang := m.getLang()
-	sepW := m.Width
+	sepW := m.Layout.Width
 	if sepW <= 0 {
 		sepW = 40
 	}
@@ -17,17 +17,17 @@ func (m Model) View() string {
 	header := m.titleLine() + "\n" + sepLine + "\n"
 
 	inChoice := m.Pending != nil || m.PendingSensitive != nil
-	if m.Height <= 4 {
+	if m.Layout.Height <= 4 {
 		out := header + m.buildContent() + "\n" + m.Input.View()
 		out += m.waitingLineBelowInput(lang)
 		return out
 	}
 	// Base viewport height: leave room for header, separator, input line, and slash/choice dropdown (the two lines at bottom are for input + suggestions).
-	vh := m.Height - 10
+	vh := m.Layout.Height - 10
 	if vh < 1 {
 		vh = 1
 	}
-	m.Viewport.Width = m.Width
+	m.Viewport.Width = m.Layout.Width
 	m.Viewport.Height = vh
 	out := header
 	out += m.Viewport.View()
@@ -51,7 +51,7 @@ func (m Model) View() string {
 func (m *Model) appendSuggestedLine(command, lang string) {
 	tag := i18n.T(lang, i18n.KeyRunTagSuggested)
 	line := i18n.T(lang, i18n.KeyRunLabel) + command + " (" + tag + ")"
-	w := m.Width
+	w := m.Layout.Width
 	if w <= 0 {
 		w = 80
 	}

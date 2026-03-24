@@ -35,12 +35,12 @@ func (m Model) handleAgentReplyMsg(msg AgentReplyMsg) (Model, tea.Cmd) {
 		m.Messages = append(m.Messages, "")
 	} else if msg.Reply != "" {
 		aiLine := i18n.T(lang, i18n.KeyAILabel) + msg.Reply
-		w := m.Width
+		w := m.Layout.Width
 		if w <= 0 {
 			w = 80
 		}
 		m.Messages = append(m.Messages, wrapString(aiLine, w))
-		sepW := m.Width
+		sepW := m.Layout.Width
 		if sepW <= 0 {
 			sepW = 80
 		}
@@ -53,7 +53,7 @@ func (m Model) handleAgentReplyMsg(msg AgentReplyMsg) (Model, tea.Cmd) {
 
 func (m Model) handleSystemNotifyMsg(msg SystemNotifyMsg) (Model, tea.Cmd) {
 	if msg.Text != "" {
-		w := m.Width
+		w := m.Layout.Width
 		if w <= 0 {
 			w = 80
 		}
@@ -76,7 +76,7 @@ func (m Model) handleCommandExecutedMsg(msg CommandExecutedMsg) (Model, tea.Cmd)
 		tag = i18n.T(lang, i18n.KeyRunTagApproved)
 	}
 	runLine := i18n.T(lang, i18n.KeyRunLabel) + msg.Command + " (" + tag + ")"
-	w := m.Width
+	w := m.Layout.Width
 	if w <= 0 {
 		w = 80
 	}

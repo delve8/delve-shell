@@ -23,7 +23,7 @@ func (m Model) handleOverlayShowMsg(msg OverlayShowMsg) (Model, tea.Cmd) {
 	m.Overlay.Active = true
 	m.Overlay.Title = msg.Title
 	m.Overlay.Content = msg.Content
-	m.Overlay.Viewport = viewport.New(m.Width-4, min(m.Height-6, 20))
+	m.Overlay.Viewport = viewport.New(m.Layout.Width-4, min(m.Layout.Height-6, 20))
 	m.Overlay.Viewport.SetContent(m.Overlay.Content)
 	return m, nil
 }

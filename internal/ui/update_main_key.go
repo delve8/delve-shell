@@ -102,7 +102,7 @@ func (m Model) handleNewSessionCommandIfNeeded(text string) (Model, bool) {
 
 func (m Model) appendUserInputLine(text string) Model {
 	userLine := i18n.T(m.getLang(), i18n.KeyUserLabel) + text
-	w := m.Width
+	w := m.Layout.Width
 	if w <= 0 {
 		w = 80
 	}

@@ -108,8 +108,8 @@ func TestApprovalCard_Approve2ClearsPendingAndSendsFalse(t *testing.T) {
 func TestView_HeaderAlwaysShown(t *testing.T) {
 	getAutoRun := func() bool { return true }
 	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
-	m.Height = 24
-	m.Width = 80
+	m.Layout.Height = 24
+	m.Layout.Width = 80
 	view := m.View()
 	// Header contains Auto-run label and a status in brackets
 	if !strings.Contains(view, "[IDLE]") && !strings.Contains(view, "[空闲]") && !strings.Contains(view, "[PROCESSING]") && !strings.Contains(view, "[处理中]") {
@@ -120,7 +120,7 @@ func TestView_HeaderAlwaysShown(t *testing.T) {
 	}
 
 	// Small height path: header must still appear first
-	m.Height = 4
+	m.Layout.Height = 4
 	viewSmall := m.View()
 	if !strings.Contains(viewSmall, "Auto-Run") && !strings.Contains(viewSmall, "自动执行") {
 		t.Error("View() at small height should still show header with Auto-Run label")
@@ -129,7 +129,7 @@ func TestView_HeaderAlwaysShown(t *testing.T) {
 	// With Pending, header shows [NEED APPROVAL] or [待确认]
 	ch := make(chan agent.ApprovalResponse, 1)
 	m.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
-	m.Height = 24
+	m.Layout.Height = 24
 	viewPending := m.View()
 	if !strings.Contains(viewPending, "[NEED APPROVAL]") && !strings.Contains(viewPending, "[待确认]") {
 		t.Error("View() with Pending should show pending status in header")
@@ -138,16 +138,16 @@ func TestView_HeaderAlwaysShown(t *testing.T) {
 	// Critical: with choice mode (max 3 options) and a small Height, total lines must not exceed Height,
 	// so the header (first 2 lines) stays on screen when terminal displays one full screen.
 	m2 := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, func() bool { return true }, nil, "", false)
-	m2.Height = 12
-	m2.Width = 80
+	m2.Layout.Height = 12
+	m2.Layout.Width = 80
 	m2.PendingSensitive = &agent.SensitiveConfirmationRequest{Command: "cat /etc/shadow", ResponseCh: make(chan agent.SensitiveChoice, 1)}
 	viewChoice := m2.View()
 	lines := strings.Split(viewChoice, "\n")
-	if len(lines) > m2.Height {
-		t.Errorf("View() in choice mode (3 options) must not exceed Height: got %d lines, Height=%d (header would scroll off)", len(lines), m2.Height)
+	if len(lines) > m2.Layout.Height {
+		t.Errorf("View() in choice mode (3 options) must not exceed Height: got %d lines, Height=%d (header would scroll off)", len(lines), m2.Layout.Height)
 	}
 	// First line must be the header title (Auto-Run + status)
-	visible := strings.Join(lines[:min(len(lines), m2.Height)], "\n")
+	visible := strings.Join(lines[:min(len(lines), m2.Layout.Height)], "\n")
 	if !strings.Contains(visible, "Auto-Run") && !strings.Contains(visible, "自动执行") {
 		t.Error("header (Auto-Run label) must appear in visible area")
 	}

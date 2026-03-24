@@ -54,8 +54,8 @@ func (m Model) slashDropdownBelowInput(lang string) string {
 		cmdWidth = minCmdWidth
 	}
 	maxLineLen := 0
-	if m.Width > 4 {
-		maxLineLen = m.Width - 4 // leave margin for prefix and avoid wrap
+	if m.Layout.Width > 4 {
+		maxLineLen = m.Layout.Width - 4 // leave margin for prefix and avoid wrap
 	}
 	// remainingLines is the total number of lines we can use for the dropdown (including wrapped descriptions).
 	remainingLines := maxSlashVisible
