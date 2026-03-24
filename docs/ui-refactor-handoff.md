@@ -31,7 +31,7 @@
 | `RegisterSlashSelectedProvider` | 选中某行后 Enter、且不走 exact/prefix 时的行为（如 fill-only） |
 | `RegisterOverlayKeyProvider` | overlay 激活时的按键 |
 | `RegisterOverlayContentProvider` | overlay 正文渲染 |
-| `RegisterOverlayCloseHook` | **任意** overlay 关闭时复位业务字段（Esc / 程序化 close） |
+| `RegisterOverlayCloseHook` | **任意** overlay 关闭时复位业务字段（Esc / 程序化 close）；生产侧由 `ui.ApplyOverlayCloseFeatureResets` 统一注册一次 |
 | `RegisterMessageProvider` | `tea.Msg` 的优先处理（在 `ui` 默认 switch 之前） |
 
 ### 2.3 与 `update_slash_*` 的关系
@@ -52,8 +52,8 @@
 ### 3.2 `feature_registry_test.go` 的定位
 
 - **目的**：`go test ./internal/ui` 时不 import `remote` / `session` / `configllm` / `skill` / `run`（避免循环或过重依赖）。
-- **内容**：测试用 `registerSlashExact`、MessageProvider 替身、`RegisterSlashOptionsProvider`（sessions）、`RegisterSlashSelectedProvider`（skill、/run 镜像）、**`RegisterOverlayCloseHook`**（合并 remote/skill/configllm 的复位逻辑）。
-- **风险**：生产环境在 `init` 里注册的 hook 与测试 hook **必须字段级一致**，否则 Esc 关闭 overlay 后会出现「壳关了、业务 flag 未清」的僵尸状态。新增业务 overlay 时记得两边同步，或抽 **共享的复位函数** 到 `ui` 包内由测试与生产共用（仅函数体共享，注册仍可分两处）。
+- **内容**：测试用 `registerSlashExact`、MessageProvider 替身、`RegisterSlashOptionsProvider`（sessions）、`RegisterSlashSelectedProvider`（skill、/run 镜像）、**`RegisterTitleBarFragmentProvider`**（remote 标题镜像）。
+- **Overlay 复位**：`internal/ui/overlay_close_feature_reset.go` 中 **`ApplyOverlayCloseFeatureResets`** + `init()` 单次 `RegisterOverlayCloseHook`；新增业务 overlay 字段时只改该函数（及对应 overlay 打开逻辑），**不再**在 remote/skill/configllm 各写一份 hook。
 
 ---
 
@@ -64,7 +64,8 @@
 | 文件 | 内容 |
 |------|------|
 | `view.go` | `View()`、`appendSuggestedLine` |
-| `view_content.go` | `buildContent()`（消息流 + Pending / PendingSensitive 卡片） |
+| `view_content.go` | `buildContent()`（消息流；审批块委托 `view_approval_card.go`） |
+| `view_approval_card.go` | `appendApprovalViewportContent`（敏感 / 标准审批卡文案与样式） |
 | `view_slash_dropdown.go` | slash 下拉、`choiceLinesBelowInput`、`waitingLineBelowInput` |
 | `view_overlay.go` | `renderOverlay`、`overlayBoxMaxWidth` |
 | `view_title.go` | `titleLine`、`statusKey` |
@@ -83,20 +84,16 @@
 
 ### P1 — 低风险、边界清晰
 
-1. **`view_title.go` 中 Remote 展示**  
-   - 现状：`titleLine` 内写死 `"Local"` / `"Remote"` + `RemoteLabel`。  
-   - 思路：`internal/remote` 注册 `TitleBarFragmentProvider func(m ui.Model) (segment string, ok bool)`，或返回结构化片段（需避免每帧重计算过重）。  
-   - 注意：`Model` 仍保留 `RemoteActive` / `RemoteLabel`（由 hostloop 写入）即可，remote 包只负责「如何格式化成标题字符串」。
+1. **`view_title.go` 中 Remote 展示**（已落地）  
+   - `RegisterTitleBarFragmentProvider`：`internal/remote/registration.go` 注册；`feature_registry_test.go` 镜像（与 overlay hook 同理）。  
+   - `view_title.go` 通过 `titleBarLeadingSegment()` 聚合；无 provider 命中时默认 `"Local"`。
 
-2. **`buildContent` 中审批卡与 skill 行**  
-   - 现状：`view_content.go` 依赖 `Pending`、`PendingSensitive`、`SkillName`、风险等级枚举字符串。  
-   - 思路（二选一）：  
-     - **A**：`internal/agent` 或 `hiltypes` 提供「给定 Pending → []RenderableLine」的纯函数，`ui` 只拼 lipgloss；  
-     - **B**：`ui` 保留布局，把「文案与字段顺序」交给小模块 `view_approval_card.go` + 单元测试。  
-   - 原则：**不把 HIL 决策逻辑搬进 view**；view 只展示已算好的字段。
+2. **`buildContent` 中审批卡与 skill 行**（已落地 **B**）  
+   - `view_approval_card.go`：`appendApprovalViewportContent`；`view_approval_card_test.go` / `view_title_test.go` 覆盖片段行为。  
+   - 后续若要将「行列表」上移到 `hiltypes`，可与现有函数并行演进。
 
-3. **`update_slash_exact_entries.go` 审计**  
-   - 逐项核对是否仍有可迁到 `configllm` / `session` / 其它包的 exact 命令；保持与 `RegisterSlashExact` 一致。
+3. **`update_slash_exact_entries.go` 审计**（已核对）  
+   - 现状条目均为壳层：`/config`、`/config show`、取消与重载、`/q`/`/sh`、allowlist 更新；无进一步下沉到 feature 包的必要；与 `RegisterSlashExact` 分工一致。
 
 ### P2 — 中风险、牵涉 Model
 
@@ -126,8 +123,8 @@
 
 ## 7. 关键文件速查
 
-- Registry 定义：`internal/ui/feature_providers.go`、`slash_exact_registry.go`、`slash_prefix_registry.go`  
-- Overlay 关闭：`internal/ui/update_overlay_key.go` + 各包 `overlay_close_hook.go`  
+- Registry 定义：`internal/ui/feature_providers.go`（含 `TitleBarFragmentProvider`）、`slash_exact_registry.go`、`slash_prefix_registry.go`  
+- Overlay 关闭：`internal/ui/update_overlay_key.go` + `internal/ui/overlay_close_feature_reset.go`  
 - 测试替身：`internal/ui/feature_registry_test.go`  
 - CLI 接线：`internal/cli/run.go`（空白 import 列表）  
 - 结构任务总表：`.cursor/code-structure-tasks.md`（若仓库跟踪该文件）
@@ -146,4 +143,6 @@
 
 | 日期 | 说明 |
 |------|------|
+| 2025-03-24 | 集中 overlay 关闭复位：`ApplyOverlayCloseFeatureResets`（移除 remote/skill/configllm 分散 hook） |
+| 2025-03-24 | P1：`RegisterTitleBarFragmentProvider` + `view_approval_card.go`；交接文档 §4/§5 同步 |
 | （待填） | 初版：registry、overlay close hook、view 文件拆分、`SlashRunUsageOption`、import 循环说明 |

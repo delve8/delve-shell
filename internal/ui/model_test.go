@@ -295,7 +295,7 @@ func TestOverlayEsc_CloseHooksClearFeatureFlags(t *testing.T) {
 		t.Fatal("expected overlay closed after Esc")
 	}
 	if m2.AddRemoteActive {
-		t.Fatal("expected RegisterOverlayCloseHook to clear AddRemoteActive")
+		t.Fatal("expected overlay close feature reset to clear AddRemoteActive")
 	}
 }
 

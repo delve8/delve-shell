@@ -15,17 +15,19 @@ func (m Model) statusKey() string {
 	return i18n.KeyStatusIdle
 }
 
+func (m Model) titleBarLeadingSegment() string {
+	for _, p := range titleBarFragmentProviders {
+		if seg, ok := p(m); ok {
+			return seg
+		}
+	}
+	return "Local"
+}
+
 // titleLine returns the fixed title (Remote + Auto-run + status) for display above the viewport; does not scroll.
 func (m Model) titleLine() string {
 	lang := m.getLang()
-	remotePart := "Local"
-	if m.RemoteActive {
-		if m.RemoteLabel != "" {
-			remotePart = "Remote " + m.RemoteLabel
-		} else {
-			remotePart = "Remote"
-		}
-	}
+	remotePart := m.titleBarLeadingSegment()
 	autoRunStr := i18n.T(lang, i18n.KeyAutoRunListOnly)
 	if m.GetAllowlistAutoRun != nil && !m.GetAllowlistAutoRun() {
 		autoRunStr = i18n.T(lang, i18n.KeyAutoRunNone)

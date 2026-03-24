@@ -9,7 +9,6 @@ import (
 func init() {
 	registerSlashExact()
 	registerSlashPrefix()
-	registerOverlayCloseHook()
 	ui.RegisterOverlayContentProvider(func(m ui.Model) (string, bool) {
 		return buildConfigLLMOverlayContent(m)
 	})

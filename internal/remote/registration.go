@@ -86,6 +86,16 @@ func registerSlashPrefixHandlers() {
 func registerProviders() {
 	ui.RegisterSlashOptionsProvider(remoteSlashOptionsProvider)
 
+	ui.RegisterTitleBarFragmentProvider(func(m ui.Model) (string, bool) {
+		if !m.RemoteActive {
+			return "", false
+		}
+		if m.RemoteLabel != "" {
+			return "Remote " + m.RemoteLabel, true
+		}
+		return "Remote", true
+	})
+
 	ui.RegisterOverlayKeyProvider(func(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
 		return handleRemoteOverlayKey(m, key, msg)
 	})
