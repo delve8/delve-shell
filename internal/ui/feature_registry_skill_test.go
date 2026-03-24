@@ -9,7 +9,7 @@ import (
 )
 
 func registerTestSkillPrefixMirrors() {
-	registerSlashPrefix("/config update-skill", SlashPrefixDispatchEntry{
+	RegisterSlashPrefix("/config update-skill", SlashPrefixDispatchEntry{
 		Prefix: "/config update-skill",
 		Handle: func(mm Model, rest string) (Model, tea.Cmd, bool) {
 			rest = strings.TrimSpace(rest)
@@ -34,7 +34,7 @@ func registerTestSkillPrefixMirrors() {
 }
 
 func registerTestConfigPrefixMirrors() {
-	registerSlashPrefix("/config auto-run ", SlashPrefixDispatchEntry{
+	RegisterSlashPrefix("/config auto-run ", SlashPrefixDispatchEntry{
 		Prefix: "/config auto-run ",
 		Handle: func(mm Model, rest string) (Model, tea.Cmd, bool) {
 			mm = mm.applyConfigAllowlistAutoRun(strings.TrimSpace(rest))

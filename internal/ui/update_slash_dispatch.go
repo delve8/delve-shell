@@ -12,7 +12,7 @@ func (m Model) clearSlashInput() Model {
 // dispatchSlashExact routes exact slash commands through a single table-driven path.
 // clearInput controls whether the slash input is consumed after execution.
 func (m Model) dispatchSlashExact(cmd string) (Model, tea.Cmd, bool) {
-	entry, ok := slashExactDispatchRegistry[cmd]
+	entry, ok := slashExactDispatchRegistry.Get(cmd)
 	if !ok {
 		return m, nil, false
 	}
