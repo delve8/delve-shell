@@ -21,7 +21,7 @@ func (m Model) renderOverlay(base string) string {
 
 	// Build box content: feature packages register overlay body builders.
 	var content string
-	for _, p := range overlayContentProviders {
+	for _, p := range overlayContentProviderChain.List() {
 		if c, handled := p(m); handled {
 			content = c
 			break

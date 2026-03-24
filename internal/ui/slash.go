@@ -57,7 +57,7 @@ func getConfigSubOptions(lang string) []SlashOption {
 
 // getSlashOptionsForInput returns slash options to show: when input is "/config" or "/config xxx" returns only /config sub-options; when "/sessions" or "/sessions xxx" returns session list (with Path set) for switch, excluding currentSessionPath so first option is another session; else top-level commands.
 func getSlashOptionsForInput(inputVal string, lang string, currentSessionPath string, localRunCommands []string, remoteRunCommands []string, remoteActive bool) []SlashOption {
-	for _, p := range slashOptionsProviders {
+	for _, p := range slashOptionsProviderChain.List() {
 		if opts, handled := p(inputVal, lang, currentSessionPath, localRunCommands, remoteRunCommands, remoteActive); handled {
 			return opts
 		}

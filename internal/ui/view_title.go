@@ -16,7 +16,7 @@ func (m Model) statusKey() string {
 }
 
 func (m Model) titleBarLeadingSegment() string {
-	for _, p := range titleBarFragmentProviders {
+	for _, p := range titleBarFragmentProviderChain.List() {
 		if seg, ok := p(m); ok {
 			return seg
 		}

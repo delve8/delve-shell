@@ -16,16 +16,16 @@ const (
 
 // Model is the Bubble Tea session and approval UI.
 type Model struct {
-	Input                      textinput.Model
-	Viewport                   viewport.Model
-	Messages                   []string
-	Approval                   ApprovalState
-	Ports                      UIPorts
-	Context                    RuntimeContextState
+	Input    textinput.Model
+	Viewport viewport.Model
+	Messages []string
+	Approval ApprovalState
+	Ports    UIPorts
+	Context  RuntimeContextState
 	// /run completion cache (best-effort).
 	RunCompletion RunCompletionState
-	Layout      LayoutState
-	Interaction InteractionState
+	Layout        LayoutState
+	Interaction   InteractionState
 
 	// Overlay state: when Overlay.Active is true, a modal is rendered on top of the main UI.
 	Overlay OverlayState
@@ -209,7 +209,7 @@ func (m Model) delveMsg(msg string) string {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.syncInputPlaceholder()
 
-	for _, p := range messageProviders {
+	for _, p := range messageProviderChain.List() {
 		if m2, cmd, handled := p(m, msg); handled {
 			return m2, cmd
 		}
@@ -291,9 +291,9 @@ func NewModel(
 		copy(msgs, initialMessages)
 	}
 	return Model{
-		Input:                      ti,
-		Viewport:                   vp,
-		Messages:                   msgs,
+		Input:    ti,
+		Viewport: vp,
+		Messages: msgs,
 		Ports: UIPorts{
 			SubmitChan:                 submitChan,
 			ExecDirectChan:             execDirectChan,

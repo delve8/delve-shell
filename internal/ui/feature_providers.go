@@ -1,6 +1,7 @@
 package ui
 
 import tea "github.com/charmbracelet/bubbletea"
+import "delve-shell/internal/slashreg"
 
 // SlashOptionsProvider can provide slash suggestion options for a given input.
 // When handled==true, the returned options should override the default ui logic.
@@ -13,7 +14,7 @@ type SlashOptionsProvider func(
 	remoteActive bool,
 ) (opts []SlashOption, handled bool)
 
-var slashOptionsProviders []SlashOptionsProvider
+var slashOptionsProviderChain = slashreg.NewProviderChain[SlashOptionsProvider]()
 
 // RegisterSlashOptionsProvider registers a slash options provider.
 // Providers are executed in registration order; the first one that returns handled=true wins.
@@ -21,14 +22,14 @@ func RegisterSlashOptionsProvider(p SlashOptionsProvider) {
 	if p == nil {
 		return
 	}
-	slashOptionsProviders = append(slashOptionsProviders, p)
+	slashOptionsProviderChain.Add(p, func(x SlashOptionsProvider) bool { return x == nil })
 }
 
 // SlashSelectedProvider handles Enter on a chosen slash suggestion when the
 // command is not executed via exact/prefix dispatch (e.g. fill-only hints).
 type SlashSelectedProvider func(m Model, chosen string) (Model, tea.Cmd, bool)
 
-var slashSelectedProviders []SlashSelectedProvider
+var slashSelectedProviderChain = slashreg.NewProviderChain[SlashSelectedProvider]()
 
 // RegisterSlashSelectedProvider registers a slash-selected handler.
 // Providers run in registration order; the first that returns handled=true wins.
@@ -36,14 +37,14 @@ func RegisterSlashSelectedProvider(p SlashSelectedProvider) {
 	if p == nil {
 		return
 	}
-	slashSelectedProviders = append(slashSelectedProviders, p)
+	slashSelectedProviderChain.Add(p, func(x SlashSelectedProvider) bool { return x == nil })
 }
 
 // OverlayKeyProvider can handle key input when an overlay is active.
 // When handled==true, the returned model/cmd should be used by ui.
 type OverlayKeyProvider func(m Model, key string, msg tea.KeyMsg) (Model, tea.Cmd, bool)
 
-var overlayKeyProviders []OverlayKeyProvider
+var overlayKeyProviderChain = slashreg.NewProviderChain[OverlayKeyProvider]()
 
 // RegisterOverlayKeyProvider registers an overlay key provider.
 // Providers are executed in registration order; the first one that returns handled=true wins.
@@ -51,14 +52,14 @@ func RegisterOverlayKeyProvider(p OverlayKeyProvider) {
 	if p == nil {
 		return
 	}
-	overlayKeyProviders = append(overlayKeyProviders, p)
+	overlayKeyProviderChain.Add(p, func(x OverlayKeyProvider) bool { return x == nil })
 }
 
 // MessageProvider can handle any tea.Msg before ui's default type switch.
 // When handled==true, the returned model/cmd should be used.
 type MessageProvider func(m Model, msg tea.Msg) (Model, tea.Cmd, bool)
 
-var messageProviders []MessageProvider
+var messageProviderChain = slashreg.NewProviderChain[MessageProvider]()
 
 // RegisterMessageProvider registers a message provider.
 // Providers are executed in registration order; the first one that returns handled=true wins.
@@ -66,14 +67,14 @@ func RegisterMessageProvider(p MessageProvider) {
 	if p == nil {
 		return
 	}
-	messageProviders = append(messageProviders, p)
+	messageProviderChain.Add(p, func(x MessageProvider) bool { return x == nil })
 }
 
 // OverlayContentProvider can provide overlay content for a model.
 // When handled==true, returned content should be used by ui overlay renderer.
 type OverlayContentProvider func(m Model) (content string, handled bool)
 
-var overlayContentProviders []OverlayContentProvider
+var overlayContentProviderChain = slashreg.NewProviderChain[OverlayContentProvider]()
 
 // RegisterOverlayContentProvider registers an overlay content provider.
 // Providers are executed in registration order; the first one that returns handled=true wins.
@@ -81,7 +82,7 @@ func RegisterOverlayContentProvider(p OverlayContentProvider) {
 	if p == nil {
 		return
 	}
-	overlayContentProviders = append(overlayContentProviders, p)
+	overlayContentProviderChain.Add(p, func(x OverlayContentProvider) bool { return x == nil })
 }
 
 // OverlayCloseHook resets feature-specific model fields when an overlay is dismissed
@@ -104,12 +105,12 @@ func RegisterOverlayCloseHook(h OverlayCloseHook) {
 // the first that returns ok=true wins. If none return ok, ui uses the default "Local" segment.
 type TitleBarFragmentProvider func(m Model) (segment string, ok bool)
 
-var titleBarFragmentProviders []TitleBarFragmentProvider
+var titleBarFragmentProviderChain = slashreg.NewProviderChain[TitleBarFragmentProvider]()
 
 // RegisterTitleBarFragmentProvider registers a title-bar leading-segment provider.
 func RegisterTitleBarFragmentProvider(p TitleBarFragmentProvider) {
 	if p == nil {
 		return
 	}
-	titleBarFragmentProviders = append(titleBarFragmentProviders, p)
+	titleBarFragmentProviderChain.Add(p, func(x TitleBarFragmentProvider) bool { return x == nil })
 }
