@@ -15,7 +15,7 @@ func (m Model) handleMainScrollKey(key string, msg tea.KeyMsg, inputVal string) 
 	inSlash := strings.HasPrefix(inputVal, "/")
 	// scroll keys: Up/Down change selection in slash mode, else go to viewport with PgUp/PgDown
 	if inSlash && (key == "up" || key == "down") {
-		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.RemoteActive)
+		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.Context.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
 		vis := visibleSlashOptions(inputVal, opts)
 		if len(vis) > 0 {
 			if m.SlashSuggestIndex >= len(vis) {
@@ -40,7 +40,7 @@ func (m Model) captureSlashSelectionForEnter(inputVal string, text string) (Mode
 	if !strings.HasPrefix(inputVal, "/") {
 		return m, slashSelectedPath, slashSelectedIndex, false
 	}
-	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.RemoteActive)
+	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.Context.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
 	vis := visibleSlashOptions(inputVal, opts)
 	if len(vis) > 0 && m.SlashSuggestIndex < len(vis) {
 		chosen := opts[vis[m.SlashSuggestIndex]].Cmd
@@ -73,7 +73,7 @@ func (m *Model) syncSlashSuggestIndex() {
 		return
 	}
 	inputVal := m.Input.Value()
-	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.RemoteActive)
+	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.Context.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
 	vis := visibleSlashOptions(inputVal, opts)
 	// Session list (Path set): do not reset index on every keystroke so user can pick another session with Enter
 	if len(opts) == 0 || opts[0].Path == "" {

@@ -35,7 +35,7 @@ func (m Model) handleMainEnterCommand(text string, slashSelectedPath string, sla
 			return m, nil
 		}
 
-		opts := getSlashOptionsForInput(text, m.getLang(), m.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.RemoteActive)
+		opts := getSlashOptionsForInput(text, m.getLang(), m.Context.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
 		vis := visibleSlashOptions(text, opts)
 
 		var selectedOpt slashOption

@@ -10,13 +10,13 @@ func TestTitleBarLeadingSegment(t *testing.T) {
 		}
 	})
 	t.Run("remote without label", func(t *testing.T) {
-		m := Model{RemoteActive: true}
+		m := Model{Context: RuntimeContextState{RemoteActive: true}}
 		if got := m.titleBarLeadingSegment(); got != "Remote" {
 			t.Fatalf("got %q want Remote", got)
 		}
 	})
 	t.Run("remote with label", func(t *testing.T) {
-		m := Model{RemoteActive: true, RemoteLabel: "prod"}
+		m := Model{Context: RuntimeContextState{RemoteActive: true, RemoteLabel: "prod"}}
 		if got := m.titleBarLeadingSegment(); got != "Remote prod" {
 			t.Fatalf("got %q want Remote prod", got)
 		}

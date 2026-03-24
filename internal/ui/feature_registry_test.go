@@ -19,11 +19,11 @@ func init() {
 
 	// Mirror remote package title-bar segment (internal/ui tests do not import remote).
 	RegisterTitleBarFragmentProvider(func(m Model) (string, bool) {
-		if !m.RemoteActive {
+		if !m.Context.RemoteActive {
 			return "", false
 		}
-		if m.RemoteLabel != "" {
-			return "Remote " + m.RemoteLabel, true
+		if m.Context.RemoteLabel != "" {
+			return "Remote " + m.Context.RemoteLabel, true
 		}
 		return "Remote", true
 	})
@@ -141,7 +141,7 @@ func init() {
 		switch t := msg.(type) {
 		case SessionSwitchedMsg:
 			lang := m.getLang()
-			m.CurrentSessionPath = t.Path
+			m.Context.CurrentSessionPath = t.Path
 			sessionID := ""
 			if t.Path != "" {
 				sessionID = strings.TrimSuffix(filepath.Base(t.Path), ".jsonl")

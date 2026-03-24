@@ -53,7 +53,7 @@ func init() {
 		switch t := msg.(type) {
 		case ui.SessionSwitchedMsg:
 			lang := "en"
-			m.CurrentSessionPath = t.Path
+			m.Context.CurrentSessionPath = t.Path
 			sessionID := ""
 			if t.Path != "" {
 				sessionID = strings.TrimSuffix(filepath.Base(t.Path), ".jsonl")

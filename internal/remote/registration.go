@@ -87,11 +87,11 @@ func registerProviders() {
 	ui.RegisterSlashOptionsProvider(remoteSlashOptionsProvider)
 
 	ui.RegisterTitleBarFragmentProvider(func(m ui.Model) (string, bool) {
-		if !m.RemoteActive {
+		if !m.Context.RemoteActive {
 			return "", false
 		}
-		if m.RemoteLabel != "" {
-			return "Remote " + m.RemoteLabel, true
+		if m.Context.RemoteLabel != "" {
+			return "Remote " + m.Context.RemoteLabel, true
 		}
 		return "Remote", true
 	})

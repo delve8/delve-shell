@@ -11,7 +11,7 @@ func (m Model) handleSlashNavigationKey(key string, msg tea.KeyMsg, inputVal str
 		return m, nil, false
 	}
 	if key == "up" || key == "down" {
-		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.RemoteActive)
+		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.Context.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
 		vis := visibleSlashOptions(inputVal, opts)
 		if len(vis) > 0 {
 			if m.SlashSuggestIndex >= len(vis) {
@@ -40,7 +40,7 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 		return m2, cmd, true
 	}
 
-	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.RemoteActive)
+	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.Context.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
 	vis := visibleSlashOptions(inputVal, opts)
 	if len(vis) == 0 || m.SlashSuggestIndex >= len(vis) {
 		return m, nil, false

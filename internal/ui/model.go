@@ -22,9 +22,7 @@ type Model struct {
 	Pending                    *agent.ApprovalRequest
 	PendingSensitive           *agent.SensitiveConfirmationRequest
 	Ports                      UIPorts
-	CurrentSessionPath         string                    // path of current session (excluded from /sessions list so switch loads another)
-	RemoteActive               bool                      // whether commands run on a remote executor
-	RemoteLabel                string                    // label for remote in header, e.g. "dev (root@1.2.3.4)" or "user@host"
+	Context                    RuntimeContextState
 	// /run completion cache (best-effort).
 	RunCompletion RunCompletionState
 	Width             int
@@ -134,6 +132,13 @@ type UpdateSkillOverlayState struct {
 type PathCompletionState struct {
 	Candidates []string
 	Index      int
+}
+
+// RuntimeContextState stores session and remote execution context reflected in UI.
+type RuntimeContextState struct {
+	CurrentSessionPath string // path of current session (excluded from /sessions list so switch loads another)
+	RemoteActive       bool   // whether commands run on a remote executor
+	RemoteLabel        string // label for remote in header, e.g. "dev (root@1.2.3.4)" or "user@host"
 }
 
 // RunCompletionState stores local/remote completion caches for `/run`.
@@ -275,7 +280,9 @@ func NewModel(
 			RemoteAuthRespChan:         remoteAuthRespChan,
 			GetAllowlistAutoRun:        getAllowlistAutoRun,
 		},
-		CurrentSessionPath:         initialSessionPath,
+		Context: RuntimeContextState{
+			CurrentSessionPath: initialSessionPath,
+		},
 		InitialShowConfigLLM:       initialShowConfigLLM,
 		Width:                      defaultWidth,
 		Height:                     defaultHeight,

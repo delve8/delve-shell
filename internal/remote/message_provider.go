@@ -12,8 +12,8 @@ import (
 func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 	switch t := msg.(type) {
 	case ui.RemoteStatusMsg:
-		m.RemoteActive = t.Active
-		m.RemoteLabel = t.Label
+		m.Context.RemoteActive = t.Active
+		m.Context.RemoteLabel = t.Label
 		if t.Active {
 			// New remote active: clear any previous remote /run completion cache.
 			m.RunCompletion.RemoteLabel = t.Label
@@ -28,7 +28,7 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 	case ui.RunCompletionCacheMsg:
 		// Remote cache update (sent by CLI on successful /remote on).
 		// Ignore stale results from previous remotes.
-		if t.RemoteLabel == "" || t.RemoteLabel != m.RemoteLabel {
+		if t.RemoteLabel == "" || t.RemoteLabel != m.Context.RemoteLabel {
 			return m, nil, true
 		}
 		m.RunCompletion.RemoteLabel = t.RemoteLabel

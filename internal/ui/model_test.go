@@ -337,7 +337,7 @@ func TestSlashDropdown_Cancel_EnterFillsThenExecutes(t *testing.T) {
 	m.Input.CursorEnd()
 
 	// Move selection to the "/cancel" option.
-	opts := getSlashOptionsForInput(m.Input.Value(), m.getLang(), m.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.RemoteActive)
+	opts := getSlashOptionsForInput(m.Input.Value(), m.getLang(), m.Context.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
 	vis := visibleSlashOptions(m.Input.Value(), opts)
 	for i, idx := range vis {
 		if opts[idx].Cmd == "/cancel" {
@@ -382,8 +382,8 @@ func TestSessionSwitchedMsg_setsCurrentPathAndShowsSwitchedAtBottom(t *testing.T
 	// Path empty: switched hint then blank line, CurrentSessionPath ""
 	next, _ := m.Update(SessionSwitchedMsg{Path: ""})
 	m2 := next.(Model)
-	if m2.CurrentSessionPath != "" {
-		t.Errorf("CurrentSessionPath should be empty when Path is empty, got %q", m2.CurrentSessionPath)
+	if m2.Context.CurrentSessionPath != "" {
+		t.Errorf("CurrentSessionPath should be empty when Path is empty, got %q", m2.Context.CurrentSessionPath)
 	}
 	if len(m2.Messages) < 1 {
 		t.Errorf("expected at least 1 message when Path empty, got %d", len(m2.Messages))
@@ -395,7 +395,7 @@ func TestSessionSwitchedMsg_setsCurrentPathAndShowsSwitchedAtBottom(t *testing.T
 	// Path set but file does not exist: ReadRecent returns nil; switched line then blank
 	next2, _ := m2.Update(SessionSwitchedMsg{Path: filepath.Join(t.TempDir(), "nonexistent.jsonl")})
 	m3 := next2.(Model)
-	if m3.CurrentSessionPath == "" {
+	if m3.Context.CurrentSessionPath == "" {
 		t.Error("CurrentSessionPath should be set when Path is non-empty")
 	}
 	if len(m3.Messages) < 1 {
