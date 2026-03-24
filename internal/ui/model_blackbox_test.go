@@ -15,29 +15,27 @@ import (
 )
 
 type blackboxFixture struct {
-	model           ui.Model
-	submitChan      chan string
-	execDirectChan  chan string
-	shellRequested  chan []string
-	cancelRequest   chan struct{}
-	configUpdated   chan struct{}
-	allowlistChange chan bool
-	remoteOn        chan string
-	remoteOff       chan struct{}
-	remoteAuthResp  chan ui.RemoteAuthResponse
+	model          ui.Model
+	submitChan     chan string
+	execDirectChan chan string
+	shellRequested chan []string
+	cancelRequest  chan struct{}
+	configUpdated  chan struct{}
+	remoteOn       chan string
+	remoteOff      chan struct{}
+	remoteAuthResp chan ui.RemoteAuthResponse
 }
 
 func newBlackboxFixture() blackboxFixture {
 	f := blackboxFixture{
-		submitChan:      make(chan string, 2),
-		execDirectChan:  make(chan string, 2),
-		shellRequested:  make(chan []string, 2),
-		cancelRequest:   make(chan struct{}, 2),
-		configUpdated:   make(chan struct{}, 2),
-		allowlistChange: make(chan bool, 2),
-		remoteOn:        make(chan string, 2),
-		remoteOff:       make(chan struct{}, 2),
-		remoteAuthResp:  make(chan ui.RemoteAuthResponse, 2),
+		submitChan:     make(chan string, 2),
+		execDirectChan: make(chan string, 2),
+		shellRequested: make(chan []string, 2),
+		cancelRequest:  make(chan struct{}, 2),
+		configUpdated:  make(chan struct{}, 2),
+		remoteOn:       make(chan string, 2),
+		remoteOff:      make(chan struct{}, 2),
+		remoteAuthResp: make(chan ui.RemoteAuthResponse, 2),
 	}
 	f.model = ui.NewModel(
 		f.submitChan,
@@ -45,7 +43,6 @@ func newBlackboxFixture() blackboxFixture {
 		f.shellRequested,
 		f.cancelRequest,
 		f.configUpdated,
-		f.allowlistChange,
 		f.remoteOn,
 		f.remoteOff,
 		f.remoteAuthResp,
@@ -268,7 +265,7 @@ func TestBlackboxSlashSessionsPrefixSubmitsCommand(t *testing.T) {
 
 func TestBlackboxStartupOverlayProviderOpensConfigLLM(t *testing.T) {
 	m := ui.NewModel(
-		nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		nil, nil, nil, nil, nil, nil, nil, nil,
 		func() bool { return true },
 		nil,
 		true, // InitialShowConfigLLM

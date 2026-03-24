@@ -99,16 +99,15 @@ type OverlayState struct {
 
 // UIPorts are side-effect channels/getters injected by CLI host loop.
 type UIPorts struct {
-	SubmitChan                 chan<- string
-	ExecDirectChan             chan<- string
-	ShellRequestedChan         chan<- []string           // on /sh send current Messages to preserve after return
-	CancelRequestChan          chan<- struct{}           // on /cancel request cancel of in-flight AI
-	ConfigUpdatedChan          chan<- struct{}           // on /config save or /config reload, invalidate runner so next message reloads config/allowlist
-	AllowlistAutoRunChangeChan chan<- bool               // runtime toggle for allowlist auto-run (true = list only, false = none)
-	RemoteOnChan               chan<- string             // on /remote on <target>, send resolved target/name to CLI
-	RemoteOffChan              chan<- struct{}           // on /remote off, switch back to local
-	RemoteAuthRespChan         chan<- RemoteAuthResponse // on remote password entry, send credentials back to CLI
-	GetAllowlistAutoRun        func() bool               // for header and Pending card 2 vs 3 options
+	SubmitChan          chan<- string
+	ExecDirectChan      chan<- string
+	ShellRequestedChan  chan<- []string           // on /sh send current Messages to preserve after return
+	CancelRequestChan   chan<- struct{}           // on /cancel request cancel of in-flight AI
+	ConfigUpdatedChan   chan<- struct{}           // on /config save or /config reload, invalidate runner so next message reloads config/allowlist
+	RemoteOnChan        chan<- string             // on /remote on <target>, send resolved target/name to CLI
+	RemoteOffChan       chan<- struct{}           // on /remote off, switch back to local
+	RemoteAuthRespChan  chan<- RemoteAuthResponse // on remote password entry, send credentials back to CLI
+	GetAllowlistAutoRun func() bool               // for header and Pending card 2 vs 3 options
 }
 
 // Init implements tea.Model.
@@ -184,7 +183,6 @@ func NewModel(
 	shellRequestedChan chan<- []string,
 	cancelRequestChan chan<- struct{},
 	configUpdatedChan chan<- struct{},
-	allowlistAutoRunChangeChan chan<- bool,
 	remoteOnChan chan<- string,
 	remoteOffChan chan<- struct{},
 	remoteAuthRespChan chan<- RemoteAuthResponse,
@@ -213,16 +211,15 @@ func NewModel(
 		Viewport: vp,
 		Messages: msgs,
 		Ports: UIPorts{
-			SubmitChan:                 submitChan,
-			ExecDirectChan:             execDirectChan,
-			ShellRequestedChan:         shellRequestedChan,
-			CancelRequestChan:          cancelRequestChan,
-			ConfigUpdatedChan:          configUpdatedChan,
-			AllowlistAutoRunChangeChan: allowlistAutoRunChangeChan,
-			RemoteOnChan:               remoteOnChan,
-			RemoteOffChan:              remoteOffChan,
-			RemoteAuthRespChan:         remoteAuthRespChan,
-			GetAllowlistAutoRun:        getAllowlistAutoRun,
+			SubmitChan:          submitChan,
+			ExecDirectChan:      execDirectChan,
+			ShellRequestedChan:  shellRequestedChan,
+			CancelRequestChan:   cancelRequestChan,
+			ConfigUpdatedChan:   configUpdatedChan,
+			RemoteOnChan:        remoteOnChan,
+			RemoteOffChan:       remoteOffChan,
+			RemoteAuthRespChan:  remoteAuthRespChan,
+			GetAllowlistAutoRun: getAllowlistAutoRun,
 		},
 		Context: RuntimeContextState{},
 		Startup: StartupState{

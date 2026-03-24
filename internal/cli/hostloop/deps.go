@@ -25,14 +25,13 @@ type Deps struct {
 	// GetExecutor returns the current executor (local or remote).
 	GetExecutor func() execenv.CommandExecutor
 	CurrentP    *atomic.Pointer[tea.Program]
-	// CurrentAllowlistAutoRun is updated by config reload and runtime toggle.
+	// CurrentAllowlistAutoRun is updated by config reload.
 	CurrentAllowlistAutoRun *atomic.Bool
 
-	UIEvents                   <-chan any
-	ConfigUpdatedChan          <-chan struct{}
-	AllowlistAutoRunChangeChan <-chan bool
-	ExecDirectChan             <-chan string
-	RemoteOnChan               <-chan string
-	RemoteOffChan              <-chan struct{}
-	RemoteAuthRespChan         <-chan ui.RemoteAuthResponse
+	UIEvents           <-chan any
+	ConfigUpdatedChan  <-chan struct{}
+	ExecDirectChan     <-chan string
+	RemoteOnChan       <-chan string
+	RemoteOffChan      <-chan struct{}
+	RemoteAuthRespChan <-chan ui.RemoteAuthResponse
 }

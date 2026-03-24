@@ -60,7 +60,6 @@ func Run(cmd *cobra.Command, args []string) error {
 
 	uiEvents := make(chan any, 16)
 	configUpdatedChan := make(chan struct{}, 1)
-	allowlistAutoRunChangeChan := make(chan bool, 1)
 
 	var currentAllowlistAutoRun atomic.Bool
 	currentAllowlistAutoRun.Store(true)
@@ -110,22 +109,21 @@ func Run(cmd *cobra.Command, args []string) error {
 	}
 
 	deps := &hostloop.Deps{
-		Stop:                       stop,
-		Send:                       sendToUI,
-		Sessions:                   sessions,
-		Runners:                    runners,
-		Executors:                  executors,
-		SyncSessionPath:            syncSessionPath,
-		GetExecutor:                getExecutor,
-		CurrentP:                   &currentP,
-		CurrentAllowlistAutoRun:    &currentAllowlistAutoRun,
-		UIEvents:                   uiEvents,
-		ConfigUpdatedChan:          configUpdatedChan,
-		AllowlistAutoRunChangeChan: allowlistAutoRunChangeChan,
-		ExecDirectChan:             execDirectChan,
-		RemoteOnChan:               remoteOnChan,
-		RemoteOffChan:              remoteOffChan,
-		RemoteAuthRespChan:         remoteAuthRespChan,
+		Stop:                    stop,
+		Send:                    sendToUI,
+		Sessions:                sessions,
+		Runners:                 runners,
+		Executors:               executors,
+		SyncSessionPath:         syncSessionPath,
+		GetExecutor:             getExecutor,
+		CurrentP:                &currentP,
+		CurrentAllowlistAutoRun: &currentAllowlistAutoRun,
+		UIEvents:                uiEvents,
+		ConfigUpdatedChan:       configUpdatedChan,
+		ExecDirectChan:          execDirectChan,
+		RemoteOnChan:            remoteOnChan,
+		RemoteOffChan:           remoteOffChan,
+		RemoteAuthRespChan:      remoteAuthRespChan,
 	}
 
 	fsm := hostfsm.NewMachine(hostfsm.StateIdle)
@@ -137,7 +135,7 @@ func Run(cmd *cobra.Command, args []string) error {
 		if s := sessions.Current(); s != nil {
 			syncSessionPath(s.Path())
 		}
-		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, allowlistAutoRunChangeChan, remoteOnChan, remoteOffChan, remoteAuthRespChan, getAllowlistAutoRun, savedMessages, initialShowConfigLLM)
+		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, remoteOnChan, remoteOffChan, remoteAuthRespChan, getAllowlistAutoRun, savedMessages, initialShowConfigLLM)
 		model.Context.ConfigPath = config.ConfigPath()
 		initialShowConfigLLM = false
 		p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithReportFocus())

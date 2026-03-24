@@ -21,10 +21,6 @@ func RunHostMultiplex(stop <-chan struct{}, d *Deps) {
 			d.Runners.SetAllowlistAutoRun(d.CurrentAllowlistAutoRun.Load())
 			d.Send(ui.ConfigReloadedMsg{})
 
-		case newAutoRun := <-d.AllowlistAutoRunChangeChan:
-			d.CurrentAllowlistAutoRun.Store(newAutoRun)
-			d.Runners.SetAllowlistAutoRun(newAutoRun)
-
 		case x := <-d.UIEvents:
 			dispatchAgentUI(d, x)
 
