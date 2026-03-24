@@ -537,46 +537,17 @@ func (m Model) renderOverlay(base string) string {
 		boxH = h - 4
 	}
 
-	// Build box content.
+	// Build box content: feature packages register overlay body builders.
 	var content string
-	if m.ConfigLLMActive {
-		lang := m.getLang()
-		var b strings.Builder
-		if m.ConfigLLMChecking {
-			b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeyConfigLLMChecking)) + "\n\n")
-		} else if m.ConfigLLMError != "" {
-			b.WriteString(errStyle.Render(m.ConfigLLMError) + "\n\n")
+	for _, p := range overlayContentProviders {
+		if c, handled := p(m); handled {
+			content = c
+			break
 		}
-		b.WriteString(i18n.T(lang, i18n.KeyConfigLLMBaseURLLabel) + "\n")
-		b.WriteString(m.ConfigLLMBaseURLInput.View())
-		b.WriteString("\n\n")
-		b.WriteString(i18n.T(lang, i18n.KeyConfigLLMApiKeyLabel) + "\n")
-		b.WriteString(m.ConfigLLMApiKeyInput.View())
-		b.WriteString("\n\n")
-		b.WriteString(i18n.T(lang, i18n.KeyConfigLLMModelLabel) + "\n")
-		b.WriteString(m.ConfigLLMModelInput.View())
-		b.WriteString("\n\n")
-		b.WriteString(i18n.T(lang, i18n.KeyConfigLLMMaxMessagesLabel) + "\n")
-		b.WriteString(m.ConfigLLMMaxMessagesInput.View())
-		b.WriteString("\n\n")
-		b.WriteString(i18n.T(lang, i18n.KeyConfigLLMMaxCharsLabel) + "\n")
-		b.WriteString(m.ConfigLLMMaxCharsInput.View())
-		b.WriteString("\n\n")
-		b.WriteString(i18n.T(lang, i18n.KeyConfigLLMHint))
-		content = b.String()
-	} else {
-		for _, p := range overlayContentProviders {
-			if c, handled := p(m); handled {
-				content = c
-				break
-			}
-		}
-		if content != "" {
-			// content is provided by registered feature package.
-		} else {
-			// Generic overlay: scrollable viewport.
-			content = m.OverlayViewport.View()
-		}
+	}
+	if content == "" {
+		// Generic overlay: scrollable viewport (e.g. /help).
+		content = m.OverlayViewport.View()
 	}
 
 	// Border styles.

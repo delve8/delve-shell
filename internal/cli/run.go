@@ -14,6 +14,7 @@ import (
 	"delve-shell/internal/cli/hostfsm"
 	"delve-shell/internal/cli/hostloop"
 	"delve-shell/internal/config"
+	_ "delve-shell/internal/configllm"
 	"delve-shell/internal/execenv"
 	"delve-shell/internal/history"
 	_ "delve-shell/internal/remote"
