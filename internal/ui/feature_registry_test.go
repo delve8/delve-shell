@@ -136,6 +136,13 @@ func init() {
 			return mm, nil, true
 		},
 	})
+	registerSlashPrefix("/config auto-run ", SlashPrefixDispatchEntry{
+		Prefix: "/config auto-run ",
+		Handle: func(mm Model, rest string) (Model, tea.Cmd, bool) {
+			mm = mm.applyConfigAllowlistAutoRun(strings.TrimSpace(rest))
+			return mm, nil, true
+		},
+	})
 
 	RegisterMessageProvider(func(m Model, msg tea.Msg) (Model, tea.Cmd, bool) {
 		switch t := msg.(type) {
