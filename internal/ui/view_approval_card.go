@@ -10,10 +10,7 @@ import (
 // Returns true if the viewport body is complete (caller should return b.String()).
 func (m Model) appendApprovalViewportContent(b *strings.Builder) bool {
 	lang := m.getLang()
-	w := m.Layout.Width
-	if w <= 0 {
-		w = 80
-	}
+	w := m.contentWidth()
 
 	if m.Approval.PendingSensitive != nil {
 		b.WriteString("\n")

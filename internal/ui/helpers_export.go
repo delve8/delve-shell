@@ -14,3 +14,20 @@ func (m Model) RefreshViewport() Model {
 	m.Viewport.GotoBottom()
 	return m
 }
+
+// OpenOverlay opens a generic overlay and sets title/content.
+func (m Model) OpenOverlay(title, content string) Model {
+	m.Overlay.Active = true
+	m.Overlay.Title = title
+	m.Overlay.Content = content
+	return m
+}
+
+// CloseOverlayVisual closes overlay chrome only.
+// Feature-specific flags are still owned by each feature package.
+func (m Model) CloseOverlayVisual() Model {
+	m.Overlay.Active = false
+	m.Overlay.Title = ""
+	m.Overlay.Content = ""
+	return m
+}

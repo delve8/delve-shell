@@ -123,8 +123,7 @@ func init() {
 				return mm, nil, true
 			}
 			skillName := fields[0]
-			mm.Overlay.Active = true
-			mm.Overlay.Title = "Update skill"
+			mm = mm.OpenOverlay("Update skill", "")
 			mm.UpdateSkill.Active = true
 			mm.UpdateSkill.Name = skillName
 			mm.UpdateSkill.Error = ""

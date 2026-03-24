@@ -8,8 +8,7 @@ import (
 )
 
 func openAddRemoteOverlay(m ui.Model, save, connect bool) ui.Model {
-	m.Overlay.Active = true
-	m.Overlay.Title = i18n.T("en", i18n.KeyAddRemoteTitle)
+	m = m.OpenOverlay(i18n.T("en", i18n.KeyAddRemoteTitle), "")
 	m.AddRemote.Active = true
 	m.AddRemote.Error = ""
 	m.AddRemote.OfferOverwrite = false

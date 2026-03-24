@@ -16,8 +16,7 @@ func (m Model) handleConfigReloadedMsg() (Model, tea.Cmd) {
 	lang := m.getLang()
 	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyConfigReloaded))))
 	m.Messages = append(m.Messages, "")
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
+	m = m.RefreshViewport()
 	return m, nil
 }
 
@@ -35,32 +34,21 @@ func (m Model) handleAgentReplyMsg(msg AgentReplyMsg) (Model, tea.Cmd) {
 		m.Messages = append(m.Messages, "")
 	} else if msg.Reply != "" {
 		aiLine := i18n.T(lang, i18n.KeyAILabel) + msg.Reply
-		w := m.Layout.Width
-		if w <= 0 {
-			w = 80
-		}
+		w := m.contentWidth()
 		m.Messages = append(m.Messages, wrapString(aiLine, w))
-		sepW := m.Layout.Width
-		if sepW <= 0 {
-			sepW = 80
-		}
+		sepW := m.contentWidth()
 		m.Messages = append(m.Messages, separatorStyle.Render(strings.Repeat("─", sepW)))
 	}
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
+	m = m.RefreshViewport()
 	return m, nil
 }
 
 func (m Model) handleSystemNotifyMsg(msg SystemNotifyMsg) (Model, tea.Cmd) {
 	if msg.Text != "" {
-		w := m.Layout.Width
-		if w <= 0 {
-			w = 80
-		}
+		w := m.contentWidth()
 		m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(wrapString(msg.Text, w))))
 		m.Messages = append(m.Messages, "")
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
+		m = m.RefreshViewport()
 	}
 	return m, nil
 }
@@ -76,10 +64,7 @@ func (m Model) handleCommandExecutedMsg(msg CommandExecutedMsg) (Model, tea.Cmd)
 		tag = i18n.T(lang, i18n.KeyRunTagApproved)
 	}
 	runLine := i18n.T(lang, i18n.KeyRunLabel) + msg.Command + " (" + tag + ")"
-	w := m.Layout.Width
-	if w <= 0 {
-		w = 80
-	}
+	w := m.contentWidth()
 	m.Messages = append(m.Messages, execStyle.Render(wrapString(runLine, w)))
 	if msg.Sensitive {
 		m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(lang, i18n.KeyResultSensitive)))
@@ -88,8 +73,7 @@ func (m Model) handleCommandExecutedMsg(msg CommandExecutedMsg) (Model, tea.Cmd)
 		m.Messages = append(m.Messages, resultStyle.Render(wrapString(msg.Result, w)))
 	}
 	m.Messages = append(m.Messages, "") // blank line after command output
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
+	m = m.RefreshViewport()
 	return m, nil
 }
 
@@ -108,12 +92,9 @@ func (m Model) handleConfigLLMCheckDoneMsg(msg ConfigLLMCheckDoneMsg) (Model, te
 	}
 	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyConfigLLMCheckOK))))
 	m.Messages = append(m.Messages, "")
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
-	m.Overlay.Active = false
+	m = m.RefreshViewport()
+	m = m.CloseOverlayVisual()
 	m.ConfigLLM.Active = false
-	m.Overlay.Title = ""
-	m.Overlay.Content = ""
 	if m.Ports.ConfigUpdatedChan != nil {
 		select {
 		case m.Ports.ConfigUpdatedChan <- struct{}{}:
@@ -129,8 +110,7 @@ func (m Model) handleApprovalRequestMsg(msg ApprovalRequestMsg) (Model, tea.Cmd)
 	m.Approval.Pending = msg
 	m.Interaction.ChoiceIndex = 0
 	m.syncInputPlaceholder()
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
+	m = m.RefreshViewport()
 	return m, nil
 }
 
@@ -139,7 +119,6 @@ func (m Model) handleSensitiveConfirmationRequestMsg(msg SensitiveConfirmationRe
 	m.Approval.PendingSensitive = msg
 	m.Interaction.ChoiceIndex = 0
 	m.syncInputPlaceholder()
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
+	m = m.RefreshViewport()
 	return m, nil
 }

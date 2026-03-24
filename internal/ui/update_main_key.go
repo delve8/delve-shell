@@ -95,17 +95,13 @@ func (m Model) handleNewSessionCommandIfNeeded(text string) (Model, bool) {
 	m.Input.SetValue("")
 	m.Input.CursorEnd()
 	m.Interaction.SlashSuggestIndex = 0
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
+	m = m.RefreshViewport()
 	return m, true
 }
 
 func (m Model) appendUserInputLine(text string) Model {
 	userLine := i18n.T(m.getLang(), i18n.KeyUserLabel) + text
-	w := m.Layout.Width
-	if w <= 0 {
-		w = 80
-	}
+	w := m.contentWidth()
 	sepW := w
 	sepLine := separatorStyle.Render(strings.Repeat("─", sepW))
 	if len(m.Messages) > 0 && m.Messages[len(m.Messages)-1] != sepLine {
@@ -113,8 +109,7 @@ func (m Model) appendUserInputLine(text string) Model {
 	}
 	m.Messages = append(m.Messages, wrapString(userLine, w))
 	m.Messages = append(m.Messages, "") // blank line before command or AI reply
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
+	m = m.RefreshViewport()
 	m.Input.SetValue("")
 	m.Input.CursorEnd()
 	m.Interaction.SlashSuggestIndex = 0

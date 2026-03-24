@@ -12,7 +12,7 @@ import (
 func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 	// Choice / approval handling should take precedence over any other key paths,
 	// so tests and runtime behavior are stable even if other UI layers evolve.
-	inChoice := m.Approval.Pending != nil || m.Approval.PendingSensitive != nil
+	inChoice := m.hasPendingApproval()
 	if inChoice {
 		n := choiceCount(m)
 		if n > 0 {
@@ -88,10 +88,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 			if riskLabel != "" {
 				commandLine = "[" + riskLabel + "] " + commandLine
 			}
-			cmdW := m.Layout.Width
-			if cmdW <= 0 {
-				cmdW = 80
-			}
+			cmdW := m.contentWidth()
 			m.Messages = append(m.Messages, approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)))
 			if sn := strings.TrimSpace(m.Approval.Pending.SkillName); sn != "" {
 				m.Messages = append(m.Messages, suggestStyle.Render(wrapString(i18n.Tf(lang, i18n.KeySkillLine, sn), cmdW)))
@@ -128,10 +125,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 			if riskLabel != "" {
 				commandLine = "[" + riskLabel + "] " + commandLine
 			}
-			cmdW := m.Layout.Width
-			if cmdW <= 0 {
-				cmdW = 80
-			}
+			cmdW := m.contentWidth()
 			m.Messages = append(m.Messages, approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)))
 			if sn := strings.TrimSpace(m.Approval.Pending.SkillName); sn != "" {
 				m.Messages = append(m.Messages, suggestStyle.Render(wrapString(i18n.Tf(lang, i18n.KeySkillLine, sn), cmdW)))
@@ -178,10 +172,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 			if riskLabel != "" {
 				commandLine = "[" + riskLabel + "] " + commandLine
 			}
-			cmdW := m.Layout.Width
-			if cmdW <= 0 {
-				cmdW = 80
-			}
+			cmdW := m.contentWidth()
 			m.Messages = append(m.Messages, approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)))
 			if sn := strings.TrimSpace(m.Approval.Pending.SkillName); sn != "" {
 				m.Messages = append(m.Messages, suggestStyle.Render(wrapString(i18n.Tf(lang, i18n.KeySkillLine, sn), cmdW)))

@@ -6,9 +6,7 @@ import (
 )
 
 func (m Model) closeOverlayCommon(refocusInput bool) (Model, tea.Cmd) {
-	m.Overlay.Active = false
-	m.Overlay.Title = ""
-	m.Overlay.Content = ""
+	m = m.CloseOverlayVisual()
 	for _, h := range overlayCloseHooks {
 		m = h(m)
 	}
@@ -20,9 +18,7 @@ func (m Model) closeOverlayCommon(refocusInput bool) (Model, tea.Cmd) {
 }
 
 func (m Model) handleOverlayShowMsg(msg OverlayShowMsg) (Model, tea.Cmd) {
-	m.Overlay.Active = true
-	m.Overlay.Title = msg.Title
-	m.Overlay.Content = msg.Content
+	m = m.OpenOverlay(msg.Title, msg.Content)
 	m.Overlay.Viewport = viewport.New(m.Layout.Width-4, min(m.Layout.Height-6, 20))
 	m.Overlay.Viewport.SetContent(m.Overlay.Content)
 	return m, nil

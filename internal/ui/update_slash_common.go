@@ -17,9 +17,7 @@ func init() {
 }
 
 func (m Model) openHelpOverlay() Model {
-	m.Overlay.Active = true
-	m.Overlay.Title = i18n.T(m.getLang(), i18n.KeyHelpTitle)
-	m.Overlay.Content = i18n.T(m.getLang(), i18n.KeyHelpText)
+	m = m.OpenOverlay(i18n.T(m.getLang(), i18n.KeyHelpTitle), i18n.T(m.getLang(), i18n.KeyHelpText))
 	m.Overlay.Viewport = viewport.New(m.Layout.Width-4, min(m.Layout.Height-6, 20))
 	m.Overlay.Viewport.SetContent(m.Overlay.Content)
 	return m

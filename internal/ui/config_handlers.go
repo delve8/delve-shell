@@ -35,8 +35,7 @@ func (m Model) applyAllowlistAutoRunSwitch(value string) Model {
 	}
 	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyAllowlistAutoRunSetTo, display))))
 	m.Messages = append(m.Messages, "")
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
+	m = m.RefreshViewport()
 	return m
 }
 
@@ -83,8 +82,7 @@ func (m Model) applyConfigAllowlistAutoRun(value string) Model {
 	}
 	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyConfigSavedAllowlistAutoRun, display))))
 	m.Messages = append(m.Messages, "")
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
+	m = m.RefreshViewport()
 	if m.Ports.ConfigUpdatedChan != nil {
 		select {
 		case m.Ports.ConfigUpdatedChan <- struct{}{}:
@@ -106,8 +104,7 @@ func (m Model) applyConfigAllowlistUpdate() Model {
 	}
 	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyAllowlistUpdateDone, added))))
 	m.Messages = append(m.Messages, "")
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
+	m = m.RefreshViewport()
 	if m.Ports.ConfigUpdatedChan != nil {
 		select {
 		case m.Ports.ConfigUpdatedChan <- struct{}{}:

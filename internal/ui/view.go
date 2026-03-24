@@ -16,7 +16,7 @@ func (m Model) View() string {
 	sepLine := separatorStyle.Render(strings.Repeat("─", sepW))
 	header := m.titleLine() + "\n" + sepLine + "\n"
 
-	inChoice := m.Approval.Pending != nil || m.Approval.PendingSensitive != nil
+	inChoice := m.hasPendingApproval()
 	if m.Layout.Height <= 4 {
 		out := header + m.buildContent() + "\n" + m.Input.View()
 		out += m.waitingLineBelowInput(lang)
@@ -51,10 +51,7 @@ func (m Model) View() string {
 func (m *Model) appendSuggestedLine(command, lang string) {
 	tag := i18n.T(lang, i18n.KeyRunTagSuggested)
 	line := i18n.T(lang, i18n.KeyRunLabel) + command + " (" + tag + ")"
-	w := m.Layout.Width
-	if w <= 0 {
-		w = 80
-	}
+	w := m.contentWidth()
 	m.Messages = append(m.Messages, execStyle.Render(wrapString(line, w)))
 	m.Messages = append(m.Messages, hintStyle.Render(i18n.T(lang, i18n.KeySuggestedCopyHint)))
 }

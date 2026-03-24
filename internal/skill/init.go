@@ -150,8 +150,7 @@ func init() {
 
 func openAddSkillOverlay(m ui.Model, url, ref, path string) ui.Model {
 	lang := "en" // ui.getLang() currently always returns "en"
-	m.Overlay.Active = true
-	m.Overlay.Title = i18n.T(lang, i18n.KeyAddSkillTitle)
+	m = m.OpenOverlay(i18n.T(lang, i18n.KeyAddSkillTitle), "")
 	m.AddSkill.Active = true
 	m.AddSkill.Error = ""
 	m.AddSkill.FieldIndex = 0

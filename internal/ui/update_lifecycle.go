@@ -17,8 +17,7 @@ func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 		m.Viewport.Width = m.Layout.Width
 		m.Viewport.Height = vh
 	}
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
+	m = m.RefreshViewport()
 	if m.Startup.InitialShowConfigLLM {
 		m.Startup.InitialShowConfigLLM = false
 		if m2, cmd, handled := m.dispatchSlashExact("/config llm"); handled {
