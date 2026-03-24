@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/cloudwego/eino/schema"
@@ -37,7 +38,28 @@ func handleSubmit(fsmCtx *hostfsm.Context, d *Deps, cancelRequestChan <-chan str
 			return
 		}
 		d.Runners.Invalidate()
-		d.Send(ui.SessionSwitchedMsg{Path: newSession.Path()})
+		if d.SyncSessionPath != nil {
+			d.SyncSessionPath(newSession.Path())
+		}
+		d.Send(ui.SessionSwitchedMsg{})
+		return
+	}
+	if strings.HasPrefix(userMsg, "/sessions ") {
+		id := strings.TrimSpace(strings.TrimPrefix(userMsg, "/sessions "))
+		if id == "" {
+			return
+		}
+		sessionPath := filepath.Join(config.HistoryDir(), id+".jsonl")
+		_, err := d.Sessions.SwitchTo(sessionPath)
+		if err != nil {
+			d.Send(ui.AgentReplyMsg{Err: err})
+			return
+		}
+		d.Runners.Invalidate()
+		if d.SyncSessionPath != nil {
+			d.SyncSessionPath(sessionPath)
+		}
+		d.Send(ui.SessionSwitchedMsg{})
 		return
 	}
 	if s := d.Sessions.Current(); s != nil {

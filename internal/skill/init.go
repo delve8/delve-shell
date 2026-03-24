@@ -83,7 +83,6 @@ func init() {
 	ui.RegisterSlashOptionsProvider(func(
 		inputVal string,
 		lang string,
-		_ string,
 		_ []string,
 		_ []string,
 		_ bool,
@@ -196,7 +195,7 @@ func openAddSkillOverlay(m ui.Model, url, ref, path string) ui.Model {
 func getDelSkillSlashOptions(lang string, filter string) []ui.SlashOption {
 	list, err := skills.List()
 	if err != nil || len(list) == 0 {
-		return []ui.SlashOption{{Cmd: "/config del-skill", Desc: i18n.T(lang, i18n.KeySkillNone), Path: ""}}
+		return []ui.SlashOption{{Cmd: "/config del-skill", Desc: i18n.T(lang, i18n.KeySkillNone)}}
 	}
 	filterLower := strings.ToLower(filter)
 	var opts []ui.SlashOption
@@ -212,10 +211,10 @@ func getDelSkillSlashOptions(lang string, filter string) []ui.SlashOption {
 		if cmdName == "" {
 			cmdName = s.Name
 		}
-		opts = append(opts, ui.SlashOption{Cmd: "/config del-skill " + cmdName, Desc: desc, Path: ""})
+		opts = append(opts, ui.SlashOption{Cmd: "/config del-skill " + cmdName, Desc: desc})
 	}
 	if len(opts) == 0 {
-		return []ui.SlashOption{{Cmd: "/config del-skill", Desc: i18n.T(lang, i18n.KeySkillNone), Path: ""}}
+		return []ui.SlashOption{{Cmd: "/config del-skill", Desc: i18n.T(lang, i18n.KeySkillNone)}}
 	}
 	return opts
 }
@@ -223,7 +222,7 @@ func getDelSkillSlashOptions(lang string, filter string) []ui.SlashOption {
 func getUpdateSkillSlashOptions(lang string, filter string) []ui.SlashOption {
 	sources, err := skills.ListSources()
 	if err != nil || len(sources) == 0 {
-		return []ui.SlashOption{{Cmd: "/config update-skill", Desc: i18n.T(lang, i18n.KeySkillNone), Path: ""}}
+		return []ui.SlashOption{{Cmd: "/config update-skill", Desc: i18n.T(lang, i18n.KeySkillNone)}}
 	}
 
 	filterLower := strings.ToLower(filter)
@@ -273,11 +272,10 @@ func getUpdateSkillSlashOptions(lang string, filter string) []ui.SlashOption {
 		opts = append(opts, ui.SlashOption{
 			Cmd:  "/config update-skill " + name,
 			Desc: desc,
-			Path: "",
 		})
 	}
 	if len(opts) == 0 {
-		return []ui.SlashOption{{Cmd: "/config update-skill", Desc: i18n.T(lang, i18n.KeySkillNone), Path: ""}}
+		return []ui.SlashOption{{Cmd: "/config update-skill", Desc: i18n.T(lang, i18n.KeySkillNone)}}
 	}
 	return opts
 }
@@ -287,7 +285,7 @@ func getSkillSlashOptions(lang string, filter string) []ui.SlashOption {
 	parts := strings.Fields(filter)
 	if len(parts) == 0 {
 		if len(list) == 0 {
-			return []ui.SlashOption{{Cmd: i18n.T(lang, i18n.KeySkillNone), Desc: "", Path: ""}}
+			return []ui.SlashOption{{Cmd: i18n.T(lang, i18n.KeySkillNone), Desc: ""}}
 		}
 		opts := make([]ui.SlashOption, 0, len(list))
 		for _, s := range list {
@@ -295,7 +293,7 @@ func getSkillSlashOptions(lang string, filter string) []ui.SlashOption {
 			if cmdName == "" {
 				cmdName = s.Name
 			}
-			opts = append(opts, ui.SlashOption{Cmd: "/skill " + cmdName, Desc: s.Description, Path: ""})
+			opts = append(opts, ui.SlashOption{Cmd: "/skill " + cmdName, Desc: s.Description})
 		}
 		return opts
 	}
@@ -312,14 +310,14 @@ func getSkillSlashOptions(lang string, filter string) []ui.SlashOption {
 				if cmdName == "" {
 					cmdName = s.Name
 				}
-				opts = append(opts, ui.SlashOption{Cmd: "/skill " + cmdName, Desc: s.Description, Path: ""})
+				opts = append(opts, ui.SlashOption{Cmd: "/skill " + cmdName, Desc: s.Description})
 			}
 		}
 		if len(opts) == 0 && len(list) > 0 {
 			return opts
 		}
 		if len(opts) == 0 {
-			return []ui.SlashOption{{Cmd: i18n.T(lang, i18n.KeySkillNone), Desc: "", Path: ""}}
+			return []ui.SlashOption{{Cmd: i18n.T(lang, i18n.KeySkillNone), Desc: ""}}
 		}
 		return opts
 	}

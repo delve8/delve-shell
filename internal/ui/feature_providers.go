@@ -8,7 +8,6 @@ import "delve-shell/internal/slashreg"
 type SlashOptionsProvider func(
 	inputVal string,
 	lang string,
-	currentSessionPath string,
 	localRunCommands []string,
 	remoteRunCommands []string,
 	remoteActive bool,

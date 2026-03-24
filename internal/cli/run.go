@@ -23,7 +23,7 @@ import (
 	"delve-shell/internal/runtime/executormgr"
 	"delve-shell/internal/runtime/runnermgr"
 	"delve-shell/internal/runtime/sessionmgr"
-	_ "delve-shell/internal/session"
+	"delve-shell/internal/session"
 	_ "delve-shell/internal/skill"
 	"delve-shell/internal/ui"
 )
@@ -49,11 +49,13 @@ func Run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("load rules: %w", err)
 	}
-	session, err := history.NewSession()
+	initialSession, err := history.NewSession()
 	if err != nil {
 		return fmt.Errorf("create session: %w", err)
 	}
-	sessions := sessionmgr.New(session)
+	sessions := sessionmgr.New(initialSession)
+	syncSessionPath := func(path string) { session.SetCurrentSessionPath(path) }
+	syncSessionPath(initialSession.Path())
 	defer sessions.CloseAll()
 
 	uiEvents := make(chan any, 16)
@@ -90,7 +92,6 @@ func Run(cmd *cobra.Command, args []string) error {
 	execDirectChan := make(chan string, 4)
 	shellRequestedChan := make(chan []string, 1)
 	cancelRequestChan := make(chan struct{}, 1)
-	sessionSwitchChan := make(chan string, 1)
 	remoteOnChan := make(chan string, 1)
 	remoteOffChan := make(chan struct{}, 1)
 	remoteAuthRespChan := make(chan ui.RemoteAuthResponse, 1)
@@ -114,11 +115,11 @@ func Run(cmd *cobra.Command, args []string) error {
 		Sessions:                   sessions,
 		Runners:                    runners,
 		Executors:                  executors,
+		SyncSessionPath:            syncSessionPath,
 		GetExecutor:                getExecutor,
 		CurrentP:                   &currentP,
 		CurrentAllowlistAutoRun:    &currentAllowlistAutoRun,
 		UIEvents:                   uiEvents,
-		SessionSwitchChan:          sessionSwitchChan,
 		ConfigUpdatedChan:          configUpdatedChan,
 		AllowlistAutoRunChangeChan: allowlistAutoRunChangeChan,
 		ExecDirectChan:             execDirectChan,
@@ -133,12 +134,10 @@ func Run(cmd *cobra.Command, args []string) error {
 	getAllowlistAutoRun := func() bool { return currentAllowlistAutoRun.Load() }
 	initialShowConfigLLM := needConfigLLM
 	for {
-		s := sessions.Current()
-		sessionPath := ""
-		if s != nil {
-			sessionPath = s.Path()
+		if s := sessions.Current(); s != nil {
+			syncSessionPath(s.Path())
 		}
-		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, allowlistAutoRunChangeChan, sessionSwitchChan, remoteOnChan, remoteOffChan, remoteAuthRespChan, getAllowlistAutoRun, savedMessages, sessionPath, initialShowConfigLLM)
+		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, allowlistAutoRunChangeChan, remoteOnChan, remoteOffChan, remoteAuthRespChan, getAllowlistAutoRun, savedMessages, initialShowConfigLLM)
 		model.Context.ConfigPath = config.ConfigPath()
 		initialShowConfigLLM = false
 		p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithReportFocus())

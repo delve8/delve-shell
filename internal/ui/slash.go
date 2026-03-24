@@ -5,11 +5,9 @@ import (
 )
 
 // slashOption is one row in the slash command list (command + description).
-// Path is set only for /sessions items; when user selects such an option, switch to that session.
 type slashOption struct {
 	Cmd  string
 	Desc string
-	Path string // session file path when this option is a session to switch to
 }
 
 // SlashOption is the exported view-model row for slash command suggestions.
@@ -31,9 +29,9 @@ func getSlashOptions(lang string) []SlashOption {
 
 // getSlashOptionsForInput returns slash options to show.
 // Specialized domains (e.g. /sessions, /run, /config) are expected to be handled by providers.
-func getSlashOptionsForInput(inputVal string, lang string, currentSessionPath string, localRunCommands []string, remoteRunCommands []string, remoteActive bool) []SlashOption {
+func getSlashOptionsForInput(inputVal string, lang string, localRunCommands []string, remoteRunCommands []string, remoteActive bool) []SlashOption {
 	for _, p := range slashOptionsProviderChain.List() {
-		if opts, handled := p(inputVal, lang, currentSessionPath, localRunCommands, remoteRunCommands, remoteActive); handled {
+		if opts, handled := p(inputVal, lang, localRunCommands, remoteRunCommands, remoteActive); handled {
 			return opts
 		}
 	}
@@ -41,7 +39,6 @@ func getSlashOptionsForInput(inputVal string, lang string, currentSessionPath st
 }
 
 // visibleSlashOptions filters options by input prefix and returns matching indices.
-// For session options (Path != ""), the input part after "/sessions " filters by substring match on Cmd.
 func visibleSlashOptions(input string, opts []SlashOption) []int {
 	return slashview.VisibleIndices(input, toSlashViewOptions(opts))
 }
@@ -54,7 +51,7 @@ func slashChosenToInputValue(chosen string) string {
 func toSlashViewOptions(opts []SlashOption) []slashview.Option {
 	adapted := make([]slashview.Option, 0, len(opts))
 	for _, opt := range opts {
-		adapted = append(adapted, slashview.Option{Cmd: opt.Cmd, Desc: opt.Desc, Path: opt.Path})
+		adapted = append(adapted, slashview.Option{Cmd: opt.Cmd, Desc: opt.Desc})
 	}
 	return adapted
 }

@@ -18,7 +18,6 @@ type CaptureInput struct {
 type CaptureResult struct {
 	FillOnly      bool
 	FillValue     string
-	SelectedPath  string
 	SelectedIndex int
 }
 
@@ -33,25 +32,20 @@ func CaptureSlashSelection(in CaptureInput) CaptureResult {
 		return res
 	}
 	res.SelectedIndex = in.SuggestIndex
-	res.SelectedPath = in.Selected.Path
 	return res
 }
 
 type SyncInput struct {
-	InputVal             string
-	CurrentSuggestIndex  int
-	VisibleCount         int
-	FirstOptionIsSession bool
+	InputVal            string
+	CurrentSuggestIndex int
+	VisibleCount        int
 }
 
 func SyncSlashSuggestIndex(in SyncInput) int {
 	if !strings.HasPrefix(in.InputVal, "/") {
 		return in.CurrentSuggestIndex
 	}
-	next := in.CurrentSuggestIndex
-	if !in.FirstOptionIsSession {
-		next = 0
-	}
+	next := 0
 	if in.VisibleCount > 0 && next >= in.VisibleCount {
 		next = 0
 	}

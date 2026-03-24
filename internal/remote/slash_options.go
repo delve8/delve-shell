@@ -22,19 +22,18 @@ func getRemoteSlashOptions(filter string, lang string) []ui.SlashOption {
 			opts = append(opts, ui.SlashOption{
 				Cmd:  "/remote on " + config.HostFromTarget(r.Target),
 				Desc: desc,
-				Path: "",
 			})
 		}
 	}
 
-	manual := ui.SlashOption{Cmd: "/remote on", Desc: i18n.T(lang, i18n.KeyRemoteManualHint), Path: ""}
+	manual := ui.SlashOption{Cmd: "/remote on", Desc: i18n.T(lang, i18n.KeyRemoteManualHint)}
 	return append(opts, manual)
 }
 
 func getRemoveRemoteSlashOptions(lang string, filter string) []ui.SlashOption {
 	remotes, err := config.LoadRemotes()
 	if err != nil || len(remotes) == 0 {
-		return []ui.SlashOption{{Cmd: "/config del-remote", Desc: i18n.T(lang, i18n.KeyRemoteNone), Path: ""}}
+		return []ui.SlashOption{{Cmd: "/config del-remote", Desc: i18n.T(lang, i18n.KeyRemoteNone)}}
 	}
 
 	filterLower := strings.ToLower(filter)
@@ -49,12 +48,11 @@ func getRemoveRemoteSlashOptions(lang string, filter string) []ui.SlashOption {
 		opts = append(opts, ui.SlashOption{
 			Cmd:  "/config del-remote " + config.HostFromTarget(r.Target),
 			Desc: desc,
-			Path: "",
 		})
 	}
 
 	if len(opts) == 0 {
-		return []ui.SlashOption{{Cmd: "/config del-remote", Desc: i18n.T(lang, i18n.KeyRemoteNone), Path: ""}}
+		return []ui.SlashOption{{Cmd: "/config del-remote", Desc: i18n.T(lang, i18n.KeyRemoteNone)}}
 	}
 	return opts
 }

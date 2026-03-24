@@ -37,7 +37,7 @@ func BuildDropdownRows(opts []Option, vis []int, suggestIndex int, layoutWidth i
 	cmdWidth := 0
 	for i := start; i < end; i++ {
 		o := opts[vis[i]]
-		if o.Path == "" && len(o.Cmd) > cmdWidth {
+		if len(o.Cmd) > cmdWidth {
 			cmdWidth = len(o.Cmd)
 		}
 	}
@@ -56,11 +56,8 @@ func BuildDropdownRows(opts []Option, vis []int, suggestIndex int, layoutWidth i
 		vi := vis[i]
 		opt := opts[vi]
 		cmdText := opt.Cmd
-		if opt.Path != "" {
-			cmdText = "/sessions " + opt.Cmd
-		}
 
-		if opt.Path == "" && opt.Desc != "" && maxLineLen > 0 {
+		if opt.Desc != "" && maxLineLen > 0 {
 			descRunes := []rune(opt.Desc)
 			prefixRunes := 3 + cmdWidth + 2
 			descFirstW := maxLineLen - prefixRunes

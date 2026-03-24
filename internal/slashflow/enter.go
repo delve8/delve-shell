@@ -6,7 +6,6 @@ type Outcome int
 
 const (
 	OutcomeNone Outcome = iota
-	OutcomeSwitchSession
 	OutcomeShowSessionNone
 	OutcomeResolveSelected
 	OutcomeUnknownSlash
@@ -14,7 +13,6 @@ const (
 
 type EnterInput struct {
 	HasSlashPrefix      bool
-	SelectedPath        string
 	SelectedCmd         string
 	VisibleOptionCount  int
 	IsSessionNoneOption bool
@@ -24,9 +22,6 @@ type EnterInput struct {
 func EvaluateMainEnter(input string, in EnterInput) Outcome {
 	if !in.HasSlashPrefix {
 		return OutcomeNone
-	}
-	if in.SelectedPath != "" {
-		return OutcomeSwitchSession
 	}
 	if in.SelectedCmd == "" {
 		return OutcomeUnknownSlash

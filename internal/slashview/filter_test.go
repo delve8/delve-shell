@@ -25,13 +25,13 @@ func TestVisibleIndices_FallbackToAllWhenNoMatch(t *testing.T) {
 	}
 }
 
-func TestVisibleIndices_SessionOptionsReturnAll(t *testing.T) {
+func TestVisibleIndices_SessionsByPrefix(t *testing.T) {
 	opts := []Option{
-		{Cmd: "demo", Path: "/tmp/demo.jsonl"},
-		{Cmd: "abc", Path: "/tmp/abc.jsonl"},
+		{Cmd: "/sessions demo"},
+		{Cmd: "/sessions abc"},
 	}
 	got := VisibleIndices("/sessions d", opts)
-	if len(got) != 2 || got[0] != 0 || got[1] != 1 {
+	if len(got) != 1 || got[0] != 0 {
 		t.Fatalf("unexpected session indices: %#v", got)
 	}
 }

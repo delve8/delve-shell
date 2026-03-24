@@ -6,9 +6,9 @@ import (
 	"testing"
 )
 
-// TestGetSlashOptionsForInput_sessions_excludesCurrentSession asserts that
-// the session list does not include currentSessionPath.
-func TestGetSlashOptionsForInput_sessions_excludesCurrentSession(t *testing.T) {
+// TestGetSlashOptionsForInput_sessions_returnsSessionCommands asserts that
+// /sessions suggestions are returned as command text owned by session module.
+func TestGetSlashOptionsForInput_sessions_returnsSessionCommands(t *testing.T) {
 	dir := t.TempDir()
 	sessionsDir := filepath.Join(dir, "sessions")
 	if err := os.MkdirAll(sessionsDir, 0700); err != nil {
@@ -24,18 +24,14 @@ func TestGetSlashOptionsForInput_sessions_excludesCurrentSession(t *testing.T) {
 		}
 	}
 
-	opts := getSlashOptionsForInput("/sessions", "en", aPath, nil, nil, false)
-	if len(opts) != 1 {
-		t.Fatalf("expected 1 option (current a excluded), got %d", len(opts))
+	opts := getSlashOptionsForInput("/sessions", "en", nil, nil, false)
+	if len(opts) < 1 {
+		t.Fatalf("expected at least 1 option, got %d", len(opts))
 	}
-	if opts[0].Path == aPath {
-		t.Error("current session path should be excluded from list")
-	}
-	if opts[0].Path != bPath {
-		t.Errorf("expected remaining option to be b, got %s", opts[0].Path)
-	}
-	if opts[0].Cmd != "/sessions b" {
-		t.Errorf("option Cmd should be %q, got %q", "/sessions b", opts[0].Cmd)
+	for _, opt := range opts {
+		if len(opt.Cmd) < len("/sessions ") || opt.Cmd[:len("/sessions ")] != "/sessions " {
+			t.Fatalf("session option must be /sessions <id>, got %q", opt.Cmd)
+		}
 	}
 }
 
@@ -43,13 +39,13 @@ func TestGetSlashOptionsForInput_runCompletion_filtersAndNoFallback(t *testing.T
 	local := []string{"bash", "base64", "cat"}
 
 	// "/run" shows the usage row.
-	opts := getSlashOptionsForInput("/run", "en", "", local, nil, false)
+	opts := getSlashOptionsForInput("/run", "en", local, nil, false)
 	if len(opts) != 1 || opts[0].Cmd != SlashRunUsageOption {
 		t.Fatalf("expected usage option for /run, got %#v", opts)
 	}
 
 	// "/run b" filters local commands.
-	opts = getSlashOptionsForInput("/run b", "en", "", local, nil, false)
+	opts = getSlashOptionsForInput("/run b", "en", local, nil, false)
 	if len(opts) != 2 {
 		t.Fatalf("expected 2 options, got %d: %#v", len(opts), opts)
 	}
@@ -58,7 +54,7 @@ func TestGetSlashOptionsForInput_runCompletion_filtersAndNoFallback(t *testing.T
 	}
 
 	// No match: return empty (do not fall back to top-level slash commands).
-	opts = getSlashOptionsForInput("/run z", "en", "", local, nil, false)
+	opts = getSlashOptionsForInput("/run z", "en", local, nil, false)
 	if len(opts) != 0 {
 		t.Fatalf("expected no options for unmatched /run prefix, got %#v", opts)
 	}
@@ -68,7 +64,7 @@ func TestGetSlashOptionsForInput_runCompletion_usesRemoteCacheWhenActive(t *test
 	local := []string{"bash", "base64"}
 	remote := []string{"busybox", "bzip2"}
 
-	opts := getSlashOptionsForInput("/run b", "en", "", local, remote, true)
+	opts := getSlashOptionsForInput("/run b", "en", local, remote, true)
 	if len(opts) != 2 {
 		t.Fatalf("expected 2 options from remote cache, got %d: %#v", len(opts), opts)
 	}

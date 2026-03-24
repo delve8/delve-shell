@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"delve-shell/internal/config"
 	"delve-shell/internal/history"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/ui"
@@ -37,10 +36,9 @@ func init() {
 			if id == "" {
 				return m, nil, true
 			}
-			if m.Ports.SessionSwitchChan != nil {
-				sessionPath := filepath.Join(config.HistoryDir(), id+".jsonl")
+			if m.Ports.SubmitChan != nil {
 				select {
-				case m.Ports.SessionSwitchChan <- sessionPath:
+				case m.Ports.SubmitChan <- "/sessions " + id:
 				default:
 				}
 			}
@@ -53,14 +51,15 @@ func init() {
 		switch t := msg.(type) {
 		case ui.SessionSwitchedMsg:
 			lang := "en"
-			m.Context.CurrentSessionPath = t.Path
+			_ = t
+			path := getCurrentSessionPath()
 			sessionID := ""
-			if t.Path != "" {
-				sessionID = strings.TrimSuffix(filepath.Base(t.Path), ".jsonl")
+			if path != "" {
+				sessionID = strings.TrimSuffix(filepath.Base(path), ".jsonl")
 			}
 			switchedLine := sessionSwitchedStyle.Render(i18n.T(lang, i18n.KeyDelveLabel) + " " + i18n.Tf(lang, i18n.KeySessionSwitchedTo, sessionID))
-			if t.Path != "" {
-				events, _ := history.ReadRecent(t.Path, maxSessionHistoryEvents)
+			if path != "" {
+				events, _ := history.ReadRecent(path, maxSessionHistoryEvents)
 				msgs := sessionEventsToMessages(events, lang, m.Layout.Width)
 				m.Messages = make([]string, 0, len(msgs)+2)
 				m.Messages = append(m.Messages, msgs...)
@@ -79,7 +78,6 @@ func init() {
 	ui.RegisterSlashOptionsProvider(func(
 		inputVal string,
 		lang string,
-		currentSessionPath string,
 		_ []string,
 		_ []string,
 		_ bool,
@@ -90,7 +88,7 @@ func init() {
 
 		if normalizedLower == "sessions" || strings.HasPrefix(normalizedLower, "sessions ") {
 			filter := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "sessions"))
-			return getSessionSlashOptions(filter, currentSessionPath), true
+			return getSessionSlashOptions(filter), true
 		}
 
 		_ = lang
@@ -100,13 +98,14 @@ func init() {
 
 const maxSessionsInSlash = 20
 
-func getSessionSlashOptions(filter string, currentSessionPath string) []ui.SlashOption {
+func getSessionSlashOptions(filter string) []ui.SlashOption {
 	summaries, err := history.ListSessionsWithSummary(maxSessionsInSlash)
 	if err != nil || len(summaries) == 0 {
-		return []ui.SlashOption{{Cmd: i18n.T("en", i18n.KeySessionNone), Desc: "", Path: ""}}
+		return []ui.SlashOption{{Cmd: i18n.T("en", i18n.KeySessionNone), Desc: ""}}
 	}
 
 	filterLower := strings.ToLower(filter)
+	currentSessionPath := getCurrentSessionPath()
 	var opts []ui.SlashOption
 	for _, s := range summaries {
 		if s.Path == currentSessionPath {
@@ -124,10 +123,10 @@ func getSessionSlashOptions(filter string, currentSessionPath string) []ui.Slash
 
 		cmd := "/sessions " + s.ID
 		desc := s.Snippet
-		opts = append(opts, ui.SlashOption{Cmd: cmd, Desc: desc, Path: s.Path})
+		opts = append(opts, ui.SlashOption{Cmd: cmd, Desc: desc})
 	}
 	if len(opts) == 0 {
-		return []ui.SlashOption{{Cmd: i18n.T("en", i18n.KeySessionNone), Desc: "", Path: ""}} // Path empty = no session to switch to
+		return []ui.SlashOption{{Cmd: i18n.T("en", i18n.KeySessionNone), Desc: ""}}
 	}
 	return opts
 }

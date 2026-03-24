@@ -5,7 +5,6 @@ import "strings"
 type Option struct {
 	Cmd  string
 	Desc string
-	Path string
 }
 
 // VisibleIndices filters options by input prefix and returns matching indices.
@@ -13,14 +12,7 @@ func VisibleIndices(input string, opts []Option) []int {
 	input = strings.TrimPrefix(input, "/")
 	input = strings.TrimSpace(input)
 	inputLower := strings.ToLower(input)
-	if len(opts) > 0 && opts[0].Path != "" {
-		out := make([]int, len(opts))
-		for i := range opts {
-			out[i] = i
-		}
-		return out
-	}
-	if len(opts) == 1 && opts[0].Path == "" {
+	if len(opts) == 1 {
 		return []int{0}
 	}
 	var out []int

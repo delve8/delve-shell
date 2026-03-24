@@ -21,10 +21,9 @@ func TestCaptureSlashSelection_FillOnly(t *testing.T) {
 
 func TestSyncSlashSuggestIndex_ResetOnNonSession(t *testing.T) {
 	got := SyncSlashSuggestIndex(SyncInput{
-		InputVal:             "/he",
-		CurrentSuggestIndex:  3,
-		VisibleCount:         4,
-		FirstOptionIsSession: false,
+		InputVal:            "/he",
+		CurrentSuggestIndex: 3,
+		VisibleCount:        4,
 	})
 	if got != 0 {
 		t.Fatalf("unexpected index: %d", got)

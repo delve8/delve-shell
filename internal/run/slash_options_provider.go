@@ -11,7 +11,6 @@ func init() {
 	ui.RegisterSlashOptionsProvider(func(
 		inputVal string,
 		lang string,
-		_ string,
 		localRunCommands []string,
 		remoteRunCommands []string,
 		remoteActive bool,
@@ -26,7 +25,7 @@ func init() {
 			return nil, false
 		}
 		if normalizedLower == "run" {
-			return []ui.SlashOption{{Cmd: ui.SlashRunUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun), Path: ""}}, true
+			return []ui.SlashOption{{Cmd: ui.SlashRunUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun)}}, true
 		}
 		rest := ""
 		if len(normalized) >= 3 {
@@ -49,7 +48,7 @@ func init() {
 			if prefix != "" && !strings.HasPrefix(strings.ToLower(c), prefix) {
 				continue
 			}
-			opts = append(opts, ui.SlashOption{Cmd: "/run " + c, Desc: "", Path: ""})
+			opts = append(opts, ui.SlashOption{Cmd: "/run " + c, Desc: ""})
 			if len(opts) >= maxRunCands {
 				break
 			}
@@ -64,30 +63,30 @@ func init() {
 
 func rootSlashOptions(lang string) []ui.SlashOption {
 	return []ui.SlashOption{
-		{Cmd: "/help", Desc: i18n.T(lang, i18n.KeyDescHelp), Path: ""},
-		{Cmd: "/cancel", Desc: i18n.T(lang, i18n.KeyDescCancel), Path: ""},
-		{Cmd: "/config", Desc: i18n.T(lang, i18n.KeyDescConfig), Path: ""},
-		{Cmd: "/remote", Desc: i18n.T(lang, i18n.KeyDescRemoteOn), Path: ""},
-		{Cmd: "/new", Desc: i18n.T(lang, i18n.KeySessionNew), Path: ""},
-		{Cmd: "/sessions", Desc: i18n.T(lang, i18n.KeyDescSessions), Path: ""},
-		{Cmd: "/skill <skill-name> [detail]", Desc: i18n.T(lang, i18n.KeyDescSkill), Path: ""},
-		{Cmd: ui.SlashRunUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun), Path: ""},
-		{Cmd: "/sh", Desc: i18n.T(lang, i18n.KeyDescSh), Path: ""},
-		{Cmd: "/q", Desc: i18n.T(lang, i18n.KeyDescExit), Path: ""},
+		{Cmd: "/help", Desc: i18n.T(lang, i18n.KeyDescHelp)},
+		{Cmd: "/cancel", Desc: i18n.T(lang, i18n.KeyDescCancel)},
+		{Cmd: "/config", Desc: i18n.T(lang, i18n.KeyDescConfig)},
+		{Cmd: "/remote", Desc: i18n.T(lang, i18n.KeyDescRemoteOn)},
+		{Cmd: "/new", Desc: i18n.T(lang, i18n.KeySessionNew)},
+		{Cmd: "/sessions", Desc: i18n.T(lang, i18n.KeyDescSessions)},
+		{Cmd: "/skill <skill-name> [detail]", Desc: i18n.T(lang, i18n.KeyDescSkill)},
+		{Cmd: ui.SlashRunUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun)},
+		{Cmd: "/sh", Desc: i18n.T(lang, i18n.KeyDescSh)},
+		{Cmd: "/q", Desc: i18n.T(lang, i18n.KeyDescExit)},
 	}
 }
 
 func configSlashOptions(lang string) []ui.SlashOption {
 	return []ui.SlashOption{
-		{Cmd: "/config add-remote", Desc: i18n.T(lang, i18n.KeyDescConfigAddRemote), Path: ""},
-		{Cmd: "/config del-remote", Desc: i18n.T(lang, i18n.KeyDescConfigRemoveRemote), Path: ""},
-		{Cmd: "/config add-skill", Desc: i18n.T(lang, i18n.KeyDescSkillInstall), Path: ""},
-		{Cmd: "/config del-skill", Desc: i18n.T(lang, i18n.KeyDescSkillRemove), Path: ""},
-		{Cmd: "/config update-skill", Desc: i18n.T(lang, i18n.KeyDescConfigUpdateSkill), Path: ""},
-		{Cmd: "/config auto-run list-only", Desc: i18n.T(lang, i18n.KeyDescAutoRunListOnly), Path: ""},
-		{Cmd: "/config auto-run disable", Desc: i18n.T(lang, i18n.KeyDescAutoRunDisable), Path: ""},
-		{Cmd: "/config update auto-run list", Desc: i18n.T(lang, i18n.KeyDescConfigAllowlistUpdate), Path: ""},
-		{Cmd: "/config llm", Desc: i18n.T(lang, i18n.KeyDescConfigLLM), Path: ""},
-		{Cmd: "/config reload", Desc: i18n.T(lang, i18n.KeyDescReload), Path: ""},
+		{Cmd: "/config add-remote", Desc: i18n.T(lang, i18n.KeyDescConfigAddRemote)},
+		{Cmd: "/config del-remote", Desc: i18n.T(lang, i18n.KeyDescConfigRemoveRemote)},
+		{Cmd: "/config add-skill", Desc: i18n.T(lang, i18n.KeyDescSkillInstall)},
+		{Cmd: "/config del-skill", Desc: i18n.T(lang, i18n.KeyDescSkillRemove)},
+		{Cmd: "/config update-skill", Desc: i18n.T(lang, i18n.KeyDescConfigUpdateSkill)},
+		{Cmd: "/config auto-run list-only", Desc: i18n.T(lang, i18n.KeyDescAutoRunListOnly)},
+		{Cmd: "/config auto-run disable", Desc: i18n.T(lang, i18n.KeyDescAutoRunDisable)},
+		{Cmd: "/config update auto-run list", Desc: i18n.T(lang, i18n.KeyDescConfigAllowlistUpdate)},
+		{Cmd: "/config llm", Desc: i18n.T(lang, i18n.KeyDescConfigLLM)},
+		{Cmd: "/config reload", Desc: i18n.T(lang, i18n.KeyDescReload)},
 	}
 }

@@ -10,7 +10,6 @@ import (
 func remoteSlashOptionsProvider(
 	inputVal string,
 	lang string,
-	_ string,
 	_ []string,
 	_ []string,
 	_ bool,
@@ -21,15 +20,15 @@ func remoteSlashOptionsProvider(
 
 	if normalizedLower == "remote" {
 		return []ui.SlashOption{
-			{Cmd: "/remote on", Desc: i18n.T(lang, i18n.KeyDescRemoteOn), Path: ""},
-			{Cmd: "/remote off", Desc: i18n.T(lang, i18n.KeyDescRemoteOff), Path: ""},
+			{Cmd: "/remote on", Desc: i18n.T(lang, i18n.KeyDescRemoteOn)},
+			{Cmd: "/remote off", Desc: i18n.T(lang, i18n.KeyDescRemoteOff)},
 		}, true
 	}
 
 	if strings.HasPrefix(normalizedLower, "remote on") {
 		filter := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "remote on"))
 		opts := getRemoteSlashOptions(filter, lang)
-		offOpt := ui.SlashOption{Cmd: "/remote off", Desc: i18n.T(lang, i18n.KeyDescRemoteOff), Path: ""}
+		offOpt := ui.SlashOption{Cmd: "/remote off", Desc: i18n.T(lang, i18n.KeyDescRemoteOff)}
 		return append([]ui.SlashOption{offOpt}, opts...), true
 	}
 

@@ -1,7 +1,6 @@
 package ui_test
 
 import (
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -23,7 +22,6 @@ type blackboxFixture struct {
 	cancelRequest   chan struct{}
 	configUpdated   chan struct{}
 	allowlistChange chan bool
-	sessionSwitch   chan string
 	remoteOn        chan string
 	remoteOff       chan struct{}
 	remoteAuthResp  chan ui.RemoteAuthResponse
@@ -37,7 +35,6 @@ func newBlackboxFixture() blackboxFixture {
 		cancelRequest:   make(chan struct{}, 2),
 		configUpdated:   make(chan struct{}, 2),
 		allowlistChange: make(chan bool, 2),
-		sessionSwitch:   make(chan string, 2),
 		remoteOn:        make(chan string, 2),
 		remoteOff:       make(chan struct{}, 2),
 		remoteAuthResp:  make(chan ui.RemoteAuthResponse, 2),
@@ -49,13 +46,11 @@ func newBlackboxFixture() blackboxFixture {
 		f.cancelRequest,
 		f.configUpdated,
 		f.allowlistChange,
-		f.sessionSwitch,
 		f.remoteOn,
 		f.remoteOff,
 		f.remoteAuthResp,
 		func() bool { return true },
 		nil,
-		"",
 		false,
 	)
 	return f
@@ -258,29 +253,24 @@ func TestBlackboxSlashNewSubmitsCommand(t *testing.T) {
 	}
 }
 
-func TestBlackboxSlashSessionsPrefixSendsPath(t *testing.T) {
+func TestBlackboxSlashSessionsPrefixSubmitsCommand(t *testing.T) {
 	f := newBlackboxFixture()
-	root := t.TempDir()
-	t.Setenv("DELVE_SHELL_ROOT", root)
-
 	_ = enterText(f.model, "/sessions demo")
 	select {
-	case p := <-f.sessionSwitch:
-		want := filepath.Join(root, "sessions", "demo.jsonl")
-		if p != want {
-			t.Fatalf("expected session switch path %q, got %q", want, p)
+	case cmd := <-f.submitChan:
+		if cmd != "/sessions demo" {
+			t.Fatalf("expected /sessions command submit, got %q", cmd)
 		}
 	default:
-		t.Fatalf("expected /sessions <id> to send session path")
+		t.Fatalf("expected /sessions <id> to submit command")
 	}
 }
 
 func TestBlackboxStartupOverlayProviderOpensConfigLLM(t *testing.T) {
 	m := ui.NewModel(
-		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		nil, nil, nil, nil, nil, nil, nil, nil, nil,
 		func() bool { return true },
 		nil,
-		"",
 		true, // InitialShowConfigLLM
 	)
 	next, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})

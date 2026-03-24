@@ -5,10 +5,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/execenv"
 	"delve-shell/internal/runtime/executormgr"
 	"delve-shell/internal/runtime/runnermgr"
 	"delve-shell/internal/runtime/sessionmgr"
-	"delve-shell/internal/execenv"
 	"delve-shell/internal/ui"
 )
 
@@ -20,6 +20,8 @@ type Deps struct {
 	Sessions  *sessionmgr.Manager
 	Runners   *runnermgr.Manager
 	Executors *executormgr.Manager
+	// SyncSessionPath updates session module internal current-session state.
+	SyncSessionPath func(path string)
 	// GetExecutor returns the current executor (local or remote).
 	GetExecutor func() execenv.CommandExecutor
 	CurrentP    *atomic.Pointer[tea.Program]
@@ -27,7 +29,6 @@ type Deps struct {
 	CurrentAllowlistAutoRun *atomic.Bool
 
 	UIEvents                   <-chan any
-	SessionSwitchChan          <-chan string
 	ConfigUpdatedChan          <-chan struct{}
 	AllowlistAutoRunChangeChan <-chan bool
 	ExecDirectChan             <-chan string

@@ -44,7 +44,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 	inputVal = m.Input.Value()
 	inSlash = strings.HasPrefix(inputVal, "/")
 	if inSlash && (key == "up" || key == "down") {
-		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.Context.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
+		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
 		vis := visibleSlashOptions(inputVal, opts)
 		if next, changed := slashview.NextSuggestIndex(m.Interaction.SlashSuggestIndex, len(vis), key); changed {
 			m.Interaction.SlashSuggestIndex = next
@@ -66,7 +66,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 		if m.Interaction.WaitingForAI && !strings.HasPrefix(text, "/") {
 			return m, nil
 		}
-		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.Context.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
+		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
 		vis := visibleSlashOptions(inputVal, opts)
 		selected, ok := slashview.SelectedByVisibleIndex(toSlashViewOptions(opts), vis, m.Interaction.SlashSuggestIndex)
 		capture := maininput.CaptureSlashSelection(maininput.CaptureInput{
@@ -99,20 +99,18 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 		m.Input.SetValue("")
 		m.Input.CursorEnd()
 		m.Interaction.SlashSuggestIndex = 0
-		return m.handleMainEnterCommand(text, capture.SelectedPath, capture.SelectedIndex)
+		return m.handleMainEnterCommand(text, capture.SelectedIndex)
 	}
 
 	var cmd tea.Cmd
 	m.Input, cmd = m.Input.Update(msg)
 	inputVal = m.Input.Value()
-	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.Context.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
+	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
 	vis := visibleSlashOptions(inputVal, opts)
-	firstOptionIsSession := len(opts) > 0 && opts[0].Path != ""
 	m.Interaction.SlashSuggestIndex = maininput.SyncSlashSuggestIndex(maininput.SyncInput{
-		InputVal:             inputVal,
-		CurrentSuggestIndex:  m.Interaction.SlashSuggestIndex,
-		VisibleCount:         len(vis),
-		FirstOptionIsSession: firstOptionIsSession,
+		InputVal:            inputVal,
+		CurrentSuggestIndex: m.Interaction.SlashSuggestIndex,
+		VisibleCount:        len(vis),
 	})
 	return m, cmd
 }

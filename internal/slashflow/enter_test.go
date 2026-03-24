@@ -9,13 +9,6 @@ func TestEvaluateMainEnter_NoSlash(t *testing.T) {
 	}
 }
 
-func TestEvaluateMainEnter_SwitchSession(t *testing.T) {
-	got := EvaluateMainEnter("/sessions d", EnterInput{HasSlashPrefix: true, SelectedPath: "/tmp/demo.jsonl"})
-	if got != OutcomeSwitchSession {
-		t.Fatalf("unexpected outcome: %v", got)
-	}
-}
-
 func TestEvaluateMainEnter_SessionNone(t *testing.T) {
 	got := EvaluateMainEnter("/sessions", EnterInput{
 		HasSlashPrefix:      true,

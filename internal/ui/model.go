@@ -129,10 +129,9 @@ type PathCompletionState struct {
 
 // RuntimeContextState stores session and remote execution context reflected in UI.
 type RuntimeContextState struct {
-	CurrentSessionPath string // path of current session (excluded from /sessions list so switch loads another)
-	RemoteActive       bool   // whether commands run on a remote executor
-	RemoteLabel        string // label for remote in header, e.g. "dev (root@1.2.3.4)" or "user@host"
-	ConfigPath         string // config path for user-facing hints (injected by host)
+	RemoteActive bool   // whether commands run on a remote executor
+	RemoteLabel  string // label for remote in header, e.g. "dev (root@1.2.3.4)" or "user@host"
+	ConfigPath   string // config path for user-facing hints (injected by host)
 }
 
 // RunCompletionState stores local/remote completion caches for `/run`.
@@ -184,7 +183,6 @@ type UIPorts struct {
 	CancelRequestChan          chan<- struct{}           // on /cancel request cancel of in-flight AI
 	ConfigUpdatedChan          chan<- struct{}           // on /config save or /config reload, invalidate runner so next message reloads config/allowlist
 	AllowlistAutoRunChangeChan chan<- bool               // runtime toggle for allowlist auto-run (true = list only, false = none)
-	SessionSwitchChan          chan<- string             // on /sessions choice, send selected session path to continue
 	RemoteOnChan               chan<- string             // on /remote on <target>, send resolved target/name to CLI
 	RemoteOffChan              chan<- struct{}           // on /remote off, switch back to local
 	RemoteAuthRespChan         chan<- RemoteAuthResponse // on remote password entry, send credentials back to CLI
@@ -257,7 +255,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // NewModel creates a Model with default input (slash commands and viewport scrolling).
 // initialMessages if non-nil is used as existing conversation (e.g. after /sh return).
-// initialSessionPath is the current session file path (excluded from /sessions list so first option is another session).
 // initialShowConfigLLM: when true, Config LLM overlay is opened on first WindowSizeMsg (used when no config or model empty at startup).
 func NewModel(
 	submitChan chan<- string,
@@ -266,13 +263,11 @@ func NewModel(
 	cancelRequestChan chan<- struct{},
 	configUpdatedChan chan<- struct{},
 	allowlistAutoRunChangeChan chan<- bool,
-	sessionSwitchChan chan<- string,
 	remoteOnChan chan<- string,
 	remoteOffChan chan<- struct{},
 	remoteAuthRespChan chan<- RemoteAuthResponse,
 	getAllowlistAutoRun func() bool,
 	initialMessages []string,
-	initialSessionPath string,
 	initialShowConfigLLM bool,
 ) Model {
 	ti := textinput.New()
@@ -302,15 +297,12 @@ func NewModel(
 			CancelRequestChan:          cancelRequestChan,
 			ConfigUpdatedChan:          configUpdatedChan,
 			AllowlistAutoRunChangeChan: allowlistAutoRunChangeChan,
-			SessionSwitchChan:          sessionSwitchChan,
 			RemoteOnChan:               remoteOnChan,
 			RemoteOffChan:              remoteOffChan,
 			RemoteAuthRespChan:         remoteAuthRespChan,
 			GetAllowlistAutoRun:        getAllowlistAutoRun,
 		},
-		Context: RuntimeContextState{
-			CurrentSessionPath: initialSessionPath,
-		},
+		Context: RuntimeContextState{},
 		Startup: StartupState{
 			InitialShowConfigLLM: initialShowConfigLLM,
 		},

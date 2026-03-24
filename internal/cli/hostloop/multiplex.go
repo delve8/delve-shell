@@ -14,15 +14,6 @@ func RunHostMultiplex(stop <-chan struct{}, d *Deps) {
 		select {
 		case <-stop:
 			return
-		case path := <-d.SessionSwitchChan:
-			_, err := d.Sessions.SwitchTo(path)
-			if err != nil {
-				d.Send(ui.AgentReplyMsg{Err: err})
-				continue
-			}
-			d.Runners.Invalidate()
-			d.Send(ui.SessionSwitchedMsg{Path: path})
-
 		case <-d.ConfigUpdatedChan:
 			if cfg, err := config.LoadEnsured(); err == nil && cfg != nil {
 				d.CurrentAllowlistAutoRun.Store(cfg.AllowlistAutoRunResolved())

@@ -184,6 +184,9 @@
 | 2025-03-24 | 文本换行与 slash Enter 规则下沉：删除 `ui/view_wrap.go`（迁至 `internal/textwrap`），新增 `internal/slashflow/enter_key.go` 统一 slash Enter 动作决策，`ui` 侧只做分发执行 |
 | 2025-03-24 | main 输入流继续下沉：新增 `internal/maininput`（capture/sync/main-enter/prompt），删除 `ui/update_main_key.go`，`update_keymsg.go` 改为薄编排并复用下沉逻辑 |
 | 2025-03-24 | `ui` 包内测试收口：`model_test.go` 删除已被 `approvalflow`/`approvalview`/黑盒链路覆盖的重复用例，仅保留 `ui` 壳层可见性断言，降低 `ui` 目录体量与重复维护成本 |
+| 2025-03-24 | 会话上下文继续去 UI 化：移除 `RuntimeContextState.CurrentSessionPath` 与 slash options provider 的 `currentSessionPath` 参数；`/sessions` 候选排除当前会话改由 `internal/session` 内部状态维护，`ui` 不再显式传递会话路径/标识 |
+| 2025-03-24 | `SessionSwitchChan` 下线：删除 `ui.UIPorts.SessionSwitchChan`、`hostloop` 对应 multiplex 分支与依赖字段；`/sessions <id>` 改为提交命令后在 submit loop 内执行 session 切换 |
+| 2025-03-24 | `SessionSwitchedMsg` 去 payload：移除 `SessionSwitchedMsg.Path`，host loop 改为更新 `internal/session` 内部会话状态后发送空事件，UI 不再承载/传递会话路径信息 |
 | 2025-03-24 | slash 注册下沉：`/config*`、`/cancel`、`/q`、`/sh`、`/help`、`/config auto-run` 从 `ui` 迁到 `run/feature` 包；删除 `ui.registerSlashExact` 别名 |
 | 2025-03-24 | `internal/ui` 测试镜像重组：`feature_registry_test.go` 拆分为 remote/configllm、skill、session、slash-exact 多文件，主文件仅做汇总 init |
 | 2025-03-24 | P2：`Model` 再收敛 `Layout`/`Startup`/`Approval`；新增 `hasPendingApproval`、`contentWidth`、`OpenOverlay`、`CloseOverlayVisual` 等 helper 并替换重复逻辑 |

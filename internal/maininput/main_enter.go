@@ -1,6 +1,8 @@
 package maininput
 
 import (
+	"strings"
+
 	"delve-shell/internal/slashflow"
 	"delve-shell/internal/slashview"
 )
@@ -9,7 +11,6 @@ type MainEnterPlanKind int
 
 const (
 	MainEnterPassToSubmit MainEnterPlanKind = iota
-	MainEnterSwitchSession
 	MainEnterShowSessionNone
 	MainEnterResolveSelected
 	MainEnterUnknownSlash
@@ -22,7 +23,6 @@ type MainEnterPlan struct {
 
 type MainEnterInput struct {
 	Text               string
-	SlashSelectedPath  string
 	SlashSelectedIndex int
 	Options            []slashview.Option
 	Visible            []int
@@ -39,14 +39,11 @@ func PlanMainEnter(in MainEnterInput) MainEnterPlan {
 	}
 	outcome := slashflow.EvaluateMainEnter(in.Text, slashflow.EnterInput{
 		HasSlashPrefix:      true,
-		SelectedPath:        in.SlashSelectedPath,
 		SelectedCmd:         selected.Cmd,
 		VisibleOptionCount:  len(in.Visible),
-		IsSessionNoneOption: selected.Path == "" && selected.Cmd == in.SessionNoneMsg,
+		IsSessionNoneOption: strings.HasPrefix(in.Text, "/sessions") && selected.Cmd == in.SessionNoneMsg,
 	})
 	switch outcome {
-	case slashflow.OutcomeSwitchSession:
-		return MainEnterPlan{Kind: MainEnterSwitchSession}
 	case slashflow.OutcomeShowSessionNone:
 		return MainEnterPlan{Kind: MainEnterShowSessionNone}
 	case slashflow.OutcomeResolveSelected:

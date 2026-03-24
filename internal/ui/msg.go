@@ -23,20 +23,17 @@ type SystemNotifyMsg struct {
 type CommandExecutedMsg struct {
 	Command   string
 	Allowed   bool
-	Direct    bool   // true = /run direct execution, no AI
+	Direct    bool // true = /run direct execution, no AI
 	Result    string
-	Sensitive bool   // true = result contains private data, not stored and LLM sees "done"
-	Suggested bool   // true = suggest mode, command was not executed (user can copy)
+	Sensitive bool // true = result contains private data, not stored and LLM sees "done"
+	Suggested bool // true = suggest mode, command was not executed (user can copy)
 }
 
 // ConfigReloadedMsg notifies the UI that config/allowlist was reloaded; next message will use new config.
 type ConfigReloadedMsg struct{}
 
 // SessionSwitchedMsg notifies the UI that the session was switched (/new or /sessions).
-// Path is the session file path; UI loads history from it to display (empty file for new session).
-type SessionSwitchedMsg struct {
-	Path string
-}
+type SessionSwitchedMsg struct{}
 
 // RemoteStatusMsg notifies the UI that the executor is local or remote, for header display.
 type RemoteStatusMsg struct {
@@ -55,8 +52,8 @@ type RemoteConnectDoneMsg struct {
 // RemoteAuthPromptMsg asks the user to provide additional credentials (e.g. password) for a remote target,
 // or to show a Remote Auth dialog while an automatic connection attempt is in progress (e.g. using a configured key).
 type RemoteAuthPromptMsg struct {
-	Target              string
-	Err                 string
+	Target                string
+	Err                   string
 	UseConfiguredIdentity bool // true when connecting immediately with a configured identity file; dialog shows "Connecting..." first
 }
 

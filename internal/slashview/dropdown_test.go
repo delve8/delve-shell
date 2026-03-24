@@ -2,10 +2,10 @@ package slashview
 
 import "testing"
 
-func TestBuildDropdownRows_HighlightAndSessionPrefix(t *testing.T) {
+func TestBuildDropdownRows_HighlightSessionCommand(t *testing.T) {
 	opts := []Option{
-		{Cmd: "demo", Path: "/tmp/demo.jsonl"},
-		{Cmd: "prod", Path: "/tmp/prod.jsonl"},
+		{Cmd: "/sessions demo"},
+		{Cmd: "/sessions prod"},
 	}
 	vis := []int{0, 1}
 	rows := BuildDropdownRows(opts, vis, 1, 100, 4)
