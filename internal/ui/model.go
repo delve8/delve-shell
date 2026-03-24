@@ -132,6 +132,7 @@ type RuntimeContextState struct {
 	CurrentSessionPath string // path of current session (excluded from /sessions list so switch loads another)
 	RemoteActive       bool   // whether commands run on a remote executor
 	RemoteLabel        string // label for remote in header, e.g. "dev (root@1.2.3.4)" or "user@host"
+	ConfigPath         string // config path for user-facing hints (injected by host)
 }
 
 // RunCompletionState stores local/remote completion caches for `/run`.

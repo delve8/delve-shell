@@ -7,7 +7,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/agent"
-	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
 )
 
@@ -26,7 +25,7 @@ func (m Model) handleAgentReplyMsg(msg AgentReplyMsg) (Model, tea.Cmd) {
 		if errors.Is(msg.Err, context.Canceled) {
 			m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyCancelled))))
 		} else if errors.Is(msg.Err, agent.ErrLLMNotConfigured) {
-			m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyErrLLMNotConfigured, config.ConfigPath()))))
+			m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyErrLLMNotConfigured, m.Context.ConfigPath))))
 		} else {
 			m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyErrorPrefix)+msg.Err.Error())))
 		}

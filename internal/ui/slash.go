@@ -2,8 +2,6 @@ package ui
 
 import (
 	"strings"
-
-	"delve-shell/internal/i18n"
 )
 
 // slashOption is one row in the slash command list (command + description).
@@ -22,90 +20,22 @@ type SlashOption = slashOption
 // SlashRunUsageOption is the Cmd string for the /run usage row in slash suggestions (fill-only on select).
 const SlashRunUsageOption = "/run <cmd>"
 
-// getSlashOptions returns top-level slash commands (shown when input starts with "/"); order: help, cancel, config, remote, new, sessions, skill, run, sh, quit.
+// getSlashOptions returns top-level slash commands from registered providers.
 func getSlashOptions(lang string) []SlashOption {
-	return []slashOption{
-		{"/help", i18n.T(lang, i18n.KeyDescHelp), ""},
-		{"/cancel", i18n.T(lang, i18n.KeyDescCancel), ""},
-		{"/config", i18n.T(lang, i18n.KeyDescConfig), ""},
-		{"/remote", i18n.T(lang, i18n.KeyDescRemoteOn), ""},
-		{"/new", i18n.T(lang, i18n.KeySessionNew), ""},
-		{"/sessions", i18n.T(lang, i18n.KeyDescSessions), ""},
-		{"/skill <skill-name> [detail]", i18n.T(lang, i18n.KeyDescSkill), ""},
-		{SlashRunUsageOption, i18n.T(lang, i18n.KeyDescRun), ""},
-		{"/sh", i18n.T(lang, i18n.KeyDescSh), ""},
-		{"/q", i18n.T(lang, i18n.KeyDescExit), ""},
+	opts := make([]SlashOption, 0, 16)
+	for _, p := range rootSlashOptionProviderChain.List() {
+		opts = append(opts, p(lang)...)
 	}
+	return opts
 }
 
-// getConfigSubOptions returns /config sub-options (shown when input starts with "/config").
-// Order: frequent first (remote, auto-run/allowlist, LLM), reload last.
-func getConfigSubOptions(lang string) []SlashOption {
-	return []slashOption{
-		{"/config add-remote", i18n.T(lang, i18n.KeyDescConfigAddRemote), ""},
-		{"/config del-remote", i18n.T(lang, i18n.KeyDescConfigRemoveRemote), ""},
-		{"/config add-skill", i18n.T(lang, i18n.KeyDescSkillInstall), ""},
-		{"/config del-skill", i18n.T(lang, i18n.KeyDescSkillRemove), ""},
-		{"/config update-skill", i18n.T(lang, i18n.KeyDescConfigUpdateSkill), ""},
-		{"/config auto-run list-only", i18n.T(lang, i18n.KeyDescAutoRunListOnly), ""},
-		{"/config auto-run disable", i18n.T(lang, i18n.KeyDescAutoRunDisable), ""},
-		{"/config update auto-run list", i18n.T(lang, i18n.KeyDescConfigAllowlistUpdate), ""},
-		{"/config llm", i18n.T(lang, i18n.KeyDescConfigLLM), ""},
-		{"/config reload", i18n.T(lang, i18n.KeyDescReload), ""},
-	}
-}
-
-// getSlashOptionsForInput returns slash options to show: when input is "/config" or "/config xxx" returns only /config sub-options; when "/sessions" or "/sessions xxx" returns session list (with Path set) for switch, excluding currentSessionPath so first option is another session; else top-level commands.
+// getSlashOptionsForInput returns slash options to show.
+// Specialized domains (e.g. /sessions, /run, /config) are expected to be handled by providers.
 func getSlashOptionsForInput(inputVal string, lang string, currentSessionPath string, localRunCommands []string, remoteRunCommands []string, remoteActive bool) []SlashOption {
 	for _, p := range slashOptionsProviderChain.List() {
 		if opts, handled := p(inputVal, lang, currentSessionPath, localRunCommands, remoteRunCommands, remoteActive); handled {
 			return opts
 		}
-	}
-
-	normalized := strings.TrimPrefix(inputVal, "/")
-	normalized = strings.TrimSpace(normalized)
-	normalizedLower := strings.ToLower(normalized)
-	// /run completion: show command candidates rather than slash commands.
-	if normalizedLower == "run" || strings.HasPrefix(normalizedLower, "run ") {
-		// When just "/run": show the usage form.
-		if normalizedLower == "run" {
-			return []slashOption{{Cmd: SlashRunUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun), Path: ""}}
-		}
-		// After "/run " start showing command candidates.
-		rest := ""
-		if len(normalized) >= 3 {
-			rest = strings.TrimSpace(normalized[3:])
-		}
-		// Only complete the first token after /run; once user has typed arguments, stop dropdown.
-		if strings.Contains(rest, " ") || strings.Contains(rest, "\t") {
-			return []slashOption{}
-		}
-		prefix := strings.ToLower(rest)
-		cands := localRunCommands
-		if cands == nil {
-			cands = LocalRunCommands()
-		}
-		if remoteActive && len(remoteRunCommands) > 0 {
-			cands = remoteRunCommands
-		}
-		// Limit suggestions to keep UI responsive and dropdown small.
-		const maxRunCands = 50
-		opts := make([]slashOption, 0, 12)
-		for _, c := range cands {
-			if prefix != "" && !strings.HasPrefix(strings.ToLower(c), prefix) {
-				continue
-			}
-			opts = append(opts, slashOption{Cmd: "/run " + c, Desc: "", Path: ""})
-			if len(opts) >= maxRunCands {
-				break
-			}
-		}
-		// When no match, show nothing (do not fall back to top-level slash list).
-		return opts
-	}
-	if normalizedLower == "config" || strings.HasPrefix(normalizedLower, "config ") {
-		return getConfigSubOptions(lang)
 	}
 	return getSlashOptions(lang)
 }

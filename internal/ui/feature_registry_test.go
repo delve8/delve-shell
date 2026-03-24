@@ -6,9 +6,11 @@ func init() {
 	registerTestTitleBarMirror()
 	registerTestExactOverlayMirrors()
 	registerTestSlashExactMirrors()
+	registerTestStaticSlashOptionsMirror()
 	registerTestSkillPrefixMirrors()
 	registerTestConfigPrefixMirrors()
 	registerTestSessionMessageMirror()
 	registerTestSlashSelectedMirrors()
 	registerTestSessionSlashOptionsMirror()
+	registerTestOverlayCloseResetMirror()
 }

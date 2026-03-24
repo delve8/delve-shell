@@ -104,3 +104,9 @@ func registerTestExactOverlayMirrors() {
 		ClearInput: false,
 	})
 }
+
+func registerTestOverlayCloseResetMirror() {
+	RegisterOverlayCloseHook(func(m Model) Model {
+		return applyTestOverlayCloseFeatureResets(m)
+	})
+}

@@ -41,16 +41,6 @@ func (m Model) InitOverlayViewport() Model {
 	return m
 }
 
-// ApplyConfigAllowlistUpdate applies built-in allowlist updates and appends UI feedback.
-func (m Model) ApplyConfigAllowlistUpdate() Model {
-	return m.applyConfigAllowlistUpdate()
-}
-
-// ApplyConfigAllowlistAutoRun writes auto-run mode into config and refreshes UI feedback.
-func (m Model) ApplyConfigAllowlistAutoRun(value string) Model {
-	return m.applyConfigAllowlistAutoRun(value)
-}
-
 // OpenHelpOverlay opens the built-in help overlay.
 func (m Model) OpenHelpOverlay() Model {
 	return m.openHelpOverlay()

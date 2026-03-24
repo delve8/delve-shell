@@ -139,6 +139,7 @@ func Run(cmd *cobra.Command, args []string) error {
 			sessionPath = s.Path()
 		}
 		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, allowlistAutoRunChangeChan, sessionSwitchChan, remoteOnChan, remoteOffChan, remoteAuthRespChan, getAllowlistAutoRun, savedMessages, sessionPath, initialShowConfigLLM)
+		model.Context.ConfigPath = config.ConfigPath()
 		initialShowConfigLLM = false
 		p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithReportFocus())
 		currentP.Store(p)

@@ -1,9 +1,9 @@
-package ui
+package run
 
-// ApplyOverlayCloseFeatureResets clears feature-owned overlay fields when any overlay is dismissed
-// (Esc or programmatic close). Keep in sync with overlay key handlers and overlay open paths.
-func ApplyOverlayCloseFeatureResets(m Model) Model {
-	// Remote + remote auth (internal/remote).
+import "delve-shell/internal/ui"
+
+func applyOverlayCloseFeatureResets(m ui.Model) ui.Model {
+	// Remote + remote auth.
 	m.AddRemote.Active = false
 	m.AddRemote.Connecting = false
 	m.AddRemote.Error = ""
@@ -14,13 +14,13 @@ func ApplyOverlayCloseFeatureResets(m Model) Model {
 	m.RemoteAuth.Error = ""
 	m.RemoteAuth.Username = ""
 
-	// Skill overlays (internal/skill).
+	// Skill overlays.
 	m.AddSkill.Active = false
 	m.AddSkill.Error = ""
 	m.UpdateSkill.Active = false
 	m.UpdateSkill.Error = ""
 
-	// Config LLM overlay (internal/configllm).
+	// Config LLM overlay.
 	m.ConfigLLM.Active = false
 	m.ConfigLLM.Checking = false
 	m.ConfigLLM.Error = ""
@@ -29,5 +29,5 @@ func ApplyOverlayCloseFeatureResets(m Model) Model {
 }
 
 func init() {
-	RegisterOverlayCloseHook(ApplyOverlayCloseFeatureResets)
+	ui.RegisterOverlayCloseHook(applyOverlayCloseFeatureResets)
 }

@@ -7,9 +7,7 @@ import (
 	"delve-shell/internal/i18n"
 )
 
-// applyConfigAllowlistAutoRun sets allowlist_auto_run in config and writes; next startup will use it.
-// value: "list-only" -> on, "disable" -> off.
-func (m Model) applyConfigAllowlistAutoRun(value string) Model {
+func applyTestConfigAllowlistAutoRun(m Model, value string) Model {
 	value = strings.TrimSpace(strings.ToLower(value))
 	var on bool
 	switch value {
@@ -20,15 +18,14 @@ func (m Model) applyConfigAllowlistAutoRun(value string) Model {
 	default:
 		lang := m.getLang()
 		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+i18n.T(lang, i18n.KeyConfigAutoRunRequired)))
-		m = m.RefreshViewport()
-		return m
+		return m.RefreshViewport()
 	}
+
 	lang := m.getLang()
 	cfg, err := config.Load()
 	if err != nil {
 		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m = m.RefreshViewport()
-		return m
+		return m.RefreshViewport()
 	}
 	cfg.AllowlistAutoRun = &on
 	if on {
@@ -38,8 +35,7 @@ func (m Model) applyConfigAllowlistAutoRun(value string) Model {
 	}
 	if err := config.Write(cfg); err != nil {
 		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m = m.RefreshViewport()
-		return m
+		return m.RefreshViewport()
 	}
 	display := i18n.T(lang, i18n.KeyAutoRunListOnly)
 	if !on {
@@ -57,14 +53,12 @@ func (m Model) applyConfigAllowlistAutoRun(value string) Model {
 	return m
 }
 
-// applyConfigAllowlistUpdate merges built-in default allowlist into current allowlist.yaml, appending only missing patterns.
-func (m Model) applyConfigAllowlistUpdate() Model {
+func applyTestConfigAllowlistUpdate(m Model) Model {
 	lang := m.getLang()
 	added, err := config.AllowlistUpdateWithDefaults()
 	if err != nil {
 		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m = m.RefreshViewport()
-		return m
+		return m.RefreshViewport()
 	}
 	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyAllowlistUpdateDone, added))))
 	m.Messages = append(m.Messages, "")
@@ -75,5 +69,28 @@ func (m Model) applyConfigAllowlistUpdate() Model {
 		default:
 		}
 	}
+	return m
+}
+
+func applyTestOverlayCloseFeatureResets(m Model) Model {
+	m.AddRemote.Active = false
+	m.AddRemote.Connecting = false
+	m.AddRemote.Error = ""
+	m.AddRemote.OfferOverwrite = false
+	m.RemoteAuth.Connecting = false
+	m.RemoteAuth.Step = ""
+	m.RemoteAuth.Target = ""
+	m.RemoteAuth.Error = ""
+	m.RemoteAuth.Username = ""
+
+	m.AddSkill.Active = false
+	m.AddSkill.Error = ""
+	m.UpdateSkill.Active = false
+	m.UpdateSkill.Error = ""
+
+	m.ConfigLLM.Active = false
+	m.ConfigLLM.Checking = false
+	m.ConfigLLM.Error = ""
+
 	return m
 }

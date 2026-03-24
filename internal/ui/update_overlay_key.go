@@ -4,7 +4,7 @@ import tea "github.com/charmbracelet/bubbletea"
 
 func (m Model) closeOverlayCommon(refocusInput bool) (Model, tea.Cmd) {
 	m = m.CloseOverlayVisual()
-	for _, h := range overlayCloseHooks {
+	for _, h := range overlayCloseHookChain.List() {
 		m = h(m)
 	}
 	if refocusInput {

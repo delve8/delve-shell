@@ -32,7 +32,7 @@ func init() {
 	})
 	ui.RegisterSlashExact("/config update auto-run list", ui.SlashExactDispatchEntry{
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
-			return m.ApplyConfigAllowlistUpdate(), nil
+			return applyConfigAllowlistUpdate(m), nil
 		},
 		ClearInput: true,
 	})

@@ -31,12 +31,12 @@
 | `RegisterSlashSelectedProvider` | 选中某行后 Enter、且不走 exact/prefix 时的行为（如 fill-only） |
 | `RegisterOverlayKeyProvider` | overlay 激活时的按键 |
 | `RegisterOverlayContentProvider` | overlay 正文渲染 |
-| `RegisterOverlayCloseHook` | **任意** overlay 关闭时复位业务字段（Esc / 程序化 close）；生产侧由 `ui.ApplyOverlayCloseFeatureResets` 统一注册一次 |
+| `RegisterOverlayCloseHook` | **任意** overlay 关闭时复位业务字段（Esc / 程序化 close）；生产侧由 feature 注册层统一挂载 |
 | `RegisterMessageProvider` | `tea.Msg` 的优先处理（在 `ui` 默认 switch 之前） |
 
 ### 2.3 与 `update_slash_*` 的关系
 
-- `dispatchSlashExact` / `dispatchSlashPrefix` 遍历 registry；**具体命令实现不在 `update_slash_exact_entries.go` 里堆业务**（剩余多为通用 `/config` 等）。
+- `dispatchSlashExact` / `dispatchSlashPrefix` 遍历 registry；**具体命令实现不在 `ui` 包内堆业务**（`/config*` 等已迁至 `internal/run`）。
 - `handleSlashSelectedFallback` 只跑 `slashSelectedProviders`，内置硬编码应趋近于零（当前 `/run` 在 `internal/run`，`/skill` 在 `internal/skill`）。
 
 ---
@@ -62,7 +62,7 @@
   - `feature_registry_session_test.go`  
   - `feature_registry_slash_exact_test.go`  
   `feature_registry_test.go` 保留汇总入口（init 调度），降低单文件耦合。
-- **Overlay 复位**：`internal/ui/overlay_close_feature_reset.go` 中 **`ApplyOverlayCloseFeatureResets`** + `init()` 单次 `RegisterOverlayCloseHook`；新增业务 overlay 字段时只改该函数（及对应 overlay 打开逻辑），**不再**在 remote/skill/configllm 各写一份 hook。
+- **Overlay 复位**：已迁至 `internal/run` 注册侧统一挂载 `RegisterOverlayCloseHook`；`ui` 仅执行 hook，不持有业务复位实现。`internal/ui` 测试通过 mirror 保持隔离。
 
 ---
 
@@ -101,8 +101,8 @@
    - `view_approval_card.go`：`appendApprovalViewportContent`；`view_approval_card_test.go` / `view_title_test.go` 覆盖片段行为。  
    - 后续若要将「行列表」上移到 `hiltypes`，可与现有函数并行演进。
 
-3. **`update_slash_exact_entries.go` 审计**（已核对）  
-   - 现状条目均为壳层：`/config`、`/config show`、取消与重载、`/q`/`/sh`、allowlist 更新；无进一步下沉到 feature 包的必要；与 `RegisterSlashExact` 分工一致。
+3. **slash 业务处理位置审计**（已核对）  
+   - 现状：`ui` 仅保留分发与展示壳层；`/config*`、取消与重载、`/q`/`/sh`、allowlist 更新等处理逻辑在 `internal/run`。
 
 ### P2 — 中风险、牵涉 Model
 
@@ -115,7 +115,9 @@
    - 已做：slash exact/prefix 命令注册从 `ui` 下沉到 `internal/run`；`ui` 仅保留壳层分发与 registry API。  
    - 已做：删除 `ui` 内部 `registerSlashExact` 别名，只保留 `RegisterSlashExact`。  
    - 已做：测试镜像按领域拆分，减轻“单点大文件”维护成本。  
-   - 待做（结构性）：`registry core` 设计与最小链路迁移；评估 `ui_test` 外部包迁移成本。
+   - 已做（阶段 1）：抽出 `internal/slashreg` 的 `ExactRegistry` / `PrefixRegistry`，`ui` 改为适配层。  
+   - 已做（阶段 2）：provider 链（options/selected/message/overlay/title/close-hook）迁移到 `slashreg.ProviderChain` 容器。  
+   - 待做（结构性）：评估 `ui_test` 外部包迁移成本，逐步减少测试镜像覆盖面。
 
 ### P3 — 产品/仓库卫生
 
@@ -155,6 +157,12 @@
 
 | 日期 | 说明 |
 |------|------|
+| 2025-03-24 | `registry core` 两阶段：`internal/slashreg` 承接 slash exact/prefix registry 与 provider chain 容器，`ui` 保持注册 API 但不再持有底层容器实现 |
+| 2025-03-24 | overlay close 业务复位下沉：`ApplyOverlayCloseFeatureResets` 从 `ui` 迁到 `internal/run` 注册层，`ui` 保留通用 hook 执行机制 |
+| 2025-03-24 | `config` 业务逻辑继续下沉：删除 `internal/ui/config_handlers.go`，allowlist update/auto-run 处理迁至 `internal/run`；`ui` 仅保留壳层分发/渲染职责 |
+| 2025-03-24 | `ErrLLMNotConfigured` 文案所需配置路径改为由 host 注入 `Model.Context.ConfigPath`，去除 `ui` 对 `internal/config` 的生产依赖 |
+| 2025-03-24 | slash 静态候选下沉：`/help`、`/config` 等顶层与 `/config` 子命令候选由注册机制提供（`ui.RegisterRootSlashOptionProvider` + `ui.RegisterSlashOptionsProvider`），`ui/slash.go` 去除硬编码与 `/config` fallback |
+| 2025-03-24 | `/run` 候选下沉：`ui/slash.go` 移除 `/run` completion 默认实现，改由 `ui.RegisterSlashOptionsProvider` 在 `internal/run` 提供 |
 | 2025-03-24 | slash 注册下沉：`/config*`、`/cancel`、`/q`、`/sh`、`/help`、`/config auto-run` 从 `ui` 迁到 `run/feature` 包；删除 `ui.registerSlashExact` 别名 |
 | 2025-03-24 | `internal/ui` 测试镜像重组：`feature_registry_test.go` 拆分为 remote/configllm、skill、session、slash-exact 多文件，主文件仅做汇总 init |
 | 2025-03-24 | P2：`Model` 再收敛 `Layout`/`Startup`/`Approval`；新增 `hasPendingApproval`、`contentWidth`、`OpenOverlay`、`CloseOverlayVisual` 等 helper 并替换重复逻辑 |

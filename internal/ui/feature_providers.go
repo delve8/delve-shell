@@ -15,6 +15,7 @@ type SlashOptionsProvider func(
 ) (opts []SlashOption, handled bool)
 
 var slashOptionsProviderChain = slashreg.NewProviderChain[SlashOptionsProvider]()
+var rootSlashOptionProviderChain = slashreg.NewProviderChain[func(string) []SlashOption]()
 
 // RegisterSlashOptionsProvider registers a slash options provider.
 // Providers are executed in registration order; the first one that returns handled=true wins.
@@ -23,6 +24,15 @@ func RegisterSlashOptionsProvider(p SlashOptionsProvider) {
 		return
 	}
 	slashOptionsProviderChain.Add(p, func(x SlashOptionsProvider) bool { return x == nil })
+}
+
+// RegisterRootSlashOptionProvider registers a provider for top-level slash options.
+// Providers are concatenated in registration order.
+func RegisterRootSlashOptionProvider(p func(lang string) []SlashOption) {
+	if p == nil {
+		return
+	}
+	rootSlashOptionProviderChain.Add(p, func(x func(string) []SlashOption) bool { return x == nil })
 }
 
 // SlashSelectedProvider handles Enter on a chosen slash suggestion when the
@@ -89,7 +99,7 @@ func RegisterOverlayContentProvider(p OverlayContentProvider) {
 // (Esc or programmatic close). Hooks run after generic overlay chrome is cleared.
 type OverlayCloseHook func(m Model) Model
 
-var overlayCloseHooks []OverlayCloseHook
+var overlayCloseHookChain = slashreg.NewProviderChain[OverlayCloseHook]()
 
 // RegisterOverlayCloseHook registers an overlay-dismiss reset hook.
 // Hooks run in registration order; each receives and returns the model by value.
@@ -97,7 +107,7 @@ func RegisterOverlayCloseHook(h OverlayCloseHook) {
 	if h == nil {
 		return
 	}
-	overlayCloseHooks = append(overlayCloseHooks, h)
+	overlayCloseHookChain.Add(h, func(x OverlayCloseHook) bool { return x == nil })
 }
 
 // TitleBarFragmentProvider supplies the leading title-bar segment (before " | " auto-run),

@@ -31,7 +31,7 @@ func TestApplyOverlayCloseFeatureResets(t *testing.T) {
 			Error:    "ce",
 		},
 	}
-	m2 := ApplyOverlayCloseFeatureResets(m)
+	m2 := applyTestOverlayCloseFeatureResets(m)
 	if m2.AddRemote.Active || m2.AddRemote.Connecting || m2.AddRemote.Error != "" || m2.AddRemote.OfferOverwrite {
 		t.Fatalf("remote fields not cleared: %+v", m2)
 	}
