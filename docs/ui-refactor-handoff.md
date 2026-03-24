@@ -169,6 +169,7 @@
 | 2025-03-24 | 镜像测试层整批删除：移除 `feature_registry_*_test.go`、`main_test.go`、`config_handlers_test_helpers_test.go`，`internal/ui` 行为测试改由 `model_blackbox_test.go` 驱动真实 feature 注册链 |
 | 2025-03-24 | session 历史解析下沉：删除 `ui/view_history_lines.go` 与 `ui/session_events_export.go`，`history.Event -> UI 行` 转换迁至 `internal/session/history_lines.go`，并迁移对应测试到 `internal/session/history_lines_test.go` |
 | 2025-03-24 | `/run` 本地命令发现下沉：删除 `ui/run_completion.go`，PATH 扫描与本地可执行缓存迁至 `internal/run/local_commands.go`，`ui` 不再持有命令发现逻辑 |
+| 2025-03-24 | 路径补全能力下沉：删除 `ui/pathcomplete.go`，新增 `internal/pathcomplete/candidates.go` 并由 `remote` 等业务包直接依赖，`ui` 不再直接访问文件系统补全细节 |
 | 2025-03-24 | slash 注册下沉：`/config*`、`/cancel`、`/q`、`/sh`、`/help`、`/config auto-run` 从 `ui` 迁到 `run/feature` 包；删除 `ui.registerSlashExact` 别名 |
 | 2025-03-24 | `internal/ui` 测试镜像重组：`feature_registry_test.go` 拆分为 remote/configllm、skill、session、slash-exact 多文件，主文件仅做汇总 init |
 | 2025-03-24 | P2：`Model` 再收敛 `Layout`/`Startup`/`Approval`；新增 `hasPendingApproval`、`contentWidth`、`OpenOverlay`、`CloseOverlayVisual` 等 helper 并替换重复逻辑 |

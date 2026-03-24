@@ -9,6 +9,7 @@ import (
 
 	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/pathcomplete"
 	"delve-shell/internal/service/remotesvc"
 	"delve-shell/internal/ui"
 )
@@ -42,7 +43,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 				m.AddRemote.KeyInput.SetValue(chosen)
 				m.AddRemote.KeyInput.CursorEnd()
 				if strings.HasSuffix(chosen, "/") {
-					m.PathCompletion.Candidates = ui.PathCandidates(chosen)
+					m.PathCompletion.Candidates = pathcomplete.Candidates(chosen)
 					m.PathCompletion.Index = 0
 				} else {
 					m.PathCompletion.Candidates = nil
@@ -98,7 +99,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			m.PathCompletion.Candidates = nil
 			m.PathCompletion.Index = -1
 		} else {
-			m.PathCompletion.Candidates = ui.PathCandidates(m.AddRemote.KeyInput.Value())
+			m.PathCompletion.Candidates = pathcomplete.Candidates(m.AddRemote.KeyInput.Value())
 			if len(m.PathCompletion.Candidates) > 0 {
 				m.PathCompletion.Index = 0
 			} else {
@@ -167,7 +168,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 				m.AddRemote.KeyInput.SetValue(chosen)
 				m.AddRemote.KeyInput.CursorEnd()
 				if strings.HasSuffix(chosen, "/") {
-					m.PathCompletion.Candidates = ui.PathCandidates(chosen)
+					m.PathCompletion.Candidates = pathcomplete.Candidates(chosen)
 					m.PathCompletion.Index = 0
 				} else {
 					m.PathCompletion.Candidates = nil
@@ -253,7 +254,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 		m.AddRemote.NameInput, cmd = m.AddRemote.NameInput.Update(msg)
 	case 3:
 		m.AddRemote.KeyInput, cmd = m.AddRemote.KeyInput.Update(msg)
-		m.PathCompletion.Candidates = ui.PathCandidates(m.AddRemote.KeyInput.Value())
+		m.PathCompletion.Candidates = pathcomplete.Candidates(m.AddRemote.KeyInput.Value())
 		if len(m.PathCompletion.Candidates) > 0 {
 			m.PathCompletion.Index = 0
 		} else {
@@ -397,7 +398,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			m.RemoteAuth.Input.SetValue(chosen)
 			m.RemoteAuth.Input.CursorEnd()
 			if strings.HasSuffix(chosen, "/") {
-				m.PathCompletion.Candidates = ui.PathCandidates(chosen)
+				m.PathCompletion.Candidates = pathcomplete.Candidates(chosen)
 				m.PathCompletion.Index = 0
 			} else {
 				m.PathCompletion.Candidates = nil
@@ -448,7 +449,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 		}
 
 		if key == "tab" {
-			m.PathCompletion.Candidates = ui.PathCandidates(m.RemoteAuth.Input.Value())
+			m.PathCompletion.Candidates = pathcomplete.Candidates(m.RemoteAuth.Input.Value())
 			if len(m.PathCompletion.Candidates) > 0 {
 				m.PathCompletion.Index = (m.PathCompletion.Index + 1) % len(m.PathCompletion.Candidates)
 			} else {
@@ -460,7 +461,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 		var cmd tea.Cmd
 		m.RemoteAuth.Input, cmd = m.RemoteAuth.Input.Update(msg)
 		// Refresh path candidates from new input (so dropdown updates as user types).
-		m.PathCompletion.Candidates = ui.PathCandidates(m.RemoteAuth.Input.Value())
+		m.PathCompletion.Candidates = pathcomplete.Candidates(m.RemoteAuth.Input.Value())
 		if len(m.PathCompletion.Candidates) > 0 {
 			m.PathCompletion.Index = 0
 		} else {

@@ -1,4 +1,4 @@
-package ui
+package pathcomplete
 
 import (
 	"os"
@@ -6,13 +6,10 @@ import (
 	"strings"
 )
 
-const pathCompletionMax = 10
+const maxCandidates = 10
 
-// PathCandidates returns path completions for the given input (e.g. ~/.ssh/ -> ~/.ssh/id_rsa, ...).
-// Uses ~ in results when input starts with ~ (no expansion to absolute path in display).
-// When input is a directory (or ends with /), lists that directory (auto-expand).
-// Shared by any path input with dropdown (auth identity key path, add-remote key path).
-func PathCandidates(input string) []string {
+// Candidates returns path completions for the given input.
+func Candidates(input string) []string {
 	input = strings.TrimSpace(input)
 	if input == "" {
 		return nil
@@ -38,7 +35,6 @@ func PathCandidates(input string) []string {
 	if !strings.HasSuffix(input, "/") && !strings.HasSuffix(expanded, string(filepath.Separator)) {
 		dir = filepath.Dir(expanded)
 		prefix = filepath.Base(expanded)
-		// When the path exists and is a directory, list its contents (auto-expand).
 		if prefix != "" && prefix != "." && prefix != ".." {
 			childPath := filepath.Join(dir, prefix)
 			if info, err := os.Stat(childPath); err == nil && info.IsDir() {
@@ -75,7 +71,7 @@ func PathCandidates(input string) []string {
 			full += "/"
 		}
 		out = append(out, full)
-		if len(out) >= pathCompletionMax {
+		if len(out) >= maxCandidates {
 			break
 		}
 	}
