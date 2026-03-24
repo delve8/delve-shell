@@ -113,10 +113,10 @@ func init() {
 	})
 
 	ui.RegisterOverlayKeyProvider(func(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
-		if m.AddSkillActive {
+		if m.AddSkill.Active {
 			return handleAddSkillOverlayKey(m, key, msg)
 		}
-		if m.UpdateSkillActive {
+		if m.UpdateSkill.Active {
 			return handleUpdateSkillOverlayKey(m, key)
 		}
 		return m, nil, false
@@ -126,15 +126,15 @@ func init() {
 	ui.RegisterMessageProvider(func(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		switch t := msg.(type) {
 		case ui.AddSkillRefsLoadedMsg:
-			if m.AddSkillActive {
-				m.AddSkillRefsFullList = t.Refs
-				m.AddSkillRefCandidates = filterByPrefix(t.Refs, m.AddSkillRefInput.Value())
-				m.AddSkillRefIndex = 0
+			if m.AddSkill.Active {
+				m.AddSkill.RefsFullList = t.Refs
+				m.AddSkill.RefCandidates = filterByPrefix(t.Refs, m.AddSkill.RefInput.Value())
+				m.AddSkill.RefIndex = 0
 			}
 			return m, nil, true
 		case ui.AddSkillPathsLoadedMsg:
-			if m.AddSkillActive {
-				m.AddSkillPathsFullList = t.Paths
+			if m.AddSkill.Active {
+				m.AddSkill.PathsFullList = t.Paths
 				m = updateAddSkillPathCandidates(m)
 			}
 			return m, nil, true
@@ -152,45 +152,45 @@ func openAddSkillOverlay(m ui.Model, url, ref, path string) ui.Model {
 	lang := "en" // ui.getLang() currently always returns "en"
 	m.OverlayActive = true
 	m.OverlayTitle = i18n.T(lang, i18n.KeyAddSkillTitle)
-	m.AddSkillActive = true
-	m.AddSkillError = ""
-	m.AddSkillFieldIndex = 0
+	m.AddSkill.Active = true
+	m.AddSkill.Error = ""
+	m.AddSkill.FieldIndex = 0
 
-	m.AddSkillURLInput = textinput.New()
-	m.AddSkillURLInput.Placeholder = "https://github.com/owner/repo or owner/repo"
-	m.AddSkillURLInput.SetValue(url)
-	m.AddSkillURLInput.Focus()
+	m.AddSkill.URLInput = textinput.New()
+	m.AddSkill.URLInput.Placeholder = "https://github.com/owner/repo or owner/repo"
+	m.AddSkill.URLInput.SetValue(url)
+	m.AddSkill.URLInput.Focus()
 
-	m.AddSkillRefInput = textinput.New()
-	m.AddSkillRefInput.Placeholder = "main"
-	m.AddSkillRefInput.SetValue(ref)
-	m.AddSkillRefInput.Blur()
+	m.AddSkill.RefInput = textinput.New()
+	m.AddSkill.RefInput.Placeholder = "main"
+	m.AddSkill.RefInput.SetValue(ref)
+	m.AddSkill.RefInput.Blur()
 
-	m.AddSkillPathInput = textinput.New()
-	m.AddSkillPathInput.Placeholder = "skills/foo"
-	m.AddSkillPathInput.SetValue(path)
-	m.AddSkillPathInput.Blur()
+	m.AddSkill.PathInput = textinput.New()
+	m.AddSkill.PathInput.Placeholder = "skills/foo"
+	m.AddSkill.PathInput.SetValue(path)
+	m.AddSkill.PathInput.Blur()
 
-	m.AddSkillNameInput = textinput.New()
-	m.AddSkillNameInput.Placeholder = "local skill name"
+	m.AddSkill.NameInput = textinput.New()
+	m.AddSkill.NameInput.Placeholder = "local skill name"
 	// Derive local name from path last segment when provided.
 	if p := strings.TrimSpace(path); p != "" {
 		if idx := strings.LastIndex(p, "/"); idx >= 0 && idx < len(p)-1 {
 			p = p[idx+1:]
 		}
-		m.AddSkillNameInput.SetValue(p)
-		m.AddSkillNameInput.CursorEnd()
+		m.AddSkill.NameInput.SetValue(p)
+		m.AddSkill.NameInput.CursorEnd()
 	} else {
-		m.AddSkillNameInput.SetValue("")
+		m.AddSkill.NameInput.SetValue("")
 	}
-	m.AddSkillNameInput.Blur()
+	m.AddSkill.NameInput.Blur()
 
-	m.AddSkillRefsFullList = nil
-	m.AddSkillRefCandidates = nil
-	m.AddSkillRefIndex = 0
-	m.AddSkillPathsFullList = nil
-	m.AddSkillPathCandidates = nil
-	m.AddSkillPathIndex = 0
+	m.AddSkill.RefsFullList = nil
+	m.AddSkill.RefCandidates = nil
+	m.AddSkill.RefIndex = 0
+	m.AddSkill.PathsFullList = nil
+	m.AddSkill.PathCandidates = nil
+	m.AddSkill.PathIndex = 0
 	return m
 }
 

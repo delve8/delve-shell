@@ -4,34 +4,44 @@ import "testing"
 
 func TestApplyOverlayCloseFeatureResets(t *testing.T) {
 	m := Model{
-		AddRemoteActive:         true,
-		AddRemoteConnecting:     true,
-		AddRemoteError:          "e",
-		AddRemoteOfferOverwrite: true,
-		RemoteAuthConnecting:    true,
-		RemoteAuthStep:          "password",
-		RemoteAuthTarget:        "t",
-		RemoteAuthError:         "ae",
-		RemoteAuthUsername:      "u",
-		AddSkillActive:          true,
-		AddSkillError:           "se",
-		UpdateSkillActive:       true,
-		UpdateSkillError:        "ue",
-		ConfigLLMActive:         true,
-		ConfigLLMChecking:       true,
-		ConfigLLMError:          "ce",
+		AddRemote: AddRemoteOverlayState{
+			Active:         true,
+			Connecting:     true,
+			Error:          "e",
+			OfferOverwrite: true,
+		},
+		RemoteAuth: RemoteAuthOverlayState{
+			Connecting: true,
+			Step:       "password",
+			Target:     "t",
+			Error:      "ae",
+			Username:   "u",
+		},
+		AddSkill: AddSkillOverlayState{
+			Active: true,
+			Error:  "se",
+		},
+		UpdateSkill: UpdateSkillOverlayState{
+			Active: true,
+			Error:  "ue",
+		},
+		ConfigLLM: ConfigLLMOverlayState{
+			Active:   true,
+			Checking: true,
+			Error:    "ce",
+		},
 	}
 	m2 := ApplyOverlayCloseFeatureResets(m)
-	if m2.AddRemoteActive || m2.AddRemoteConnecting || m2.AddRemoteError != "" || m2.AddRemoteOfferOverwrite {
+	if m2.AddRemote.Active || m2.AddRemote.Connecting || m2.AddRemote.Error != "" || m2.AddRemote.OfferOverwrite {
 		t.Fatalf("remote fields not cleared: %+v", m2)
 	}
-	if m2.RemoteAuthConnecting || m2.RemoteAuthStep != "" || m2.RemoteAuthTarget != "" || m2.RemoteAuthError != "" || m2.RemoteAuthUsername != "" {
+	if m2.RemoteAuth.Connecting || m2.RemoteAuth.Step != "" || m2.RemoteAuth.Target != "" || m2.RemoteAuth.Error != "" || m2.RemoteAuth.Username != "" {
 		t.Fatalf("remote auth fields not cleared: %+v", m2)
 	}
-	if m2.AddSkillActive || m2.AddSkillError != "" || m2.UpdateSkillActive || m2.UpdateSkillError != "" {
+	if m2.AddSkill.Active || m2.AddSkill.Error != "" || m2.UpdateSkill.Active || m2.UpdateSkill.Error != "" {
 		t.Fatalf("skill fields not cleared: %+v", m2)
 	}
-	if m2.ConfigLLMActive || m2.ConfigLLMChecking || m2.ConfigLLMError != "" {
+	if m2.ConfigLLM.Active || m2.ConfigLLM.Checking || m2.ConfigLLM.Error != "" {
 		t.Fatalf("configllm fields not cleared: %+v", m2)
 	}
 }

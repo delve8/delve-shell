@@ -94,14 +94,14 @@ func (m Model) handleCommandExecutedMsg(msg CommandExecutedMsg) (Model, tea.Cmd)
 }
 
 func (m Model) handleConfigLLMCheckDoneMsg(msg ConfigLLMCheckDoneMsg) (Model, tea.Cmd) {
-	m.ConfigLLMChecking = false
+	m.ConfigLLM.Checking = false
 	lang := m.getLang()
 	if msg.Err != nil {
-		m.ConfigLLMError = i18n.Tf(lang, i18n.KeyConfigLLMCheckFailed, msg.Err)
+		m.ConfigLLM.Error = i18n.Tf(lang, i18n.KeyConfigLLMCheckFailed, msg.Err)
 		m.Viewport.SetContent(m.buildContent())
 		return m, nil
 	}
-	m.ConfigLLMError = ""
+	m.ConfigLLM.Error = ""
 	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyConfigSavedLLM))))
 	if msg.CorrectedBaseURL != "" {
 		m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyConfigLLMBaseURLAutoCorrected, msg.CorrectedBaseURL))))
@@ -111,7 +111,7 @@ func (m Model) handleConfigLLMCheckDoneMsg(msg ConfigLLMCheckDoneMsg) (Model, te
 	m.Viewport.SetContent(m.buildContent())
 	m.Viewport.GotoBottom()
 	m.OverlayActive = false
-	m.ConfigLLMActive = false
+	m.ConfigLLM.Active = false
 	m.OverlayTitle = ""
 	m.OverlayContent = ""
 	if m.ConfigUpdatedChan != nil {

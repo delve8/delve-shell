@@ -53,69 +53,94 @@ type Model struct {
 
 	// Add-remote overlay state (username + host separate).
 	// Fields: 0=host, 1=user, 2=name, 3=key path, 4=save-as-remote checkbox.
-	AddRemoteActive         bool
-	AddRemoteUserInput      textinput.Model
-	AddRemoteHostInput      textinput.Model
-	AddRemoteNameInput      textinput.Model
-	AddRemoteKeyInput       textinput.Model
-	AddRemoteFieldIndex     int
-	AddRemoteError          string
-	AddRemoteOfferOverwrite bool // when true, error was "already exists"; show overwrite hint and accept O to overwrite
-	AddRemoteSave           bool // true = save/update remote config; false = only connect (for /remote on)
-	AddRemoteConnect        bool // true when opened via /remote on; false for /config add-remote
-	AddRemoteConnecting     bool // true while waiting for connection result (show "Connecting...")
+	AddRemote AddRemoteOverlayState
 
 	// Remote auth overlay state.
-	// RemoteAuthStep: "" = inactive, "choose" = selecting auth method, "password" = entering password, "identity" = entering key path.
-	RemoteAuthStep          string
-	RemoteAuthTarget        string
-	RemoteAuthError         string
-	RemoteAuthUsername      string          // username to use when submitting (default root)
-	RemoteAuthUsernameInput textinput.Model // username input in choose step
-	RemoteAuthInput         textinput.Model // for password or identity path
-	RemoteAuthConnecting    bool            // true while waiting for remote auth result ("Connecting..." state)
+	RemoteAuth RemoteAuthOverlayState
 	// Path completion (shared): used for any path input with dropdown (auth identity key path, add-remote key path).
 	PathCompletionCandidates []string
 	PathCompletionIndex      int
 
 	// InitialShowConfigLLM: when true, open Config LLM overlay on first WindowSizeMsg (e.g. no config / model empty at startup).
 	InitialShowConfigLLM bool
-	// Config LLM overlay: base_url, api_key, model, max_context_messages, max_context_chars.
-	ConfigLLMActive           bool
-	ConfigLLMChecking         bool // true while async "hello" check is in progress after save
-	ConfigLLMBaseURLInput     textinput.Model
-	ConfigLLMApiKeyInput      textinput.Model
-	ConfigLLMModelInput       textinput.Model
-	ConfigLLMMaxMessagesInput textinput.Model
-	ConfigLLMMaxCharsInput    textinput.Model
-	ConfigLLMFieldIndex       int // 0=base_url, 1=api_key, 2=model, 3=max_messages, 4=max_chars
-	ConfigLLMError            string
+	// Config LLM overlay state.
+	ConfigLLM ConfigLLMOverlayState
 
 	// Add-skill overlay: URL (required), ref, path and local name (optional).
-	AddSkillActive         bool
-	AddSkillURLInput       textinput.Model
-	AddSkillRefInput       textinput.Model
-	AddSkillPathInput      textinput.Model
-	AddSkillNameInput      textinput.Model
-	AddSkillFieldIndex     int // 0=url, 1=ref, 2=path, 3=name
-	AddSkillError          string
-	AddSkillRefsFullList   []string // all refs from remote (for filtering)
-	AddSkillRefCandidates  []string // refs filtered by Ref input prefix
-	AddSkillRefIndex       int      // selection in ref dropdown
-	AddSkillPathsFullList  []string // paths from git repo (when non-nil, Path dropdown uses this instead of static list)
-	AddSkillPathCandidates []string // path options filtered by Path input prefix
-	AddSkillPathIndex      int      // selection in path dropdown
+	AddSkill AddSkillOverlayState
 
 	// Update-skill overlay: choose ref and confirm update for an installed skill.
-	UpdateSkillActive        bool
-	UpdateSkillName          string
-	UpdateSkillURL           string
-	UpdateSkillPath          string
-	UpdateSkillCurrentCommit string
-	UpdateSkillRefs          []string
-	UpdateSkillRefIndex      int
-	UpdateSkillLatestCommit  string
-	UpdateSkillError         string
+	UpdateSkill UpdateSkillOverlayState
+}
+
+// ConfigLLMOverlayState stores overlay-only state for `/config llm`.
+type ConfigLLMOverlayState struct {
+	Active           bool
+	Checking         bool // true while async "hello" check is in progress after save
+	BaseURLInput     textinput.Model
+	ApiKeyInput      textinput.Model
+	ModelInput       textinput.Model
+	MaxMessagesInput textinput.Model
+	MaxCharsInput    textinput.Model
+	FieldIndex       int // 0=base_url, 1=api_key, 2=model, 3=max_messages, 4=max_chars
+	Error            string
+}
+
+// RemoteAuthOverlayState stores overlay-only state for remote authentication prompts.
+// Step: "" = inactive, "choose" = selecting auth method, "password" = entering password, "identity" = entering key path.
+type RemoteAuthOverlayState struct {
+	Step          string
+	Target        string
+	Error         string
+	Username      string          // username to use when submitting (default root)
+	UsernameInput textinput.Model // username input in choose step
+	Input         textinput.Model // for password or identity path
+	Connecting    bool            // true while waiting for remote auth result ("Connecting..." state)
+}
+
+// AddRemoteOverlayState stores overlay-only state for add/connect remote dialogs.
+type AddRemoteOverlayState struct {
+	Active         bool
+	UserInput      textinput.Model
+	HostInput      textinput.Model
+	NameInput      textinput.Model
+	KeyInput       textinput.Model
+	FieldIndex     int
+	Error          string
+	OfferOverwrite bool // when true, error was "already exists"; show overwrite hint and accept O to overwrite
+	Save           bool // true = save/update remote config; false = only connect (for /remote on)
+	Connect        bool // true when opened via /remote on; false for /config add-remote
+	Connecting     bool // true while waiting for connection result (show "Connecting...")
+}
+
+// AddSkillOverlayState stores overlay-only state for add-skill flow.
+type AddSkillOverlayState struct {
+	Active         bool
+	URLInput       textinput.Model
+	RefInput       textinput.Model
+	PathInput      textinput.Model
+	NameInput      textinput.Model
+	FieldIndex     int // 0=url, 1=ref, 2=path, 3=name
+	Error          string
+	RefsFullList   []string // all refs from remote (for filtering)
+	RefCandidates  []string // refs filtered by Ref input prefix
+	RefIndex       int      // selection in ref dropdown
+	PathsFullList  []string // paths from git repo (when non-nil, Path dropdown uses this instead of static list)
+	PathCandidates []string // path options filtered by Path input prefix
+	PathIndex      int      // selection in path dropdown
+}
+
+// UpdateSkillOverlayState stores overlay-only state for update-skill flow.
+type UpdateSkillOverlayState struct {
+	Active        bool
+	Name          string
+	URL           string
+	Path          string
+	CurrentCommit string
+	Refs          []string
+	RefIndex      int
+	LatestCommit  string
+	Error         string
 }
 
 // Init implements tea.Model.

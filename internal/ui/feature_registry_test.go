@@ -32,24 +32,24 @@ func init() {
 		Handle: func(m Model) (Model, tea.Cmd) {
 			m.OverlayActive = true
 			m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
-			m.AddRemoteActive = true
-			m.AddRemoteError = ""
-			m.AddRemoteOfferOverwrite = false
-			m.AddRemoteSave = true
-			m.AddRemoteConnect = false
+			m.AddRemote.Active = true
+			m.AddRemote.Error = ""
+			m.AddRemote.OfferOverwrite = false
+			m.AddRemote.Save = true
+			m.AddRemote.Connect = false
 			m.PathCompletionCandidates = nil
 			m.PathCompletionIndex = -1
-			m.AddRemoteFieldIndex = 0
-			m.AddRemoteHostInput = textinput.New()
-			m.AddRemoteHostInput.Placeholder = "host or host:22"
-			m.AddRemoteHostInput.Focus()
-			m.AddRemoteUserInput = textinput.New()
-			m.AddRemoteUserInput.Placeholder = "e.g. root"
-			m.AddRemoteUserInput.SetValue("root")
-			m.AddRemoteNameInput = textinput.New()
-			m.AddRemoteNameInput.Placeholder = "name (optional)"
-			m.AddRemoteKeyInput = textinput.New()
-			m.AddRemoteKeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
+			m.AddRemote.FieldIndex = 0
+			m.AddRemote.HostInput = textinput.New()
+			m.AddRemote.HostInput.Placeholder = "host or host:22"
+			m.AddRemote.HostInput.Focus()
+			m.AddRemote.UserInput = textinput.New()
+			m.AddRemote.UserInput.Placeholder = "e.g. root"
+			m.AddRemote.UserInput.SetValue("root")
+			m.AddRemote.NameInput = textinput.New()
+			m.AddRemote.NameInput.Placeholder = "name (optional)"
+			m.AddRemote.KeyInput = textinput.New()
+			m.AddRemote.KeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
 			return m, nil
 		},
 		ClearInput: true,
@@ -58,24 +58,24 @@ func init() {
 		Handle: func(m Model) (Model, tea.Cmd) {
 			m.OverlayActive = true
 			m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
-			m.AddRemoteActive = true
-			m.AddRemoteError = ""
-			m.AddRemoteOfferOverwrite = false
-			m.AddRemoteSave = false
-			m.AddRemoteConnect = true
+			m.AddRemote.Active = true
+			m.AddRemote.Error = ""
+			m.AddRemote.OfferOverwrite = false
+			m.AddRemote.Save = false
+			m.AddRemote.Connect = true
 			m.PathCompletionCandidates = nil
 			m.PathCompletionIndex = -1
-			m.AddRemoteFieldIndex = 0
-			m.AddRemoteHostInput = textinput.New()
-			m.AddRemoteHostInput.Placeholder = "host or host:22"
-			m.AddRemoteHostInput.Focus()
-			m.AddRemoteUserInput = textinput.New()
-			m.AddRemoteUserInput.Placeholder = "e.g. root"
-			m.AddRemoteUserInput.SetValue("root")
-			m.AddRemoteNameInput = textinput.New()
-			m.AddRemoteNameInput.Placeholder = "name (optional)"
-			m.AddRemoteKeyInput = textinput.New()
-			m.AddRemoteKeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
+			m.AddRemote.FieldIndex = 0
+			m.AddRemote.HostInput = textinput.New()
+			m.AddRemote.HostInput.Placeholder = "host or host:22"
+			m.AddRemote.HostInput.Focus()
+			m.AddRemote.UserInput = textinput.New()
+			m.AddRemote.UserInput.Placeholder = "e.g. root"
+			m.AddRemote.UserInput.SetValue("root")
+			m.AddRemote.NameInput = textinput.New()
+			m.AddRemote.NameInput.Placeholder = "name (optional)"
+			m.AddRemote.KeyInput = textinput.New()
+			m.AddRemote.KeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
 			return m, nil
 		},
 		ClearInput: true,
@@ -84,20 +84,20 @@ func init() {
 		Handle: func(m Model) (Model, tea.Cmd) {
 			m.OverlayActive = true
 			m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyConfigLLMTitle)
-			m.ConfigLLMActive = true
-			m.ConfigLLMChecking = false
-			m.ConfigLLMError = ""
-			m.ConfigLLMFieldIndex = 0
-			m.ConfigLLMBaseURLInput = textinput.New()
-			m.ConfigLLMBaseURLInput.Focus()
-			m.ConfigLLMApiKeyInput = textinput.New()
-			m.ConfigLLMApiKeyInput.Blur()
-			m.ConfigLLMModelInput = textinput.New()
-			m.ConfigLLMModelInput.Blur()
-			m.ConfigLLMMaxMessagesInput = textinput.New()
-			m.ConfigLLMMaxMessagesInput.Blur()
-			m.ConfigLLMMaxCharsInput = textinput.New()
-			m.ConfigLLMMaxCharsInput.Blur()
+			m.ConfigLLM.Active = true
+			m.ConfigLLM.Checking = false
+			m.ConfigLLM.Error = ""
+			m.ConfigLLM.FieldIndex = 0
+			m.ConfigLLM.BaseURLInput = textinput.New()
+			m.ConfigLLM.BaseURLInput.Focus()
+			m.ConfigLLM.ApiKeyInput = textinput.New()
+			m.ConfigLLM.ApiKeyInput.Blur()
+			m.ConfigLLM.ModelInput = textinput.New()
+			m.ConfigLLM.ModelInput.Blur()
+			m.ConfigLLM.MaxMessagesInput = textinput.New()
+			m.ConfigLLM.MaxMessagesInput.Blur()
+			m.ConfigLLM.MaxCharsInput = textinput.New()
+			m.ConfigLLM.MaxCharsInput.Blur()
 			return m, nil
 		},
 		ClearInput: true,
@@ -125,9 +125,9 @@ func init() {
 			skillName := fields[0]
 			mm.OverlayActive = true
 			mm.OverlayTitle = "Update skill"
-			mm.UpdateSkillActive = true
-			mm.UpdateSkillName = skillName
-			mm.UpdateSkillError = ""
+			mm.UpdateSkill.Active = true
+			mm.UpdateSkill.Name = skillName
+			mm.UpdateSkill.Error = ""
 			mm.Input.SetValue("")
 			mm.Input.CursorEnd()
 			mm.SlashSuggestIndex = 0

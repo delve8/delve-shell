@@ -28,8 +28,8 @@ func applyConfigLLMFromOverlayStart(m ui.Model, baseURL, apiKey, model, maxMessa
 		m = m.RefreshViewport()
 		return m
 	}
-	m.ConfigLLMError = ""
-	m.ConfigLLMChecking = true
+	m.ConfigLLM.Error = ""
+	m.ConfigLLM.Checking = true
 	return m
 }
 

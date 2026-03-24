@@ -16,35 +16,35 @@ func openOverlay(m ui.Model) ui.Model {
 	cfg := configsvc.LoadOrDefault()
 	m.OverlayActive = true
 	m.OverlayTitle = i18n.T("en", i18n.KeyConfigLLMTitle)
-	m.ConfigLLMActive = true
-	m.ConfigLLMChecking = false
-	m.ConfigLLMError = ""
-	m.ConfigLLMFieldIndex = 0
-	m.ConfigLLMBaseURLInput = textinput.New()
-	m.ConfigLLMBaseURLInput.Placeholder = "https://api.openai.com/v1 (optional)"
-	m.ConfigLLMBaseURLInput.SetValue(cfg.LLM.BaseURL)
-	m.ConfigLLMBaseURLInput.Focus()
-	m.ConfigLLMApiKeyInput = textinput.New()
-	m.ConfigLLMApiKeyInput.Placeholder = "sk-... or $API_KEY"
-	m.ConfigLLMApiKeyInput.EchoMode = textinput.EchoPassword
-	m.ConfigLLMApiKeyInput.SetValue(cfg.LLM.APIKey)
-	m.ConfigLLMApiKeyInput.Blur()
-	m.ConfigLLMModelInput = textinput.New()
-	m.ConfigLLMModelInput.Placeholder = "gpt-4o-mini (optional)"
-	m.ConfigLLMModelInput.SetValue(cfg.LLM.Model)
-	m.ConfigLLMModelInput.Blur()
-	m.ConfigLLMMaxMessagesInput = textinput.New()
-	m.ConfigLLMMaxMessagesInput.Placeholder = ""
+	m.ConfigLLM.Active = true
+	m.ConfigLLM.Checking = false
+	m.ConfigLLM.Error = ""
+	m.ConfigLLM.FieldIndex = 0
+	m.ConfigLLM.BaseURLInput = textinput.New()
+	m.ConfigLLM.BaseURLInput.Placeholder = "https://api.openai.com/v1 (optional)"
+	m.ConfigLLM.BaseURLInput.SetValue(cfg.LLM.BaseURL)
+	m.ConfigLLM.BaseURLInput.Focus()
+	m.ConfigLLM.ApiKeyInput = textinput.New()
+	m.ConfigLLM.ApiKeyInput.Placeholder = "sk-... or $API_KEY"
+	m.ConfigLLM.ApiKeyInput.EchoMode = textinput.EchoPassword
+	m.ConfigLLM.ApiKeyInput.SetValue(cfg.LLM.APIKey)
+	m.ConfigLLM.ApiKeyInput.Blur()
+	m.ConfigLLM.ModelInput = textinput.New()
+	m.ConfigLLM.ModelInput.Placeholder = "gpt-4o-mini (optional)"
+	m.ConfigLLM.ModelInput.SetValue(cfg.LLM.Model)
+	m.ConfigLLM.ModelInput.Blur()
+	m.ConfigLLM.MaxMessagesInput = textinput.New()
+	m.ConfigLLM.MaxMessagesInput.Placeholder = ""
 	if cfg.LLM.MaxContextMessages > 0 {
-		m.ConfigLLMMaxMessagesInput.SetValue(strconv.Itoa(cfg.LLM.MaxContextMessages))
+		m.ConfigLLM.MaxMessagesInput.SetValue(strconv.Itoa(cfg.LLM.MaxContextMessages))
 	}
-	m.ConfigLLMMaxMessagesInput.Blur()
-	m.ConfigLLMMaxCharsInput = textinput.New()
-	m.ConfigLLMMaxCharsInput.Placeholder = ""
+	m.ConfigLLM.MaxMessagesInput.Blur()
+	m.ConfigLLM.MaxCharsInput = textinput.New()
+	m.ConfigLLM.MaxCharsInput.Placeholder = ""
 	if cfg.LLM.MaxContextChars > 0 {
-		m.ConfigLLMMaxCharsInput.SetValue(strconv.Itoa(cfg.LLM.MaxContextChars))
+		m.ConfigLLM.MaxCharsInput.SetValue(strconv.Itoa(cfg.LLM.MaxContextChars))
 	}
-	m.ConfigLLMMaxCharsInput.Blur()
+	m.ConfigLLM.MaxCharsInput.Blur()
 	return m
 }
 

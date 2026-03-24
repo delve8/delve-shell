@@ -8,35 +8,35 @@ import (
 )
 
 func buildRemoteOverlayContent(m ui.Model) (string, bool) {
-	if m.AddRemoteActive {
+	if m.AddRemote.Active {
 		var b strings.Builder
-		if m.AddRemoteConnecting {
+		if m.AddRemote.Connecting {
 			b.WriteString("Add remote\n\n")
 			b.WriteString(ui.SuggestStyleRender("Connecting...") + "\n\n")
 			b.WriteString("Esc to cancel.")
 			return b.String(), true
 		}
 
-		if m.AddRemoteError != "" {
-			b.WriteString(ui.ErrStyleRender(m.AddRemoteError) + "\n\n")
-			if m.AddRemoteOfferOverwrite {
+		if m.AddRemote.Error != "" {
+			b.WriteString(ui.ErrStyleRender(m.AddRemote.Error) + "\n\n")
+			if m.AddRemote.OfferOverwrite {
 				b.WriteString("Press y to overwrite, or change host/username and try again.\n\n")
 			}
 		}
 		b.WriteString("Add remote\n\n")
 		b.WriteString("Host (address or host:port):\n")
-		b.WriteString(m.AddRemoteHostInput.View())
+		b.WriteString(m.AddRemote.HostInput.View())
 		b.WriteString("\n\n")
 		b.WriteString("Username:\n")
-		b.WriteString(m.AddRemoteUserInput.View())
+		b.WriteString(m.AddRemote.UserInput.View())
 		b.WriteString("\n\n")
 		b.WriteString("Name (optional):\n")
-		b.WriteString(m.AddRemoteNameInput.View())
+		b.WriteString(m.AddRemote.NameInput.View())
 		b.WriteString("\n\n")
 		b.WriteString("Key path (optional):\n")
-		b.WriteString(m.AddRemoteKeyInput.View())
+		b.WriteString(m.AddRemote.KeyInput.View())
 		b.WriteString("\n\n")
-		if m.AddRemoteFieldIndex == 3 && len(m.PathCompletionCandidates) > 0 {
+		if m.AddRemote.FieldIndex == 3 && len(m.PathCompletionCandidates) > 0 {
 			b.WriteString("\n\n")
 			b.WriteString("Path completion (Up/Down select, Enter or Tab to pick):\n")
 			for i, c := range m.PathCompletionCandidates {
@@ -48,13 +48,13 @@ func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 				}
 			}
 		}
-		if m.AddRemoteConnect {
+		if m.AddRemote.Connect {
 			saveLabel := "[ ]"
-			if m.AddRemoteSave {
+			if m.AddRemote.Save {
 				saveLabel = "[X]"
 			}
 			saveLine := saveLabel + " Save as remote (Space to toggle)"
-			if m.AddRemoteFieldIndex == 4 {
+			if m.AddRemote.FieldIndex == 4 {
 				b.WriteString(ui.SuggestHiRender(saveLine) + "\n\n")
 			} else {
 				b.WriteString(ui.SuggestStyleRender(saveLine) + "\n\n")
@@ -64,22 +64,22 @@ func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 		return b.String(), true
 	}
 
-	switch m.RemoteAuthStep {
+	switch m.RemoteAuth.Step {
 	case "username":
 		var b strings.Builder
-		if m.RemoteAuthError != "" {
-			b.WriteString(ui.ErrStyleRender(m.RemoteAuthError) + "\n\n")
+		if m.RemoteAuth.Error != "" {
+			b.WriteString(ui.ErrStyleRender(m.RemoteAuth.Error) + "\n\n")
 		}
-		b.WriteString("SSH auth for " + config.HostFromTarget(m.RemoteAuthTarget) + "\n\n")
+		b.WriteString("SSH auth for " + config.HostFromTarget(m.RemoteAuth.Target) + "\n\n")
 		b.WriteString("Username:\n")
-		b.WriteString(m.RemoteAuthUsernameInput.View())
+		b.WriteString(m.RemoteAuth.UsernameInput.View())
 		b.WriteString("\n\n")
 		b.WriteString("Press Enter to continue, Esc to cancel.")
 		return b.String(), true
 	case "choose":
 		var b strings.Builder
-		if m.RemoteAuthError != "" {
-			b.WriteString(ui.ErrStyleRender(m.RemoteAuthError) + "\n\n")
+		if m.RemoteAuth.Error != "" {
+			b.WriteString(ui.ErrStyleRender(m.RemoteAuth.Error) + "\n\n")
 		}
 		b.WriteString("Choose authentication method:\n")
 		b.WriteString("  1. Password\n")
@@ -90,13 +90,13 @@ func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 		var b strings.Builder
 		b.WriteString(m.OverlayContent)
 		b.WriteString("\n\n")
-		b.WriteString(m.RemoteAuthInput.View())
+		b.WriteString(m.RemoteAuth.Input.View())
 		return b.String(), true
 	case "identity":
 		var b strings.Builder
 		b.WriteString(m.OverlayContent)
 		b.WriteString("\n\n")
-		b.WriteString(m.RemoteAuthInput.View())
+		b.WriteString(m.RemoteAuth.Input.View())
 		if len(m.PathCompletionCandidates) > 0 {
 			b.WriteString("\n\n")
 			b.WriteString("Path completion (Up/Down select, Enter or Tab to pick):\n")
@@ -112,10 +112,10 @@ func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 		return b.String(), true
 	case "auto_identity":
 		var b strings.Builder
-		if m.RemoteAuthError != "" {
-			b.WriteString(ui.ErrStyleRender(m.RemoteAuthError) + "\n\n")
+		if m.RemoteAuth.Error != "" {
+			b.WriteString(ui.ErrStyleRender(m.RemoteAuth.Error) + "\n\n")
 		}
-		b.WriteString("SSH auth for " + config.HostFromTarget(m.RemoteAuthTarget) + "\n\n")
+		b.WriteString("SSH auth for " + config.HostFromTarget(m.RemoteAuth.Target) + "\n\n")
 		b.WriteString(ui.SuggestStyleRender("Connecting with configured SSH key...") + "\n\n")
 		b.WriteString("Esc to cancel.")
 		return b.String(), true

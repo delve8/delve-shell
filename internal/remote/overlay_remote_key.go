@@ -23,10 +23,10 @@ func handleRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, t
 		// Let internal/ui do overlay-close common behavior.
 		return m, nil, false
 	}
-	if m.AddRemoteActive {
+	if m.AddRemote.Active {
 		return handleAddRemoteOverlayKey(m, key, msg)
 	}
-	if m.RemoteAuthStep != "" {
+	if m.RemoteAuth.Step != "" {
 		return handleRemoteAuthOverlayKey(m, key, msg)
 	}
 	return m, nil, false
@@ -35,12 +35,12 @@ func handleRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, t
 func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
 	switch key {
 	case "tab":
-		if m.AddRemoteFieldIndex == 3 {
+		if m.AddRemote.FieldIndex == 3 {
 			cands := m.PathCompletionCandidates
 			if len(cands) > 0 && m.PathCompletionIndex >= 0 && m.PathCompletionIndex < len(cands) {
 				chosen := cands[m.PathCompletionIndex]
-				m.AddRemoteKeyInput.SetValue(chosen)
-				m.AddRemoteKeyInput.CursorEnd()
+				m.AddRemote.KeyInput.SetValue(chosen)
+				m.AddRemote.KeyInput.CursorEnd()
 				if strings.HasSuffix(chosen, "/") {
 					m.PathCompletionCandidates = ui.PathCandidates(chosen)
 					m.PathCompletionIndex = 0
@@ -53,7 +53,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 		}
 	case "up", "down":
 		// In Key path with completion list: move within list. Else: Up/Down move focus between fields.
-		if m.AddRemoteFieldIndex == 3 && len(m.PathCompletionCandidates) > 0 {
+		if m.AddRemote.FieldIndex == 3 && len(m.PathCompletionCandidates) > 0 {
 			cands := m.PathCompletionCandidates
 			if key == "up" {
 				m.PathCompletionIndex--
@@ -74,31 +74,31 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 		}
 		// Field count: 4 for /config add-remote, 5 (with save checkbox) for /remote on.
 		fieldCount := 4
-		if m.AddRemoteConnect {
+		if m.AddRemote.Connect {
 			fieldCount = 5
 		}
-		m.AddRemoteFieldIndex = (m.AddRemoteFieldIndex + dir + fieldCount) % fieldCount
-		m.AddRemoteUserInput.Blur()
-		m.AddRemoteHostInput.Blur()
-		m.AddRemoteNameInput.Blur()
-		m.AddRemoteKeyInput.Blur()
-		switch m.AddRemoteFieldIndex {
+		m.AddRemote.FieldIndex = (m.AddRemote.FieldIndex + dir + fieldCount) % fieldCount
+		m.AddRemote.UserInput.Blur()
+		m.AddRemote.HostInput.Blur()
+		m.AddRemote.NameInput.Blur()
+		m.AddRemote.KeyInput.Blur()
+		switch m.AddRemote.FieldIndex {
 		case 0:
-			m.AddRemoteHostInput.Focus()
+			m.AddRemote.HostInput.Focus()
 		case 1:
-			m.AddRemoteUserInput.Focus()
+			m.AddRemote.UserInput.Focus()
 		case 2:
-			m.AddRemoteNameInput.Focus()
+			m.AddRemote.NameInput.Focus()
 		case 3:
-			m.AddRemoteKeyInput.Focus()
+			m.AddRemote.KeyInput.Focus()
 		case 4:
 			// Save checkbox: no textinput to focus.
 		}
-		if m.AddRemoteFieldIndex != 3 {
+		if m.AddRemote.FieldIndex != 3 {
 			m.PathCompletionCandidates = nil
 			m.PathCompletionIndex = -1
 		} else {
-			m.PathCompletionCandidates = ui.PathCandidates(m.AddRemoteKeyInput.Value())
+			m.PathCompletionCandidates = ui.PathCandidates(m.AddRemote.KeyInput.Value())
 			if len(m.PathCompletionCandidates) > 0 {
 				m.PathCompletionIndex = 0
 			} else {
@@ -108,21 +108,21 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 		return m, nil, true
 
 	case "y", "Y":
-		if m.AddRemoteOfferOverwrite {
-			host := strings.TrimSpace(m.AddRemoteHostInput.Value())
-			user := strings.TrimSpace(m.AddRemoteUserInput.Value())
+		if m.AddRemote.OfferOverwrite {
+			host := strings.TrimSpace(m.AddRemote.HostInput.Value())
+			user := strings.TrimSpace(m.AddRemote.UserInput.Value())
 			if user == "" {
 				user = "root"
 			}
-			name := strings.TrimSpace(m.AddRemoteNameInput.Value())
-			keyPath := strings.TrimSpace(m.AddRemoteKeyInput.Value())
+			name := strings.TrimSpace(m.AddRemote.NameInput.Value())
+			keyPath := strings.TrimSpace(m.AddRemote.KeyInput.Value())
 			if host == "" {
 				return m, nil, true
 			}
 			target := user + "@" + host
 			if err := remotesvc.Update(target, name, keyPath); err != nil {
-				m.AddRemoteError = err.Error()
-				m.AddRemoteOfferOverwrite = false
+				m.AddRemote.Error = err.Error()
+				m.AddRemote.OfferOverwrite = false
 				return m, nil, true
 			}
 			display := host
@@ -137,9 +137,9 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			m = m.RefreshViewport()
 
 			m.OverlayActive = false
-			m.AddRemoteActive = false
-			m.AddRemoteError = ""
-			m.AddRemoteOfferOverwrite = false
+			m.AddRemote.Active = false
+			m.AddRemote.Error = ""
+			m.AddRemote.OfferOverwrite = false
 			m.OverlayTitle = ""
 			m.OverlayContent = ""
 			m.Input.Focus()
@@ -154,18 +154,18 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 
 	case " ":
 		// Space toggles save-as-remote only when focused on the checkbox field.
-		if m.AddRemoteFieldIndex == 4 {
-			m.AddRemoteSave = !m.AddRemoteSave
+		if m.AddRemote.FieldIndex == 4 {
+			m.AddRemote.Save = !m.AddRemote.Save
 			return m, nil, true
 		}
 
 	case "enter":
-		if m.AddRemoteFieldIndex == 3 {
+		if m.AddRemote.FieldIndex == 3 {
 			cands := m.PathCompletionCandidates
 			if len(cands) > 0 && m.PathCompletionIndex >= 0 && m.PathCompletionIndex < len(cands) {
 				chosen := cands[m.PathCompletionIndex]
-				m.AddRemoteKeyInput.SetValue(chosen)
-				m.AddRemoteKeyInput.CursorEnd()
+				m.AddRemote.KeyInput.SetValue(chosen)
+				m.AddRemote.KeyInput.CursorEnd()
 				if strings.HasSuffix(chosen, "/") {
 					m.PathCompletionCandidates = ui.PathCandidates(chosen)
 					m.PathCompletionIndex = 0
@@ -177,32 +177,32 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			}
 		}
 
-		host := strings.TrimSpace(m.AddRemoteHostInput.Value())
-		user := strings.TrimSpace(m.AddRemoteUserInput.Value())
+		host := strings.TrimSpace(m.AddRemote.HostInput.Value())
+		user := strings.TrimSpace(m.AddRemote.UserInput.Value())
 		if user == "" {
 			user = "root"
 		}
-		name := strings.TrimSpace(m.AddRemoteNameInput.Value())
-		keyPath := strings.TrimSpace(m.AddRemoteKeyInput.Value())
+		name := strings.TrimSpace(m.AddRemote.NameInput.Value())
+		keyPath := strings.TrimSpace(m.AddRemote.KeyInput.Value())
 
 		if host == "" {
-			m.AddRemoteError = "host is required"
+			m.AddRemote.Error = "host is required"
 			return m, nil, true
 		}
 		if strings.Contains(host, "@") {
-			m.AddRemoteError = "host must not contain @"
+			m.AddRemote.Error = "host must not contain @"
 			return m, nil, true
 		}
 
 		target := user + "@" + host
 		// Optionally save/update remote config when requested.
-		if m.AddRemoteSave {
+		if m.AddRemote.Save {
 			if err := remotesvc.Add(target, name, keyPath); err != nil {
-				m.AddRemoteError = err.Error()
-				m.AddRemoteOfferOverwrite = strings.Contains(err.Error(), "already exists")
+				m.AddRemote.Error = err.Error()
+				m.AddRemote.OfferOverwrite = strings.Contains(err.Error(), "already exists")
 				return m, nil, true
 			}
-			m.AddRemoteOfferOverwrite = false
+			m.AddRemote.OfferOverwrite = false
 			display := host
 			if name != "" {
 				display = name + " (" + host + ")"
@@ -220,22 +220,22 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 		}
 
 		m = m.RefreshViewport()
-		if m.AddRemoteConnect && m.RemoteOnChan != nil {
+		if m.AddRemote.Connect && m.RemoteOnChan != nil {
 			// Show "Connecting..." and wait for RemoteConnectDoneMsg; close overlay only on success.
-			m.AddRemoteConnecting = true
-			m.AddRemoteError = ""
+			m.AddRemote.Connecting = true
+			m.AddRemote.Error = ""
 			select {
 			case m.RemoteOnChan <- target:
 			default:
-				m.AddRemoteConnecting = false
+				m.AddRemote.Connecting = false
 			}
 			return m, nil, true
 		}
 
 		m.OverlayActive = false
-		m.AddRemoteActive = false
-		m.AddRemoteError = ""
-		m.AddRemoteOfferOverwrite = false
+		m.AddRemote.Active = false
+		m.AddRemote.Error = ""
+		m.AddRemote.OfferOverwrite = false
 		m.OverlayTitle = ""
 		m.OverlayContent = ""
 		m.Input.Focus()
@@ -244,16 +244,16 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 
 	// Default: forward to active field input.
 	var cmd tea.Cmd
-	switch m.AddRemoteFieldIndex {
+	switch m.AddRemote.FieldIndex {
 	case 0:
-		m.AddRemoteHostInput, cmd = m.AddRemoteHostInput.Update(msg)
+		m.AddRemote.HostInput, cmd = m.AddRemote.HostInput.Update(msg)
 	case 1:
-		m.AddRemoteUserInput, cmd = m.AddRemoteUserInput.Update(msg)
+		m.AddRemote.UserInput, cmd = m.AddRemote.UserInput.Update(msg)
 	case 2:
-		m.AddRemoteNameInput, cmd = m.AddRemoteNameInput.Update(msg)
+		m.AddRemote.NameInput, cmd = m.AddRemote.NameInput.Update(msg)
 	case 3:
-		m.AddRemoteKeyInput, cmd = m.AddRemoteKeyInput.Update(msg)
-		m.PathCompletionCandidates = ui.PathCandidates(m.AddRemoteKeyInput.Value())
+		m.AddRemote.KeyInput, cmd = m.AddRemote.KeyInput.Update(msg)
+		m.PathCompletionCandidates = ui.PathCandidates(m.AddRemote.KeyInput.Value())
 		if len(m.PathCompletionCandidates) > 0 {
 			m.PathCompletionIndex = 0
 		} else {
@@ -269,51 +269,51 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 
 func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
 	// Keep step specific behavior identical to internal/ui's prior switch.
-	switch m.RemoteAuthStep {
+	switch m.RemoteAuth.Step {
 	case "auto_identity":
 		// No interactive input; Esc handled by ui.
 		return m, nil, true
 	case "username":
 		if key == "enter" {
-			m.RemoteAuthUsername = strings.TrimSpace(m.RemoteAuthUsernameInput.Value())
-			if m.RemoteAuthUsername == "" {
-				m.RemoteAuthUsername = "root"
+			m.RemoteAuth.Username = strings.TrimSpace(m.RemoteAuth.UsernameInput.Value())
+			if m.RemoteAuth.Username == "" {
+				m.RemoteAuth.Username = "root"
 			}
-			m.RemoteAuthStep = "choose"
+			m.RemoteAuth.Step = "choose"
 			return m, nil, true
 		}
 		var cmd tea.Cmd
-		m.RemoteAuthUsernameInput, cmd = m.RemoteAuthUsernameInput.Update(msg)
+		m.RemoteAuth.UsernameInput, cmd = m.RemoteAuth.UsernameInput.Update(msg)
 		return m, cmd, true
 	case "choose":
 		switch key {
 		case "1":
-			m.RemoteAuthStep = "password"
-			m.RemoteAuthInput = textinput.New()
-			m.RemoteAuthInput.Placeholder = "SSH password"
-			m.RemoteAuthInput.EchoMode = textinput.EchoPassword
-			m.RemoteAuthInput.Focus()
+			m.RemoteAuth.Step = "password"
+			m.RemoteAuth.Input = textinput.New()
+			m.RemoteAuth.Input.Placeholder = "SSH password"
+			m.RemoteAuth.Input.EchoMode = textinput.EchoPassword
+			m.RemoteAuth.Input.Focus()
 			var b strings.Builder
-			if m.RemoteAuthError != "" {
-				b.WriteString(errStyle.Render(m.RemoteAuthError) + "\n\n")
+			if m.RemoteAuth.Error != "" {
+				b.WriteString(errStyle.Render(m.RemoteAuth.Error) + "\n\n")
 			}
-			b.WriteString("SSH password for " + config.HostFromTarget(m.RemoteAuthTarget) + "\n")
+			b.WriteString("SSH password for " + config.HostFromTarget(m.RemoteAuth.Target) + "\n")
 			b.WriteString("Press Enter to submit, Esc to cancel.")
 			m.OverlayContent = b.String()
 			return m, nil, true
 		case "2":
-			m.RemoteAuthStep = "identity"
-			m.RemoteAuthInput = textinput.New()
-			m.RemoteAuthInput.Placeholder = "~/.ssh/id_rsa"
-			m.RemoteAuthInput.EchoMode = textinput.EchoNormal
-			m.RemoteAuthInput.Focus()
+			m.RemoteAuth.Step = "identity"
+			m.RemoteAuth.Input = textinput.New()
+			m.RemoteAuth.Input.Placeholder = "~/.ssh/id_rsa"
+			m.RemoteAuth.Input.EchoMode = textinput.EchoNormal
+			m.RemoteAuth.Input.Focus()
 			m.PathCompletionCandidates = nil
 			m.PathCompletionIndex = -1
 			var b strings.Builder
-			if m.RemoteAuthError != "" {
-				b.WriteString(errStyle.Render(m.RemoteAuthError) + "\n\n")
+			if m.RemoteAuth.Error != "" {
+				b.WriteString(errStyle.Render(m.RemoteAuth.Error) + "\n\n")
 			}
-			b.WriteString("SSH key file path for " + config.HostFromTarget(m.RemoteAuthTarget) + "\n")
+			b.WriteString("SSH key file path for " + config.HostFromTarget(m.RemoteAuth.Target) + "\n")
 			b.WriteString("Press Enter to submit, Esc to cancel.")
 			m.OverlayContent = b.String()
 			return m, nil, true
@@ -321,17 +321,17 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 		return m, nil, true
 	case "password":
 		// When waiting for auth result, ignore further input except Esc (handled above).
-		if m.RemoteAuthConnecting {
+		if m.RemoteAuth.Connecting {
 			return m, nil, true
 		}
 		if key == "enter" {
-			input := m.RemoteAuthInput.Value()
+			input := m.RemoteAuth.Input.Value()
 			if input == "" {
-				m.RemoteAuthStep = "choose"
+				m.RemoteAuth.Step = "choose"
 				m.ChoiceIndex = 0
 				var b strings.Builder
-				if m.RemoteAuthError != "" {
-					b.WriteString(errStyle.Render(m.RemoteAuthError) + "\n\n")
+				if m.RemoteAuth.Error != "" {
+					b.WriteString(errStyle.Render(m.RemoteAuth.Error) + "\n\n")
 				}
 				b.WriteString("Choose authentication method:\n")
 				b.WriteString("  1. Password\n")
@@ -342,21 +342,21 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			}
 
 			// Non-empty password: show connecting state and send credentials.
-			m.RemoteAuthConnecting = true
+			m.RemoteAuth.Connecting = true
 			var b strings.Builder
-			if m.RemoteAuthError != "" {
-				b.WriteString(errStyle.Render(m.RemoteAuthError) + "\n\n")
+			if m.RemoteAuth.Error != "" {
+				b.WriteString(errStyle.Render(m.RemoteAuth.Error) + "\n\n")
 			}
-			b.WriteString("SSH password for " + config.HostFromTarget(m.RemoteAuthTarget) + "\n")
+			b.WriteString("SSH password for " + config.HostFromTarget(m.RemoteAuth.Target) + "\n")
 			b.WriteString(suggestStyle.Render("Connecting...") + "\n\n")
 			b.WriteString("Press Esc to cancel.")
 			m.OverlayContent = b.String()
 			if m.RemoteAuthRespChan != nil {
 				select {
 				case m.RemoteAuthRespChan <- ui.RemoteAuthResponse{
-					Target:   m.RemoteAuthTarget,
-					Username: m.RemoteAuthUsername,
-					Kind:     m.RemoteAuthStep,
+					Target:   m.RemoteAuth.Target,
+					Username: m.RemoteAuth.Username,
+					Kind:     m.RemoteAuth.Step,
 					Password: input,
 				}:
 				default:
@@ -366,12 +366,12 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 		}
 
 		var cmd tea.Cmd
-		m.RemoteAuthInput, cmd = m.RemoteAuthInput.Update(msg)
+		m.RemoteAuth.Input, cmd = m.RemoteAuth.Input.Update(msg)
 		return m, cmd, true
 
 	case "identity":
 		// When waiting for auth result, ignore further input except Esc (handled above).
-		if m.RemoteAuthConnecting {
+		if m.RemoteAuth.Connecting {
 			return m, nil, true
 		}
 
@@ -394,8 +394,8 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			(key == "enter" || key == "tab")
 		if pickIdentityCandidate {
 			chosen := cands[m.PathCompletionIndex]
-			m.RemoteAuthInput.SetValue(chosen)
-			m.RemoteAuthInput.CursorEnd()
+			m.RemoteAuth.Input.SetValue(chosen)
+			m.RemoteAuth.Input.CursorEnd()
 			if strings.HasSuffix(chosen, "/") {
 				m.PathCompletionCandidates = ui.PathCandidates(chosen)
 				m.PathCompletionIndex = 0
@@ -407,15 +407,15 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 		}
 
 		if key == "enter" {
-			input := m.RemoteAuthInput.Value()
+			input := m.RemoteAuth.Input.Value()
 			if input == "" {
-				m.RemoteAuthStep = "choose"
+				m.RemoteAuth.Step = "choose"
 				m.ChoiceIndex = 0
 				m.PathCompletionCandidates = nil
 				m.PathCompletionIndex = -1
 				var b strings.Builder
-				if m.RemoteAuthError != "" {
-					b.WriteString(errStyle.Render(m.RemoteAuthError) + "\n\n")
+				if m.RemoteAuth.Error != "" {
+					b.WriteString(errStyle.Render(m.RemoteAuth.Error) + "\n\n")
 				}
 				b.WriteString("Choose authentication method:\n")
 				b.WriteString("  1. Password\n")
@@ -424,21 +424,21 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 				m.OverlayContent = b.String()
 				return m, nil, true
 			}
-			m.RemoteAuthConnecting = true
+			m.RemoteAuth.Connecting = true
 			var b strings.Builder
-			if m.RemoteAuthError != "" {
-				b.WriteString(errStyle.Render(m.RemoteAuthError) + "\n\n")
+			if m.RemoteAuth.Error != "" {
+				b.WriteString(errStyle.Render(m.RemoteAuth.Error) + "\n\n")
 			}
-			b.WriteString("SSH key file path for " + config.HostFromTarget(m.RemoteAuthTarget) + "\n")
+			b.WriteString("SSH key file path for " + config.HostFromTarget(m.RemoteAuth.Target) + "\n")
 			b.WriteString(suggestStyle.Render("Connecting...") + "\n\n")
 			b.WriteString("Press Esc to cancel.")
 			m.OverlayContent = b.String()
 			if m.RemoteAuthRespChan != nil {
 				select {
 				case m.RemoteAuthRespChan <- ui.RemoteAuthResponse{
-					Target:   m.RemoteAuthTarget,
-					Username: m.RemoteAuthUsername,
-					Kind:     m.RemoteAuthStep,
+					Target:   m.RemoteAuth.Target,
+					Username: m.RemoteAuth.Username,
+					Kind:     m.RemoteAuth.Step,
 					Password: input,
 				}:
 				default:
@@ -448,7 +448,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 		}
 
 		if key == "tab" {
-			m.PathCompletionCandidates = ui.PathCandidates(m.RemoteAuthInput.Value())
+			m.PathCompletionCandidates = ui.PathCandidates(m.RemoteAuth.Input.Value())
 			if len(m.PathCompletionCandidates) > 0 {
 				m.PathCompletionIndex = (m.PathCompletionIndex + 1) % len(m.PathCompletionCandidates)
 			} else {
@@ -458,9 +458,9 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 		}
 
 		var cmd tea.Cmd
-		m.RemoteAuthInput, cmd = m.RemoteAuthInput.Update(msg)
+		m.RemoteAuth.Input, cmd = m.RemoteAuth.Input.Update(msg)
 		// Refresh path candidates from new input (so dropdown updates as user types).
-		m.PathCompletionCandidates = ui.PathCandidates(m.RemoteAuthInput.Value())
+		m.PathCompletionCandidates = ui.PathCandidates(m.RemoteAuth.Input.Value())
 		if len(m.PathCompletionCandidates) > 0 {
 			m.PathCompletionIndex = 0
 		} else {

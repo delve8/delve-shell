@@ -287,15 +287,15 @@ func TestOverlayEsc_CloseHooksClearFeatureFlags(t *testing.T) {
 	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
 	m.OverlayActive = true
 	m.OverlayTitle = "x"
-	m.AddRemoteActive = true
+	m.AddRemote.Active = true
 
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	m2 := next.(Model)
 	if m2.OverlayActive {
 		t.Fatal("expected overlay closed after Esc")
 	}
-	if m2.AddRemoteActive {
-		t.Fatal("expected overlay close feature reset to clear AddRemoteActive")
+	if m2.AddRemote.Active {
+		t.Fatal("expected overlay close feature reset to clear AddRemote.Active")
 	}
 }
 
@@ -307,8 +307,8 @@ func TestSlashCommand_RemoteOn_EnterOpensOverlay(t *testing.T) {
 
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m2 := next.(Model)
-	if !m2.OverlayActive || !m2.AddRemoteActive {
-		t.Fatalf("expected /remote on Enter to open overlay, OverlayActive=%v AddRemoteActive=%v", m2.OverlayActive, m2.AddRemoteActive)
+	if !m2.OverlayActive || !m2.AddRemote.Active {
+		t.Fatalf("expected /remote on Enter to open overlay, OverlayActive=%v AddRemote.Active=%v", m2.OverlayActive, m2.AddRemote.Active)
 	}
 }
 

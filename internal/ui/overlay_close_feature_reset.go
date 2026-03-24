@@ -4,26 +4,26 @@ package ui
 // (Esc or programmatic close). Keep in sync with overlay key handlers and overlay open paths.
 func ApplyOverlayCloseFeatureResets(m Model) Model {
 	// Remote + remote auth (internal/remote).
-	m.AddRemoteActive = false
-	m.AddRemoteConnecting = false
-	m.AddRemoteError = ""
-	m.AddRemoteOfferOverwrite = false
-	m.RemoteAuthConnecting = false
-	m.RemoteAuthStep = ""
-	m.RemoteAuthTarget = ""
-	m.RemoteAuthError = ""
-	m.RemoteAuthUsername = ""
+	m.AddRemote.Active = false
+	m.AddRemote.Connecting = false
+	m.AddRemote.Error = ""
+	m.AddRemote.OfferOverwrite = false
+	m.RemoteAuth.Connecting = false
+	m.RemoteAuth.Step = ""
+	m.RemoteAuth.Target = ""
+	m.RemoteAuth.Error = ""
+	m.RemoteAuth.Username = ""
 
 	// Skill overlays (internal/skill).
-	m.AddSkillActive = false
-	m.AddSkillError = ""
-	m.UpdateSkillActive = false
-	m.UpdateSkillError = ""
+	m.AddSkill.Active = false
+	m.AddSkill.Error = ""
+	m.UpdateSkill.Active = false
+	m.UpdateSkill.Error = ""
 
 	// Config LLM overlay (internal/configllm).
-	m.ConfigLLMActive = false
-	m.ConfigLLMChecking = false
-	m.ConfigLLMError = ""
+	m.ConfigLLM.Active = false
+	m.ConfigLLM.Checking = false
+	m.ConfigLLM.Error = ""
 
 	return m
 }

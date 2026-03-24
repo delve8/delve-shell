@@ -35,21 +35,21 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		m.RemoteRunCommands = t.Commands
 		return m, nil, true
 	case ui.RemoteConnectDoneMsg:
-		m.AddRemoteConnecting = false
-		m.AddRemoteError = ""
-		m.AddRemoteOfferOverwrite = false
-		m.RemoteAuthConnecting = false
+		m.AddRemote.Connecting = false
+		m.AddRemote.Error = ""
+		m.AddRemote.OfferOverwrite = false
+		m.RemoteAuth.Connecting = false
 
 		// When Remote Auth overlay is active, close it on successful connection.
-		if m.RemoteAuthStep != "" {
+		if m.RemoteAuth.Step != "" {
 			if t.Success {
 				m.OverlayActive = false
 				m.OverlayTitle = ""
 				m.OverlayContent = ""
-				m.RemoteAuthStep = ""
-				m.RemoteAuthTarget = ""
-				m.RemoteAuthError = ""
-				m.RemoteAuthUsername = ""
+				m.RemoteAuth.Step = ""
+				m.RemoteAuth.Target = ""
+				m.RemoteAuth.Error = ""
+				m.RemoteAuth.Username = ""
 				m.PathCompletionCandidates = nil
 				m.PathCompletionIndex = -1
 				m.Input.Focus()
@@ -58,7 +58,7 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		}
 
 		// Fallback: add-remote overlay.
-		m.AddRemoteActive = false
+		m.AddRemote.Active = false
 		m.OverlayTitle = ""
 		m.OverlayContent = ""
 		if t.Success {
@@ -67,28 +67,28 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		}
 		return m, nil, true
 	case ui.RemoteAuthPromptMsg:
-		m.AddRemoteConnecting = false
-		m.AddRemoteActive = false
+		m.AddRemote.Connecting = false
+		m.AddRemote.Active = false
 		m.OverlayActive = true
 		m.OverlayTitle = "Remote Auth"
-		m.RemoteAuthTarget = t.Target
-		m.RemoteAuthError = t.Err
+		m.RemoteAuth.Target = t.Target
+		m.RemoteAuth.Error = t.Err
 		m.ChoiceIndex = 0
 		if t.UseConfiguredIdentity {
-			m.RemoteAuthStep = "auto_identity"
-			m.RemoteAuthConnecting = true
+			m.RemoteAuth.Step = "auto_identity"
+			m.RemoteAuth.Connecting = true
 			return m, nil, true
 		}
-		m.RemoteAuthConnecting = false
-		m.RemoteAuthStep = "username"
-		m.RemoteAuthUsernameInput = textinput.New()
-		m.RemoteAuthUsernameInput.Placeholder = "root"
+		m.RemoteAuth.Connecting = false
+		m.RemoteAuth.Step = "username"
+		m.RemoteAuth.UsernameInput = textinput.New()
+		m.RemoteAuth.UsernameInput.Placeholder = "root"
 		if i := strings.Index(t.Target, "@"); i > 0 && i < len(t.Target)-1 {
-			m.RemoteAuthUsernameInput.SetValue(t.Target[:i])
+			m.RemoteAuth.UsernameInput.SetValue(t.Target[:i])
 		} else {
-			m.RemoteAuthUsernameInput.SetValue("root")
+			m.RemoteAuth.UsernameInput.SetValue("root")
 		}
-		m.RemoteAuthUsernameInput.Focus()
+		m.RemoteAuth.UsernameInput.Focus()
 		return m, nil, true
 	default:
 		return m, nil, false

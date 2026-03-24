@@ -9,23 +9,23 @@ import (
 )
 
 func buildSkillOverlayContent(m ui.Model) (string, bool) {
-	if m.AddSkillActive {
+	if m.AddSkill.Active {
 		lang := "en"
 		var b strings.Builder
-		if m.AddSkillError != "" {
-			b.WriteString(ui.ErrStyleRender(m.AddSkillError) + "\n\n")
+		if m.AddSkill.Error != "" {
+			b.WriteString(ui.ErrStyleRender(m.AddSkill.Error) + "\n\n")
 		}
 		b.WriteString(i18n.T(lang, i18n.KeyAddSkillURLLabel) + "\n")
-		b.WriteString(m.AddSkillURLInput.View())
+		b.WriteString(m.AddSkill.URLInput.View())
 		b.WriteString("\n\n")
 		b.WriteString(i18n.T(lang, i18n.KeyAddSkillRefLabel) + "\n")
-		b.WriteString(m.AddSkillRefInput.View())
-		if m.AddSkillFieldIndex == 1 && len(m.AddSkillRefCandidates) > 0 {
+		b.WriteString(m.AddSkill.RefInput.View())
+		if m.AddSkill.FieldIndex == 1 && len(m.AddSkill.RefCandidates) > 0 {
 			b.WriteString("\n")
 			b.WriteString("  (Up/Down select, Enter or Tab to pick)\n")
-			for i, c := range m.AddSkillRefCandidates {
+			for i, c := range m.AddSkill.RefCandidates {
 				line := "  " + c
-				if i == m.AddSkillRefIndex {
+				if i == m.AddSkill.RefIndex {
 					b.WriteString(ui.SuggestHiRender(line) + "\n")
 				} else {
 					b.WriteString(ui.SuggestStyleRender(line) + "\n")
@@ -34,13 +34,13 @@ func buildSkillOverlayContent(m ui.Model) (string, bool) {
 		}
 		b.WriteString("\n\n")
 		b.WriteString(i18n.T(lang, i18n.KeyAddSkillPathLabel) + "\n")
-		b.WriteString(m.AddSkillPathInput.View())
-		if m.AddSkillFieldIndex == 2 && len(m.AddSkillPathCandidates) > 0 {
+		b.WriteString(m.AddSkill.PathInput.View())
+		if m.AddSkill.FieldIndex == 2 && len(m.AddSkill.PathCandidates) > 0 {
 			b.WriteString("\n")
 			b.WriteString("  (Up/Down select, Enter or Tab to pick)\n")
-			for i, c := range m.AddSkillPathCandidates {
+			for i, c := range m.AddSkill.PathCandidates {
 				line := "  " + c
-				if i == m.AddSkillPathIndex {
+				if i == m.AddSkill.PathIndex {
 					b.WriteString(ui.SuggestHiRender(line) + "\n")
 				} else {
 					b.WriteString(ui.SuggestStyleRender(line) + "\n")
@@ -49,43 +49,43 @@ func buildSkillOverlayContent(m ui.Model) (string, bool) {
 		}
 		b.WriteString("\n\n")
 		b.WriteString(i18n.T(lang, i18n.KeyAddSkillNameLabel) + "\n")
-		b.WriteString(m.AddSkillNameInput.View())
+		b.WriteString(m.AddSkill.NameInput.View())
 		b.WriteString("\n\n")
 		b.WriteString(i18n.T(lang, i18n.KeyAddSkillHint))
 		return b.String(), true
 	}
 
-	if m.UpdateSkillActive {
+	if m.UpdateSkill.Active {
 		lang := "en"
 		var b strings.Builder
-		if m.UpdateSkillError != "" {
-			b.WriteString(ui.ErrStyleRender(m.UpdateSkillError) + "\n\n")
+		if m.UpdateSkill.Error != "" {
+			b.WriteString(ui.ErrStyleRender(m.UpdateSkill.Error) + "\n\n")
 		}
 		b.WriteString("Update skill\n\n")
-		b.WriteString("Skill: " + m.UpdateSkillName + "\n")
-		b.WriteString("URL:   " + m.UpdateSkillURL + "\n")
-		path := m.UpdateSkillPath
+		b.WriteString("Skill: " + m.UpdateSkill.Name + "\n")
+		b.WriteString("URL:   " + m.UpdateSkill.URL + "\n")
+		path := m.UpdateSkill.Path
 		if strings.TrimSpace(path) == "" {
 			path = "."
 		}
 		b.WriteString("Path:  " + path + "\n\n")
 		b.WriteString("Ref (Up/Down to change, Enter to update, Esc to cancel):\n")
-		for i, r := range m.UpdateSkillRefs {
+		for i, r := range m.UpdateSkill.Refs {
 			line := "  " + r
-			if i == m.UpdateSkillRefIndex {
+			if i == m.UpdateSkill.RefIndex {
 				b.WriteString(ui.SuggestHiRender(line) + "\n")
 			} else {
 				b.WriteString(ui.SuggestStyleRender(line) + "\n")
 			}
 		}
 		b.WriteString("\n")
-		current := strings.TrimSpace(m.UpdateSkillCurrentCommit)
+		current := strings.TrimSpace(m.UpdateSkill.CurrentCommit)
 		if current == "" {
 			current = "(unknown)"
 		} else if len(current) > 7 {
 			current = current[:7]
 		}
-		latest := strings.TrimSpace(m.UpdateSkillLatestCommit)
+		latest := strings.TrimSpace(m.UpdateSkill.LatestCommit)
 		if latest == "" {
 			latest = "(unknown)"
 		} else if len(latest) > 7 {
