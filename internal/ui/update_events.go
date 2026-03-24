@@ -12,33 +12,6 @@ import (
 	"delve-shell/internal/i18n"
 )
 
-func (m Model) handleRemoteStatusMsg(msg RemoteStatusMsg) (Model, tea.Cmd) {
-	m.RemoteActive = msg.Active
-	m.RemoteLabel = msg.Label
-	if msg.Active {
-		// New remote active: clear any previous remote /run completion cache.
-		m.RemoteRunLabel = msg.Label
-		m.RemoteRunCommands = nil
-	} else {
-		// Switching back to local: drop any remote /run completion cache.
-		m.RemoteRunLabel = ""
-		m.RemoteRunCommands = nil
-	}
-	m.Viewport.SetContent(m.buildContent())
-	return m, nil
-}
-
-func (m Model) handleRunCompletionCacheMsg(msg RunCompletionCacheMsg) (Model, tea.Cmd) {
-	// Remote cache update (sent by CLI on successful /remote on).
-	// Ignore stale results from previous remotes.
-	if msg.RemoteLabel == "" || msg.RemoteLabel != m.RemoteLabel {
-		return m, nil
-	}
-	m.RemoteRunLabel = msg.RemoteLabel
-	m.RemoteRunCommands = msg.Commands
-	return m, nil
-}
-
 func (m Model) handleConfigReloadedMsg() (Model, tea.Cmd) {
 	lang := m.getLang()
 	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyConfigReloaded))))

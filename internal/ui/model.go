@@ -150,10 +150,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleBlurMsg()
 	case tea.FocusMsg:
 		return m.handleFocusMsg()
-	case RemoteStatusMsg:
-		return m.handleRemoteStatusMsg(msg)
-	case RunCompletionCacheMsg:
-		return m.handleRunCompletionCacheMsg(msg)
 	case ConfigLLMCheckDoneMsg:
 		return m.handleConfigLLMCheckDoneMsg(msg)
 	case OverlayShowMsg:

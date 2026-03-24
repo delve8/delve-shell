@@ -121,6 +121,29 @@ func init() {
 	// Delegate remote async messages (connect done / auth prompt) to ui handlers.
 	ui.RegisterMessageProvider(func(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		switch t := msg.(type) {
+		case ui.RemoteStatusMsg:
+			m.RemoteActive = t.Active
+			m.RemoteLabel = t.Label
+			if t.Active {
+				// New remote active: clear any previous remote /run completion cache.
+				m.RemoteRunLabel = t.Label
+				m.RemoteRunCommands = nil
+			} else {
+				// Switching back to local: drop any remote /run completion cache.
+				m.RemoteRunLabel = ""
+				m.RemoteRunCommands = nil
+			}
+			m = m.RefreshViewport()
+			return m, nil, true
+		case ui.RunCompletionCacheMsg:
+			// Remote cache update (sent by CLI on successful /remote on).
+			// Ignore stale results from previous remotes.
+			if t.RemoteLabel == "" || t.RemoteLabel != m.RemoteLabel {
+				return m, nil, true
+			}
+			m.RemoteRunLabel = t.RemoteLabel
+			m.RemoteRunCommands = t.Commands
+			return m, nil, true
 		case ui.RemoteConnectDoneMsg:
 			m.AddRemoteConnecting = false
 			m.AddRemoteError = ""
