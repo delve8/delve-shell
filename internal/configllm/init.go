@@ -8,6 +8,7 @@ import (
 
 func init() {
 	registerSlashExact()
+	registerSlashPrefix()
 	ui.RegisterOverlayContentProvider(func(m ui.Model) (string, bool) {
 		return buildConfigLLMOverlayContent(m)
 	})

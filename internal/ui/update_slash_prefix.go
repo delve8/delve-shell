@@ -35,27 +35,6 @@ func init() {
 		},
 	})
 
-	registerSlashPrefix("/config llm base_url ", SlashPrefixDispatchEntry{
-		Prefix: "/config llm base_url ",
-		Handle: func(mm Model, rest string) (Model, tea.Cmd, bool) {
-			mm = mm.applyConfigLLM("base_url", strings.TrimSpace(rest))
-			return mm, nil, true
-		},
-	})
-	registerSlashPrefix("/config llm api_key ", SlashPrefixDispatchEntry{
-		Prefix: "/config llm api_key ",
-		Handle: func(mm Model, rest string) (Model, tea.Cmd, bool) {
-			mm = mm.applyConfigLLM("api_key", strings.TrimSpace(rest))
-			return mm, nil, true
-		},
-	})
-	registerSlashPrefix("/config llm model ", SlashPrefixDispatchEntry{
-		Prefix: "/config llm model ",
-		Handle: func(mm Model, rest string) (Model, tea.Cmd, bool) {
-			mm = mm.applyConfigLLM("model", strings.TrimSpace(rest))
-			return mm, nil, true
-		},
-	})
 	registerSlashPrefix("/config auto-run ", SlashPrefixDispatchEntry{
 		Prefix: "/config auto-run ",
 		Handle: func(mm Model, rest string) (Model, tea.Cmd, bool) {
@@ -64,5 +43,5 @@ func init() {
 		},
 	})
 
-	// NOTE: skill/remote/session prefix handlers moved to feature packages.
+	// NOTE: skill/remote/session/configllm prefix handlers moved to feature packages.
 }

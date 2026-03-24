@@ -3,7 +3,6 @@ package ui
 import (
 	"context"
 	"strings"
-	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbletea"
@@ -118,7 +117,7 @@ func skillInvocationPrompt(skillName, skillContent, naturalLanguage string) stri
 }
 
 // applyConfigLLMFromOverlayStart writes config and sets ConfigLLMChecking so the UI shows "Checking...".
-// The caller should then run RunConfigLLMCheckCmd() and handle ConfigLLMCheckDoneMsg to close or show error.
+// The caller should then run Config LLM check command and handle ConfigLLMCheckDoneMsg to close or show error.
 func (m Model) applyConfigLLMFromOverlayStart(baseURL, apiKey, model, maxMessagesStr, maxCharsStr string) Model {
 	baseURL = strings.TrimSpace(baseURL)
 	apiKey = strings.TrimSpace(apiKey)
@@ -147,23 +146,6 @@ func (m Model) applyConfigLLMFromOverlayStart(baseURL, apiKey, model, maxMessage
 // ApplyConfigLLMFromOverlayStart exposes overlay-save precheck flow for feature providers.
 func (m Model) ApplyConfigLLMFromOverlayStart(baseURL, apiKey, model, maxMessagesStr, maxCharsStr string) Model {
 	return m.applyConfigLLMFromOverlayStart(baseURL, apiKey, model, maxMessagesStr, maxCharsStr)
-}
-
-// RunConfigLLMCheckCmd runs the LLM "hello" check in the background and returns ConfigLLMCheckDoneMsg.
-// If the URL fails and does not end with /v1, retries with /v1 and updates config on success.
-func RunConfigLLMCheckCmd() tea.Cmd {
-	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		defer cancel()
-		corrected, err := configsvc.CheckLLMAndMaybeAutoCorrect(ctx, nil)
-		if err != nil {
-			return ConfigLLMCheckDoneMsg{Err: err}
-		}
-		if corrected != "" {
-			return ConfigLLMCheckDoneMsg{CorrectedBaseURL: corrected}
-		}
-		return ConfigLLMCheckDoneMsg{Err: nil}
-	}
 }
 
 // applyConfigLLM sets one llm field in config.yaml and writes back; value supports $VAR env expansion.
@@ -207,6 +189,11 @@ func (m Model) applyConfigLLM(field, value string) Model {
 		}
 	}
 	return m
+}
+
+// ApplyConfigLLMField exposes /config llm field update for feature providers.
+func (m Model) ApplyConfigLLMField(field, value string) Model {
+	return m.applyConfigLLM(field, value)
 }
 
 // applyAllowlistAutoRunSwitch sets runtime allowlist auto-run (on -> true, off -> false) and sends to AllowlistAutoRunChangeChan; does not write config.

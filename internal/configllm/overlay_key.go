@@ -58,7 +58,7 @@ func handleOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd
 		if !m.ConfigLLMChecking {
 			return m, nil, true
 		}
-		return m, ui.RunConfigLLMCheckCmd(), true
+		return m, runConfigLLMCheckCmd(), true
 	}
 
 	var cmd tea.Cmd
