@@ -53,26 +53,15 @@ func (m Model) handleMainEnterCommand(text string, slashSelectedPath string, sla
 
 		// input must match chosen command; skip when only "/". "Fill only" already returned above.
 		if len(strings.TrimSpace(strings.TrimPrefix(text, "/"))) > 0 && (chosen == text || strings.HasPrefix(chosen, text)) {
-			// user input matches chosen (full input then Enter) => execute
-			// Slash suggestion for "/skill <name>" is "fill-only":
-			// skip execution dispatch when there is no natural language yet.
-			if strings.HasPrefix(chosen, "/skill ") {
-				rest := strings.TrimSpace(strings.TrimPrefix(chosen, "/skill "))
-				fields := strings.Fields(rest)
-				if len(fields) == 1 {
-					if m2, cmd, handled := m.handleSlashSelectedFallback(chosen); handled {
-						return m2, cmd
-					}
-				}
+			// Let feature providers decide fill-only slash options first.
+			if m2, cmd, handled := m.handleSlashSelectedFallback(chosen); handled {
+				return m2, cmd
 			}
 
 			if m2, cmd, handled := m.dispatchSlashExact(chosen); handled {
 				return m2, cmd
 			}
 			if m2, cmd, handled := m.dispatchSlashPrefix(chosen); handled {
-				return m2, cmd
-			}
-			if m2, cmd, handled := m.handleSlashSelectedFallback(chosen); handled {
 				return m2, cmd
 			}
 		}

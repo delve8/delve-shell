@@ -124,3 +124,17 @@ func RegisterTitleBarFragmentProvider(p TitleBarFragmentProvider) {
 	}
 	titleBarFragmentProviderChain.Add(p, func(x TitleBarFragmentProvider) bool { return x == nil })
 }
+
+// StartupOverlayProvider can open a feature overlay on startup after first layout.
+// Providers run in registration order; the first one that returns handled=true wins.
+type StartupOverlayProvider func(m Model) (Model, tea.Cmd, bool)
+
+var startupOverlayProviderChain = slashreg.NewProviderChain[StartupOverlayProvider]()
+
+// RegisterStartupOverlayProvider registers a startup overlay provider.
+func RegisterStartupOverlayProvider(p StartupOverlayProvider) {
+	if p == nil {
+		return
+	}
+	startupOverlayProviderChain.Add(p, func(x StartupOverlayProvider) bool { return x == nil })
+}

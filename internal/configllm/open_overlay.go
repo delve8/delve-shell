@@ -54,4 +54,7 @@ func registerSlashExact() {
 		},
 		ClearInput: true,
 	})
+	ui.RegisterStartupOverlayProvider(func(m ui.Model) (ui.Model, tea.Cmd, bool) {
+		return openOverlay(m), nil, true
+	})
 }

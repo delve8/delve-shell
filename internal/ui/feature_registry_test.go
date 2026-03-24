@@ -7,6 +7,7 @@ func init() {
 	registerTestExactOverlayMirrors()
 	registerTestSlashExactMirrors()
 	registerTestStaticSlashOptionsMirror()
+	registerTestStartupOverlayMirror()
 	registerTestSkillPrefixMirrors()
 	registerTestConfigPrefixMirrors()
 	registerTestSessionMessageMirror()

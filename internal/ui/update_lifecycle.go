@@ -17,8 +17,10 @@ func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 	m = m.RefreshViewport()
 	if m.Startup.InitialShowConfigLLM {
 		m.Startup.InitialShowConfigLLM = false
-		if m2, cmd, handled := m.dispatchSlashExact("/config llm"); handled {
-			return m2, cmd
+		for _, p := range startupOverlayProviderChain.List() {
+			if m2, cmd, handled := p(m); handled {
+				return m2, cmd
+			}
 		}
 	}
 	return m, nil

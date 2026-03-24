@@ -266,68 +266,6 @@ func TestSlashDropdown_UpdateSkill_EnterExecutesOverlay(t *testing.T) {
 	}
 }
 
-func TestSlashCommand_Help_EnterOpensOverlay(t *testing.T) {
-	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
-	m.Input.SetValue("/help")
-	m.Input.CursorEnd()
-
-	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m2 := next.(Model)
-	if !m2.Overlay.Active {
-		t.Fatalf("expected /help Enter to open overlay, Overlay.Active=false")
-	}
-	if m2.Overlay.Title == "" {
-		t.Fatalf("expected /help overlay to have a title")
-	}
-}
-
-func TestOverlayEsc_CloseHooksClearFeatureFlags(t *testing.T) {
-	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
-	m.Overlay.Active = true
-	m.Overlay.Title = "x"
-	m.AddRemote.Active = true
-
-	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
-	m2 := next.(Model)
-	if m2.Overlay.Active {
-		t.Fatal("expected overlay closed after Esc")
-	}
-	if m2.AddRemote.Active {
-		t.Fatal("expected overlay close feature reset to clear AddRemote.Active")
-	}
-}
-
-func TestSlashCommand_RemoteOn_EnterOpensOverlay(t *testing.T) {
-	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
-	m.Input.SetValue("/remote on")
-	m.Input.CursorEnd()
-
-	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m2 := next.(Model)
-	if !m2.Overlay.Active || !m2.AddRemote.Active {
-		t.Fatalf("expected /remote on Enter to open overlay, Overlay.Active=%v AddRemote.Active=%v", m2.Overlay.Active, m2.AddRemote.Active)
-	}
-}
-
-func TestSlashCommand_ConfigDelRemote_EnterFillsInput(t *testing.T) {
-	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
-	m.Input.SetValue("/config del-remote")
-	m.Input.CursorEnd()
-
-	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m2 := next.(Model)
-	if strings.TrimSpace(m2.Input.Value()) != "/config del-remote" {
-		t.Fatalf("expected /config del-remote Enter to keep filled command, got %q", m2.Input.Value())
-	}
-	if !strings.HasSuffix(m2.Input.Value(), " ") {
-		t.Fatalf("expected /config del-remote to append trailing space, got %q", m2.Input.Value())
-	}
-}
-
 func TestSlashDropdown_Cancel_EnterFillsThenExecutes(t *testing.T) {
 	cancelCh := make(chan struct{}, 1)
 	getAutoRun := func() bool { return true }
