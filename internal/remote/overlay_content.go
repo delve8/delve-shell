@@ -4,11 +4,13 @@ import (
 	"strings"
 
 	"delve-shell/internal/config"
+	"delve-shell/internal/pathcomplete"
 	"delve-shell/internal/ui"
 )
 
 func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 	state := getRemoteOverlayState()
+	pcState := pathcomplete.GetState()
 	if state.AddRemote.Active {
 		var b strings.Builder
 		if state.AddRemote.Connecting {
@@ -37,12 +39,12 @@ func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 		b.WriteString("Key path (optional):\n")
 		b.WriteString(state.AddRemote.KeyInput.View())
 		b.WriteString("\n\n")
-		if state.AddRemote.FieldIndex == 3 && len(m.PathCompletion.Candidates) > 0 {
+		if state.AddRemote.FieldIndex == 3 && len(pcState.Candidates) > 0 {
 			b.WriteString("\n\n")
 			b.WriteString("Path completion (Up/Down select, Enter or Tab to pick):\n")
-			for i, c := range m.PathCompletion.Candidates {
+			for i, c := range pcState.Candidates {
 				line := "  " + c
-				if i == m.PathCompletion.Index {
+				if i == pcState.Index {
 					b.WriteString(ui.SuggestHiRender(line) + "\n")
 				} else {
 					b.WriteString(ui.SuggestStyleRender(line) + "\n")
@@ -98,12 +100,12 @@ func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 		b.WriteString(m.Overlay.Content)
 		b.WriteString("\n\n")
 		b.WriteString(state.RemoteAuth.Input.View())
-		if len(m.PathCompletion.Candidates) > 0 {
+		if len(pcState.Candidates) > 0 {
 			b.WriteString("\n\n")
 			b.WriteString("Path completion (Up/Down select, Enter or Tab to pick):\n")
-			for i, c := range m.PathCompletion.Candidates {
+			for i, c := range pcState.Candidates {
 				line := "  " + c
-				if i == m.PathCompletion.Index {
+				if i == pcState.Index {
 					b.WriteString(ui.SuggestHiRender(line) + "\n")
 				} else {
 					b.WriteString(ui.SuggestStyleRender(line) + "\n")

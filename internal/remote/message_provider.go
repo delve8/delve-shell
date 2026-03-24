@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/pathcomplete"
 	"delve-shell/internal/ui"
 )
 
@@ -49,8 +50,7 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 				state.RemoteAuth.Target = ""
 				state.RemoteAuth.Error = ""
 				state.RemoteAuth.Username = ""
-				m.PathCompletion.Candidates = nil
-				m.PathCompletion.Index = -1
+				pathcomplete.SetState(pathcomplete.State{Index: -1})
 				m.Input.Focus()
 			}
 			setRemoteOverlayState(state)

@@ -30,14 +30,10 @@ type Model struct {
 	// Overlay state: when Overlay.Active is true, a modal is rendered on top of the main UI.
 	Overlay OverlayState
 
-	// Path completion (shared): used for any path input with dropdown (auth identity key path, add-remote key path).
-	PathCompletion PathCompletionState
-
 	// Startup stores one-time startup toggles consumed in lifecycle handlers.
 	Startup StartupState
 	// Config LLM overlay state.
 	ConfigLLM ConfigLLMOverlayState
-
 }
 
 // ConfigLLMOverlayState stores overlay-only state for `/config llm`.
@@ -51,12 +47,6 @@ type ConfigLLMOverlayState struct {
 	MaxCharsInput    textinput.Model
 	FieldIndex       int // 0=base_url, 1=api_key, 2=model, 3=max_messages, 4=max_chars
 	Error            string
-}
-
-// PathCompletionState stores shared dropdown state for filesystem path completion.
-type PathCompletionState struct {
-	Candidates []string
-	Index      int
 }
 
 // RuntimeContextState stores session and remote execution context reflected in UI.

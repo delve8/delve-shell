@@ -36,6 +36,7 @@ func handleRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, t
 
 func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
 	state := getRemoteOverlayState()
+	pcState := pathcomplete.GetState()
 	ret := func(model ui.Model, cmd tea.Cmd, handled bool) (ui.Model, tea.Cmd, bool) {
 		setRemoteOverlayState(state)
 		return model, cmd, handled
@@ -43,34 +44,37 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 	switch key {
 	case "tab":
 		if state.AddRemote.FieldIndex == 3 {
-			cands := m.PathCompletion.Candidates
-			if len(cands) > 0 && m.PathCompletion.Index >= 0 && m.PathCompletion.Index < len(cands) {
-				chosen := cands[m.PathCompletion.Index]
+			cands := pcState.Candidates
+			if len(cands) > 0 && pcState.Index >= 0 && pcState.Index < len(cands) {
+				chosen := cands[pcState.Index]
 				state.AddRemote.KeyInput.SetValue(chosen)
 				state.AddRemote.KeyInput.CursorEnd()
 				if strings.HasSuffix(chosen, "/") {
-					m.PathCompletion.Candidates = pathcomplete.Candidates(chosen)
-					m.PathCompletion.Index = 0
+					pcState.Candidates = pathcomplete.Candidates(chosen)
+					pcState.Index = 0
 				} else {
-					m.PathCompletion.Candidates = nil
-					m.PathCompletion.Index = -1
+					pcState.Candidates = nil
+					pcState.Index = -1
 				}
+				pathcomplete.SetState(pcState)
 				return ret(m, nil, true)
 			}
 		}
 	case "up", "down":
 		// In Key path with completion list: move within list. Else: Up/Down move focus between fields.
-		if state.AddRemote.FieldIndex == 3 && len(m.PathCompletion.Candidates) > 0 {
-			cands := m.PathCompletion.Candidates
+		if state.AddRemote.FieldIndex == 3 && len(pcState.Candidates) > 0 {
+			cands := pcState.Candidates
 			if key == "up" {
-				m.PathCompletion.Index--
-				if m.PathCompletion.Index < 0 {
-					m.PathCompletion.Index = len(cands) - 1
+				pcState.Index--
+				if pcState.Index < 0 {
+					pcState.Index = len(cands) - 1
 				}
+				pathcomplete.SetState(pcState)
 				return ret(m, nil, true)
 			}
 			if key == "down" {
-				m.PathCompletion.Index = (m.PathCompletion.Index + 1) % len(cands)
+				pcState.Index = (pcState.Index + 1) % len(cands)
+				pathcomplete.SetState(pcState)
 				return ret(m, nil, true)
 			}
 		}
@@ -102,16 +106,17 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			// Save checkbox: no textinput to focus.
 		}
 		if state.AddRemote.FieldIndex != 3 {
-			m.PathCompletion.Candidates = nil
-			m.PathCompletion.Index = -1
+			pcState.Candidates = nil
+			pcState.Index = -1
 		} else {
-			m.PathCompletion.Candidates = pathcomplete.Candidates(state.AddRemote.KeyInput.Value())
-			if len(m.PathCompletion.Candidates) > 0 {
-				m.PathCompletion.Index = 0
+			pcState.Candidates = pathcomplete.Candidates(state.AddRemote.KeyInput.Value())
+			if len(pcState.Candidates) > 0 {
+				pcState.Index = 0
 			} else {
-				m.PathCompletion.Index = -1
+				pcState.Index = -1
 			}
 		}
+		pathcomplete.SetState(pcState)
 		return ret(m, nil, true)
 
 	case "y", "Y":
@@ -168,18 +173,19 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 
 	case "enter":
 		if state.AddRemote.FieldIndex == 3 {
-			cands := m.PathCompletion.Candidates
-			if len(cands) > 0 && m.PathCompletion.Index >= 0 && m.PathCompletion.Index < len(cands) {
-				chosen := cands[m.PathCompletion.Index]
+			cands := pcState.Candidates
+			if len(cands) > 0 && pcState.Index >= 0 && pcState.Index < len(cands) {
+				chosen := cands[pcState.Index]
 				state.AddRemote.KeyInput.SetValue(chosen)
 				state.AddRemote.KeyInput.CursorEnd()
 				if strings.HasSuffix(chosen, "/") {
-					m.PathCompletion.Candidates = pathcomplete.Candidates(chosen)
-					m.PathCompletion.Index = 0
+					pcState.Candidates = pathcomplete.Candidates(chosen)
+					pcState.Index = 0
 				} else {
-					m.PathCompletion.Candidates = nil
-					m.PathCompletion.Index = -1
+					pcState.Candidates = nil
+					pcState.Index = -1
 				}
+				pathcomplete.SetState(pcState)
 				return ret(m, nil, true)
 			}
 		}
@@ -260,22 +266,24 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 		state.AddRemote.NameInput, cmd = state.AddRemote.NameInput.Update(msg)
 	case 3:
 		state.AddRemote.KeyInput, cmd = state.AddRemote.KeyInput.Update(msg)
-		m.PathCompletion.Candidates = pathcomplete.Candidates(state.AddRemote.KeyInput.Value())
-		if len(m.PathCompletion.Candidates) > 0 {
-			m.PathCompletion.Index = 0
+		pcState.Candidates = pathcomplete.Candidates(state.AddRemote.KeyInput.Value())
+		if len(pcState.Candidates) > 0 {
+			pcState.Index = 0
 		} else {
-			m.PathCompletion.Index = -1
+			pcState.Index = -1
 		}
 	case 4:
 		// Save checkbox has no text input; ignore character keys.
 		cmd = nil
 	}
+	pathcomplete.SetState(pcState)
 	_ = msg
 	return ret(m, cmd, true)
 }
 
 func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
 	state := getRemoteOverlayState()
+	pcState := pathcomplete.GetState()
 	ret := func(model ui.Model, cmd tea.Cmd, handled bool) (ui.Model, tea.Cmd, bool) {
 		setRemoteOverlayState(state)
 		return model, cmd, handled
@@ -319,8 +327,9 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			state.RemoteAuth.Input.Placeholder = "~/.ssh/id_rsa"
 			state.RemoteAuth.Input.EchoMode = textinput.EchoNormal
 			state.RemoteAuth.Input.Focus()
-			m.PathCompletion.Candidates = nil
-			m.PathCompletion.Index = -1
+			pcState.Candidates = nil
+			pcState.Index = -1
+			pathcomplete.SetState(pcState)
 			var b strings.Builder
 			if state.RemoteAuth.Error != "" {
 				b.WriteString(errStyle.Render(state.RemoteAuth.Error) + "\n\n")
@@ -387,34 +396,37 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			return ret(m, nil, true)
 		}
 
-		cands := m.PathCompletion.Candidates
+		cands := pcState.Candidates
 		if key == "up" && len(cands) > 0 {
-			m.PathCompletion.Index--
-			if m.PathCompletion.Index < 0 {
-				m.PathCompletion.Index = len(cands) - 1
+			pcState.Index--
+			if pcState.Index < 0 {
+				pcState.Index = len(cands) - 1
 			}
-			return m, nil, true
+			pathcomplete.SetState(pcState)
+			return ret(m, nil, true)
 		}
 		if key == "down" && len(cands) > 0 {
-			m.PathCompletion.Index = (m.PathCompletion.Index + 1) % len(cands)
-			return m, nil, true
+			pcState.Index = (pcState.Index + 1) % len(cands)
+			pathcomplete.SetState(pcState)
+			return ret(m, nil, true)
 		}
 
 		pickIdentityCandidate := len(cands) > 0 &&
-			m.PathCompletion.Index >= 0 &&
-			m.PathCompletion.Index < len(cands) &&
+			pcState.Index >= 0 &&
+			pcState.Index < len(cands) &&
 			(key == "enter" || key == "tab")
 		if pickIdentityCandidate {
-			chosen := cands[m.PathCompletion.Index]
+			chosen := cands[pcState.Index]
 			state.RemoteAuth.Input.SetValue(chosen)
 			state.RemoteAuth.Input.CursorEnd()
 			if strings.HasSuffix(chosen, "/") {
-				m.PathCompletion.Candidates = pathcomplete.Candidates(chosen)
-				m.PathCompletion.Index = 0
+				pcState.Candidates = pathcomplete.Candidates(chosen)
+				pcState.Index = 0
 			} else {
-				m.PathCompletion.Candidates = nil
-				m.PathCompletion.Index = -1
+				pcState.Candidates = nil
+				pcState.Index = -1
 			}
+			pathcomplete.SetState(pcState)
 			return ret(m, nil, true)
 		}
 
@@ -423,8 +435,9 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			if input == "" {
 				state.RemoteAuth.Step = "choose"
 				m.Interaction.ChoiceIndex = 0
-				m.PathCompletion.Candidates = nil
-				m.PathCompletion.Index = -1
+				pcState.Candidates = nil
+				pcState.Index = -1
+				pathcomplete.SetState(pcState)
 				var b strings.Builder
 				if state.RemoteAuth.Error != "" {
 					b.WriteString(errStyle.Render(state.RemoteAuth.Error) + "\n\n")
@@ -460,24 +473,26 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 		}
 
 		if key == "tab" {
-		m.PathCompletion.Candidates = pathcomplete.Candidates(state.RemoteAuth.Input.Value())
-			if len(m.PathCompletion.Candidates) > 0 {
-				m.PathCompletion.Index = (m.PathCompletion.Index + 1) % len(m.PathCompletion.Candidates)
+			pcState.Candidates = pathcomplete.Candidates(state.RemoteAuth.Input.Value())
+			if len(pcState.Candidates) > 0 {
+				pcState.Index = (pcState.Index + 1) % len(pcState.Candidates)
 			} else {
-				m.PathCompletion.Index = -1
+				pcState.Index = -1
 			}
+			pathcomplete.SetState(pcState)
 			return ret(m, nil, true)
 		}
 
 		var cmd tea.Cmd
 		state.RemoteAuth.Input, cmd = state.RemoteAuth.Input.Update(msg)
 		// Refresh path candidates from new input (so dropdown updates as user types).
-		m.PathCompletion.Candidates = pathcomplete.Candidates(state.RemoteAuth.Input.Value())
-		if len(m.PathCompletion.Candidates) > 0 {
-			m.PathCompletion.Index = 0
+		pcState.Candidates = pathcomplete.Candidates(state.RemoteAuth.Input.Value())
+		if len(pcState.Candidates) > 0 {
+			pcState.Index = 0
 		} else {
-			m.PathCompletion.Index = -1
+			pcState.Index = -1
 		}
+		pathcomplete.SetState(pcState)
 		return ret(m, cmd, true)
 	}
 

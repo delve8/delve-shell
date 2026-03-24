@@ -5,6 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/pathcomplete"
 	"delve-shell/internal/ui"
 )
 
@@ -108,6 +109,7 @@ func registerProviders() {
 
 	ui.RegisterOverlayCloseHook(func(m ui.Model) ui.Model {
 		resetRemoteOverlayState()
+		pathcomplete.ResetState()
 		return m
 	})
 }

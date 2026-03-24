@@ -4,6 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/pathcomplete"
 	"delve-shell/internal/ui"
 )
 
@@ -16,8 +17,7 @@ func openAddRemoteOverlay(m ui.Model, save, connect bool) ui.Model {
 	state.AddRemote.OfferOverwrite = false
 	state.AddRemote.Save = save
 	state.AddRemote.Connect = connect
-	m.PathCompletion.Candidates = nil
-	m.PathCompletion.Index = -1
+	pathcomplete.SetState(pathcomplete.State{Index: -1})
 	state.AddRemote.FieldIndex = 0
 	state.AddRemote.HostInput = textinput.New()
 	state.AddRemote.HostInput.Placeholder = "host or host:22"
