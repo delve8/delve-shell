@@ -1,3 +1,5 @@
+// Package run registers /run slash prefix and fill-only selection for SlashRunUsageOption.
+// internal/ui tests cannot import this package (run → ui cycle); they mirror the selected handler there.
 package run
 
 import (
@@ -32,7 +34,7 @@ func init() {
 	})
 
 	ui.RegisterSlashSelectedProvider(func(m ui.Model, chosen string) (ui.Model, tea.Cmd, bool) {
-		if chosen != "/run <cmd>" {
+		if chosen != ui.SlashRunUsageOption {
 			return m, nil, false
 		}
 		m.Input.SetValue("/run ")

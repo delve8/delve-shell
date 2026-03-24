@@ -19,6 +19,9 @@ type slashOption struct {
 // without being able to reference the unexported name.
 type SlashOption = slashOption
 
+// SlashRunUsageOption is the Cmd string for the /run usage row in slash suggestions (fill-only on select).
+const SlashRunUsageOption = "/run <cmd>"
+
 // getSlashOptions returns top-level slash commands (shown when input starts with "/"); order: help, cancel, config, remote, new, sessions, skill, run, sh, quit.
 func getSlashOptions(lang string) []SlashOption {
 	return []slashOption{
@@ -29,7 +32,7 @@ func getSlashOptions(lang string) []SlashOption {
 		{"/new", i18n.T(lang, i18n.KeySessionNew), ""},
 		{"/sessions", i18n.T(lang, i18n.KeyDescSessions), ""},
 		{"/skill <skill-name> [detail]", i18n.T(lang, i18n.KeyDescSkill), ""},
-		{"/run <cmd>", i18n.T(lang, i18n.KeyDescRun), ""},
+		{SlashRunUsageOption, i18n.T(lang, i18n.KeyDescRun), ""},
 		{"/sh", i18n.T(lang, i18n.KeyDescSh), ""},
 		{"/q", i18n.T(lang, i18n.KeyDescExit), ""},
 	}
@@ -67,7 +70,7 @@ func getSlashOptionsForInput(inputVal string, lang string, currentSessionPath st
 	if normalizedLower == "run" || strings.HasPrefix(normalizedLower, "run ") {
 		// When just "/run": show the usage form.
 		if normalizedLower == "run" {
-			return []slashOption{{Cmd: "/run <cmd>", Desc: i18n.T(lang, i18n.KeyDescRun), Path: ""}}
+			return []slashOption{{Cmd: SlashRunUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun), Path: ""}}
 		}
 		// After "/run " start showing command candidates.
 		rest := ""

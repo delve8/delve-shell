@@ -44,7 +44,7 @@ func TestGetSlashOptionsForInput_runCompletion_filtersAndNoFallback(t *testing.T
 
 	// "/run" shows the usage row.
 	opts := getSlashOptionsForInput("/run", "en", "", local, nil, false)
-	if len(opts) != 1 || opts[0].Cmd != "/run <cmd>" {
+	if len(opts) != 1 || opts[0].Cmd != SlashRunUsageOption {
 		t.Fatalf("expected usage option for /run, got %#v", opts)
 	}
 

@@ -11,8 +11,9 @@ import (
 	"delve-shell/internal/i18n"
 )
 
-// Test-only fallback registrations so internal/ui unit tests can run
-// without importing feature packages (which would create import cycles).
+// Test-only fallback registrations so internal/ui unit tests can run without importing
+// remote/session (avoids heavy deps). internal/run cannot be imported here: run → ui
+// would form a cycle with ui tests; mirror SlashRunUsageOption handling below instead.
 func init() {
 	registerSlashExact("/config add-remote", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
@@ -161,7 +162,7 @@ func init() {
 	})
 
 	RegisterSlashSelectedProvider(func(m Model, chosen string) (Model, tea.Cmd, bool) {
-		if chosen != "/run <cmd>" {
+		if chosen != SlashRunUsageOption {
 			return m, nil, false
 		}
 		m.Input.SetValue("/run ")
