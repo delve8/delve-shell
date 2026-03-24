@@ -25,6 +25,7 @@ var addSkillPathOptions = []string{
 	"skills",
 	"skills/.curated",
 	"skills/.experimental",
+	"skills/.system",
 	".agents/skills",
 	".agent/skills",
 	".claude/skills",

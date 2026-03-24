@@ -150,6 +150,16 @@ func init() {
 		}
 	})
 
+	RegisterSlashSelectedProvider(func(m Model, chosen string) (Model, tea.Cmd, bool) {
+		if !strings.HasPrefix(chosen, "/skill ") {
+			return m, nil, false
+		}
+		m.Input.SetValue(chosen + " ")
+		m.Input.CursorEnd()
+		m.SlashSuggestIndex = 0
+		return m, nil, true
+	})
+
 	RegisterSlashOptionsProvider(func(
 		inputVal string,
 		lang string,

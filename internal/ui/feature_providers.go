@@ -24,6 +24,21 @@ func RegisterSlashOptionsProvider(p SlashOptionsProvider) {
 	slashOptionsProviders = append(slashOptionsProviders, p)
 }
 
+// SlashSelectedProvider handles Enter on a chosen slash suggestion when the
+// command is not executed via exact/prefix dispatch (e.g. fill-only hints).
+type SlashSelectedProvider func(m Model, chosen string) (Model, tea.Cmd, bool)
+
+var slashSelectedProviders []SlashSelectedProvider
+
+// RegisterSlashSelectedProvider registers a slash-selected handler.
+// Providers run in registration order; the first that returns handled=true wins.
+func RegisterSlashSelectedProvider(p SlashSelectedProvider) {
+	if p == nil {
+		return
+	}
+	slashSelectedProviders = append(slashSelectedProviders, p)
+}
+
 // OverlayKeyProvider can handle key input when an overlay is active.
 // When handled==true, the returned model/cmd should be used by ui.
 type OverlayKeyProvider func(m Model, key string, msg tea.KeyMsg) (Model, tea.Cmd, bool)

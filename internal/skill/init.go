@@ -30,6 +30,16 @@ func init() {
 		},
 	})
 
+	ui.RegisterSlashSelectedProvider(func(m ui.Model, chosen string) (ui.Model, tea.Cmd, bool) {
+		if !strings.HasPrefix(chosen, "/skill ") {
+			return m, nil, false
+		}
+		m.Input.SetValue(chosen + " ")
+		m.Input.CursorEnd()
+		m.SlashSuggestIndex = 0
+		return m, nil, true
+	})
+
 	ui.RegisterSlashPrefix("/config add-skill", ui.SlashPrefixDispatchEntry{
 		Prefix: "/config add-skill",
 		Handle: func(m ui.Model, rest string) (ui.Model, tea.Cmd, bool) {

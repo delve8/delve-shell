@@ -15,22 +15,18 @@ type slashSelectedEntry struct {
 // handleSlashSelectedFallback handles suggestion-selected slash commands
 // that are intentionally not routed through exact/prefix dispatcher.
 func (m Model) handleSlashSelectedFallback(chosen string) (Model, tea.Cmd, bool) {
+	for _, p := range slashSelectedProviders {
+		if m2, cmd, handled := p(m, chosen); handled {
+			return m2, cmd, true
+		}
+	}
+
 	entries := []slashSelectedEntry{
 		{
 			exact: "/run <cmd>",
 			handle: func(mm Model, _ string) (Model, tea.Cmd, bool) {
 				mm.Input.SetValue("/run ")
 				mm.Input.CursorEnd()
-				return mm, nil, true
-			},
-		},
-		{
-			prefix: "/skill ",
-			handle: func(mm Model, chosen string) (Model, tea.Cmd, bool) {
-				// Fill so user can type natural language after the skill name.
-				mm.Input.SetValue(chosen + " ")
-				mm.Input.CursorEnd()
-				mm.SlashSuggestIndex = 0
 				return mm, nil, true
 			},
 		},
