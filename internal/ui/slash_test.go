@@ -6,8 +6,9 @@ import (
 	"testing"
 )
 
-// TestGetSessionSlashOptions_excludesCurrentSession asserts that the session list does not include currentSessionPath.
-func TestGetSessionSlashOptions_excludesCurrentSession(t *testing.T) {
+// TestGetSlashOptionsForInput_sessions_excludesCurrentSession asserts that
+// the session list does not include currentSessionPath.
+func TestGetSlashOptionsForInput_sessions_excludesCurrentSession(t *testing.T) {
 	dir := t.TempDir()
 	sessionsDir := filepath.Join(dir, "sessions")
 	if err := os.MkdirAll(sessionsDir, 0700); err != nil {
@@ -23,7 +24,7 @@ func TestGetSessionSlashOptions_excludesCurrentSession(t *testing.T) {
 		}
 	}
 
-	opts := getSessionSlashOptions("", aPath)
+	opts := getSlashOptionsForInput("/sessions", "en", aPath, nil, nil, false)
 	if len(opts) != 1 {
 		t.Fatalf("expected 1 option (current a excluded), got %d", len(opts))
 	}

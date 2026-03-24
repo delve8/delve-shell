@@ -10,7 +10,6 @@ import (
 	"delve-shell/internal/config"
 	"delve-shell/internal/git"
 	"delve-shell/internal/i18n"
-	"delve-shell/internal/service/configsvc"
 	"delve-shell/internal/service/remotesvc"
 )
 
@@ -114,86 +113,6 @@ func skillInvocationPrompt(skillName, skillContent, naturalLanguage string) stri
 	const header = `[Skill invocation] Fulfill the user's request using ONLY the skill below. Use the run_skill tool with this skill's scripts and parameters; do not suggest arbitrary shell commands unless the skill documentation explicitly allows it.`
 
 	return header + "\n\n## Skill: " + skillName + "\n\n" + skillContent + "\n\n## User request\n\n" + naturalLanguage
-}
-
-// applyConfigLLMFromOverlayStart writes config and sets ConfigLLMChecking so the UI shows "Checking...".
-// The caller should then run Config LLM check command and handle ConfigLLMCheckDoneMsg to close or show error.
-func (m Model) applyConfigLLMFromOverlayStart(baseURL, apiKey, model, maxMessagesStr, maxCharsStr string) Model {
-	baseURL = strings.TrimSpace(baseURL)
-	apiKey = strings.TrimSpace(apiKey)
-	model = strings.TrimSpace(model)
-	lang := m.getLang()
-	if model == "" {
-		return m // caller sets ConfigLLMError
-	}
-	if err := configsvc.SaveLLMFromOverlay(configsvc.SaveLLMParams{
-		BaseURL:     baseURL,
-		APIKey:      apiKey,
-		Model:       model,
-		MaxMessages: maxMessagesStr,
-		MaxChars:    maxCharsStr,
-	}); err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	m.ConfigLLMError = ""
-	m.ConfigLLMChecking = true
-	return m
-}
-
-// ApplyConfigLLMFromOverlayStart exposes overlay-save precheck flow for feature providers.
-func (m Model) ApplyConfigLLMFromOverlayStart(baseURL, apiKey, model, maxMessagesStr, maxCharsStr string) Model {
-	return m.applyConfigLLMFromOverlayStart(baseURL, apiKey, model, maxMessagesStr, maxCharsStr)
-}
-
-// applyConfigLLM sets one llm field in config.yaml and writes back; value supports $VAR env expansion.
-func (m Model) applyConfigLLM(field, value string) Model {
-	value = strings.TrimSpace(value)
-	lang := m.getLang()
-	cfg, err := config.Load()
-	if err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	switch field {
-	case "base_url":
-		cfg.LLM.BaseURL = value
-	case "api_key":
-		cfg.LLM.APIKey = value
-	case "model":
-		cfg.LLM.Model = value
-	default:
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+i18n.T(lang, i18n.KeyConfigUnknownField)+field))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	if err := config.Write(cfg); err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
-		return m
-	}
-	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyConfigSaved, field))))
-	m.Messages = append(m.Messages, "")
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
-	if m.ConfigUpdatedChan != nil {
-		select {
-		case m.ConfigUpdatedChan <- struct{}{}:
-		default:
-		}
-	}
-	return m
-}
-
-// ApplyConfigLLMField exposes /config llm field update for feature providers.
-func (m Model) ApplyConfigLLMField(field, value string) Model {
-	return m.applyConfigLLM(field, value)
 }
 
 // applyAllowlistAutoRunSwitch sets runtime allowlist auto-run (on -> true, off -> false) and sends to AllowlistAutoRunChangeChan; does not write config.

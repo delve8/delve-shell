@@ -100,4 +100,46 @@ func init() {
 			return m, nil, false
 		}
 	})
+
+	RegisterSlashOptionsProvider(func(
+		inputVal string,
+		lang string,
+		currentSessionPath string,
+		_ []string,
+		_ []string,
+		_ bool,
+	) ([]SlashOption, bool) {
+		normalized := strings.TrimPrefix(inputVal, "/")
+		normalized = strings.TrimSpace(normalized)
+		normalizedLower := strings.ToLower(normalized)
+		if normalizedLower != "sessions" && !strings.HasPrefix(normalizedLower, "sessions ") {
+			return nil, false
+		}
+		filter := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "sessions"))
+		summaries, err := history.ListSessionsWithSummary(20)
+		if err != nil || len(summaries) == 0 {
+			return []SlashOption{{Cmd: i18n.T(lang, i18n.KeySessionNone), Desc: "", Path: ""}}, true
+		}
+		filterLower := strings.ToLower(filter)
+		var opts []SlashOption
+		for _, s := range summaries {
+			if s.Path == currentSessionPath {
+				continue
+			}
+			if filterLower != "" {
+				line := s.ID
+				if s.Snippet != "" {
+					line += " " + s.Snippet
+				}
+				if !strings.Contains(strings.ToLower(line), filterLower) {
+					continue
+				}
+			}
+			opts = append(opts, SlashOption{Cmd: "/sessions " + s.ID, Desc: s.Snippet, Path: s.Path})
+		}
+		if len(opts) == 0 {
+			return []SlashOption{{Cmd: i18n.T(lang, i18n.KeySessionNone), Desc: "", Path: ""}}, true
+		}
+		return opts, true
+	})
 }

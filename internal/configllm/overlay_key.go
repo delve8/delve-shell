@@ -54,7 +54,7 @@ func handleOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd
 			m.ConfigLLMError = i18n.T("en", i18n.KeyConfigLLMModelRequired)
 			return m, nil, true
 		}
-		m = m.ApplyConfigLLMFromOverlayStart(baseURL, apiKey, model, maxMessagesStr, maxCharsStr)
+		m = applyConfigLLMFromOverlayStart(m, baseURL, apiKey, model, maxMessagesStr, maxCharsStr)
 		if !m.ConfigLLMChecking {
 			return m, nil, true
 		}
