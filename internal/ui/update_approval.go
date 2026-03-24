@@ -40,8 +40,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 				execStyle.Render(m.Approval.PendingSensitive.Command),
 				suggestHi.Render(i18n.T(lang, i18n.KeySensitiveChoice1)),
 			)
-			m.Viewport.SetContent(m.buildContent())
-			m.Viewport.GotoBottom()
+			m = m.RefreshViewport()
 			m.Approval.PendingSensitive.ResponseCh <- agent.SensitiveRefuse
 			m.Approval.PendingSensitive = nil
 			return m, true
@@ -51,8 +50,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 				execStyle.Render(m.Approval.PendingSensitive.Command),
 				suggestHi.Render(i18n.T(lang, i18n.KeySensitiveChoice2)),
 			)
-			m.Viewport.SetContent(m.buildContent())
-			m.Viewport.GotoBottom()
+			m = m.RefreshViewport()
 			m.Approval.PendingSensitive.ResponseCh <- agent.SensitiveRunAndStore
 			m.Approval.PendingSensitive = nil
 			return m, true
@@ -62,8 +60,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 				execStyle.Render(m.Approval.PendingSensitive.Command),
 				suggestHi.Render(i18n.T(lang, i18n.KeySensitiveChoice3)),
 			)
-			m.Viewport.SetContent(m.buildContent())
-			m.Viewport.GotoBottom()
+			m = m.RefreshViewport()
 			m.Approval.PendingSensitive.ResponseCh <- agent.SensitiveRunNoStore
 			m.Approval.PendingSensitive = nil
 			return m, true
@@ -105,8 +102,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 				whyLine := i18n.T(lang, i18n.KeyApprovalWhy) + " " + m.Approval.Pending.Reason
 				m.Messages = append(m.Messages, suggestStyle.Render(wrapString(whyLine, cmdW)))
 			}
-			m.Viewport.SetContent(m.buildContent())
-			m.Viewport.GotoBottom()
+			m = m.RefreshViewport()
 
 			m.Approval.Pending.ResponseCh <- agent.ApprovalResponse{Approved: true, CopyRequested: false}
 			m.Approval.Pending = nil
@@ -142,8 +138,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 				whyLine := i18n.T(lang, i18n.KeyApprovalWhy) + " " + m.Approval.Pending.Reason
 				m.Messages = append(m.Messages, suggestStyle.Render(wrapString(whyLine, cmdW)))
 			}
-			m.Viewport.SetContent(m.buildContent())
-			m.Viewport.GotoBottom()
+			m = m.RefreshViewport()
 			threeOptions := m.Ports.GetAllowlistAutoRun != nil && !m.Ports.GetAllowlistAutoRun()
 			if threeOptions {
 				// 2 = Copy
@@ -189,8 +184,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 				whyLine := i18n.T(lang, i18n.KeyApprovalWhy) + " " + m.Approval.Pending.Reason
 				m.Messages = append(m.Messages, suggestStyle.Render(wrapString(whyLine, cmdW)))
 			}
-			m.Viewport.SetContent(m.buildContent())
-			m.Viewport.GotoBottom()
+			m = m.RefreshViewport()
 			m.Approval.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
 			m.Approval.Pending = nil
 			m.Interaction.WaitingForAI = false

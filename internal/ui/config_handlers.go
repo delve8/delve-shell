@@ -19,8 +19,7 @@ func (m Model) applyAllowlistAutoRunSwitch(value string) Model {
 		on = false
 	default:
 		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigAutoRunRequired)))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
+		m = m.RefreshViewport()
 		return m
 	}
 	if m.Ports.AllowlistAutoRunChangeChan != nil {
@@ -52,16 +51,14 @@ func (m Model) applyConfigAllowlistAutoRun(value string) Model {
 	default:
 		lang := m.getLang()
 		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+i18n.T(lang, i18n.KeyConfigAutoRunRequired)))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
+		m = m.RefreshViewport()
 		return m
 	}
 	lang := m.getLang()
 	cfg, err := config.Load()
 	if err != nil {
 		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
+		m = m.RefreshViewport()
 		return m
 	}
 	cfg.AllowlistAutoRun = &on
@@ -72,8 +69,7 @@ func (m Model) applyConfigAllowlistAutoRun(value string) Model {
 	}
 	if err := config.Write(cfg); err != nil {
 		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
+		m = m.RefreshViewport()
 		return m
 	}
 	display := i18n.T(lang, i18n.KeyAutoRunListOnly)
@@ -98,8 +94,7 @@ func (m Model) applyConfigAllowlistUpdate() Model {
 	added, err := config.AllowlistUpdateWithDefaults()
 	if err != nil {
 		m.Messages = append(m.Messages, errStyle.Render(i18n.T(lang, i18n.KeyConfigPrefix)+err.Error()))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
+		m = m.RefreshViewport()
 		return m
 	}
 	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyAllowlistUpdateDone, added))))

@@ -40,3 +40,8 @@ func (m Model) InitOverlayViewport() Model {
 	m.Overlay.Viewport.SetContent(m.Overlay.Content)
 	return m
 }
+
+// ApplyConfigAllowlistUpdate applies built-in allowlist updates and appends UI feedback.
+func (m Model) ApplyConfigAllowlistUpdate() Model {
+	return m.applyConfigAllowlistUpdate()
+}

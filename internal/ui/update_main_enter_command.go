@@ -27,11 +27,8 @@ func (m Model) handleMainEnterCommand(text string, slashSelectedPath string, sla
 				default:
 				}
 			}
-			m.Input.SetValue("")
-			m.Input.CursorEnd()
-			m.Interaction.SlashSuggestIndex = 0
-			m.Viewport.SetContent(m.buildContent())
-			m.Viewport.GotoBottom()
+			m = m.clearSlashInput()
+			m = m.RefreshViewport()
 			return m, nil
 		}
 
@@ -47,11 +44,8 @@ func (m Model) handleMainEnterCommand(text string, slashSelectedPath string, sla
 		sessionNoneMsg := i18n.T(m.getLang(), i18n.KeySessionNone)
 		if selectedOpt.Path == "" && len(vis) == 1 && selectedOpt.Cmd == sessionNoneMsg {
 			m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(sessionNoneMsg)))
-			m.Viewport.SetContent(m.buildContent())
-			m.Viewport.GotoBottom()
-			m.Input.SetValue("")
-			m.Input.CursorEnd()
-			m.Interaction.SlashSuggestIndex = 0
+			m = m.RefreshViewport()
+			m = m.clearSlashInput()
 			return m, nil
 		}
 
@@ -84,8 +78,7 @@ func (m Model) handleMainEnterCommand(text string, slashSelectedPath string, sla
 		}
 
 		m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyUnknownCmd))))
-		m.Viewport.SetContent(m.buildContent())
-		m.Viewport.GotoBottom()
+		m = m.RefreshViewport()
 		return m, nil
 	}
 
