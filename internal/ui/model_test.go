@@ -337,7 +337,7 @@ func TestSlashDropdown_Cancel_EnterFillsThenExecutes(t *testing.T) {
 	m.Input.CursorEnd()
 
 	// Move selection to the "/cancel" option.
-	opts := getSlashOptionsForInput(m.Input.Value(), m.getLang(), m.CurrentSessionPath, m.LocalRunCommands, m.RemoteRunCommands, m.RemoteActive)
+	opts := getSlashOptionsForInput(m.Input.Value(), m.getLang(), m.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.RemoteActive)
 	vis := visibleSlashOptions(m.Input.Value(), opts)
 	for i, idx := range vis {
 		if opts[idx].Cmd == "/cancel" {

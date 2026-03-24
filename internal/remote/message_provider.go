@@ -16,12 +16,12 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		m.RemoteLabel = t.Label
 		if t.Active {
 			// New remote active: clear any previous remote /run completion cache.
-			m.RemoteRunLabel = t.Label
-			m.RemoteRunCommands = nil
+			m.RunCompletion.RemoteLabel = t.Label
+			m.RunCompletion.RemoteCommands = nil
 		} else {
 			// Switching back to local: drop any remote /run completion cache.
-			m.RemoteRunLabel = ""
-			m.RemoteRunCommands = nil
+			m.RunCompletion.RemoteLabel = ""
+			m.RunCompletion.RemoteCommands = nil
 		}
 		m = m.RefreshViewport()
 		return m, nil, true
@@ -31,8 +31,8 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		if t.RemoteLabel == "" || t.RemoteLabel != m.RemoteLabel {
 			return m, nil, true
 		}
-		m.RemoteRunLabel = t.RemoteLabel
-		m.RemoteRunCommands = t.Commands
+		m.RunCompletion.RemoteLabel = t.RemoteLabel
+		m.RunCompletion.RemoteCommands = t.Commands
 		return m, nil, true
 	case ui.RemoteConnectDoneMsg:
 		m.AddRemote.Connecting = false

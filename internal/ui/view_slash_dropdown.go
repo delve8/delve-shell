@@ -13,7 +13,7 @@ func (m Model) slashDropdownBelowInput(lang string) string {
 	if !strings.HasPrefix(inputVal, "/") {
 		return ""
 	}
-	opts := getSlashOptionsForInput(inputVal, lang, m.CurrentSessionPath, m.LocalRunCommands, m.RemoteRunCommands, m.RemoteActive)
+	opts := getSlashOptionsForInput(inputVal, lang, m.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.RemoteActive)
 	vis := visibleSlashOptions(inputVal, opts)
 	if len(vis) == 0 {
 		return ""

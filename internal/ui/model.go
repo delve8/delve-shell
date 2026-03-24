@@ -25,10 +25,8 @@ type Model struct {
 	CurrentSessionPath         string                    // path of current session (excluded from /sessions list so switch loads another)
 	RemoteActive               bool                      // whether commands run on a remote executor
 	RemoteLabel                string                    // label for remote in header, e.g. "dev (root@1.2.3.4)" or "user@host"
-	// /run completion caches (best-effort).
-	LocalRunCommands  []string
-	RemoteRunCommands []string
-	RemoteRunLabel    string // which remote the RemoteRunCommands came from
+	// /run completion cache (best-effort).
+	RunCompletion RunCompletionState
 	Width             int
 	Height            int
 	SlashSuggestIndex int  // 0..len(visible)-1 when input starts with /
@@ -136,6 +134,13 @@ type UpdateSkillOverlayState struct {
 type PathCompletionState struct {
 	Candidates []string
 	Index      int
+}
+
+// RunCompletionState stores local/remote completion caches for `/run`.
+type RunCompletionState struct {
+	LocalCommands  []string
+	RemoteCommands []string
+	RemoteLabel    string // which remote the RemoteCommands came from
 }
 
 // UIPorts are side-effect channels/getters injected by CLI host loop.
