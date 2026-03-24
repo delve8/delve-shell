@@ -1,17 +1,24 @@
-package ui
+package session
 
 import (
 	"encoding/json"
 	"strings"
+	"unicode"
 
 	"delve-shell/internal/history"
 	"delve-shell/internal/i18n"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/mattn/go-runewidth"
 )
 
-const maxSessionHistoryEvents = 500
+var (
+	sessionExecStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
+	sessionResultStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
+	sessionSuggestStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
+	sessionSeparatorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
+)
 
-// sessionEventsToMessages converts history events to the same display lines used in the live conversation (User:, AI:, Run:, result).
-// width is used to soft-wrap long command lines; if <= 0, no wrapping is applied.
+// sessionEventsToMessages converts history events to display lines used by session replay.
 func sessionEventsToMessages(events []history.Event, lang string, width int) []string {
 	var out []string
 	for _, ev := range events {
@@ -25,8 +32,7 @@ func sessionEventsToMessages(events []history.Event, lang string, width int) []s
 				if width > 0 {
 					line = wrapString(line, width)
 				}
-				out = append(out, line)
-				out = append(out, "") // blank line before command or AI reply
+				out = append(out, line, "")
 			}
 		case "llm_response":
 			var p struct {
@@ -42,7 +48,7 @@ func sessionEventsToMessages(events []history.Event, lang string, width int) []s
 				if sepW <= 0 {
 					sepW = 40
 				}
-				out = append(out, separatorStyle.Render(strings.Repeat("─", sepW)))
+				out = append(out, sessionSeparatorStyle.Render(strings.Repeat("─", sepW)))
 			}
 		case "command":
 			var p struct {
@@ -60,7 +66,7 @@ func sessionEventsToMessages(events []history.Event, lang string, width int) []s
 				if width > 0 {
 					skillLine = wrapString(skillLine, width)
 				}
-				out = append(out, suggestStyle.Render(skillLine))
+				out = append(out, sessionSuggestStyle.Render(skillLine))
 			}
 			tag := i18n.T(lang, i18n.KeyRunTagApproved)
 			if p.Suggested {
@@ -70,7 +76,7 @@ func sessionEventsToMessages(events []history.Event, lang string, width int) []s
 			if width > 0 {
 				line = wrapString(line, width)
 			}
-			out = append(out, execStyle.Render(line))
+			out = append(out, sessionExecStyle.Render(line))
 		case "command_result":
 			var p struct {
 				Command  string `json:"command"`
@@ -92,10 +98,54 @@ func sessionEventsToMessages(events []history.Event, lang string, width int) []s
 				if width > 0 {
 					result = wrapString(result, width)
 				}
-				out = append(out, resultStyle.Render(result))
+				out = append(out, sessionResultStyle.Render(result))
 			}
-			out = append(out, "") // blank line after command output
+			out = append(out, "")
 		}
 	}
 	return out
+}
+
+// wrapString breaks s into lines of at most maxWidth terminal cells.
+func wrapString(s string, maxWidth int) string {
+	if maxWidth <= 0 {
+		return s
+	}
+	var b strings.Builder
+	runes := []rune(s)
+	start := 0
+	cellWidth := 0
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+		if r == '\n' {
+			b.WriteString(string(runes[start : i+1]))
+			start = i + 1
+			cellWidth = 0
+			continue
+		}
+		w := runewidth.RuneWidth(r)
+		if cellWidth+w > maxWidth && cellWidth > 0 {
+			breakAt := i
+			for j := i - 1; j >= start; j-- {
+				if unicode.IsSpace(runes[j]) {
+					breakAt = j + 1
+					break
+				}
+			}
+			b.WriteString(string(runes[start:breakAt]))
+			b.WriteByte('\n')
+			start = breakAt
+			for start < len(runes) && unicode.IsSpace(runes[start]) {
+				start++
+			}
+			cellWidth = 0
+			i = start - 1
+			continue
+		}
+		cellWidth += w
+	}
+	if start < len(runes) {
+		b.WriteString(string(runes[start:]))
+	}
+	return b.String()
 }

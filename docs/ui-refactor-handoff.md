@@ -167,6 +167,8 @@
 | 2025-03-24 | 测试装配显式化：`feature_registry_test.go` 从 `init` 改为 `sync.Once` 注册，并通过 `main_test.go` 的 `TestMain` 显式注入 mirror，降低隐式副作用 |
 | 2025-03-24 | mirror 覆盖面继续收缩：移除 startup overlay mirror 注册（`package ui` 测试不再依赖该镜像），由 `ui_test` 黑盒覆盖启动 overlay 行为 |
 | 2025-03-24 | 镜像测试层整批删除：移除 `feature_registry_*_test.go`、`main_test.go`、`config_handlers_test_helpers_test.go`，`internal/ui` 行为测试改由 `model_blackbox_test.go` 驱动真实 feature 注册链 |
+| 2025-03-24 | session 历史解析下沉：删除 `ui/view_history_lines.go` 与 `ui/session_events_export.go`，`history.Event -> UI 行` 转换迁至 `internal/session/history_lines.go`，并迁移对应测试到 `internal/session/history_lines_test.go` |
+| 2025-03-24 | `/run` 本地命令发现下沉：删除 `ui/run_completion.go`，PATH 扫描与本地可执行缓存迁至 `internal/run/local_commands.go`，`ui` 不再持有命令发现逻辑 |
 | 2025-03-24 | slash 注册下沉：`/config*`、`/cancel`、`/q`、`/sh`、`/help`、`/config auto-run` 从 `ui` 迁到 `run/feature` 包；删除 `ui.registerSlashExact` 别名 |
 | 2025-03-24 | `internal/ui` 测试镜像重组：`feature_registry_test.go` 拆分为 remote/configllm、skill、session、slash-exact 多文件，主文件仅做汇总 init |
 | 2025-03-24 | P2：`Model` 再收敛 `Layout`/`Startup`/`Approval`；新增 `hasPendingApproval`、`contentWidth`、`OpenOverlay`、`CloseOverlayVisual` 等 helper 并替换重复逻辑 |

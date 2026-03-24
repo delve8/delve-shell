@@ -1,4 +1,4 @@
-package ui
+package run
 
 import (
 	"os"
@@ -13,9 +13,8 @@ var (
 	localRunCmds []string
 )
 
-// LocalRunCommands returns a cached list of executable names found in $PATH.
-// It scans once per process and is best-effort: unreadable dirs are ignored.
-func LocalRunCommands() []string {
+// loadLocalRunCommands returns a cached list of executable names found in PATH.
+func loadLocalRunCommands() []string {
 	localRunOnce.Do(func() {
 		pathEnv := os.Getenv("PATH")
 		if pathEnv == "" {
@@ -59,4 +58,3 @@ func LocalRunCommands() []string {
 	})
 	return localRunCmds
 }
-

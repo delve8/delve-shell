@@ -38,7 +38,7 @@ func init() {
 		prefix := strings.ToLower(rest)
 		cands := localRunCommands
 		if cands == nil {
-			cands = ui.LocalRunCommands()
+			cands = loadLocalRunCommands()
 		}
 		if remoteActive && len(remoteRunCommands) > 0 {
 			cands = remoteRunCommands

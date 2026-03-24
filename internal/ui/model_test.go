@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"encoding/json"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -9,7 +8,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/agent"
-	"delve-shell/internal/history"
 )
 
 // TUI (Bubble Tea) tests: do not run tea.Program; unit-test the Model by sending messages and asserting state/output.
@@ -236,43 +234,5 @@ func TestSessionSwitchedMsg_setsCurrentPathAndShowsSwitchedAtBottom(t *testing.T
 	}
 	if !strings.Contains(m3.Messages[0], "Switched") && !strings.Contains(m3.Messages[0], "切换") {
 		t.Errorf("first message should be switched hint, got %q", m3.Messages[0])
-	}
-}
-
-// TestSessionEventsToMessages_convertsEventsToDisplayLines asserts sessionEventsToMessages produces User/AI/Run/result lines.
-func TestSessionEventsToMessages_convertsEventsToDisplayLines(t *testing.T) {
-	events := []history.Event{
-		{Type: "user_input", Payload: json.RawMessage(`{"text":"hello"}`)},
-		{Type: "llm_response", Payload: json.RawMessage(`{"reply":"hi"}`)},
-		{Type: "command", Payload: json.RawMessage(`{"command":"ls","approved":true,"suggested":false}`)},
-		{Type: "command_result", Payload: json.RawMessage(`{"command":"ls","stdout":"a\nb","stderr":"","exit_code":0}`)},
-	}
-	lines := sessionEventsToMessages(events, "en", 80)
-	// Order: User, blank, AI, separator, Run, result, blank
-	if len(lines) < 6 {
-		t.Fatalf("expected at least 6 lines, got %d", len(lines))
-	}
-	if !strings.Contains(lines[0], "User:") && !strings.Contains(lines[0], "用户") {
-		t.Errorf("first line should be user label + text: %q", lines[0])
-	}
-	if !strings.Contains(lines[0], "hello") {
-		t.Errorf("first line should contain hello: %q", lines[0])
-	}
-	// lines[1] is blank after user_input
-	aiIdx := 2
-	if !strings.Contains(lines[aiIdx], "AI:") && !strings.Contains(lines[aiIdx], "AI：") {
-		t.Errorf("AI line should be AI label: %q", lines[aiIdx])
-	}
-	if !strings.Contains(lines[aiIdx], "hi") {
-		t.Errorf("AI line should contain hi: %q", lines[aiIdx])
-	}
-	// command is after separator (lines[3]); result after that
-	runIdx := 4
-	resultIdx := 5
-	if !strings.Contains(lines[runIdx], "ls") {
-		t.Errorf("command line should contain ls: %q", lines[runIdx])
-	}
-	if !strings.Contains(lines[resultIdx], "a") || !strings.Contains(lines[resultIdx], "b") {
-		t.Errorf("result line should contain stdout: %q", lines[resultIdx])
 	}
 }
