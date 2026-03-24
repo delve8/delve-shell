@@ -6,14 +6,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/service/configsvc"
-	"delve-shell/internal/service/remotesvc"
 	"delve-shell/internal/config"
 	"delve-shell/internal/git"
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/service/configsvc"
+	"delve-shell/internal/service/remotesvc"
 )
 
 // openConfigLLMOverlay opens the Config LLM overlay with current config values pre-filled.
@@ -181,6 +181,11 @@ func (m Model) applyConfigLLMFromOverlayStart(baseURL, apiKey, model, maxMessage
 	m.ConfigLLMError = ""
 	m.ConfigLLMChecking = true
 	return m
+}
+
+// ApplyConfigLLMFromOverlayStart exposes overlay-save precheck flow for feature providers.
+func (m Model) ApplyConfigLLMFromOverlayStart(baseURL, apiKey, model, maxMessagesStr, maxCharsStr string) Model {
+	return m.applyConfigLLMFromOverlayStart(baseURL, apiKey, model, maxMessagesStr, maxCharsStr)
 }
 
 // RunConfigLLMCheckCmd runs the LLM "hello" check in the background and returns ConfigLLMCheckDoneMsg.
