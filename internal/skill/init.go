@@ -112,10 +112,11 @@ func init() {
 	})
 
 	ui.RegisterOverlayKeyProvider(func(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
-		if m.AddSkill.Active {
+		state := getSkillOverlayState()
+		if state.AddSkill.Active {
 			return handleAddSkillOverlayKey(m, key, msg)
 		}
-		if m.UpdateSkill.Active {
+		if state.UpdateSkill.Active {
 			return handleUpdateSkillOverlayKey(m, key)
 		}
 		return m, nil, false
@@ -123,18 +124,21 @@ func init() {
 
 	// Delegate add-skill async messages (refs/paths list) to ui handler.
 	ui.RegisterMessageProvider(func(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
+		state := getSkillOverlayState()
 		switch t := msg.(type) {
 		case ui.AddSkillRefsLoadedMsg:
-			if m.AddSkill.Active {
-				m.AddSkill.RefsFullList = t.Refs
-				m.AddSkill.RefCandidates = filterByPrefix(t.Refs, m.AddSkill.RefInput.Value())
-				m.AddSkill.RefIndex = 0
+			if state.AddSkill.Active {
+				state.AddSkill.RefsFullList = t.Refs
+				state.AddSkill.RefCandidates = filterByPrefix(t.Refs, state.AddSkill.RefInput.Value())
+				state.AddSkill.RefIndex = 0
+				setSkillOverlayState(state)
 			}
 			return m, nil, true
 		case ui.AddSkillPathsLoadedMsg:
-			if m.AddSkill.Active {
-				m.AddSkill.PathsFullList = t.Paths
-				m = updateAddSkillPathCandidates(m)
+			if state.AddSkill.Active {
+				state.AddSkill.PathsFullList = t.Paths
+				state = updateAddSkillPathCandidates(state)
+				setSkillOverlayState(state)
 			}
 			return m, nil, true
 		default:
@@ -145,50 +149,58 @@ func init() {
 	ui.RegisterOverlayContentProvider(func(m ui.Model) (string, bool) {
 		return buildSkillOverlayContent(m)
 	})
+
+	ui.RegisterOverlayCloseHook(func(m ui.Model) ui.Model {
+		resetSkillOverlayState()
+		return m
+	})
 }
 
 func openAddSkillOverlay(m ui.Model, url, ref, path string) ui.Model {
 	lang := "en" // ui.getLang() currently always returns "en"
 	m = m.OpenOverlay(i18n.T(lang, i18n.KeyAddSkillTitle), "")
-	m.AddSkill.Active = true
-	m.AddSkill.Error = ""
-	m.AddSkill.FieldIndex = 0
+	state := getSkillOverlayState()
+	state.AddSkill.Active = true
+	state.UpdateSkill = UpdateSkillOverlayState{}
+	state.AddSkill.Error = ""
+	state.AddSkill.FieldIndex = 0
 
-	m.AddSkill.URLInput = textinput.New()
-	m.AddSkill.URLInput.Placeholder = "https://github.com/owner/repo or owner/repo"
-	m.AddSkill.URLInput.SetValue(url)
-	m.AddSkill.URLInput.Focus()
+	state.AddSkill.URLInput = textinput.New()
+	state.AddSkill.URLInput.Placeholder = "https://github.com/owner/repo or owner/repo"
+	state.AddSkill.URLInput.SetValue(url)
+	state.AddSkill.URLInput.Focus()
 
-	m.AddSkill.RefInput = textinput.New()
-	m.AddSkill.RefInput.Placeholder = "main"
-	m.AddSkill.RefInput.SetValue(ref)
-	m.AddSkill.RefInput.Blur()
+	state.AddSkill.RefInput = textinput.New()
+	state.AddSkill.RefInput.Placeholder = "main"
+	state.AddSkill.RefInput.SetValue(ref)
+	state.AddSkill.RefInput.Blur()
 
-	m.AddSkill.PathInput = textinput.New()
-	m.AddSkill.PathInput.Placeholder = "skills/foo"
-	m.AddSkill.PathInput.SetValue(path)
-	m.AddSkill.PathInput.Blur()
+	state.AddSkill.PathInput = textinput.New()
+	state.AddSkill.PathInput.Placeholder = "skills/foo"
+	state.AddSkill.PathInput.SetValue(path)
+	state.AddSkill.PathInput.Blur()
 
-	m.AddSkill.NameInput = textinput.New()
-	m.AddSkill.NameInput.Placeholder = "local skill name"
+	state.AddSkill.NameInput = textinput.New()
+	state.AddSkill.NameInput.Placeholder = "local skill name"
 	// Derive local name from path last segment when provided.
 	if p := strings.TrimSpace(path); p != "" {
 		if idx := strings.LastIndex(p, "/"); idx >= 0 && idx < len(p)-1 {
 			p = p[idx+1:]
 		}
-		m.AddSkill.NameInput.SetValue(p)
-		m.AddSkill.NameInput.CursorEnd()
+		state.AddSkill.NameInput.SetValue(p)
+		state.AddSkill.NameInput.CursorEnd()
 	} else {
-		m.AddSkill.NameInput.SetValue("")
+		state.AddSkill.NameInput.SetValue("")
 	}
-	m.AddSkill.NameInput.Blur()
+	state.AddSkill.NameInput.Blur()
 
-	m.AddSkill.RefsFullList = nil
-	m.AddSkill.RefCandidates = nil
-	m.AddSkill.RefIndex = 0
-	m.AddSkill.PathsFullList = nil
-	m.AddSkill.PathCandidates = nil
-	m.AddSkill.PathIndex = 0
+	state.AddSkill.RefsFullList = nil
+	state.AddSkill.RefCandidates = nil
+	state.AddSkill.RefIndex = 0
+	state.AddSkill.PathsFullList = nil
+	state.AddSkill.PathCandidates = nil
+	state.AddSkill.PathIndex = 0
+	setSkillOverlayState(state)
 	return m
 }
 

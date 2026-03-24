@@ -14,17 +14,20 @@ import (
 func openUpdateSkillOverlay(m ui.Model, name string) ui.Model {
 	lang := "en"
 	url, ref, commitID, path, _, ok := skills.GetSkillSource(name)
+	state := getSkillOverlayState()
 	if !ok || strings.TrimSpace(url) == "" {
 		m = m.OpenOverlay("Update skill", "")
-		m.UpdateSkill.Active = true
-		m.UpdateSkill.Name = strings.TrimSpace(name)
-		m.UpdateSkill.URL = strings.TrimSpace(url)
-		m.UpdateSkill.Path = strings.TrimSpace(path)
-		m.UpdateSkill.CurrentCommit = strings.TrimSpace(commitID)
-		m.UpdateSkill.Refs = nil
-		m.UpdateSkill.RefIndex = 0
-		m.UpdateSkill.LatestCommit = ""
-		m.UpdateSkill.Error = i18n.T(lang, i18n.KeySkillNotFound)
+		state.UpdateSkill.Active = true
+		state.AddSkill = AddSkillOverlayState{}
+		state.UpdateSkill.Name = strings.TrimSpace(name)
+		state.UpdateSkill.URL = strings.TrimSpace(url)
+		state.UpdateSkill.Path = strings.TrimSpace(path)
+		state.UpdateSkill.CurrentCommit = strings.TrimSpace(commitID)
+		state.UpdateSkill.Refs = nil
+		state.UpdateSkill.RefIndex = 0
+		state.UpdateSkill.LatestCommit = ""
+		state.UpdateSkill.Error = i18n.T(lang, i18n.KeySkillNotFound)
+		setSkillOverlayState(state)
 		return m
 	}
 
@@ -58,14 +61,16 @@ func openUpdateSkillOverlay(m ui.Model, name string) ui.Model {
 	}
 
 	m = m.OpenOverlay("Update skill", "")
-	m.UpdateSkill.Active = true
-	m.UpdateSkill.Error = ""
-	m.UpdateSkill.Name = name
-	m.UpdateSkill.URL = url
-	m.UpdateSkill.Path = path
-	m.UpdateSkill.CurrentCommit = commitID
-	m.UpdateSkill.Refs = refs
-	m.UpdateSkill.RefIndex = idx
-	m.UpdateSkill.LatestCommit = latestCommit
+	state.UpdateSkill.Active = true
+	state.AddSkill = AddSkillOverlayState{}
+	state.UpdateSkill.Error = ""
+	state.UpdateSkill.Name = name
+	state.UpdateSkill.URL = url
+	state.UpdateSkill.Path = path
+	state.UpdateSkill.CurrentCommit = commitID
+	state.UpdateSkill.Refs = refs
+	state.UpdateSkill.RefIndex = idx
+	state.UpdateSkill.LatestCommit = latestCommit
+	setSkillOverlayState(state)
 	return m
 }

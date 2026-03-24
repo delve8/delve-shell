@@ -14,12 +14,6 @@ func applyOverlayCloseFeatureResets(m ui.Model) ui.Model {
 	m.RemoteAuth.Error = ""
 	m.RemoteAuth.Username = ""
 
-	// Skill overlays.
-	m.AddSkill.Active = false
-	m.AddSkill.Error = ""
-	m.UpdateSkill.Active = false
-	m.UpdateSkill.Error = ""
-
 	// Config LLM overlay.
 	m.ConfigLLM.Active = false
 	m.ConfigLLM.Checking = false

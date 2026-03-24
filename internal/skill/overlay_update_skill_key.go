@@ -16,58 +16,63 @@ import (
 var suggestStyleUpdate = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
 
 func handleUpdateSkillOverlayKey(m ui.Model, key string) (ui.Model, tea.Cmd, bool) {
-	if !m.UpdateSkill.Active {
+	state := getSkillOverlayState()
+	ret := func(model ui.Model, cmd tea.Cmd, handled bool) (ui.Model, tea.Cmd, bool) {
+		setSkillOverlayState(state)
+		return model, cmd, handled
+	}
+	if !state.UpdateSkill.Active {
 		return m, nil, false
 	}
 	lang := "en"
 
 	switch key {
 	case "up", "down":
-		if len(m.UpdateSkill.Refs) == 0 {
-			return m, nil, true
+		if len(state.UpdateSkill.Refs) == 0 {
+			return ret(m, nil, true)
 		}
 		dir := 1
 		if key == "up" {
 			dir = -1
 		}
-		m.UpdateSkill.RefIndex = (m.UpdateSkill.RefIndex + dir + len(m.UpdateSkill.Refs)) % len(m.UpdateSkill.Refs)
+		state.UpdateSkill.RefIndex = (state.UpdateSkill.RefIndex + dir + len(state.UpdateSkill.Refs)) % len(state.UpdateSkill.Refs)
 		// Recompute latest commit for newly selected ref (best-effort; ignore errors).
-		selectedRef := strings.TrimSpace(m.UpdateSkill.Refs[m.UpdateSkill.RefIndex])
-		url := strings.TrimSpace(m.UpdateSkill.URL)
+		selectedRef := strings.TrimSpace(state.UpdateSkill.Refs[state.UpdateSkill.RefIndex])
+		url := strings.TrimSpace(state.UpdateSkill.URL)
 		if url != "" && selectedRef != "" {
 			if commit, err := git.LatestCommit(context.Background(), url, selectedRef); err == nil {
-				m.UpdateSkill.LatestCommit = commit
+				state.UpdateSkill.LatestCommit = commit
 			}
 		}
-		return m, nil, true
+		return ret(m, nil, true)
 	case "enter":
-		if len(m.UpdateSkill.Refs) == 0 || m.UpdateSkill.Name == "" {
-			return m, nil, true
+		if len(state.UpdateSkill.Refs) == 0 || state.UpdateSkill.Name == "" {
+			return ret(m, nil, true)
 		}
-		selectedRef := strings.TrimSpace(m.UpdateSkill.Refs[m.UpdateSkill.RefIndex])
-		if err := skillsvc.Update(m.UpdateSkill.Name, selectedRef); err != nil {
-			m.UpdateSkill.Error = err.Error()
-			return m, nil, true
+		selectedRef := strings.TrimSpace(state.UpdateSkill.Refs[state.UpdateSkill.RefIndex])
+		if err := skillsvc.Update(state.UpdateSkill.Name, selectedRef); err != nil {
+			state.UpdateSkill.Error = err.Error()
+			return ret(m, nil, true)
 		}
 		// On success, close overlay and show a short confirmation message.
 		m.Overlay.Active = false
-		m.UpdateSkill.Active = false
-		m.UpdateSkill.Error = ""
-		shortCommit := m.UpdateSkill.LatestCommit
+		state.UpdateSkill.Active = false
+		state.UpdateSkill.Error = ""
+		shortCommit := state.UpdateSkill.LatestCommit
 		if len(shortCommit) > 7 {
 			shortCommit = shortCommit[:7]
 		}
 		if shortCommit != "" {
 			m.Messages = append(m.Messages, suggestStyleUpdate.Render(delveMsg(lang, fmt.Sprintf(
 				"Skill %s updated to %s@%s.",
-				m.UpdateSkill.Name,
+				state.UpdateSkill.Name,
 				selectedRef,
 				shortCommit,
 			))))
 		} else {
 			m.Messages = append(m.Messages, suggestStyleUpdate.Render(delveMsg(lang, fmt.Sprintf(
 				"Skill %s updated to %s.",
-				m.UpdateSkill.Name,
+				state.UpdateSkill.Name,
 				selectedRef,
 			))))
 		}
@@ -80,8 +85,8 @@ func handleUpdateSkillOverlayKey(m ui.Model, key string) (ui.Model, tea.Cmd, boo
 			default:
 			}
 		}
-		return m, nil, true
+		return ret(m, nil, true)
 	}
 
-	return m, nil, true
+	return ret(m, nil, true)
 }

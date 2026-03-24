@@ -62,166 +62,171 @@ func runListPathsCmd(url, ref string) tea.Cmd {
 	}
 }
 
-func updateAddSkillPathCandidates(m ui.Model) ui.Model {
+func updateAddSkillPathCandidates(state skillOverlayState) skillOverlayState {
 	source := addSkillPathOptions
-	if len(m.AddSkill.PathsFullList) > 0 {
-		source = m.AddSkill.PathsFullList
+	if len(state.AddSkill.PathsFullList) > 0 {
+		source = state.AddSkill.PathsFullList
 	}
-	m.AddSkill.PathCandidates = filterByPrefix(source, m.AddSkill.PathInput.Value())
-	m.AddSkill.PathIndex = 0
-	return m
+	state.AddSkill.PathCandidates = filterByPrefix(source, state.AddSkill.PathInput.Value())
+	state.AddSkill.PathIndex = 0
+	return state
 }
 
 // handleAddSkillOverlayKey implements keyboard interactions for the Add-skill overlay.
 func handleAddSkillOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
-	if !m.AddSkill.Active {
+	state := getSkillOverlayState()
+	ret := func(model ui.Model, cmd tea.Cmd, handled bool) (ui.Model, tea.Cmd, bool) {
+		setSkillOverlayState(state)
+		return model, cmd, handled
+	}
+	if !state.AddSkill.Active {
 		return m, nil, false
 	}
 	lang := "en"
 	switch key {
 	case "tab":
-		if m.AddSkill.FieldIndex == 1 && len(m.AddSkill.RefCandidates) > 0 && m.AddSkill.RefIndex >= 0 && m.AddSkill.RefIndex < len(m.AddSkill.RefCandidates) {
-			m.AddSkill.RefInput.SetValue(m.AddSkill.RefCandidates[m.AddSkill.RefIndex])
-			m.AddSkill.RefInput.CursorEnd()
-			m.AddSkill.RefCandidates = nil
-			m.AddSkill.RefIndex = 0
-			return m, nil, true
+		if state.AddSkill.FieldIndex == 1 && len(state.AddSkill.RefCandidates) > 0 && state.AddSkill.RefIndex >= 0 && state.AddSkill.RefIndex < len(state.AddSkill.RefCandidates) {
+			state.AddSkill.RefInput.SetValue(state.AddSkill.RefCandidates[state.AddSkill.RefIndex])
+			state.AddSkill.RefInput.CursorEnd()
+			state.AddSkill.RefCandidates = nil
+			state.AddSkill.RefIndex = 0
+			return ret(m, nil, true)
 		}
-		if m.AddSkill.FieldIndex == 2 && len(m.AddSkill.PathCandidates) > 0 && m.AddSkill.PathIndex >= 0 && m.AddSkill.PathIndex < len(m.AddSkill.PathCandidates) {
-			m.AddSkill.PathInput.SetValue(m.AddSkill.PathCandidates[m.AddSkill.PathIndex])
-			m.AddSkill.PathInput.CursorEnd()
-			m.AddSkill.PathCandidates = nil
-			m.AddSkill.PathIndex = 0
-			return m, nil, true
+		if state.AddSkill.FieldIndex == 2 && len(state.AddSkill.PathCandidates) > 0 && state.AddSkill.PathIndex >= 0 && state.AddSkill.PathIndex < len(state.AddSkill.PathCandidates) {
+			state.AddSkill.PathInput.SetValue(state.AddSkill.PathCandidates[state.AddSkill.PathIndex])
+			state.AddSkill.PathInput.CursorEnd()
+			state.AddSkill.PathCandidates = nil
+			state.AddSkill.PathIndex = 0
+			return ret(m, nil, true)
 		}
 	case "up", "down":
 		dir := 1
 		if key == "up" {
 			dir = -1
 		}
-		if m.AddSkill.FieldIndex == 1 && len(m.AddSkill.RefCandidates) > 0 {
-			m.AddSkill.RefIndex = (m.AddSkill.RefIndex + dir + len(m.AddSkill.RefCandidates)) % len(m.AddSkill.RefCandidates)
-			return m, nil, true
+		if state.AddSkill.FieldIndex == 1 && len(state.AddSkill.RefCandidates) > 0 {
+			state.AddSkill.RefIndex = (state.AddSkill.RefIndex + dir + len(state.AddSkill.RefCandidates)) % len(state.AddSkill.RefCandidates)
+			return ret(m, nil, true)
 		}
-		if m.AddSkill.FieldIndex == 2 && len(m.AddSkill.PathCandidates) > 0 {
-			m.AddSkill.PathIndex = (m.AddSkill.PathIndex + dir + len(m.AddSkill.PathCandidates)) % len(m.AddSkill.PathCandidates)
-			return m, nil, true
+		if state.AddSkill.FieldIndex == 2 && len(state.AddSkill.PathCandidates) > 0 {
+			state.AddSkill.PathIndex = (state.AddSkill.PathIndex + dir + len(state.AddSkill.PathCandidates)) % len(state.AddSkill.PathCandidates)
+			return ret(m, nil, true)
 		}
-		m.AddSkill.FieldIndex = (m.AddSkill.FieldIndex + dir + addSkillFieldCount) % addSkillFieldCount
-		m.AddSkill.URLInput.Blur()
-		m.AddSkill.RefInput.Blur()
-		m.AddSkill.PathInput.Blur()
-		m.AddSkill.NameInput.Blur()
-		switch m.AddSkill.FieldIndex {
+		state.AddSkill.FieldIndex = (state.AddSkill.FieldIndex + dir + addSkillFieldCount) % addSkillFieldCount
+		state.AddSkill.URLInput.Blur()
+		state.AddSkill.RefInput.Blur()
+		state.AddSkill.PathInput.Blur()
+		state.AddSkill.NameInput.Blur()
+		switch state.AddSkill.FieldIndex {
 		case 0:
-			m.AddSkill.URLInput.Focus()
+			state.AddSkill.URLInput.Focus()
 		case 1:
-			m.AddSkill.RefInput.Focus()
-			m.AddSkill.RefCandidates = nil
-			m.AddSkill.RefIndex = 0
-			urlForRefs := strings.TrimSpace(m.AddSkill.URLInput.Value())
+			state.AddSkill.RefInput.Focus()
+			state.AddSkill.RefCandidates = nil
+			state.AddSkill.RefIndex = 0
+			urlForRefs := strings.TrimSpace(state.AddSkill.URLInput.Value())
 			if urlForRefs != "" {
-				return m, runListRefsCmd(urlForRefs), true
+				return ret(m, runListRefsCmd(urlForRefs), true)
 			}
 		case 2:
-			m.AddSkill.PathInput.Focus()
-			m = updateAddSkillPathCandidates(m)
-			urlForPaths := strings.TrimSpace(m.AddSkill.URLInput.Value())
+			state.AddSkill.PathInput.Focus()
+			state = updateAddSkillPathCandidates(state)
+			urlForPaths := strings.TrimSpace(state.AddSkill.URLInput.Value())
 			if urlForPaths != "" {
-				refForPaths := strings.TrimSpace(m.AddSkill.RefInput.Value())
-				return m, runListPathsCmd(urlForPaths, refForPaths), true
+				refForPaths := strings.TrimSpace(state.AddSkill.RefInput.Value())
+				return ret(m, runListPathsCmd(urlForPaths, refForPaths), true)
 			}
 		case 3:
-			m.AddSkill.NameInput.Focus()
+			state.AddSkill.NameInput.Focus()
 		}
-		return m, nil, true
+		return ret(m, nil, true)
 	case "enter":
 		// In Ref field with ref candidates: pick selected and fill
-		if m.AddSkill.FieldIndex == 1 && len(m.AddSkill.RefCandidates) > 0 {
-			if m.AddSkill.RefIndex >= 0 && m.AddSkill.RefIndex < len(m.AddSkill.RefCandidates) {
-				m.AddSkill.RefInput.SetValue(m.AddSkill.RefCandidates[m.AddSkill.RefIndex])
-				m.AddSkill.RefInput.CursorEnd()
-				m.AddSkill.RefCandidates = nil
-				m.AddSkill.RefIndex = 0
+		if state.AddSkill.FieldIndex == 1 && len(state.AddSkill.RefCandidates) > 0 {
+			if state.AddSkill.RefIndex >= 0 && state.AddSkill.RefIndex < len(state.AddSkill.RefCandidates) {
+				state.AddSkill.RefInput.SetValue(state.AddSkill.RefCandidates[state.AddSkill.RefIndex])
+				state.AddSkill.RefInput.CursorEnd()
+				state.AddSkill.RefCandidates = nil
+				state.AddSkill.RefIndex = 0
 			}
-			return m, nil, true
+			return ret(m, nil, true)
 		}
 		// In Path field with path candidates: pick selected and fill
-		if m.AddSkill.FieldIndex == 2 && len(m.AddSkill.PathCandidates) > 0 {
-			if m.AddSkill.PathIndex >= 0 && m.AddSkill.PathIndex < len(m.AddSkill.PathCandidates) {
-				chosenPath := m.AddSkill.PathCandidates[m.AddSkill.PathIndex]
-				m.AddSkill.PathInput.SetValue(chosenPath)
-				m.AddSkill.PathInput.CursorEnd()
-				m.AddSkill.PathCandidates = nil
-				m.AddSkill.PathIndex = 0
+		if state.AddSkill.FieldIndex == 2 && len(state.AddSkill.PathCandidates) > 0 {
+			if state.AddSkill.PathIndex >= 0 && state.AddSkill.PathIndex < len(state.AddSkill.PathCandidates) {
+				chosenPath := state.AddSkill.PathCandidates[state.AddSkill.PathIndex]
+				state.AddSkill.PathInput.SetValue(chosenPath)
+				state.AddSkill.PathInput.CursorEnd()
+				state.AddSkill.PathCandidates = nil
+				state.AddSkill.PathIndex = 0
 				// Auto-fill local name from chosen path last segment when name is empty.
-				if strings.TrimSpace(m.AddSkill.NameInput.Value()) == "" {
+				if strings.TrimSpace(state.AddSkill.NameInput.Value()) == "" {
 					p := strings.TrimSpace(chosenPath)
 					if idx := strings.LastIndex(p, "/"); idx >= 0 && idx < len(p)-1 {
 						p = p[idx+1:]
 					}
-					m.AddSkill.NameInput.SetValue(p)
-					m.AddSkill.NameInput.CursorEnd()
+					state.AddSkill.NameInput.SetValue(p)
+					state.AddSkill.NameInput.CursorEnd()
 				}
 			}
-			return m, nil, true
+			return ret(m, nil, true)
 		}
 		// Submit form
-		url := strings.TrimSpace(m.AddSkill.URLInput.Value())
-		ref := strings.TrimSpace(m.AddSkill.RefInput.Value())
-		path := strings.TrimSpace(m.AddSkill.PathInput.Value())
-		nameInput := strings.TrimSpace(m.AddSkill.NameInput.Value())
+		url := strings.TrimSpace(state.AddSkill.URLInput.Value())
+		ref := strings.TrimSpace(state.AddSkill.RefInput.Value())
+		path := strings.TrimSpace(state.AddSkill.PathInput.Value())
+		nameInput := strings.TrimSpace(state.AddSkill.NameInput.Value())
 		if path == "." {
 			path = ""
 		}
 		if url == "" {
-			m.AddSkill.Error = i18n.T(lang, i18n.KeyAddSkillURLRequired)
-			return m, nil, true
+			state.AddSkill.Error = i18n.T(lang, i18n.KeyAddSkillURLRequired)
+			return ret(m, nil, true)
 		}
-		m.AddSkill.Error = ""
+		state.AddSkill.Error = ""
 		name, err := skillsvc.InstallFromGit(url, ref, nameInput, path)
 		if err != nil {
 			if errors.Is(err, os.ErrExist) {
-				m.AddSkill.Error = i18n.T(lang, i18n.KeySkillAlreadyExists)
+				state.AddSkill.Error = i18n.T(lang, i18n.KeySkillAlreadyExists)
 			} else {
-				m.AddSkill.Error = i18n.Tf(lang, i18n.KeySkillInstallFailed, err)
+				state.AddSkill.Error = i18n.Tf(lang, i18n.KeySkillInstallFailed, err)
 			}
-			return m, nil, true
+			return ret(m, nil, true)
 		}
 		m.Overlay.Active = false
-		m.AddSkill.Active = false
+		state.AddSkill.Active = false
 		m.Overlay.Title = ""
 		m.Overlay.Content = ""
 		m.Input.Focus()
 		m.Messages = append(m.Messages, suggestStyle.Render(delveMsg(lang, i18n.Tf(lang, i18n.KeySkillInstalled, name))))
 		m = m.RefreshViewport()
-		return m, nil, true
+		return ret(m, nil, true)
 	}
 
 	// Default: forward to active field input.
 	var cmd tea.Cmd
-	switch m.AddSkill.FieldIndex {
+	switch state.AddSkill.FieldIndex {
 	case 0:
-		m.AddSkill.URLInput, cmd = m.AddSkill.URLInput.Update(msg)
+		state.AddSkill.URLInput, cmd = state.AddSkill.URLInput.Update(msg)
 	case 1:
-		m.AddSkill.RefInput, cmd = m.AddSkill.RefInput.Update(msg)
-		m.AddSkill.RefCandidates = filterByPrefix(m.AddSkill.RefsFullList, m.AddSkill.RefInput.Value())
-		m.AddSkill.RefIndex = 0
+		state.AddSkill.RefInput, cmd = state.AddSkill.RefInput.Update(msg)
+		state.AddSkill.RefCandidates = filterByPrefix(state.AddSkill.RefsFullList, state.AddSkill.RefInput.Value())
+		state.AddSkill.RefIndex = 0
 	case 2:
-		m.AddSkill.PathInput, cmd = m.AddSkill.PathInput.Update(msg)
-		m = updateAddSkillPathCandidates(m)
+		state.AddSkill.PathInput, cmd = state.AddSkill.PathInput.Update(msg)
+		state = updateAddSkillPathCandidates(state)
 		// Auto-fill local name from path last segment when name is empty.
-		if strings.TrimSpace(m.AddSkill.NameInput.Value()) == "" {
-			if p := strings.TrimSpace(m.AddSkill.PathInput.Value()); p != "" {
+		if strings.TrimSpace(state.AddSkill.NameInput.Value()) == "" {
+			if p := strings.TrimSpace(state.AddSkill.PathInput.Value()); p != "" {
 				if idx := strings.LastIndex(p, "/"); idx >= 0 && idx < len(p)-1 {
 					p = p[idx+1:]
 				}
-				m.AddSkill.NameInput.SetValue(p)
-				m.AddSkill.NameInput.CursorEnd()
+				state.AddSkill.NameInput.SetValue(p)
+				state.AddSkill.NameInput.CursorEnd()
 			}
 		}
 	case 3:
-		m.AddSkill.NameInput, cmd = m.AddSkill.NameInput.Update(msg)
+		state.AddSkill.NameInput, cmd = state.AddSkill.NameInput.Update(msg)
 	}
-	return m, cmd, true
+	return ret(m, cmd, true)
 }

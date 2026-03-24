@@ -44,11 +44,6 @@ type Model struct {
 	// Config LLM overlay state.
 	ConfigLLM ConfigLLMOverlayState
 
-	// Add-skill overlay: URL (required), ref, path and local name (optional).
-	AddSkill AddSkillOverlayState
-
-	// Update-skill overlay: choose ref and confirm update for an installed skill.
-	UpdateSkill UpdateSkillOverlayState
 }
 
 // ConfigLLMOverlayState stores overlay-only state for `/config llm`.
@@ -89,36 +84,6 @@ type AddRemoteOverlayState struct {
 	Save           bool // true = save/update remote config; false = only connect (for /remote on)
 	Connect        bool // true when opened via /remote on; false for /config add-remote
 	Connecting     bool // true while waiting for connection result (show "Connecting...")
-}
-
-// AddSkillOverlayState stores overlay-only state for add-skill flow.
-type AddSkillOverlayState struct {
-	Active         bool
-	URLInput       textinput.Model
-	RefInput       textinput.Model
-	PathInput      textinput.Model
-	NameInput      textinput.Model
-	FieldIndex     int // 0=url, 1=ref, 2=path, 3=name
-	Error          string
-	RefsFullList   []string // all refs from remote (for filtering)
-	RefCandidates  []string // refs filtered by Ref input prefix
-	RefIndex       int      // selection in ref dropdown
-	PathsFullList  []string // paths from git repo (when non-nil, Path dropdown uses this instead of static list)
-	PathCandidates []string // path options filtered by Path input prefix
-	PathIndex      int      // selection in path dropdown
-}
-
-// UpdateSkillOverlayState stores overlay-only state for update-skill flow.
-type UpdateSkillOverlayState struct {
-	Active        bool
-	Name          string
-	URL           string
-	Path          string
-	CurrentCommit string
-	Refs          []string
-	RefIndex      int
-	LatestCommit  string
-	Error         string
 }
 
 // PathCompletionState stores shared dropdown state for filesystem path completion.
