@@ -39,3 +39,4 @@ Tasks below are ordered **simple → complex**. Check off when done.
 
 - `consts` vs `config`: default prompts in `consts`; user overrides in `config` — acceptable unless product requires a single source of truth.
 - Do not reintroduce empty directory placeholders without a `.go` file or a short README explaining intent.
+- **`internal/ui` registry / view 拆分、import 循环与后续路线图**：见 [`../docs/ui-refactor-handoff.md`](../docs/ui-refactor-handoff.md)。
