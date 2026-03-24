@@ -1,6 +1,9 @@
 package ui
 
-import "delve-shell/internal/i18n"
+import (
+	"delve-shell/internal/i18n"
+	"delve-shell/internal/textwrap"
+)
 
 // View implements tea.Model.
 func (m Model) View() string {
@@ -45,6 +48,6 @@ func (m *Model) appendSuggestedLine(command, lang string) {
 	tag := i18n.T(lang, i18n.KeyRunTagSuggested)
 	line := i18n.T(lang, i18n.KeyRunLabel) + command + " (" + tag + ")"
 	w := m.contentWidth()
-	m.Messages = append(m.Messages, execStyle.Render(wrapString(line, w)))
+	m.Messages = append(m.Messages, execStyle.Render(textwrap.WrapString(line, w)))
 	m.Messages = append(m.Messages, hintStyle.Render(i18n.T(lang, i18n.KeySuggestedCopyHint)))
 }

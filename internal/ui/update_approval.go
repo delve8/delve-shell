@@ -9,6 +9,7 @@ import (
 	"delve-shell/internal/approvalflow"
 	"delve-shell/internal/approvalview"
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/textwrap"
 )
 
 func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
@@ -35,7 +36,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 }
 
 func (m *Model) appendDecisionLines(decision approvalview.DecisionKind, lang string) {
-	lines, ok := approvalview.BuildDecision(lang, m.contentWidth(), m.Approval.Pending, m.Approval.PendingSensitive, decision, wrapString)
+	lines, ok := approvalview.BuildDecision(lang, m.contentWidth(), m.Approval.Pending, m.Approval.PendingSensitive, decision, textwrap.WrapString)
 	if !ok {
 		return
 	}

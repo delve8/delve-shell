@@ -8,6 +8,7 @@ import (
 
 	"delve-shell/internal/agent"
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/textwrap"
 )
 
 func (m Model) handleConfigReloadedMsg() (Model, tea.Cmd) {
@@ -33,7 +34,7 @@ func (m Model) handleAgentReplyMsg(msg AgentReplyMsg) (Model, tea.Cmd) {
 	} else if msg.Reply != "" {
 		aiLine := i18n.T(lang, i18n.KeyAILabel) + msg.Reply
 		w := m.contentWidth()
-		m.Messages = append(m.Messages, wrapString(aiLine, w))
+		m.Messages = append(m.Messages, textwrap.WrapString(aiLine, w))
 		m.Messages = append(m.Messages, renderSeparator(w))
 	}
 	m = m.RefreshViewport()
@@ -43,7 +44,7 @@ func (m Model) handleAgentReplyMsg(msg AgentReplyMsg) (Model, tea.Cmd) {
 func (m Model) handleSystemNotifyMsg(msg SystemNotifyMsg) (Model, tea.Cmd) {
 	if msg.Text != "" {
 		w := m.contentWidth()
-		m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(wrapString(msg.Text, w))))
+		m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(textwrap.WrapString(msg.Text, w))))
 		m.Messages = append(m.Messages, "")
 		m = m.RefreshViewport()
 	}
@@ -62,12 +63,12 @@ func (m Model) handleCommandExecutedMsg(msg CommandExecutedMsg) (Model, tea.Cmd)
 	}
 	runLine := i18n.T(lang, i18n.KeyRunLabel) + msg.Command + " (" + tag + ")"
 	w := m.contentWidth()
-	m.Messages = append(m.Messages, execStyle.Render(wrapString(runLine, w)))
+	m.Messages = append(m.Messages, execStyle.Render(textwrap.WrapString(runLine, w)))
 	if msg.Sensitive {
 		m.Messages = append(m.Messages, suggestStyle.Render(i18n.T(lang, i18n.KeyResultSensitive)))
 	}
 	if msg.Result != "" {
-		m.Messages = append(m.Messages, resultStyle.Render(wrapString(msg.Result, w)))
+		m.Messages = append(m.Messages, resultStyle.Render(textwrap.WrapString(msg.Result, w)))
 	}
 	m.Messages = append(m.Messages, "") // blank line after command output
 	m = m.RefreshViewport()

@@ -6,6 +6,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/slashview"
+	"delve-shell/internal/textwrap"
 )
 
 func (m Model) handleMainScrollKey(key string, msg tea.KeyMsg, inputVal string) (Model, tea.Cmd, bool) {
@@ -17,15 +19,8 @@ func (m Model) handleMainScrollKey(key string, msg tea.KeyMsg, inputVal string) 
 	if inSlash && (key == "up" || key == "down") {
 		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.Context.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
 		vis := visibleSlashOptions(inputVal, opts)
-		if len(vis) > 0 {
-			if m.Interaction.SlashSuggestIndex >= len(vis) {
-				m.Interaction.SlashSuggestIndex = 0
-			}
-			if key == "down" {
-				m.Interaction.SlashSuggestIndex = (m.Interaction.SlashSuggestIndex + 1) % len(vis)
-			} else {
-				m.Interaction.SlashSuggestIndex = (m.Interaction.SlashSuggestIndex - 1 + len(vis)) % len(vis)
-			}
+		if next, changed := slashview.NextSuggestIndex(m.Interaction.SlashSuggestIndex, len(vis), key); changed {
+			m.Interaction.SlashSuggestIndex = next
 		}
 		return m, nil, true
 	}
@@ -40,23 +35,28 @@ func (m Model) captureSlashSelectionForEnter(inputVal string, text string) (Mode
 	if !strings.HasPrefix(inputVal, "/") {
 		return m, slashSelectedPath, slashSelectedIndex, false
 	}
-	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.Context.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
-	vis := visibleSlashOptions(inputVal, opts)
-	if len(vis) > 0 && m.Interaction.SlashSuggestIndex < len(vis) {
-		chosen := opts[vis[m.Interaction.SlashSuggestIndex]].Cmd
+	selected, ok := m.selectedSlashOption(inputVal)
+	if ok {
+		chosen := selected.Cmd
 		// chosen != text => fill selection only, do not execute or add to View
-		if (chosen == text || strings.HasPrefix(chosen, text)) && chosen != text {
+		if slashview.ShouldFillOnly(chosen, text) {
 			m.Input.SetValue(slashChosenToInputValue(chosen))
 			m.Input.CursorEnd()
 			m.Interaction.SlashSuggestIndex = 0 // reset so next Enter (new opts set, e.g. skill list) uses index 0
 			return m, "", -1, true
 		}
 		slashSelectedIndex = m.Interaction.SlashSuggestIndex
-		if opts[vis[m.Interaction.SlashSuggestIndex]].Path != "" {
-			slashSelectedPath = opts[vis[m.Interaction.SlashSuggestIndex]].Path
+		if selected.Path != "" {
+			slashSelectedPath = selected.Path
 		}
 	}
 	return m, slashSelectedPath, slashSelectedIndex, false
+}
+
+func (m Model) selectedSlashOption(inputVal string) (slashview.Option, bool) {
+	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.Context.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
+	vis := visibleSlashOptions(inputVal, opts)
+	return slashview.SelectedByVisibleIndex(toSlashViewOptions(opts), vis, m.Interaction.SlashSuggestIndex)
 }
 
 func (m Model) handleMainInputUpdate(msg tea.KeyMsg) (Model, tea.Cmd) {
@@ -107,7 +107,7 @@ func (m Model) appendUserInputLine(text string) Model {
 	if len(m.Messages) > 0 && m.Messages[len(m.Messages)-1] != sepLine {
 		m.Messages = append(m.Messages, sepLine)
 	}
-	m.Messages = append(m.Messages, wrapString(userLine, w))
+	m.Messages = append(m.Messages, textwrap.WrapString(userLine, w))
 	m.Messages = append(m.Messages, "") // blank line before command or AI reply
 	m = m.RefreshViewport()
 	m.Input.SetValue("")

@@ -1,4 +1,4 @@
-package ui
+package textwrap
 
 import (
 	"strings"
@@ -7,8 +7,8 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
-// wrapString breaks s into lines of at most maxWidth terminal cells (soft wrap). Prefers breaking at spaces. If maxWidth <= 0, returns s unchanged.
-func wrapString(s string, maxWidth int) string {
+// WrapString breaks s into lines of at most maxWidth terminal cells.
+func WrapString(s string, maxWidth int) string {
 	if maxWidth <= 0 {
 		return s
 	}
@@ -26,7 +26,6 @@ func wrapString(s string, maxWidth int) string {
 		}
 		w := runewidth.RuneWidth(r)
 		if cellWidth+w > maxWidth && cellWidth > 0 {
-			// Prefer break at last space in this segment
 			breakAt := i
 			for j := i - 1; j >= start; j-- {
 				if unicode.IsSpace(runes[j]) {

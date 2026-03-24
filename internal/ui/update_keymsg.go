@@ -26,9 +26,6 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 	inputVal := m.Input.Value()
 	inSlash := strings.HasPrefix(inputVal, "/")
 	if inSlash {
-		if m2, cmd, handled := m.handleSlashNavigationKey(key, msg, inputVal); handled {
-			return m2, cmd
-		}
 		if key == "enter" {
 			if m2, cmd, handled := m.handleSlashEnterKey(inputVal); handled {
 				return m2, cmd

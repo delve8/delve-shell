@@ -174,6 +174,14 @@
 | 2025-03-24 | 审批选项规则下沉：新增 `internal/approvalview/choices.go`（选项数、选项文案、输入占位符规则），`ui/view_choices.go` 改为调用适配层 |
 | 2025-03-24 | 审批决策回写下沉：`update_approval.go` 中审批/敏感决策文案拼装改为调用 `approvalview.BuildDecision`，`ui` 仅保留样式映射与状态流转 |
 | 2025-03-24 | 审批按键解释下沉：新增 `internal/approvalflow/choice.go`，`up/down/enter/数字键` 到决策动作的映射从 `ui` 抽离，`update_approval.go` 聚焦执行动作与状态更新 |
+| 2025-03-24 | slash 可见项策略下沉：新增 `internal/slashview/filter.go`，`visibleSlashOptions` 与 `slashChosenToInputValue` 迁移到独立包，`ui/slash.go` 仅做适配调用 |
+| 2025-03-24 | slash 导航规则下沉：新增 `internal/slashview/navigation.go`，`up/down` 循环选择与越界修正从 `update_main_key.go` / `update_slash_key.go` 抽离到独立包 |
+| 2025-03-24 | slash 选中判定下沉：新增 `internal/slashview/selection.go`，`fill-only` 与 `selected resolve` 规则从 `update_main_key.go`、`update_slash_key.go`、`update_main_enter_command.go` 统一抽离 |
+| 2025-03-24 | slash Enter 结果判定下沉：新增 `internal/slashflow/enter.go`，session switch / session none / selected resolve / unknown 的分支决策从 `update_main_enter_command.go` 抽离 |
+| 2025-03-24 | slash Enter 执行路径收口：`update_main_enter_command.go` 新增 `handleSlashOutcome` 与 `resolveSelectedSlash`，主流程收敛为 “dispatch miss -> outcome evaluate -> action apply” 三段 |
+| 2025-03-24 | slash 选中项提取下沉：新增 `internal/slashview/selected.go`（`SelectedByVisibleIndex`），`update_main_key.go` 与 `update_main_enter_command.go` 不再直接操作 `opts[vis[idx]]` |
+| 2025-03-24 | slash 下拉构建下沉：`view_slash_dropdown.go` 的候选行布局与描述换行策略整体迁至 `internal/slashview/dropdown.go`，`ui` 仅保留样式渲染 |
+| 2025-03-24 | 文本换行与 slash Enter 规则下沉：删除 `ui/view_wrap.go`（迁至 `internal/textwrap`），新增 `internal/slashflow/enter_key.go` 统一 slash Enter 动作决策，`ui` 侧只做分发执行 |
 | 2025-03-24 | slash 注册下沉：`/config*`、`/cancel`、`/q`、`/sh`、`/help`、`/config auto-run` 从 `ui` 迁到 `run/feature` 包；删除 `ui.registerSlashExact` 别名 |
 | 2025-03-24 | `internal/ui` 测试镜像重组：`feature_registry_test.go` 拆分为 remote/configllm、skill、session、slash-exact 多文件，主文件仅做汇总 init |
 | 2025-03-24 | P2：`Model` 再收敛 `Layout`/`Startup`/`Approval`；新增 `hasPendingApproval`、`contentWidth`、`OpenOverlay`、`CloseOverlayVisual` 等 helper 并替换重复逻辑 |

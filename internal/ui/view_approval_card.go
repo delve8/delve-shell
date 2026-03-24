@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"delve-shell/internal/approvalview"
+	"delve-shell/internal/textwrap"
 )
 
 // appendApprovalViewportContent appends sensitive or standard approval blocks to the viewport.
@@ -14,7 +15,7 @@ func (m Model) appendApprovalViewportContent(b *strings.Builder) bool {
 		m.contentWidth(),
 		m.Approval.Pending,
 		m.Approval.PendingSensitive,
-		wrapString,
+		textwrap.WrapString,
 	)
 	if !ok {
 		return false
