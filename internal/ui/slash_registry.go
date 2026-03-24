@@ -10,7 +10,15 @@ type SlashExactDispatchEntry struct {
 	ClearInput bool
 }
 
+// SlashPrefixDispatchEntry routes slash commands with arguments by prefix match.
+// Registry is populated by init() in feature packages.
+type SlashPrefixDispatchEntry struct {
+	Prefix string
+	Handle func(Model, string) (Model, tea.Cmd, bool) // rest after prefix
+}
+
 var slashExactDispatchRegistry = slashreg.NewExactRegistry[Model, tea.Cmd]()
+var slashPrefixDispatchRegistry = slashreg.NewPrefixRegistry[Model, tea.Cmd]()
 
 // RegisterSlashExact registers an exact slash command handler.
 // Intended to be called from feature packages' init() functions.
@@ -25,5 +33,20 @@ func RegisterSlashExact(cmd string, entry SlashExactDispatchEntry) {
 	slashExactDispatchRegistry.Set(cmd, slashreg.ExactEntry[Model, tea.Cmd]{
 		Handle:     entry.Handle,
 		ClearInput: entry.ClearInput,
+	})
+}
+
+// RegisterSlashPrefix registers a prefix-based slash command handler.
+// Intended to be called from feature packages' init() functions.
+func RegisterSlashPrefix(prefix string, entry SlashPrefixDispatchEntry) {
+	if prefix == "" {
+		return
+	}
+	if entry.Prefix == "" {
+		entry.Prefix = prefix
+	}
+	slashPrefixDispatchRegistry.Set(prefix, slashreg.PrefixEntry[Model, tea.Cmd]{
+		Prefix: entry.Prefix,
+		Handle: entry.Handle,
 	})
 }
