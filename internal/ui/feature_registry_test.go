@@ -28,7 +28,7 @@ func init() {
 		return "Remote", true
 	})
 
-	registerSlashExact("/config add-remote", SlashExactDispatchEntry{
+	RegisterSlashExact("/config add-remote", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
 			m.Overlay.Active = true
 			m.Overlay.Title = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
@@ -54,7 +54,7 @@ func init() {
 		},
 		ClearInput: true,
 	})
-	registerSlashExact("/remote on", SlashExactDispatchEntry{
+	RegisterSlashExact("/remote on", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
 			m.Overlay.Active = true
 			m.Overlay.Title = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
@@ -80,7 +80,7 @@ func init() {
 		},
 		ClearInput: true,
 	})
-	registerSlashExact("/config llm", SlashExactDispatchEntry{
+	RegisterSlashExact("/config llm", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
 			m.Overlay.Active = true
 			m.Overlay.Title = i18n.T(m.getLang(), i18n.KeyConfigLLMTitle)
@@ -102,7 +102,7 @@ func init() {
 		},
 		ClearInput: true,
 	})
-	registerSlashExact("/config del-remote", SlashExactDispatchEntry{
+	RegisterSlashExact("/config del-remote", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
 			m.Input.SetValue("/config del-remote ")
 			m.Input.CursorEnd()

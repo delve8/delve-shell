@@ -9,20 +9,27 @@ import (
 // registerTestSlashExactMirrors mirrors exact handlers registered by non-ui packages
 // so internal/ui tests can run without importing those packages.
 func registerTestSlashExactMirrors() {
+	RegisterSlashExact("/help", SlashExactDispatchEntry{
+		Handle: func(m Model) (Model, tea.Cmd) {
+			return m.openHelpOverlay(), nil
+		},
+		ClearInput: true,
+	})
+
 	appendConfigHint := func(m Model) (Model, tea.Cmd) {
 		m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyConfigHint))))
 		m = m.RefreshViewport()
 		return m, nil
 	}
-	registerSlashExact("/config show", SlashExactDispatchEntry{
+	RegisterSlashExact("/config show", SlashExactDispatchEntry{
 		Handle:     appendConfigHint,
 		ClearInput: false,
 	})
-	registerSlashExact("/config", SlashExactDispatchEntry{
+	RegisterSlashExact("/config", SlashExactDispatchEntry{
 		Handle:     appendConfigHint,
 		ClearInput: false,
 	})
-	registerSlashExact("/config update auto-run list", SlashExactDispatchEntry{
+	RegisterSlashExact("/config update auto-run list", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
 			return m.applyConfigAllowlistUpdate(), nil
 		},
@@ -37,15 +44,15 @@ func registerTestSlashExactMirrors() {
 		}
 		return m, nil
 	}
-	registerSlashExact("/config reload", SlashExactDispatchEntry{
+	RegisterSlashExact("/config reload", SlashExactDispatchEntry{
 		Handle:     reloadConfig,
 		ClearInput: true,
 	})
-	registerSlashExact("/reload", SlashExactDispatchEntry{
+	RegisterSlashExact("/reload", SlashExactDispatchEntry{
 		Handle:     reloadConfig,
 		ClearInput: true,
 	})
-	registerSlashExact("/cancel", SlashExactDispatchEntry{
+	RegisterSlashExact("/cancel", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
 			if m.Interaction.WaitingForAI && m.Ports.CancelRequestChan != nil {
 				select {
@@ -62,11 +69,11 @@ func registerTestSlashExactMirrors() {
 		},
 		ClearInput: false,
 	})
-	registerSlashExact("/q", SlashExactDispatchEntry{
+	RegisterSlashExact("/q", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) { return m, tea.Quit },
 		ClearInput: false,
 	})
-	registerSlashExact("/sh", SlashExactDispatchEntry{
+	RegisterSlashExact("/sh", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
 			if m.Ports.ShellRequestedChan != nil {
 				msgs := make([]string, len(m.Messages))

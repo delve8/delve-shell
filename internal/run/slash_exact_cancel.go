@@ -1,0 +1,26 @@
+package run
+
+import (
+	tea "github.com/charmbracelet/bubbletea"
+
+	"delve-shell/internal/i18n"
+	"delve-shell/internal/ui"
+)
+
+func init() {
+	ui.RegisterSlashExact("/cancel", ui.SlashExactDispatchEntry{
+		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
+			if m.Interaction.WaitingForAI && m.Ports.CancelRequestChan != nil {
+				select {
+				case m.Ports.CancelRequestChan <- struct{}{}:
+				default:
+				}
+				m.Interaction.WaitingForAI = false
+				return m, nil
+			}
+			m.Messages = append(m.Messages, delveMsg("en", i18n.T("en", i18n.KeyNoRequestInProgress)))
+			return m.RefreshViewport(), nil
+		},
+		ClearInput: false,
+	})
+}

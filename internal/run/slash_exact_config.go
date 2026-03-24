@@ -44,39 +44,4 @@ func init() {
 		Handle:     triggerConfigReload,
 		ClearInput: true,
 	})
-
-	ui.RegisterSlashExact("/cancel", ui.SlashExactDispatchEntry{
-		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
-			if m.Interaction.WaitingForAI && m.Ports.CancelRequestChan != nil {
-				select {
-				case m.Ports.CancelRequestChan <- struct{}{}:
-				default:
-				}
-				m.Interaction.WaitingForAI = false
-				return m, nil
-			}
-			m.Messages = append(m.Messages, delveMsg("en", i18n.T("en", i18n.KeyNoRequestInProgress)))
-			return m.RefreshViewport(), nil
-		},
-		ClearInput: false,
-	})
-
-	ui.RegisterSlashExact("/q", ui.SlashExactDispatchEntry{
-		Handle: func(m ui.Model) (ui.Model, tea.Cmd) { return m, tea.Quit },
-		ClearInput: false,
-	})
-	ui.RegisterSlashExact("/sh", ui.SlashExactDispatchEntry{
-		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
-			if m.Ports.ShellRequestedChan != nil {
-				msgs := make([]string, len(m.Messages))
-				copy(msgs, m.Messages)
-				select {
-				case m.Ports.ShellRequestedChan <- msgs:
-				default:
-				}
-			}
-			return m, tea.Quit
-		},
-		ClearInput: false,
-	})
 }

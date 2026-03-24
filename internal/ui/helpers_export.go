@@ -45,3 +45,8 @@ func (m Model) InitOverlayViewport() Model {
 func (m Model) ApplyConfigAllowlistUpdate() Model {
 	return m.applyConfigAllowlistUpdate()
 }
+
+// OpenHelpOverlay opens the built-in help overlay.
+func (m Model) OpenHelpOverlay() Model {
+	return m.openHelpOverlay()
+}

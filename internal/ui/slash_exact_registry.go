@@ -23,8 +23,3 @@ func RegisterSlashExact(cmd string, entry SlashExactDispatchEntry) {
 	}
 	slashExactDispatchRegistry[cmd] = entry
 }
-
-// registerSlashExact is kept for internal callers during incremental refactors.
-func registerSlashExact(cmd string, entry SlashExactDispatchEntry) {
-	RegisterSlashExact(cmd, entry)
-}
