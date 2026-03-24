@@ -8,7 +8,7 @@ import (
 
 	"delve-shell/internal/config"
 	_ "delve-shell/internal/configllm"
-	_ "delve-shell/internal/remote"
+	"delve-shell/internal/remote"
 	_ "delve-shell/internal/run"
 	_ "delve-shell/internal/session"
 	_ "delve-shell/internal/skill"
@@ -38,15 +38,15 @@ func newBlackboxFixture() blackboxFixture {
 		remoteOff:      make(chan struct{}, 2),
 		remoteAuthResp: make(chan ui.RemoteAuthResponse, 2),
 	}
+	remote.SetRemoteOnTargetChan(f.remoteOn)
+	remote.SetRemoteOffChan(f.remoteOff)
+	remote.SetRemoteAuthRespChan(f.remoteAuthResp)
 	f.model = ui.NewModel(
 		f.submitChan,
 		f.execDirectChan,
 		f.shellRequested,
 		f.cancelRequest,
 		f.configUpdated,
-		f.remoteOn,
-		f.remoteOff,
-		f.remoteAuthResp,
 		func() bool { return true },
 		nil,
 		false,
@@ -296,7 +296,7 @@ func TestBlackboxSlashSessionsPrefixSubmitsCommand(t *testing.T) {
 
 func TestBlackboxStartupOverlayProviderOpensConfigLLM(t *testing.T) {
 	m := ui.NewModel(
-		nil, nil, nil, nil, nil, nil, nil, nil,
+		nil, nil, nil, nil, nil,
 		func() bool { return true },
 		nil,
 		true, // InitialShowConfigLLM

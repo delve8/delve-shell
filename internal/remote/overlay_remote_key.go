@@ -233,13 +233,11 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 		}
 
 		m = m.RefreshViewport()
-		if state.AddRemote.Connect && m.Ports.RemoteOnChan != nil {
+		if state.AddRemote.Connect {
 			// Show "Connecting..." and wait for RemoteConnectDoneMsg; close overlay only on success.
 			state.AddRemote.Connecting = true
 			state.AddRemote.Error = ""
-			select {
-			case m.Ports.RemoteOnChan <- target:
-			default:
+			if !trySendRemoteOnTarget(target) {
 				state.AddRemote.Connecting = false
 			}
 			return ret(m, nil, true)
@@ -372,17 +370,12 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			b.WriteString(suggestStyle.Render("Connecting...") + "\n\n")
 			b.WriteString("Press Esc to cancel.")
 			m.Overlay.Content = b.String()
-			if m.Ports.RemoteAuthRespChan != nil {
-				select {
-				case m.Ports.RemoteAuthRespChan <- ui.RemoteAuthResponse{
-					Target:   state.RemoteAuth.Target,
-					Username: state.RemoteAuth.Username,
-					Kind:     state.RemoteAuth.Step,
-					Password: input,
-				}:
-				default:
-				}
-			}
+			_ = trySendRemoteAuthResp(ui.RemoteAuthResponse{
+				Target:   state.RemoteAuth.Target,
+				Username: state.RemoteAuth.Username,
+				Kind:     state.RemoteAuth.Step,
+				Password: input,
+			})
 			return ret(m, nil, true)
 		}
 
@@ -458,17 +451,12 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			b.WriteString(suggestStyle.Render("Connecting...") + "\n\n")
 			b.WriteString("Press Esc to cancel.")
 			m.Overlay.Content = b.String()
-			if m.Ports.RemoteAuthRespChan != nil {
-				select {
-				case m.Ports.RemoteAuthRespChan <- ui.RemoteAuthResponse{
-					Target:   state.RemoteAuth.Target,
-					Username: state.RemoteAuth.Username,
-					Kind:     state.RemoteAuth.Step,
-					Password: input,
-				}:
-				default:
-				}
-			}
+			_ = trySendRemoteAuthResp(ui.RemoteAuthResponse{
+				Target:   state.RemoteAuth.Target,
+				Username: state.RemoteAuth.Username,
+				Kind:     state.RemoteAuth.Step,
+				Password: input,
+			})
 			return ret(m, nil, true)
 		}
 

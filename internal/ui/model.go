@@ -101,14 +101,11 @@ type OverlayState struct {
 type UIPorts struct {
 	SubmitChan           chan<- string
 	ExecDirectChan       chan<- string
-	ShellRequestedChan   chan<- []string           // on /sh send current Messages to preserve after return
-	CancelRequestChan    chan<- struct{}           // on /cancel request cancel of in-flight AI
-	ConfigUpdatedChan    chan<- struct{}           // on /config save or /config reload, invalidate runner so next message reloads config/allowlist
-	SyncAllowlistAutoRun func(bool)                // after /config auto-run list-only|disable: update in-memory flag and runners without ConfigReloadedMsg
-	RemoteOnChan         chan<- string             // on /remote on <target>, send resolved target/name to CLI
-	RemoteOffChan        chan<- struct{}           // on /remote off, switch back to local
-	RemoteAuthRespChan   chan<- RemoteAuthResponse // on remote password entry, send credentials back to CLI
-	GetAllowlistAutoRun  func() bool               // for header and Pending card 2 vs 3 options
+	ShellRequestedChan   chan<- []string // on /sh send current Messages to preserve after return
+	CancelRequestChan    chan<- struct{} // on /cancel request cancel of in-flight AI
+	ConfigUpdatedChan    chan<- struct{} // on /config save or /config reload, invalidate runner so next message reloads config/allowlist
+	SyncAllowlistAutoRun func(bool)      // after /config auto-run list-only|disable: update in-memory flag and runners without ConfigReloadedMsg
+	GetAllowlistAutoRun  func() bool     // for header and Pending card 2 vs 3 options
 }
 
 // Init implements tea.Model.
@@ -184,9 +181,6 @@ func NewModel(
 	shellRequestedChan chan<- []string,
 	cancelRequestChan chan<- struct{},
 	configUpdatedChan chan<- struct{},
-	remoteOnChan chan<- string,
-	remoteOffChan chan<- struct{},
-	remoteAuthRespChan chan<- RemoteAuthResponse,
 	getAllowlistAutoRun func() bool,
 	initialMessages []string,
 	initialShowConfigLLM bool,
@@ -217,9 +211,6 @@ func NewModel(
 			ShellRequestedChan:  shellRequestedChan,
 			CancelRequestChan:   cancelRequestChan,
 			ConfigUpdatedChan:   configUpdatedChan,
-			RemoteOnChan:        remoteOnChan,
-			RemoteOffChan:       remoteOffChan,
-			RemoteAuthRespChan:  remoteAuthRespChan,
 			GetAllowlistAutoRun: getAllowlistAutoRun,
 		},
 		Context: RuntimeContextState{},

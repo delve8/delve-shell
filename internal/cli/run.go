@@ -17,7 +17,7 @@ import (
 	_ "delve-shell/internal/configllm"
 	"delve-shell/internal/execenv"
 	"delve-shell/internal/history"
-	_ "delve-shell/internal/remote"
+	"delve-shell/internal/remote"
 	"delve-shell/internal/rules"
 	_ "delve-shell/internal/run"
 	"delve-shell/internal/runtime/executormgr"
@@ -92,8 +92,11 @@ func Run(cmd *cobra.Command, args []string) error {
 	shellRequestedChan := make(chan []string, 1)
 	cancelRequestChan := make(chan struct{}, 1)
 	remoteOnChan := make(chan string, 1)
+	remote.SetRemoteOnTargetChan(remoteOnChan)
 	remoteOffChan := make(chan struct{}, 1)
+	remote.SetRemoteOffChan(remoteOffChan)
 	remoteAuthRespChan := make(chan ui.RemoteAuthResponse, 1)
+	remote.SetRemoteAuthRespChan(remoteAuthRespChan)
 	var savedMessages []string
 	var currentP atomic.Pointer[tea.Program]
 	uiMsgChan := make(chan tea.Msg, 256)
@@ -135,7 +138,7 @@ func Run(cmd *cobra.Command, args []string) error {
 		if s := sessions.Current(); s != nil {
 			syncSessionPath(s.Path())
 		}
-		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, remoteOnChan, remoteOffChan, remoteAuthRespChan, getAllowlistAutoRun, savedMessages, initialShowConfigLLM)
+		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, getAllowlistAutoRun, savedMessages, initialShowConfigLLM)
 		model.Ports.SyncAllowlistAutoRun = func(v bool) {
 			currentAllowlistAutoRun.Store(v)
 			runners.SetAllowlistAutoRun(v)
