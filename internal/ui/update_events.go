@@ -3,7 +3,6 @@ package ui
 import (
 	"context"
 	"errors"
-	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -36,8 +35,7 @@ func (m Model) handleAgentReplyMsg(msg AgentReplyMsg) (Model, tea.Cmd) {
 		aiLine := i18n.T(lang, i18n.KeyAILabel) + msg.Reply
 		w := m.contentWidth()
 		m.Messages = append(m.Messages, wrapString(aiLine, w))
-		sepW := m.contentWidth()
-		m.Messages = append(m.Messages, separatorStyle.Render(strings.Repeat("─", sepW)))
+		m.Messages = append(m.Messages, renderSeparator(w))
 	}
 	m = m.RefreshViewport()
 	return m, nil

@@ -103,7 +103,7 @@ func (m Model) appendUserInputLine(text string) Model {
 	userLine := i18n.T(m.getLang(), i18n.KeyUserLabel) + text
 	w := m.contentWidth()
 	sepW := w
-	sepLine := separatorStyle.Render(strings.Repeat("─", sepW))
+	sepLine := renderSeparator(sepW)
 	if len(m.Messages) > 0 && m.Messages[len(m.Messages)-1] != sepLine {
 		m.Messages = append(m.Messages, sepLine)
 	}

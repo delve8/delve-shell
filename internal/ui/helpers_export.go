@@ -1,5 +1,7 @@
 package ui
 
+import "github.com/charmbracelet/bubbles/viewport"
+
 // ClearSlashInput resets slash input-related UI state.
 // It is exported so feature packages can implement exact slash handlers
 // without depending on unexported ui internals.
@@ -29,5 +31,12 @@ func (m Model) CloseOverlayVisual() Model {
 	m.Overlay.Active = false
 	m.Overlay.Title = ""
 	m.Overlay.Content = ""
+	return m
+}
+
+// InitOverlayViewport initializes the generic overlay viewport from current layout.
+func (m Model) InitOverlayViewport() Model {
+	m.Overlay.Viewport = viewport.New(m.Layout.Width-minOverlayLayoutWidth, min(m.Layout.Height-minOverlayLayoutHeight, maxOverlayViewportHeight))
+	m.Overlay.Viewport.SetContent(m.Overlay.Content)
 	return m
 }

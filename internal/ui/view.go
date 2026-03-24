@@ -1,10 +1,6 @@
 package ui
 
-import (
-	"strings"
-
-	"delve-shell/internal/i18n"
-)
+import "delve-shell/internal/i18n"
 
 // View implements tea.Model.
 func (m Model) View() string {
@@ -13,20 +9,17 @@ func (m Model) View() string {
 	if sepW <= 0 {
 		sepW = 40
 	}
-	sepLine := separatorStyle.Render(strings.Repeat("─", sepW))
+	sepLine := renderSeparator(sepW)
 	header := m.titleLine() + "\n" + sepLine + "\n"
 
 	inChoice := m.hasPendingApproval()
-	if m.Layout.Height <= 4 {
+	if m.Layout.Height <= minInputLayoutWidth {
 		out := header + m.buildContent() + "\n" + m.Input.View()
 		out += m.waitingLineBelowInput(lang)
 		return out
 	}
 	// Base viewport height: leave room for header, separator, input line, and slash/choice dropdown (the two lines at bottom are for input + suggestions).
-	vh := m.Layout.Height - 10
-	if vh < 1 {
-		vh = 1
-	}
+	vh := m.mainViewportHeight()
 	m.Viewport.Width = m.Layout.Width
 	m.Viewport.Height = vh
 	out := header

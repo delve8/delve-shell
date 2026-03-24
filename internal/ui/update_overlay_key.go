@@ -1,9 +1,6 @@
 package ui
 
-import (
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-)
+import tea "github.com/charmbracelet/bubbletea"
 
 func (m Model) closeOverlayCommon(refocusInput bool) (Model, tea.Cmd) {
 	m = m.CloseOverlayVisual()
@@ -19,8 +16,7 @@ func (m Model) closeOverlayCommon(refocusInput bool) (Model, tea.Cmd) {
 
 func (m Model) handleOverlayShowMsg(msg OverlayShowMsg) (Model, tea.Cmd) {
 	m = m.OpenOverlay(msg.Title, msg.Content)
-	m.Overlay.Viewport = viewport.New(m.Layout.Width-4, min(m.Layout.Height-6, 20))
-	m.Overlay.Viewport.SetContent(m.Overlay.Content)
+	m = m.InitOverlayViewport()
 	return m, nil
 }
 
