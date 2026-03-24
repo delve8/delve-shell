@@ -88,6 +88,15 @@ func init() {
 		},
 		ClearInput: true,
 	})
+	registerSlashExact("/config del-remote", SlashExactDispatchEntry{
+		Handle: func(m Model) (Model, tea.Cmd) {
+			m.Input.SetValue("/config del-remote ")
+			m.Input.CursorEnd()
+			m.SlashSuggestIndex = 0
+			return m, nil
+		},
+		ClearInput: false,
+	})
 	registerSlashPrefix("/config update-skill", SlashPrefixDispatchEntry{
 		Prefix: "/config update-skill",
 		Handle: func(mm Model, rest string) (Model, tea.Cmd, bool) {

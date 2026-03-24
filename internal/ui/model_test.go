@@ -295,6 +295,22 @@ func TestSlashCommand_RemoteOn_EnterOpensOverlay(t *testing.T) {
 	}
 }
 
+func TestSlashCommand_ConfigDelRemote_EnterFillsInput(t *testing.T) {
+	getAutoRun := func() bool { return true }
+	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
+	m.Input.SetValue("/config del-remote")
+	m.Input.CursorEnd()
+
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m2 := next.(Model)
+	if strings.TrimSpace(m2.Input.Value()) != "/config del-remote" {
+		t.Fatalf("expected /config del-remote Enter to keep filled command, got %q", m2.Input.Value())
+	}
+	if !strings.HasSuffix(m2.Input.Value(), " ") {
+		t.Fatalf("expected /config del-remote to append trailing space, got %q", m2.Input.Value())
+	}
+}
+
 func TestSlashDropdown_Cancel_EnterFillsThenExecutes(t *testing.T) {
 	cancelCh := make(chan struct{}, 1)
 	getAutoRun := func() bool { return true }
