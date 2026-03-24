@@ -105,4 +105,9 @@ func registerProviders() {
 	})
 
 	ui.RegisterMessageProvider(remoteMessageProvider)
+
+	ui.RegisterOverlayCloseHook(func(m ui.Model) ui.Model {
+		resetRemoteOverlayState()
+		return m
+	})
 }

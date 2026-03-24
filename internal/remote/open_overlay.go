@@ -9,23 +9,26 @@ import (
 
 func openAddRemoteOverlay(m ui.Model, save, connect bool) ui.Model {
 	m = m.OpenOverlay(i18n.T("en", i18n.KeyAddRemoteTitle), "")
-	m.AddRemote.Active = true
-	m.AddRemote.Error = ""
-	m.AddRemote.OfferOverwrite = false
-	m.AddRemote.Save = save
-	m.AddRemote.Connect = connect
+	state := getRemoteOverlayState()
+	state.AddRemote.Active = true
+	state.RemoteAuth = RemoteAuthOverlayState{}
+	state.AddRemote.Error = ""
+	state.AddRemote.OfferOverwrite = false
+	state.AddRemote.Save = save
+	state.AddRemote.Connect = connect
 	m.PathCompletion.Candidates = nil
 	m.PathCompletion.Index = -1
-	m.AddRemote.FieldIndex = 0
-	m.AddRemote.HostInput = textinput.New()
-	m.AddRemote.HostInput.Placeholder = "host or host:22"
-	m.AddRemote.HostInput.Focus()
-	m.AddRemote.UserInput = textinput.New()
-	m.AddRemote.UserInput.Placeholder = "e.g. root"
-	m.AddRemote.UserInput.SetValue("root")
-	m.AddRemote.NameInput = textinput.New()
-	m.AddRemote.NameInput.Placeholder = "name (optional)"
-	m.AddRemote.KeyInput = textinput.New()
-	m.AddRemote.KeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
+	state.AddRemote.FieldIndex = 0
+	state.AddRemote.HostInput = textinput.New()
+	state.AddRemote.HostInput.Placeholder = "host or host:22"
+	state.AddRemote.HostInput.Focus()
+	state.AddRemote.UserInput = textinput.New()
+	state.AddRemote.UserInput.Placeholder = "e.g. root"
+	state.AddRemote.UserInput.SetValue("root")
+	state.AddRemote.NameInput = textinput.New()
+	state.AddRemote.NameInput.Placeholder = "name (optional)"
+	state.AddRemote.KeyInput = textinput.New()
+	state.AddRemote.KeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
+	setRemoteOverlayState(state)
 	return m
 }

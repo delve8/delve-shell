@@ -30,12 +30,6 @@ type Model struct {
 	// Overlay state: when Overlay.Active is true, a modal is rendered on top of the main UI.
 	Overlay OverlayState
 
-	// Add-remote overlay state (username + host separate).
-	// Fields: 0=host, 1=user, 2=name, 3=key path, 4=save-as-remote checkbox.
-	AddRemote AddRemoteOverlayState
-
-	// Remote auth overlay state.
-	RemoteAuth RemoteAuthOverlayState
 	// Path completion (shared): used for any path input with dropdown (auth identity key path, add-remote key path).
 	PathCompletion PathCompletionState
 
@@ -57,33 +51,6 @@ type ConfigLLMOverlayState struct {
 	MaxCharsInput    textinput.Model
 	FieldIndex       int // 0=base_url, 1=api_key, 2=model, 3=max_messages, 4=max_chars
 	Error            string
-}
-
-// RemoteAuthOverlayState stores overlay-only state for remote authentication prompts.
-// Step: "" = inactive, "choose" = selecting auth method, "password" = entering password, "identity" = entering key path.
-type RemoteAuthOverlayState struct {
-	Step          string
-	Target        string
-	Error         string
-	Username      string          // username to use when submitting (default root)
-	UsernameInput textinput.Model // username input in choose step
-	Input         textinput.Model // for password or identity path
-	Connecting    bool            // true while waiting for remote auth result ("Connecting..." state)
-}
-
-// AddRemoteOverlayState stores overlay-only state for add/connect remote dialogs.
-type AddRemoteOverlayState struct {
-	Active         bool
-	UserInput      textinput.Model
-	HostInput      textinput.Model
-	NameInput      textinput.Model
-	KeyInput       textinput.Model
-	FieldIndex     int
-	Error          string
-	OfferOverwrite bool // when true, error was "already exists"; show overwrite hint and accept O to overwrite
-	Save           bool // true = save/update remote config; false = only connect (for /remote on)
-	Connect        bool // true when opened via /remote on; false for /config add-remote
-	Connecting     bool // true while waiting for connection result (show "Connecting...")
 }
 
 // PathCompletionState stores shared dropdown state for filesystem path completion.
