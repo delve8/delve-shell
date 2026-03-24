@@ -3,6 +3,7 @@ package run
 import (
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/hostnotify"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/ui"
 )
@@ -13,12 +14,7 @@ func init() {
 		return m.RefreshViewport(), nil
 	}
 	triggerConfigReload := func(m ui.Model) (ui.Model, tea.Cmd) {
-		if m.Ports.ConfigUpdatedChan != nil {
-			select {
-			case m.Ports.ConfigUpdatedChan <- struct{}{}:
-			default:
-			}
-		}
+		hostnotify.NotifyConfigUpdated()
 		return m, nil
 	}
 

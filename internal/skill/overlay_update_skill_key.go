@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"delve-shell/internal/git"
+	"delve-shell/internal/hostnotify"
 	"delve-shell/internal/service/skillsvc"
 	"delve-shell/internal/ui"
 )
@@ -79,12 +80,7 @@ func handleUpdateSkillOverlayKey(m ui.Model, key string) (ui.Model, tea.Cmd, boo
 		m.Messages = append(m.Messages, "")
 		m = m.RefreshViewport()
 		m.Input.Focus()
-		if m.Ports.ConfigUpdatedChan != nil {
-			select {
-			case m.Ports.ConfigUpdatedChan <- struct{}{}:
-			default:
-			}
-		}
+		hostnotify.NotifyConfigUpdated()
 		return ret(m, nil, true)
 	}
 

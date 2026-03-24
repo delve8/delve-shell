@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/agent"
+	"delve-shell/internal/hostnotify"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/textwrap"
 )
@@ -93,12 +94,7 @@ func (m Model) handleConfigLLMCheckDoneMsg(msg ConfigLLMCheckDoneMsg) (Model, te
 	m = m.RefreshViewport()
 	m = m.CloseOverlayVisual()
 	m.ConfigLLM.Active = false
-	if m.Ports.ConfigUpdatedChan != nil {
-		select {
-		case m.Ports.ConfigUpdatedChan <- struct{}{}:
-		default:
-		}
-	}
+	hostnotify.NotifyConfigUpdated()
 	return m, nil
 }
 

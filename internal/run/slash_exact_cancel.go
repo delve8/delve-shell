@@ -10,11 +10,8 @@ import (
 func init() {
 	ui.RegisterSlashExact("/cancel", ui.SlashExactDispatchEntry{
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
-			if m.Interaction.WaitingForAI && m.Ports.CancelRequestChan != nil {
-				select {
-				case m.Ports.CancelRequestChan <- struct{}{}:
-				default:
-				}
+			if m.Interaction.WaitingForAI {
+				_ = trySendCancelRequest()
 				m.Interaction.WaitingForAI = false
 				return m, nil
 			}

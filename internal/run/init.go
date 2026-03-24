@@ -23,9 +23,9 @@ func init() {
 		Prefix: "/run ",
 		Handle: func(mm ui.Model, rest string) (ui.Model, tea.Cmd, bool) {
 			cmd := strings.TrimSpace(rest)
-			if mm.Ports.ExecDirectChan != nil && cmd != "" {
-				mm.Ports.ExecDirectChan <- cmd
-			} else if cmd == "" {
+			if cmd != "" {
+				sendExecDirect(cmd)
+			} else {
 				lang := "en"
 				mm.Messages = append(mm.Messages, errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeyUsageRun))))
 			}

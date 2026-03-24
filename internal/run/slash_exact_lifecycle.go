@@ -19,14 +19,9 @@ func init() {
 	})
 	ui.RegisterSlashExact("/sh", ui.SlashExactDispatchEntry{
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
-			if m.Ports.ShellRequestedChan != nil {
-				msgs := make([]string, len(m.Messages))
-				copy(msgs, m.Messages)
-				select {
-				case m.Ports.ShellRequestedChan <- msgs:
-				default:
-				}
-			}
+			msgs := make([]string, len(m.Messages))
+			copy(msgs, m.Messages)
+			_ = trySendShellSnapshot(msgs)
 			return m, tea.Quit
 		},
 		ClearInput: true,

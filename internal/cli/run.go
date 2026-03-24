@@ -17,9 +17,10 @@ import (
 	_ "delve-shell/internal/configllm"
 	"delve-shell/internal/execenv"
 	"delve-shell/internal/history"
+	"delve-shell/internal/hostnotify"
 	"delve-shell/internal/remote"
 	"delve-shell/internal/rules"
-	_ "delve-shell/internal/run"
+	"delve-shell/internal/run"
 	"delve-shell/internal/runtime/executormgr"
 	"delve-shell/internal/runtime/runnermgr"
 	"delve-shell/internal/runtime/sessionmgr"
@@ -89,8 +90,12 @@ func Run(cmd *cobra.Command, args []string) error {
 
 	submitChan := make(chan string, 4)
 	execDirectChan := make(chan string, 4)
+	run.SetExecDirectChan(execDirectChan)
+	hostnotify.SetConfigUpdatedChan(configUpdatedChan)
 	shellRequestedChan := make(chan []string, 1)
+	run.SetShellRequestedChan(shellRequestedChan)
 	cancelRequestChan := make(chan struct{}, 1)
+	run.SetCancelRequestChan(cancelRequestChan)
 	remoteOnChan := make(chan string, 1)
 	remote.SetRemoteOnTargetChan(remoteOnChan)
 	remoteOffChan := make(chan struct{}, 1)
@@ -133,16 +138,16 @@ func Run(cmd *cobra.Command, args []string) error {
 	hostloop.StartBackgroundLoops(stop, deps, uiMsgChan, submitChan, cancelRequestChan, fsm, &currentP)
 
 	getAllowlistAutoRun := func() bool { return currentAllowlistAutoRun.Load() }
+	run.SetSyncAllowlistAutoRun(func(v bool) {
+		currentAllowlistAutoRun.Store(v)
+		runners.SetAllowlistAutoRun(v)
+	})
 	initialShowConfigLLM := needConfigLLM
 	for {
 		if s := sessions.Current(); s != nil {
 			syncSessionPath(s.Path())
 		}
-		model := ui.NewModel(submitChan, execDirectChan, shellRequestedChan, cancelRequestChan, configUpdatedChan, getAllowlistAutoRun, savedMessages, initialShowConfigLLM)
-		model.Ports.SyncAllowlistAutoRun = func(v bool) {
-			currentAllowlistAutoRun.Store(v)
-			runners.SetAllowlistAutoRun(v)
-		}
+		model := ui.NewModel(submitChan, getAllowlistAutoRun, savedMessages, initialShowConfigLLM)
 		model.Context.ConfigPath = config.ConfigPath()
 		initialShowConfigLLM = false
 		p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithReportFocus())

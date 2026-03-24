@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"delve-shell/internal/config"
+	"delve-shell/internal/hostnotify"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/ui"
 )
@@ -43,9 +44,7 @@ func applyConfigAllowlistAutoRun(m ui.Model, value string) ui.Model {
 	m.Messages = append(m.Messages, delveMsg("en", i18n.Tf("en", i18n.KeyConfigSavedAllowlistAutoRun, display)))
 	m.Messages = append(m.Messages, "")
 	m = m.RefreshViewport()
-	if m.Ports.SyncAllowlistAutoRun != nil {
-		m.Ports.SyncAllowlistAutoRun(on)
-	}
+	invokeSyncAllowlistAutoRun(on)
 	return m
 }
 
@@ -58,11 +57,6 @@ func applyConfigAllowlistUpdate(m ui.Model) ui.Model {
 	m.Messages = append(m.Messages, delveMsg("en", i18n.Tf("en", i18n.KeyAllowlistUpdateDone, added)))
 	m.Messages = append(m.Messages, "")
 	m = m.RefreshViewport()
-	if m.Ports.ConfigUpdatedChan != nil {
-		select {
-		case m.Ports.ConfigUpdatedChan <- struct{}{}:
-		default:
-		}
-	}
+	hostnotify.NotifyConfigUpdated()
 	return m
 }
