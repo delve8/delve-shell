@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/config"
 	_ "delve-shell/internal/configllm"
 	_ "delve-shell/internal/remote"
 	_ "delve-shell/internal/run"
@@ -165,11 +166,20 @@ func TestBlackboxSlashRunUsageFillsInput(t *testing.T) {
 	}
 }
 
-func TestBlackboxSlashConfigDelRemoteFillsInput(t *testing.T) {
+func TestBlackboxSlashConfigDelRemoteNoHostsShowsHint(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", dir)
+	if err := config.EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
 	f := newBlackboxFixture()
 	got := enterText(f.model, "/config del-remote")
-	if got.Input.Value() != "/config del-remote " {
-		t.Fatalf("expected /config del-remote to fill trailing space, got %q", got.Input.Value())
+	if strings.TrimSpace(got.Input.Value()) != "" {
+		t.Fatalf("expected input cleared after no-hosts del-remote, got %q", got.Input.Value())
+	}
+	joined := strings.Join(got.Messages, "\n")
+	if !strings.Contains(joined, "No hosts") {
+		t.Fatalf("expected no-hosts hint in transcript, got %q", joined)
 	}
 }
 

@@ -118,8 +118,8 @@ const (
 	KeySessionSelect                 = "session_select"
 	KeyDescSessions                  = "desc_sessions"
 	KeySessionNone                   = "session_none"
-	KeyRemoteNone                    = "remote_none"            // No remotes configured
-	KeyDelRemoteManualHint           = "del_remote_manual_hint" // first row when listing saved remotes to remove
+	KeyRemoteNone                    = "remote_none"         // No remotes configured
+	KeyDelRemoteNoHosts              = "del_remote_no_hosts" // slash dropdown when no remotes to remove (Cmd-only row, like KeySkillNone)
 	KeyDescRemoteOn                  = "desc_remote_on"
 	KeyDescRemoteOff                 = "desc_remote_off"
 	KeyRemoteManualHint              = "remote_manual_hint" // hint when no remotes or "or type user@host"
@@ -331,7 +331,7 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyDescSessions:                  "Switch session",
 		KeySessionNone:                   "No previous sessions.",
 		KeyRemoteNone:                    "No remotes configured.",
-		KeyDelRemoteManualHint:           "Enter: type host — Down: pick saved remote",
+		KeyDelRemoteNoHosts:              "No hosts.",
 		KeyDescRemoteOn:                  "Connect to a remote host",
 		KeyDescRemoteOff:                 "Disconnect from remote and run commands locally",
 		KeyRemoteManualHint:              "Open remote connection dialog",

@@ -32,6 +32,15 @@ func remoteSlashOptionsProvider(
 		return append([]ui.SlashOption{offOpt}, opts...), true
 	}
 
+	// /remote off (and prefixes like "remote o" while typing); do not match "remote on" above.
+	if normalizedLower == "remote off" || strings.HasPrefix(normalizedLower, "remote off ") ||
+		(strings.HasPrefix(normalizedLower, "remote") && strings.HasPrefix("remote off", normalizedLower) &&
+			!strings.HasPrefix(normalizedLower, "remote on")) {
+		return []ui.SlashOption{
+			{Cmd: "/remote off", Desc: i18n.T(lang, i18n.KeyDescRemoteOff)},
+		}, true
+	}
+
 	if normalizedLower == "config" || strings.HasPrefix(normalizedLower, "config ") {
 		rest := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "config"))
 		if rest == "del-remote" || strings.HasPrefix(rest, "del-remote ") {

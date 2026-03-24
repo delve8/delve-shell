@@ -23,16 +23,23 @@ func (m Model) handleMainEnterCommand(text string, slashSelectedIndex int) (Mode
 		opts := getSlashOptionsForInput(text, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
 		vis := visibleSlashOptions(text, opts)
 		sessionNoneMsg := i18n.T(m.getLang(), i18n.KeySessionNone)
+		delRemoteNoneMsg := i18n.T(m.getLang(), i18n.KeyDelRemoteNoHosts)
 		plan := maininput.PlanMainEnter(maininput.MainEnterInput{
 			Text:               text,
 			SlashSelectedIndex: slashSelectedIndex,
 			Options:            toSlashViewOptions(opts),
 			Visible:            vis,
 			SessionNoneMsg:     sessionNoneMsg,
+			DelRemoteNoneMsg:   delRemoteNoneMsg,
 		})
 		switch plan.Kind {
 		case maininput.MainEnterShowSessionNone:
 			m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(sessionNoneMsg)))
+			m = m.RefreshViewport()
+			m = m.clearSlashInput()
+			return m, nil
+		case maininput.MainEnterShowDelRemoteNone:
+			m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(delRemoteNoneMsg)))
 			m = m.RefreshViewport()
 			m = m.clearSlashInput()
 			return m, nil

@@ -12,6 +12,7 @@ type MainEnterPlanKind int
 const (
 	MainEnterPassToSubmit MainEnterPlanKind = iota
 	MainEnterShowSessionNone
+	MainEnterShowDelRemoteNone
 	MainEnterResolveSelected
 	MainEnterUnknownSlash
 )
@@ -27,6 +28,7 @@ type MainEnterInput struct {
 	Options            []slashview.Option
 	Visible            []int
 	SessionNoneMsg     string
+	DelRemoteNoneMsg   string
 }
 
 func PlanMainEnter(in MainEnterInput) MainEnterPlan {
@@ -38,14 +40,17 @@ func PlanMainEnter(in MainEnterInput) MainEnterPlan {
 		selected = slashview.Option{}
 	}
 	outcome := slashflow.EvaluateMainEnter(in.Text, slashflow.EnterInput{
-		HasSlashPrefix:      true,
-		SelectedCmd:         selected.Cmd,
-		VisibleOptionCount:  len(in.Visible),
-		IsSessionNoneOption: strings.HasPrefix(in.Text, "/sessions") && selected.Cmd == in.SessionNoneMsg,
+		HasSlashPrefix:        true,
+		SelectedCmd:           selected.Cmd,
+		VisibleOptionCount:    len(in.Visible),
+		IsSessionNoneOption:   strings.HasPrefix(in.Text, "/sessions") && selected.Cmd == in.SessionNoneMsg,
+		IsDelRemoteNoneOption: selected.Cmd == in.DelRemoteNoneMsg,
 	})
 	switch outcome {
 	case slashflow.OutcomeShowSessionNone:
 		return MainEnterPlan{Kind: MainEnterShowSessionNone}
+	case slashflow.OutcomeShowDelRemoteNone:
+		return MainEnterPlan{Kind: MainEnterShowDelRemoteNone}
 	case slashflow.OutcomeResolveSelected:
 		return MainEnterPlan{Kind: MainEnterResolveSelected, Chosen: selected.Cmd}
 	case slashflow.OutcomeUnknownSlash:

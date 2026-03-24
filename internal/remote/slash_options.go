@@ -35,12 +35,11 @@ func getRemoteSlashOptions(filter string, lang string) []ui.SlashOption {
 }
 
 func getRemoveRemoteSlashOptions(lang string, filter string) []ui.SlashOption {
+	noneRow := ui.SlashOption{Cmd: i18n.T(lang, i18n.KeyDelRemoteNoHosts), Desc: ""}
 	remotes, err := config.LoadRemotes()
 	if err != nil || len(remotes) == 0 {
-		return []ui.SlashOption{{Cmd: "/config del-remote", Desc: i18n.T(lang, i18n.KeyRemoteNone)}}
+		return []ui.SlashOption{noneRow}
 	}
-
-	manualBase := ui.SlashOption{Cmd: "/config del-remote", Desc: i18n.T(lang, i18n.KeyDelRemoteManualHint)}
 
 	filterLower := strings.ToLower(filter)
 	var opts []ui.SlashOption
@@ -58,7 +57,7 @@ func getRemoveRemoteSlashOptions(lang string, filter string) []ui.SlashOption {
 	}
 
 	if len(opts) == 0 {
-		return []ui.SlashOption{{Cmd: "/config del-remote", Desc: i18n.T(lang, i18n.KeyRemoteNone)}}
+		return []ui.SlashOption{noneRow}
 	}
-	return append([]ui.SlashOption{manualBase}, opts...)
+	return opts
 }

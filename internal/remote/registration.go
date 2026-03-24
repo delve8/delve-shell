@@ -36,15 +36,6 @@ func registerSlashExactHandlers() {
 		},
 		ClearInput: true,
 	})
-	ui.RegisterSlashExact("/config del-remote", ui.SlashExactDispatchEntry{
-		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
-			m.Input.SetValue("/config del-remote ")
-			m.Input.CursorEnd()
-			m.Interaction.SlashSuggestIndex = 0
-			return m, nil
-		},
-		ClearInput: false,
-	})
 }
 
 func registerSlashPrefixHandlers() {

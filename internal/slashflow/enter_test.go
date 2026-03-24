@@ -41,3 +41,15 @@ func TestEvaluateMainEnter_Unknown(t *testing.T) {
 		t.Fatalf("unexpected outcome: %v", got)
 	}
 }
+
+func TestEvaluateMainEnter_DelRemoteNone(t *testing.T) {
+	got := EvaluateMainEnter("/config del-remote", EnterInput{
+		HasSlashPrefix:        true,
+		SelectedCmd:           "No hosts.",
+		VisibleOptionCount:    1,
+		IsDelRemoteNoneOption: true,
+	})
+	if got != OutcomeShowDelRemoteNone {
+		t.Fatalf("unexpected outcome: %v", got)
+	}
+}
