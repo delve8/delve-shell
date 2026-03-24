@@ -36,7 +36,7 @@ func init() {
 		}
 		m.Input.SetValue(chosen + " ")
 		m.Input.CursorEnd()
-		m.SlashSuggestIndex = 0
+		m.Interaction.SlashSuggestIndex = 0
 		return m, nil, true
 	})
 

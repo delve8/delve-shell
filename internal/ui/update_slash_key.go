@@ -14,13 +14,13 @@ func (m Model) handleSlashNavigationKey(key string, msg tea.KeyMsg, inputVal str
 		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.Context.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
 		vis := visibleSlashOptions(inputVal, opts)
 		if len(vis) > 0 {
-			if m.SlashSuggestIndex >= len(vis) {
-				m.SlashSuggestIndex = 0
+			if m.Interaction.SlashSuggestIndex >= len(vis) {
+				m.Interaction.SlashSuggestIndex = 0
 			}
 			if key == "down" {
-				m.SlashSuggestIndex = (m.SlashSuggestIndex + 1) % len(vis)
+				m.Interaction.SlashSuggestIndex = (m.Interaction.SlashSuggestIndex + 1) % len(vis)
 			} else {
-				m.SlashSuggestIndex = (m.SlashSuggestIndex - 1 + len(vis)) % len(vis)
+				m.Interaction.SlashSuggestIndex = (m.Interaction.SlashSuggestIndex - 1 + len(vis)) % len(vis)
 			}
 		}
 		return m, nil, true
@@ -42,11 +42,11 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 
 	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.Context.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
 	vis := visibleSlashOptions(inputVal, opts)
-	if len(vis) == 0 || m.SlashSuggestIndex >= len(vis) {
+	if len(vis) == 0 || m.Interaction.SlashSuggestIndex >= len(vis) {
 		return m, nil, false
 	}
 
-	selectedOpt := opts[vis[m.SlashSuggestIndex]]
+	selectedOpt := opts[vis[m.Interaction.SlashSuggestIndex]]
 	chosen := selectedOpt.Cmd
 	text := strings.TrimSpace(inputVal)
 	if chosen == trimmed {
@@ -58,7 +58,7 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 	if (chosen == text || strings.HasPrefix(chosen, text)) && chosen != text {
 		m.Input.SetValue(slashChosenToInputValue(chosen))
 		m.Input.CursorEnd()
-		m.SlashSuggestIndex = 0
+		m.Interaction.SlashSuggestIndex = 0
 		return m, nil, true
 	}
 	// Otherwise, let the later Enter handler deal with execute-on-select semantics.

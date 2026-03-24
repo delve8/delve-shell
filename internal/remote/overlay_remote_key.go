@@ -328,7 +328,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			input := m.RemoteAuth.Input.Value()
 			if input == "" {
 				m.RemoteAuth.Step = "choose"
-				m.ChoiceIndex = 0
+				m.Interaction.ChoiceIndex = 0
 				var b strings.Builder
 				if m.RemoteAuth.Error != "" {
 					b.WriteString(errStyle.Render(m.RemoteAuth.Error) + "\n\n")
@@ -410,7 +410,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			input := m.RemoteAuth.Input.Value()
 			if input == "" {
 				m.RemoteAuth.Step = "choose"
-				m.ChoiceIndex = 0
+				m.Interaction.ChoiceIndex = 0
 				m.PathCompletion.Candidates = nil
 				m.PathCompletion.Index = -1
 				var b strings.Builder

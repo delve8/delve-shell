@@ -51,7 +51,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 			return m, nil
 		}
 		// WaitingForAI only blocks submitting new messages; slash commands starting with / always run
-		if m.WaitingForAI && !strings.HasPrefix(text, "/") {
+		if m.Interaction.WaitingForAI && !strings.HasPrefix(text, "/") {
 			return m, nil
 		}
 		// Save selected slash option before any state change; Enter handler resets SlashSuggestIndex below.

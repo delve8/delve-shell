@@ -9,7 +9,7 @@ func (m Model) statusKey() string {
 	if m.Pending != nil || m.PendingSensitive != nil {
 		return i18n.KeyStatusPendingApproval
 	}
-	if m.WaitingForAI {
+	if m.Interaction.WaitingForAI {
 		return i18n.KeyStatusRunning
 	}
 	return i18n.KeyStatusIdle

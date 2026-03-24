@@ -73,7 +73,7 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		m.OverlayTitle = "Remote Auth"
 		m.RemoteAuth.Target = t.Target
 		m.RemoteAuth.Error = t.Err
-		m.ChoiceIndex = 0
+		m.Interaction.ChoiceIndex = 0
 		if t.UseConfiguredIdentity {
 			m.RemoteAuth.Step = "auto_identity"
 			m.RemoteAuth.Connecting = true

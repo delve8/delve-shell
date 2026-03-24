@@ -20,7 +20,7 @@ func (m Model) slashDropdownBelowInput(lang string) string {
 	}
 	var out strings.Builder
 	out.WriteString("\n")
-	hiIdx := m.SlashSuggestIndex
+	hiIdx := m.Interaction.SlashSuggestIndex
 	if hiIdx >= len(vis) {
 		hiIdx = 0
 	}
@@ -174,7 +174,7 @@ func (m Model) choiceLinesBelowInput(lang string) string {
 	out.WriteString("\n")
 	for i, o := range opts {
 		line := fmt.Sprintf("%d  %s", o.Num, o.Label)
-		if i == m.ChoiceIndex {
+		if i == m.Interaction.ChoiceIndex {
 			out.WriteString(suggestHi.Render(" "+line) + "\n")
 		} else {
 			out.WriteString(suggestStyle.Render(" "+line) + "\n")
@@ -186,7 +186,7 @@ func (m Model) choiceLinesBelowInput(lang string) string {
 // waitingLineBelowInput returns the "wait or /cancel" hint when AI is running (empty if not applicable).
 func (m Model) waitingLineBelowInput(lang string) string {
 	inChoice := m.Pending != nil || m.PendingSensitive != nil
-	if m.WaitingForAI && !inChoice {
+	if m.Interaction.WaitingForAI && !inChoice {
 		return "\n" + suggestStyle.Render(i18n.T(lang, i18n.KeyWaitOrCancel))
 	}
 	return ""

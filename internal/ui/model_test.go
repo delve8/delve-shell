@@ -170,7 +170,7 @@ func TestChoice_EnterSelectsCurrentOption(t *testing.T) {
 	getAutoRun := func() bool { return true }
 	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
 	m.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
-	m.ChoiceIndex = 0
+	m.Interaction.ChoiceIndex = 0
 
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m2 := next.(Model)
@@ -190,7 +190,7 @@ func TestChoice_EnterSelectsCurrentOption(t *testing.T) {
 	ch2 := make(chan agent.ApprovalResponse, 1)
 	m3 := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
 	m3.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch2}
-	m3.ChoiceIndex = 1
+	m3.Interaction.ChoiceIndex = 1
 
 	next2, _ := m3.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m4 := next2.(Model)
@@ -226,8 +226,8 @@ func TestSlashDropdown_UpDownAndEnterFill(t *testing.T) {
 	if got := m2.Input.Value(); got != "/" {
 		t.Fatalf("expected input to remain '/', got %q", got)
 	}
-	if m2.SlashSuggestIndex == 0 {
-		t.Fatalf("expected SlashSuggestIndex to change after Down, got %d", m2.SlashSuggestIndex)
+	if m2.Interaction.SlashSuggestIndex == 0 {
+		t.Fatalf("expected SlashSuggestIndex to change after Down, got %d", m2.Interaction.SlashSuggestIndex)
 	}
 
 	// Enter should fill the chosen option into the input (not execute), so input is no longer just "/".
@@ -332,7 +332,7 @@ func TestSlashDropdown_Cancel_EnterFillsThenExecutes(t *testing.T) {
 	cancelCh := make(chan struct{}, 1)
 	getAutoRun := func() bool { return true }
 	m := NewModel(nil, nil, nil, cancelCh, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
-	m.WaitingForAI = true
+	m.Interaction.WaitingForAI = true
 	m.Input.SetValue("/c")
 	m.Input.CursorEnd()
 
@@ -341,7 +341,7 @@ func TestSlashDropdown_Cancel_EnterFillsThenExecutes(t *testing.T) {
 	vis := visibleSlashOptions(m.Input.Value(), opts)
 	for i, idx := range vis {
 		if opts[idx].Cmd == "/cancel" {
-			m.SlashSuggestIndex = i
+			m.Interaction.SlashSuggestIndex = i
 			break
 		}
 	}
@@ -352,7 +352,7 @@ func TestSlashDropdown_Cancel_EnterFillsThenExecutes(t *testing.T) {
 	if strings.TrimSpace(m2.Input.Value()) != "/cancel" {
 		t.Fatalf("expected first Enter to fill input to /cancel, got %q", m2.Input.Value())
 	}
-	if !m2.WaitingForAI {
+	if !m2.Interaction.WaitingForAI {
 		t.Fatalf("expected WaitingForAI to remain true after fill-only Enter")
 	}
 	select {
@@ -364,7 +364,7 @@ func TestSlashDropdown_Cancel_EnterFillsThenExecutes(t *testing.T) {
 	// Second Enter executes /cancel.
 	next2, _ := m2.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m3 := next2.(Model)
-	if m3.WaitingForAI {
+	if m3.Interaction.WaitingForAI {
 		t.Fatalf("expected WaitingForAI=false after executing /cancel")
 	}
 	select {

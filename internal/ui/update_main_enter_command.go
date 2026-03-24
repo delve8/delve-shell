@@ -29,7 +29,7 @@ func (m Model) handleMainEnterCommand(text string, slashSelectedPath string, sla
 			}
 			m.Input.SetValue("")
 			m.Input.CursorEnd()
-			m.SlashSuggestIndex = 0
+			m.Interaction.SlashSuggestIndex = 0
 			m.Viewport.SetContent(m.buildContent())
 			m.Viewport.GotoBottom()
 			return m, nil
@@ -51,7 +51,7 @@ func (m Model) handleMainEnterCommand(text string, slashSelectedPath string, sla
 			m.Viewport.GotoBottom()
 			m.Input.SetValue("")
 			m.Input.CursorEnd()
-			m.SlashSuggestIndex = 0
+			m.Interaction.SlashSuggestIndex = 0
 			return m, nil
 		}
 
@@ -91,7 +91,7 @@ func (m Model) handleMainEnterCommand(text string, slashSelectedPath string, sla
 
 	if m.Ports.SubmitChan != nil {
 		m.Ports.SubmitChan <- text
-		m.WaitingForAI = true
+		m.Interaction.WaitingForAI = true
 	}
 	return m, nil
 }

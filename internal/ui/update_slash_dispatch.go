@@ -5,7 +5,7 @@ import tea "github.com/charmbracelet/bubbletea"
 func (m Model) clearSlashInput() Model {
 	m.Input.SetValue("")
 	m.Input.CursorEnd()
-	m.SlashSuggestIndex = 0
+	m.Interaction.SlashSuggestIndex = 0
 	return m
 }
 

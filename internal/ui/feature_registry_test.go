@@ -106,7 +106,7 @@ func init() {
 		Handle: func(m Model) (Model, tea.Cmd) {
 			m.Input.SetValue("/config del-remote ")
 			m.Input.CursorEnd()
-			m.SlashSuggestIndex = 0
+			m.Interaction.SlashSuggestIndex = 0
 			return m, nil
 		},
 		ClearInput: false,
@@ -130,7 +130,7 @@ func init() {
 			mm.UpdateSkill.Error = ""
 			mm.Input.SetValue("")
 			mm.Input.CursorEnd()
-			mm.SlashSuggestIndex = 0
+			mm.Interaction.SlashSuggestIndex = 0
 			mm.Viewport.SetContent(mm.buildContent())
 			mm.Viewport.GotoBottom()
 			return mm, nil, true
@@ -170,7 +170,7 @@ func init() {
 		}
 		m.Input.SetValue(chosen + " ")
 		m.Input.CursorEnd()
-		m.SlashSuggestIndex = 0
+		m.Interaction.SlashSuggestIndex = 0
 		return m, nil, true
 	})
 

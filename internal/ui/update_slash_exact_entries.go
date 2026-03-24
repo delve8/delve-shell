@@ -30,12 +30,12 @@ func init() {
 	// Agent cancel.
 	registerSlashExact("/cancel", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
-			if m.WaitingForAI && m.Ports.CancelRequestChan != nil {
+			if m.Interaction.WaitingForAI && m.Ports.CancelRequestChan != nil {
 				select {
 				case m.Ports.CancelRequestChan <- struct{}{}:
 				default:
 				}
-				m.WaitingForAI = false
+				m.Interaction.WaitingForAI = false
 				return m, nil
 			}
 

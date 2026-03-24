@@ -18,12 +18,12 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 		if n > 0 {
 			if key == "enter" {
 				// Treat Enter as selecting current option (1-based)
-				key = string(rune('1' + m.ChoiceIndex))
+				key = string(rune('1' + m.Interaction.ChoiceIndex))
 			} else if key == "up" || key == "down" {
 				if key == "down" {
-					m.ChoiceIndex = (m.ChoiceIndex + 1) % n
+					m.Interaction.ChoiceIndex = (m.Interaction.ChoiceIndex + 1) % n
 				} else {
-					m.ChoiceIndex = (m.ChoiceIndex - 1 + n) % n
+					m.Interaction.ChoiceIndex = (m.Interaction.ChoiceIndex - 1 + n) % n
 				}
 				return m, true
 			}
@@ -159,7 +159,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 				m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: true}
 			} else {
 				m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
-				m.WaitingForAI = false
+				m.Interaction.WaitingForAI = false
 			}
 			m.Pending = nil
 			return m, true
@@ -202,7 +202,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 			m.Viewport.GotoBottom()
 			m.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
 			m.Pending = nil
-			m.WaitingForAI = false
+			m.Interaction.WaitingForAI = false
 			return m, true
 		}
 		return m, true

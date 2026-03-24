@@ -74,7 +74,7 @@ func handleSlashSkillPrefix(m ui.Model, rest string) ui.Model {
 	payload := skillInvocationPrompt(skillName, skillContent, naturalLanguage)
 	if m.Ports.SubmitChan != nil {
 		m.Ports.SubmitChan <- payload
-		m.WaitingForAI = true
+		m.Interaction.WaitingForAI = true
 	}
 	m.Input.SetValue("")
 	m.Input.CursorEnd()

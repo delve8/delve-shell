@@ -25,11 +25,9 @@ type Model struct {
 	Context                    RuntimeContextState
 	// /run completion cache (best-effort).
 	RunCompletion RunCompletionState
-	Width             int
-	Height            int
-	SlashSuggestIndex int  // 0..len(visible)-1 when input starts with /
-	ChoiceIndex       int  // 0-based selection when in Pending/PendingSensitive/PendingSuggested; Up/Down to move, Enter to confirm
-	WaitingForAI      bool // when true only blocks submitting new messages (Enter); /xxx slash commands always allowed
+	Width       int
+	Height      int
+	Interaction InteractionState
 
 	// Overlay state: when OverlayActive is true, a modal is rendered on top of the main UI.
 	OverlayActive   bool
@@ -146,6 +144,13 @@ type RunCompletionState struct {
 	LocalCommands  []string
 	RemoteCommands []string
 	RemoteLabel    string // which remote the RemoteCommands came from
+}
+
+// InteractionState stores transient keyboard/interaction state.
+type InteractionState struct {
+	SlashSuggestIndex int  // 0..len(visible)-1 when input starts with /
+	ChoiceIndex       int  // 0-based selection when in Pending/PendingSensitive/PendingSuggested; Up/Down to move, Enter to confirm
+	WaitingForAI      bool // when true only blocks submitting new messages (Enter); /xxx slash commands always allowed
 }
 
 // UIPorts are side-effect channels/getters injected by CLI host loop.

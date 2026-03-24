@@ -39,7 +39,7 @@ func registerSlashExactHandlers() {
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
 			m.Input.SetValue("/config del-remote ")
 			m.Input.CursorEnd()
-			m.SlashSuggestIndex = 0
+			m.Interaction.SlashSuggestIndex = 0
 			return m, nil
 		},
 		ClearInput: false,
