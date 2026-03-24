@@ -19,6 +19,7 @@ import (
 	"delve-shell/internal/history"
 	_ "delve-shell/internal/remote"
 	"delve-shell/internal/rules"
+	_ "delve-shell/internal/run"
 	"delve-shell/internal/runtime/executormgr"
 	"delve-shell/internal/runtime/runnermgr"
 	"delve-shell/internal/runtime/sessionmgr"

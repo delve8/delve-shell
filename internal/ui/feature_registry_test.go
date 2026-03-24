@@ -160,6 +160,15 @@ func init() {
 		return m, nil, true
 	})
 
+	RegisterSlashSelectedProvider(func(m Model, chosen string) (Model, tea.Cmd, bool) {
+		if chosen != "/run <cmd>" {
+			return m, nil, false
+		}
+		m.Input.SetValue("/run ")
+		m.Input.CursorEnd()
+		return m, nil, true
+	})
+
 	RegisterSlashOptionsProvider(func(
 		inputVal string,
 		lang string,
