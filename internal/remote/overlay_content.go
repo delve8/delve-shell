@@ -88,13 +88,13 @@ func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 		return b.String(), true
 	case "password":
 		var b strings.Builder
-		b.WriteString(m.OverlayContent)
+		b.WriteString(m.Overlay.Content)
 		b.WriteString("\n\n")
 		b.WriteString(m.RemoteAuth.Input.View())
 		return b.String(), true
 	case "identity":
 		var b strings.Builder
-		b.WriteString(m.OverlayContent)
+		b.WriteString(m.Overlay.Content)
 		b.WriteString("\n\n")
 		b.WriteString(m.RemoteAuth.Input.View())
 		if len(m.PathCompletion.Candidates) > 0 {

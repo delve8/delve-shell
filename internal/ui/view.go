@@ -41,7 +41,7 @@ func (m Model) View() string {
 	out += m.waitingLineBelowInput(lang)
 
 	// Render overlay on top if active.
-	if m.OverlayActive {
+	if m.Overlay.Active {
 		out = m.renderOverlay(out)
 	}
 	return out

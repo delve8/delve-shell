@@ -30,8 +30,8 @@ func init() {
 
 	registerSlashExact("/config add-remote", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
-			m.OverlayActive = true
-			m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
+			m.Overlay.Active = true
+			m.Overlay.Title = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
 			m.AddRemote.Active = true
 			m.AddRemote.Error = ""
 			m.AddRemote.OfferOverwrite = false
@@ -56,8 +56,8 @@ func init() {
 	})
 	registerSlashExact("/remote on", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
-			m.OverlayActive = true
-			m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
+			m.Overlay.Active = true
+			m.Overlay.Title = i18n.T(m.getLang(), i18n.KeyAddRemoteTitle)
 			m.AddRemote.Active = true
 			m.AddRemote.Error = ""
 			m.AddRemote.OfferOverwrite = false
@@ -82,8 +82,8 @@ func init() {
 	})
 	registerSlashExact("/config llm", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
-			m.OverlayActive = true
-			m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyConfigLLMTitle)
+			m.Overlay.Active = true
+			m.Overlay.Title = i18n.T(m.getLang(), i18n.KeyConfigLLMTitle)
 			m.ConfigLLM.Active = true
 			m.ConfigLLM.Checking = false
 			m.ConfigLLM.Error = ""
@@ -123,8 +123,8 @@ func init() {
 				return mm, nil, true
 			}
 			skillName := fields[0]
-			mm.OverlayActive = true
-			mm.OverlayTitle = "Update skill"
+			mm.Overlay.Active = true
+			mm.Overlay.Title = "Update skill"
 			mm.UpdateSkill.Active = true
 			mm.UpdateSkill.Name = skillName
 			mm.UpdateSkill.Error = ""

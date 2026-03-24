@@ -15,8 +15,8 @@ func openUpdateSkillOverlay(m ui.Model, name string) ui.Model {
 	lang := "en"
 	url, ref, commitID, path, _, ok := skills.GetSkillSource(name)
 	if !ok || strings.TrimSpace(url) == "" {
-		m.OverlayActive = true
-		m.OverlayTitle = "Update skill"
+		m.Overlay.Active = true
+		m.Overlay.Title = "Update skill"
 		m.UpdateSkill.Active = true
 		m.UpdateSkill.Name = strings.TrimSpace(name)
 		m.UpdateSkill.URL = strings.TrimSpace(url)
@@ -58,8 +58,8 @@ func openUpdateSkillOverlay(m ui.Model, name string) ui.Model {
 		}
 	}
 
-	m.OverlayActive = true
-	m.OverlayTitle = "Update skill"
+	m.Overlay.Active = true
+	m.Overlay.Title = "Update skill"
 	m.UpdateSkill.Active = true
 	m.UpdateSkill.Error = ""
 	m.UpdateSkill.Name = name

@@ -188,10 +188,10 @@ func handleAddSkillOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model,
 			}
 			return m, nil, true
 		}
-		m.OverlayActive = false
+		m.Overlay.Active = false
 		m.AddSkill.Active = false
-		m.OverlayTitle = ""
-		m.OverlayContent = ""
+		m.Overlay.Title = ""
+		m.Overlay.Content = ""
 		m.Input.Focus()
 		m.Messages = append(m.Messages, suggestStyle.Render(delveMsg(lang, i18n.Tf(lang, i18n.KeySkillInstalled, name))))
 		m = m.RefreshViewport()

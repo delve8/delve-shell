@@ -29,11 +29,8 @@ type Model struct {
 	Height      int
 	Interaction InteractionState
 
-	// Overlay state: when OverlayActive is true, a modal is rendered on top of the main UI.
-	OverlayActive   bool
-	OverlayTitle    string
-	OverlayContent  string
-	OverlayViewport viewport.Model
+	// Overlay state: when Overlay.Active is true, a modal is rendered on top of the main UI.
+	Overlay OverlayState
 
 	// Add-remote overlay state (username + host separate).
 	// Fields: 0=host, 1=user, 2=name, 3=key path, 4=save-as-remote checkbox.
@@ -151,6 +148,14 @@ type InteractionState struct {
 	SlashSuggestIndex int  // 0..len(visible)-1 when input starts with /
 	ChoiceIndex       int  // 0-based selection when in Pending/PendingSensitive/PendingSuggested; Up/Down to move, Enter to confirm
 	WaitingForAI      bool // when true only blocks submitting new messages (Enter); /xxx slash commands always allowed
+}
+
+// OverlayState stores generic modal overlay state shared across features.
+type OverlayState struct {
+	Active   bool
+	Title    string
+	Content  string
+	Viewport viewport.Model
 }
 
 // UIPorts are side-effect channels/getters injected by CLI host loop.

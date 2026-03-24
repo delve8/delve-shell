@@ -14,8 +14,8 @@ import (
 // openOverlay opens Config LLM dialog with current config values pre-filled.
 func openOverlay(m ui.Model) ui.Model {
 	cfg := configsvc.LoadOrDefault()
-	m.OverlayActive = true
-	m.OverlayTitle = i18n.T("en", i18n.KeyConfigLLMTitle)
+	m.Overlay.Active = true
+	m.Overlay.Title = i18n.T("en", i18n.KeyConfigLLMTitle)
 	m.ConfigLLM.Active = true
 	m.ConfigLLM.Checking = false
 	m.ConfigLLM.Error = ""

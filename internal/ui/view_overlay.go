@@ -29,7 +29,7 @@ func (m Model) renderOverlay(base string) string {
 	}
 	if content == "" {
 		// Generic overlay: scrollable viewport (e.g. /help).
-		content = m.OverlayViewport.View()
+		content = m.Overlay.Viewport.View()
 	}
 
 	// Border styles.
@@ -48,7 +48,7 @@ func (m Model) renderOverlay(base string) string {
 
 	// Compose box with title.
 	boxContent := overlayBoxStyle.Render(content)
-	titleBar := overlayTitleBarStyle.Render(m.OverlayTitle)
+	titleBar := overlayTitleBarStyle.Render(m.Overlay.Title)
 	box := titleBar + "\n" + boxContent
 
 	// Use lipgloss.Place to center the overlay on a blank background.

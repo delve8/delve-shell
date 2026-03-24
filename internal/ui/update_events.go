@@ -110,10 +110,10 @@ func (m Model) handleConfigLLMCheckDoneMsg(msg ConfigLLMCheckDoneMsg) (Model, te
 	m.Messages = append(m.Messages, "")
 	m.Viewport.SetContent(m.buildContent())
 	m.Viewport.GotoBottom()
-	m.OverlayActive = false
+	m.Overlay.Active = false
 	m.ConfigLLM.Active = false
-	m.OverlayTitle = ""
-	m.OverlayContent = ""
+	m.Overlay.Title = ""
+	m.Overlay.Content = ""
 	if m.Ports.ConfigUpdatedChan != nil {
 		select {
 		case m.Ports.ConfigUpdatedChan <- struct{}{}:

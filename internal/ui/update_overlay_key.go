@@ -6,9 +6,9 @@ import (
 )
 
 func (m Model) closeOverlayCommon(refocusInput bool) (Model, tea.Cmd) {
-	m.OverlayActive = false
-	m.OverlayTitle = ""
-	m.OverlayContent = ""
+	m.Overlay.Active = false
+	m.Overlay.Title = ""
+	m.Overlay.Content = ""
 	for _, h := range overlayCloseHooks {
 		m = h(m)
 	}
@@ -20,11 +20,11 @@ func (m Model) closeOverlayCommon(refocusInput bool) (Model, tea.Cmd) {
 }
 
 func (m Model) handleOverlayShowMsg(msg OverlayShowMsg) (Model, tea.Cmd) {
-	m.OverlayActive = true
-	m.OverlayTitle = msg.Title
-	m.OverlayContent = msg.Content
-	m.OverlayViewport = viewport.New(m.Width-4, min(m.Height-6, 20))
-	m.OverlayViewport.SetContent(m.OverlayContent)
+	m.Overlay.Active = true
+	m.Overlay.Title = msg.Title
+	m.Overlay.Content = msg.Content
+	m.Overlay.Viewport = viewport.New(m.Width-4, min(m.Height-6, 20))
+	m.Overlay.Viewport.SetContent(m.Overlay.Content)
 	return m, nil
 }
 
@@ -51,7 +51,7 @@ func (m Model) handleOverlayKey(key string, msg tea.KeyMsg) (Model, tea.Cmd, boo
 	default:
 		// Generic overlay: pass up/down/pgup/pgdown.
 		var cmd tea.Cmd
-		m.OverlayViewport, cmd = m.OverlayViewport.Update(msg)
+		m.Overlay.Viewport, cmd = m.Overlay.Viewport.Update(msg)
 		return m, cmd, true
 	}
 }

@@ -136,12 +136,12 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			// Refresh content before closing overlay to preserve old behavior.
 			m = m.RefreshViewport()
 
-			m.OverlayActive = false
+			m.Overlay.Active = false
 			m.AddRemote.Active = false
 			m.AddRemote.Error = ""
 			m.AddRemote.OfferOverwrite = false
-			m.OverlayTitle = ""
-			m.OverlayContent = ""
+			m.Overlay.Title = ""
+			m.Overlay.Content = ""
 			m.Input.Focus()
 			if m.Ports.ConfigUpdatedChan != nil {
 				select {
@@ -232,12 +232,12 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			return m, nil, true
 		}
 
-		m.OverlayActive = false
+		m.Overlay.Active = false
 		m.AddRemote.Active = false
 		m.AddRemote.Error = ""
 		m.AddRemote.OfferOverwrite = false
-		m.OverlayTitle = ""
-		m.OverlayContent = ""
+		m.Overlay.Title = ""
+		m.Overlay.Content = ""
 		m.Input.Focus()
 		return m, nil, true
 	}
@@ -299,7 +299,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			}
 			b.WriteString("SSH password for " + config.HostFromTarget(m.RemoteAuth.Target) + "\n")
 			b.WriteString("Press Enter to submit, Esc to cancel.")
-			m.OverlayContent = b.String()
+			m.Overlay.Content = b.String()
 			return m, nil, true
 		case "2":
 			m.RemoteAuth.Step = "identity"
@@ -315,7 +315,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			}
 			b.WriteString("SSH key file path for " + config.HostFromTarget(m.RemoteAuth.Target) + "\n")
 			b.WriteString("Press Enter to submit, Esc to cancel.")
-			m.OverlayContent = b.String()
+			m.Overlay.Content = b.String()
 			return m, nil, true
 		}
 		return m, nil, true
@@ -337,7 +337,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 				b.WriteString("  1. Password\n")
 				b.WriteString("  2. Key file (identity file)\n\n")
 				b.WriteString("Press 1 or 2 to select, Esc to cancel.")
-				m.OverlayContent = b.String()
+				m.Overlay.Content = b.String()
 				return m, nil, true
 			}
 
@@ -350,7 +350,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			b.WriteString("SSH password for " + config.HostFromTarget(m.RemoteAuth.Target) + "\n")
 			b.WriteString(suggestStyle.Render("Connecting...") + "\n\n")
 			b.WriteString("Press Esc to cancel.")
-			m.OverlayContent = b.String()
+			m.Overlay.Content = b.String()
 			if m.Ports.RemoteAuthRespChan != nil {
 				select {
 				case m.Ports.RemoteAuthRespChan <- ui.RemoteAuthResponse{
@@ -421,7 +421,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 				b.WriteString("  1. Password\n")
 				b.WriteString("  2. Key file (identity file)\n\n")
 				b.WriteString("Press 1 or 2 to select, Esc to cancel.")
-				m.OverlayContent = b.String()
+				m.Overlay.Content = b.String()
 				return m, nil, true
 			}
 			m.RemoteAuth.Connecting = true
@@ -432,7 +432,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			b.WriteString("SSH key file path for " + config.HostFromTarget(m.RemoteAuth.Target) + "\n")
 			b.WriteString(suggestStyle.Render("Connecting...") + "\n\n")
 			b.WriteString("Press Esc to cancel.")
-			m.OverlayContent = b.String()
+			m.Overlay.Content = b.String()
 			if m.Ports.RemoteAuthRespChan != nil {
 				select {
 				case m.Ports.RemoteAuthRespChan <- ui.RemoteAuthResponse{

@@ -261,7 +261,7 @@ func TestSlashDropdown_UpdateSkill_EnterExecutesOverlay(t *testing.T) {
 	// Press Enter: should not crash; may fill or execute depending on suggestions. At minimum, it should not clear input to empty silently.
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m2 := next.(Model)
-	if m2.Input.Value() == "" && !m2.OverlayActive {
+	if m2.Input.Value() == "" && !m2.Overlay.Active {
 		t.Fatalf("expected either overlay or non-empty input after Enter, got empty input and no overlay")
 	}
 }
@@ -274,10 +274,10 @@ func TestSlashCommand_Help_EnterOpensOverlay(t *testing.T) {
 
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m2 := next.(Model)
-	if !m2.OverlayActive {
-		t.Fatalf("expected /help Enter to open overlay, OverlayActive=false")
+	if !m2.Overlay.Active {
+		t.Fatalf("expected /help Enter to open overlay, Overlay.Active=false")
 	}
-	if m2.OverlayTitle == "" {
+	if m2.Overlay.Title == "" {
 		t.Fatalf("expected /help overlay to have a title")
 	}
 }
@@ -285,13 +285,13 @@ func TestSlashCommand_Help_EnterOpensOverlay(t *testing.T) {
 func TestOverlayEsc_CloseHooksClearFeatureFlags(t *testing.T) {
 	getAutoRun := func() bool { return true }
 	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
-	m.OverlayActive = true
-	m.OverlayTitle = "x"
+	m.Overlay.Active = true
+	m.Overlay.Title = "x"
 	m.AddRemote.Active = true
 
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	m2 := next.(Model)
-	if m2.OverlayActive {
+	if m2.Overlay.Active {
 		t.Fatal("expected overlay closed after Esc")
 	}
 	if m2.AddRemote.Active {
@@ -307,8 +307,8 @@ func TestSlashCommand_RemoteOn_EnterOpensOverlay(t *testing.T) {
 
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m2 := next.(Model)
-	if !m2.OverlayActive || !m2.AddRemote.Active {
-		t.Fatalf("expected /remote on Enter to open overlay, OverlayActive=%v AddRemote.Active=%v", m2.OverlayActive, m2.AddRemote.Active)
+	if !m2.Overlay.Active || !m2.AddRemote.Active {
+		t.Fatalf("expected /remote on Enter to open overlay, Overlay.Active=%v AddRemote.Active=%v", m2.Overlay.Active, m2.AddRemote.Active)
 	}
 }
 

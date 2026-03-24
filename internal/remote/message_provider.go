@@ -43,9 +43,9 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		// When Remote Auth overlay is active, close it on successful connection.
 		if m.RemoteAuth.Step != "" {
 			if t.Success {
-				m.OverlayActive = false
-				m.OverlayTitle = ""
-				m.OverlayContent = ""
+				m.Overlay.Active = false
+				m.Overlay.Title = ""
+				m.Overlay.Content = ""
 				m.RemoteAuth.Step = ""
 				m.RemoteAuth.Target = ""
 				m.RemoteAuth.Error = ""
@@ -59,18 +59,18 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 
 		// Fallback: add-remote overlay.
 		m.AddRemote.Active = false
-		m.OverlayTitle = ""
-		m.OverlayContent = ""
+		m.Overlay.Title = ""
+		m.Overlay.Content = ""
 		if t.Success {
-			m.OverlayActive = false
+			m.Overlay.Active = false
 			m.Input.Focus()
 		}
 		return m, nil, true
 	case ui.RemoteAuthPromptMsg:
 		m.AddRemote.Connecting = false
 		m.AddRemote.Active = false
-		m.OverlayActive = true
-		m.OverlayTitle = "Remote Auth"
+		m.Overlay.Active = true
+		m.Overlay.Title = "Remote Auth"
 		m.RemoteAuth.Target = t.Target
 		m.RemoteAuth.Error = t.Err
 		m.Interaction.ChoiceIndex = 0

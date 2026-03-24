@@ -36,7 +36,7 @@ func (m Model) handleBlurMsg() (Model, tea.Cmd) {
 
 func (m Model) handleFocusMsg() (Model, tea.Cmd) {
 	// Window gained focus: restore main input focus only when not in an overlay.
-	if !m.OverlayActive {
+	if !m.Overlay.Active {
 		return m, m.Input.Focus()
 	}
 	return m, nil

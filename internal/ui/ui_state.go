@@ -18,7 +18,7 @@ func (m Model) currentUIState() uiState {
 	if m.Pending != nil {
 		return uiStatePendingApproval
 	}
-	if m.OverlayActive {
+	if m.Overlay.Active {
 		return uiStateOverlay
 	}
 	return uiStateMainInput

@@ -17,10 +17,10 @@ func init() {
 }
 
 func (m Model) openHelpOverlay() Model {
-	m.OverlayActive = true
-	m.OverlayTitle = i18n.T(m.getLang(), i18n.KeyHelpTitle)
-	m.OverlayContent = i18n.T(m.getLang(), i18n.KeyHelpText)
-	m.OverlayViewport = viewport.New(m.Width-4, min(m.Height-6, 20))
-	m.OverlayViewport.SetContent(m.OverlayContent)
+	m.Overlay.Active = true
+	m.Overlay.Title = i18n.T(m.getLang(), i18n.KeyHelpTitle)
+	m.Overlay.Content = i18n.T(m.getLang(), i18n.KeyHelpText)
+	m.Overlay.Viewport = viewport.New(m.Width-4, min(m.Height-6, 20))
+	m.Overlay.Viewport.SetContent(m.Overlay.Content)
 	return m
 }
