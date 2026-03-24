@@ -89,8 +89,8 @@ func (m Model) handleNewSessionCommandIfNeeded(text string) (Model, bool) {
 	if text != "/new" {
 		return m, false
 	}
-	if m.SubmitChan != nil {
-		m.SubmitChan <- text
+	if m.Ports.SubmitChan != nil {
+		m.Ports.SubmitChan <- text
 	}
 	m.Input.SetValue("")
 	m.Input.CursorEnd()

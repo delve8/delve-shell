@@ -19,8 +19,8 @@ const maxSessionHistoryEvents = 500
 func init() {
 	ui.RegisterSlashExact("/new", ui.SlashExactDispatchEntry{
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
-			if m.SubmitChan != nil {
-				m.SubmitChan <- "/new"
+			if m.Ports.SubmitChan != nil {
+				m.Ports.SubmitChan <- "/new"
 			}
 			// /new consumes input and refreshes content (keep old behavior).
 			m = m.ClearSlashInput()
@@ -37,10 +37,10 @@ func init() {
 			if id == "" {
 				return m, nil, true
 			}
-			if m.SessionSwitchChan != nil {
+			if m.Ports.SessionSwitchChan != nil {
 				sessionPath := filepath.Join(config.HistoryDir(), id+".jsonl")
 				select {
-				case m.SessionSwitchChan <- sessionPath:
+				case m.Ports.SessionSwitchChan <- sessionPath:
 				default:
 				}
 			}

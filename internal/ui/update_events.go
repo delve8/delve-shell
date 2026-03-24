@@ -114,9 +114,9 @@ func (m Model) handleConfigLLMCheckDoneMsg(msg ConfigLLMCheckDoneMsg) (Model, te
 	m.ConfigLLM.Active = false
 	m.OverlayTitle = ""
 	m.OverlayContent = ""
-	if m.ConfigUpdatedChan != nil {
+	if m.Ports.ConfigUpdatedChan != nil {
 		select {
-		case m.ConfigUpdatedChan <- struct{}{}:
+		case m.Ports.ConfigUpdatedChan <- struct{}{}:
 		default:
 		}
 	}

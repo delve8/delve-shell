@@ -30,9 +30,9 @@ func init() {
 	// Agent cancel.
 	registerSlashExact("/cancel", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
-			if m.WaitingForAI && m.CancelRequestChan != nil {
+			if m.WaitingForAI && m.Ports.CancelRequestChan != nil {
 				select {
-				case m.CancelRequestChan <- struct{}{}:
+				case m.Ports.CancelRequestChan <- struct{}{}:
 				default:
 				}
 				m.WaitingForAI = false
@@ -58,9 +58,9 @@ func init() {
 	})
 	registerSlashExact("/config reload", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
-			if m.ConfigUpdatedChan != nil {
+			if m.Ports.ConfigUpdatedChan != nil {
 				select {
-				case m.ConfigUpdatedChan <- struct{}{}:
+				case m.Ports.ConfigUpdatedChan <- struct{}{}:
 				default:
 				}
 			}
@@ -70,9 +70,9 @@ func init() {
 	})
 	registerSlashExact("/reload", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
-			if m.ConfigUpdatedChan != nil {
+			if m.Ports.ConfigUpdatedChan != nil {
 				select {
-				case m.ConfigUpdatedChan <- struct{}{}:
+				case m.Ports.ConfigUpdatedChan <- struct{}{}:
 				default:
 				}
 			}
@@ -90,11 +90,11 @@ func init() {
 	})
 	registerSlashExact("/sh", SlashExactDispatchEntry{
 		Handle: func(m Model) (Model, tea.Cmd) {
-			if m.ShellRequestedChan != nil {
+			if m.Ports.ShellRequestedChan != nil {
 				msgs := make([]string, len(m.Messages))
 				copy(msgs, m.Messages)
 				select {
-				case m.ShellRequestedChan <- msgs:
+				case m.Ports.ShellRequestedChan <- msgs:
 				default:
 				}
 			}

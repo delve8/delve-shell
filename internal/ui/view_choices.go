@@ -12,7 +12,7 @@ type choiceOption struct {
 func choiceCount(m Model) int {
 	switch {
 	case m.Pending != nil:
-		if m.GetAllowlistAutoRun != nil && !m.GetAllowlistAutoRun() {
+		if m.Ports.GetAllowlistAutoRun != nil && !m.Ports.GetAllowlistAutoRun() {
 			return 3 // Run, Copy, Dismiss
 		}
 		return 2 // Run, Reject
@@ -27,7 +27,7 @@ func choiceCount(m Model) int {
 func getChoiceOptions(m Model, lang string) []choiceOption {
 	switch {
 	case m.Pending != nil:
-		if m.GetAllowlistAutoRun != nil && !m.GetAllowlistAutoRun() {
+		if m.Ports.GetAllowlistAutoRun != nil && !m.Ports.GetAllowlistAutoRun() {
 			return []choiceOption{
 				{1, i18n.T(lang, i18n.KeyChoiceApprove)},
 				{2, i18n.T(lang, i18n.KeyChoiceCopy)},
@@ -54,7 +54,7 @@ func (m *Model) syncInputPlaceholder() {
 	lang := m.getLang()
 	switch {
 	case m.Pending != nil:
-		if m.GetAllowlistAutoRun != nil && !m.GetAllowlistAutoRun() {
+		if m.Ports.GetAllowlistAutoRun != nil && !m.Ports.GetAllowlistAutoRun() {
 			m.Input.Placeholder = i18n.T(lang, i18n.KeyInputHintApproveThree)
 		} else {
 			m.Input.Placeholder = i18n.T(lang, i18n.KeyInputHintApprove)

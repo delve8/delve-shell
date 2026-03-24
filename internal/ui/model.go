@@ -21,18 +21,8 @@ type Model struct {
 	Messages                   []string
 	Pending                    *agent.ApprovalRequest
 	PendingSensitive           *agent.SensitiveConfirmationRequest
-	SubmitChan                 chan<- string
-	ExecDirectChan             chan<- string
-	ShellRequestedChan         chan<- []string           // on /sh send current Messages to preserve after return
-	CancelRequestChan          chan<- struct{}           // on /cancel request cancel of in-flight AI
-	ConfigUpdatedChan          chan<- struct{}           // on /config save or /config reload, invalidate runner so next message reloads config/allowlist
-	AllowlistAutoRunChangeChan chan<- bool               // runtime toggle for allowlist auto-run (true = list only, false = none)
-	SessionSwitchChan          chan<- string             // on /sessions choice, send selected session path to continue
-	RemoteOnChan               chan<- string             // on /remote on <target>, send resolved target/name to CLI
-	RemoteOffChan              chan<- struct{}           // on /remote off, switch back to local
-	RemoteAuthRespChan         chan<- RemoteAuthResponse // on remote password entry, send credentials back to CLI
+	Ports                      UIPorts
 	CurrentSessionPath         string                    // path of current session (excluded from /sessions list so switch loads another)
-	GetAllowlistAutoRun        func() bool               // for header and Pending card 2 vs 3 options
 	RemoteActive               bool                      // whether commands run on a remote executor
 	RemoteLabel                string                    // label for remote in header, e.g. "dev (root@1.2.3.4)" or "user@host"
 	// /run completion caches (best-effort).
@@ -58,8 +48,7 @@ type Model struct {
 	// Remote auth overlay state.
 	RemoteAuth RemoteAuthOverlayState
 	// Path completion (shared): used for any path input with dropdown (auth identity key path, add-remote key path).
-	PathCompletionCandidates []string
-	PathCompletionIndex      int
+	PathCompletion PathCompletionState
 
 	// InitialShowConfigLLM: when true, open Config LLM overlay on first WindowSizeMsg (e.g. no config / model empty at startup).
 	InitialShowConfigLLM bool
@@ -141,6 +130,27 @@ type UpdateSkillOverlayState struct {
 	RefIndex      int
 	LatestCommit  string
 	Error         string
+}
+
+// PathCompletionState stores shared dropdown state for filesystem path completion.
+type PathCompletionState struct {
+	Candidates []string
+	Index      int
+}
+
+// UIPorts are side-effect channels/getters injected by CLI host loop.
+type UIPorts struct {
+	SubmitChan                 chan<- string
+	ExecDirectChan             chan<- string
+	ShellRequestedChan         chan<- []string           // on /sh send current Messages to preserve after return
+	CancelRequestChan          chan<- struct{}           // on /cancel request cancel of in-flight AI
+	ConfigUpdatedChan          chan<- struct{}           // on /config save or /config reload, invalidate runner so next message reloads config/allowlist
+	AllowlistAutoRunChangeChan chan<- bool               // runtime toggle for allowlist auto-run (true = list only, false = none)
+	SessionSwitchChan          chan<- string             // on /sessions choice, send selected session path to continue
+	RemoteOnChan               chan<- string             // on /remote on <target>, send resolved target/name to CLI
+	RemoteOffChan              chan<- struct{}           // on /remote off, switch back to local
+	RemoteAuthRespChan         chan<- RemoteAuthResponse // on remote password entry, send credentials back to CLI
+	GetAllowlistAutoRun        func() bool               // for header and Pending card 2 vs 3 options
 }
 
 // Init implements tea.Model.
@@ -247,18 +257,20 @@ func NewModel(
 		Input:                      ti,
 		Viewport:                   vp,
 		Messages:                   msgs,
-		SubmitChan:                 submitChan,
-		ExecDirectChan:             execDirectChan,
-		ShellRequestedChan:         shellRequestedChan,
-		CancelRequestChan:          cancelRequestChan,
-		ConfigUpdatedChan:          configUpdatedChan,
-		AllowlistAutoRunChangeChan: allowlistAutoRunChangeChan,
-		SessionSwitchChan:          sessionSwitchChan,
-		RemoteOnChan:               remoteOnChan,
-		RemoteOffChan:              remoteOffChan,
-		RemoteAuthRespChan:         remoteAuthRespChan,
+		Ports: UIPorts{
+			SubmitChan:                 submitChan,
+			ExecDirectChan:             execDirectChan,
+			ShellRequestedChan:         shellRequestedChan,
+			CancelRequestChan:          cancelRequestChan,
+			ConfigUpdatedChan:          configUpdatedChan,
+			AllowlistAutoRunChangeChan: allowlistAutoRunChangeChan,
+			SessionSwitchChan:          sessionSwitchChan,
+			RemoteOnChan:               remoteOnChan,
+			RemoteOffChan:              remoteOffChan,
+			RemoteAuthRespChan:         remoteAuthRespChan,
+			GetAllowlistAutoRun:        getAllowlistAutoRun,
+		},
 		CurrentSessionPath:         initialSessionPath,
-		GetAllowlistAutoRun:        getAllowlistAutoRun,
 		InitialShowConfigLLM:       initialShowConfigLLM,
 		Width:                      defaultWidth,
 		Height:                     defaultHeight,

@@ -63,9 +63,9 @@ func applyConfigLLMField(m ui.Model, field, value string) ui.Model {
 	m.Messages = append(m.Messages, ui.SuggestStyleRender(prefix+i18n.Tf(lang, i18n.KeyConfigSaved, field)))
 	m.Messages = append(m.Messages, "")
 	m = m.RefreshViewport()
-	if m.ConfigUpdatedChan != nil {
+	if m.Ports.ConfigUpdatedChan != nil {
 		select {
-		case m.ConfigUpdatedChan <- struct{}{}:
+		case m.Ports.ConfigUpdatedChan <- struct{}{}:
 		default:
 		}
 	}

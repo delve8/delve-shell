@@ -37,8 +37,8 @@ func init() {
 			m.AddRemote.OfferOverwrite = false
 			m.AddRemote.Save = true
 			m.AddRemote.Connect = false
-			m.PathCompletionCandidates = nil
-			m.PathCompletionIndex = -1
+			m.PathCompletion.Candidates = nil
+			m.PathCompletion.Index = -1
 			m.AddRemote.FieldIndex = 0
 			m.AddRemote.HostInput = textinput.New()
 			m.AddRemote.HostInput.Placeholder = "host or host:22"
@@ -63,8 +63,8 @@ func init() {
 			m.AddRemote.OfferOverwrite = false
 			m.AddRemote.Save = false
 			m.AddRemote.Connect = true
-			m.PathCompletionCandidates = nil
-			m.PathCompletionIndex = -1
+			m.PathCompletion.Candidates = nil
+			m.PathCompletion.Index = -1
 			m.AddRemote.FieldIndex = 0
 			m.AddRemote.HostInput = textinput.New()
 			m.AddRemote.HostInput.Placeholder = "host or host:22"

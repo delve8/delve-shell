@@ -97,10 +97,10 @@
 
 ### P2 — 中风险、牵涉 Model
 
-4. **`internal/ui/model.go` 字段分包**  
-   - 现状：Remote / Skill / ConfigLLM / RemoteAuth 等仍是 `Model` 扁平字段。  
-   - 思路：引入 `type RemoteOverlayState struct { ... }` 嵌入选 `Model`（仅 `ui` 定义结构体）；更可行路径仍是 **状态留在 `ui.Model`，feature 包只通过 `Register*` 与约定字段交互**，直到有明确的子 `tea.Model` 需求。  
-   - **Bubble Tea 约束**：子 `textinput.Model` 的 `Update` 仍在 `ui` 或 `overlay_key` 链路上，拆包时别破坏 `tea.Model` 更新顺序。
+4. **`internal/ui/model.go` 字段分包**（阶段性已落地）  
+   - 已完成：`ConfigLLM`、`RemoteAuth`、`AddRemote`、`AddSkill`、`UpdateSkill`、`PathCompletion` 收敛为嵌套状态结构；宿主通信端口收敛为 `UIPorts`。  
+   - 结论：**状态仍留在 `ui.Model`**，feature 包通过 `Register*` + 约定字段协作。  
+   - **Bubble Tea 约束**：子 `textinput.Model` 的 `Update` 仍在 `ui` 或 `overlay_key` 链路上，后续继续拆分时别破坏 `tea.Model` 更新顺序。
 
 5. **打破 `ui` 测试与 `run` 的循环（可选）**  
    - 例如：`package slashreg` 仅含 `[]func()` 与弱类型注册——易脏，**仅当测试重复成为明显负担时再做**。
@@ -143,6 +143,7 @@
 
 | 日期 | 说明 |
 |------|------|
+| 2025-03-24 | P2：`Model` 状态分组（`ConfigLLM`/`RemoteAuth`/`AddRemote`/`AddSkill`/`UpdateSkill`/`PathCompletion`）+ `UIPorts` |
 | 2025-03-24 | 集中 overlay 关闭复位：`ApplyOverlayCloseFeatureResets`（移除 remote/skill/configllm 分散 hook） |
 | 2025-03-24 | P1：`RegisterTitleBarFragmentProvider` + `view_approval_card.go`；交接文档 §4/§5 同步 |
 | （待填） | 初版：registry、overlay close hook、view 文件拆分、`SlashRunUsageOption`、import 循环说明 |

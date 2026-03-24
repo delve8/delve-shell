@@ -50,8 +50,8 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 				m.RemoteAuth.Target = ""
 				m.RemoteAuth.Error = ""
 				m.RemoteAuth.Username = ""
-				m.PathCompletionCandidates = nil
-				m.PathCompletionIndex = -1
+				m.PathCompletion.Candidates = nil
+				m.PathCompletion.Index = -1
 				m.Input.Focus()
 			}
 			return m, nil, true

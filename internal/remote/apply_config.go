@@ -36,9 +36,9 @@ func applyConfigAddRemote(m ui.Model, args string) ui.Model {
 	m.Messages = append(m.Messages, ui.SuggestStyleRender(prefix+i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display)))
 	m.Messages = append(m.Messages, "")
 	m = m.RefreshViewport()
-	if m.ConfigUpdatedChan != nil {
+	if m.Ports.ConfigUpdatedChan != nil {
 		select {
-		case m.ConfigUpdatedChan <- struct{}{}:
+		case m.Ports.ConfigUpdatedChan <- struct{}{}:
 		default:
 		}
 	}
@@ -60,9 +60,9 @@ func applyConfigRemoveRemote(m ui.Model, nameOrTarget string) ui.Model {
 	m.Messages = append(m.Messages, ui.SuggestStyleRender(prefix+i18n.Tf(lang, i18n.KeyConfigRemoteRemoved, nameOrTarget)))
 	m.Messages = append(m.Messages, "")
 	m = m.RefreshViewport()
-	if m.ConfigUpdatedChan != nil {
+	if m.Ports.ConfigUpdatedChan != nil {
 		select {
-		case m.ConfigUpdatedChan <- struct{}{}:
+		case m.Ports.ConfigUpdatedChan <- struct{}{}:
 		default:
 		}
 	}

@@ -15,8 +15,8 @@ func openAddRemoteOverlay(m ui.Model, save, connect bool) ui.Model {
 	m.AddRemote.OfferOverwrite = false
 	m.AddRemote.Save = save
 	m.AddRemote.Connect = connect
-	m.PathCompletionCandidates = nil
-	m.PathCompletionIndex = -1
+	m.PathCompletion.Candidates = nil
+	m.PathCompletion.Index = -1
 	m.AddRemote.FieldIndex = 0
 	m.AddRemote.HostInput = textinput.New()
 	m.AddRemote.HostInput.Placeholder = "host or host:22"

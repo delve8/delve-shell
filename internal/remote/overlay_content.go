@@ -36,12 +36,12 @@ func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 		b.WriteString("Key path (optional):\n")
 		b.WriteString(m.AddRemote.KeyInput.View())
 		b.WriteString("\n\n")
-		if m.AddRemote.FieldIndex == 3 && len(m.PathCompletionCandidates) > 0 {
+		if m.AddRemote.FieldIndex == 3 && len(m.PathCompletion.Candidates) > 0 {
 			b.WriteString("\n\n")
 			b.WriteString("Path completion (Up/Down select, Enter or Tab to pick):\n")
-			for i, c := range m.PathCompletionCandidates {
+			for i, c := range m.PathCompletion.Candidates {
 				line := "  " + c
-				if i == m.PathCompletionIndex {
+				if i == m.PathCompletion.Index {
 					b.WriteString(ui.SuggestHiRender(line) + "\n")
 				} else {
 					b.WriteString(ui.SuggestStyleRender(line) + "\n")
@@ -97,12 +97,12 @@ func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 		b.WriteString(m.OverlayContent)
 		b.WriteString("\n\n")
 		b.WriteString(m.RemoteAuth.Input.View())
-		if len(m.PathCompletionCandidates) > 0 {
+		if len(m.PathCompletion.Candidates) > 0 {
 			b.WriteString("\n\n")
 			b.WriteString("Path completion (Up/Down select, Enter or Tab to pick):\n")
-			for i, c := range m.PathCompletionCandidates {
+			for i, c := range m.PathCompletion.Candidates {
 				line := "  " + c
-				if i == m.PathCompletionIndex {
+				if i == m.PathCompletion.Index {
 					b.WriteString(ui.SuggestHiRender(line) + "\n")
 				} else {
 					b.WriteString(ui.SuggestStyleRender(line) + "\n")

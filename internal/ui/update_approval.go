@@ -150,7 +150,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 			}
 			m.Viewport.SetContent(m.buildContent())
 			m.Viewport.GotoBottom()
-			threeOptions := m.GetAllowlistAutoRun != nil && !m.GetAllowlistAutoRun()
+			threeOptions := m.Ports.GetAllowlistAutoRun != nil && !m.Ports.GetAllowlistAutoRun()
 			if threeOptions {
 				// 2 = Copy
 				_ = clipboard.WriteAll(m.Pending.Command)

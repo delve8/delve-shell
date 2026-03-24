@@ -21,9 +21,9 @@ func (m Model) handleMainEnterCommand(text string, slashSelectedPath string, sla
 	if strings.HasPrefix(text, "/") {
 		// Use path captured before SlashSuggestIndex was reset; otherwise we would always send opts[0].
 		if slashSelectedPath != "" {
-			if m.SessionSwitchChan != nil {
+			if m.Ports.SessionSwitchChan != nil {
 				select {
-				case m.SessionSwitchChan <- slashSelectedPath:
+				case m.Ports.SessionSwitchChan <- slashSelectedPath:
 				default:
 				}
 			}
@@ -89,8 +89,8 @@ func (m Model) handleMainEnterCommand(text string, slashSelectedPath string, sla
 		return m, nil
 	}
 
-	if m.SubmitChan != nil {
-		m.SubmitChan <- text
+	if m.Ports.SubmitChan != nil {
+		m.Ports.SubmitChan <- text
 		m.WaitingForAI = true
 	}
 	return m, nil

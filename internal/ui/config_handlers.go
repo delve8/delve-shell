@@ -23,9 +23,9 @@ func (m Model) applyAllowlistAutoRunSwitch(value string) Model {
 		m.Viewport.GotoBottom()
 		return m
 	}
-	if m.AllowlistAutoRunChangeChan != nil {
+	if m.Ports.AllowlistAutoRunChangeChan != nil {
 		select {
-		case m.AllowlistAutoRunChangeChan <- on:
+		case m.Ports.AllowlistAutoRunChangeChan <- on:
 		default:
 		}
 	}
@@ -85,9 +85,9 @@ func (m Model) applyConfigAllowlistAutoRun(value string) Model {
 	m.Messages = append(m.Messages, "")
 	m.Viewport.SetContent(m.buildContent())
 	m.Viewport.GotoBottom()
-	if m.ConfigUpdatedChan != nil {
+	if m.Ports.ConfigUpdatedChan != nil {
 		select {
-		case m.ConfigUpdatedChan <- struct{}{}:
+		case m.Ports.ConfigUpdatedChan <- struct{}{}:
 		default:
 		}
 	}
@@ -108,9 +108,9 @@ func (m Model) applyConfigAllowlistUpdate() Model {
 	m.Messages = append(m.Messages, "")
 	m.Viewport.SetContent(m.buildContent())
 	m.Viewport.GotoBottom()
-	if m.ConfigUpdatedChan != nil {
+	if m.Ports.ConfigUpdatedChan != nil {
 		select {
-		case m.ConfigUpdatedChan <- struct{}{}:
+		case m.Ports.ConfigUpdatedChan <- struct{}{}:
 		default:
 		}
 	}

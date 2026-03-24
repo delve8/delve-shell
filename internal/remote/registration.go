@@ -25,9 +25,9 @@ func registerSlashExactHandlers() {
 
 	ui.RegisterSlashExact("/remote off", ui.SlashExactDispatchEntry{
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
-			if m.RemoteOffChan != nil {
+			if m.Ports.RemoteOffChan != nil {
 				select {
-				case m.RemoteOffChan <- struct{}{}:
+				case m.Ports.RemoteOffChan <- struct{}{}:
 				default:
 				}
 			}
@@ -72,9 +72,9 @@ func registerSlashPrefixHandlers() {
 			if target == "" {
 				return m, nil, true
 			}
-			if m.RemoteOnChan != nil {
+			if m.Ports.RemoteOnChan != nil {
 				select {
-				case m.RemoteOnChan <- target:
+				case m.Ports.RemoteOnChan <- target:
 				default:
 				}
 			}
