@@ -35,6 +35,15 @@ func init() {
 		},
 		ClearInput: true,
 	})
+	ui.RegisterSlashExact("/config del-remote", ui.SlashExactDispatchEntry{
+		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
+			m.Input.SetValue("/config del-remote ")
+			m.Input.CursorEnd()
+			m.SlashSuggestIndex = 0
+			return m, nil
+		},
+		ClearInput: false,
+	})
 
 	ui.RegisterSlashPrefix("/config add-remote ", ui.SlashPrefixDispatchEntry{
 		Prefix: "/config add-remote ",

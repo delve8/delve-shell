@@ -44,36 +44,6 @@ func (m Model) handleSlashSelectedFallback(chosen string) (Model, tea.Cmd, bool)
 			},
 		},
 		{
-			prefix: "/config add-remote ",
-			handle: func(mm Model, _ string) (Model, tea.Cmd, bool) {
-				mm.Input.SetValue("/config add-remote ")
-				mm.Input.CursorEnd()
-				return mm, nil, true
-			},
-		},
-		{
-			prefix: "/config del-remote ",
-			handle: func(mm Model, chosen string) (Model, tea.Cmd, bool) {
-				nameOrTarget := strings.TrimSpace(strings.TrimPrefix(chosen, "/config del-remote "))
-				if nameOrTarget != "" {
-					if m2, cmd, handled := mm.dispatchSlashPrefix(chosen); handled {
-						return m2, cmd, true
-					}
-				}
-				mm.Input.SetValue("/config del-remote ")
-				mm.Input.CursorEnd()
-				return mm, nil, true
-			},
-		},
-		{
-			exact: "/config del-remote",
-			handle: func(mm Model, _ string) (Model, tea.Cmd, bool) {
-				mm.Input.SetValue("/config del-remote ")
-				mm.Input.CursorEnd()
-				return mm, nil, true
-			},
-		},
-		{
 			exact: "/config",
 			handle: func(mm Model, _ string) (Model, tea.Cmd, bool) {
 				return mm.showConfigHint(), nil, true
