@@ -3,53 +3,43 @@ package ui
 import (
 	"strings"
 
-	"delve-shell/internal/i18n"
+	"delve-shell/internal/approvalview"
 )
 
 // appendApprovalViewportContent appends sensitive or standard approval blocks to the viewport.
 // Returns true if the viewport body is complete (caller should return b.String()).
 func (m Model) appendApprovalViewportContent(b *strings.Builder) bool {
-	lang := m.getLang()
-	w := m.contentWidth()
-
-	if m.Approval.PendingSensitive != nil {
-		b.WriteString("\n")
-		b.WriteString(approvalHeaderStyle.Render(i18n.T(lang, i18n.KeySensitivePrompt)) + "\n")
-		b.WriteString(execStyle.Render(wrapString(m.Approval.PendingSensitive.Command, w)) + "\n")
-		b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeySensitiveChoice1)) + "\n")
-		b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeySensitiveChoice2)) + "\n")
-		b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeySensitiveChoice3)))
-		return true
+	lines, ok := approvalview.Build(
+		m.getLang(),
+		m.contentWidth(),
+		m.Approval.Pending,
+		m.Approval.PendingSensitive,
+		wrapString,
+	)
+	if !ok {
+		return false
 	}
-
-	if m.Approval.Pending != nil {
-		b.WriteString("\n")
-		b.WriteString(approvalHeaderStyle.Render(i18n.T(lang, i18n.KeyApprovalPrompt)) + "\n")
-		if sn := strings.TrimSpace(m.Approval.Pending.SkillName); sn != "" {
-			line := i18n.Tf(lang, i18n.KeySkillLine, sn)
-			b.WriteString(suggestStyle.Render(wrapString(line, w)) + "\n")
+	b.WriteString("\n")
+	for i, line := range lines {
+		rendered := line.Text
+		switch line.Kind {
+		case approvalview.LineHeader:
+			rendered = approvalHeaderStyle.Render(line.Text)
+		case approvalview.LineExec:
+			rendered = execStyle.Render(line.Text)
+		case approvalview.LineSuggest:
+			rendered = suggestStyle.Render(line.Text)
+		case approvalview.LineRiskReadOnly:
+			rendered = riskReadOnlyStyle.Render(line.Text)
+		case approvalview.LineRiskLow:
+			rendered = riskLowStyle.Render(line.Text)
+		case approvalview.LineRiskHigh:
+			rendered = riskHighStyle.Render(line.Text)
 		}
-		switch m.Approval.Pending.RiskLevel {
-		case "read_only":
-			line := "[" + i18n.T(lang, i18n.KeyRiskReadOnly) + "] " + m.Approval.Pending.Command
-			b.WriteString(riskReadOnlyStyle.Render(wrapString(line, w)) + "\n")
-		case "low":
-			line := "[" + i18n.T(lang, i18n.KeyRiskLow) + "] " + m.Approval.Pending.Command
-			b.WriteString(riskLowStyle.Render(wrapString(line, w)) + "\n")
-		case "high":
-			line := "[" + i18n.T(lang, i18n.KeyRiskHigh) + "] " + m.Approval.Pending.Command
-			b.WriteString(riskHighStyle.Render(wrapString(line, w)) + "\n")
-		default:
-			b.WriteString(execStyle.Render(wrapString(m.Approval.Pending.Command, w)) + "\n")
+		b.WriteString(rendered)
+		if i < len(lines)-1 {
+			b.WriteString("\n")
 		}
-		if m.Approval.Pending.Summary != "" {
-			b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeyApprovalSummary)+" "+m.Approval.Pending.Summary) + "\n")
-		}
-		if m.Approval.Pending.Reason != "" {
-			b.WriteString(suggestStyle.Render(i18n.T(lang, i18n.KeyApprovalWhy)+" "+m.Approval.Pending.Reason) + "\n")
-		}
-		return true
 	}
-
-	return false
+	return true
 }

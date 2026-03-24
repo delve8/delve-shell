@@ -170,6 +170,9 @@
 | 2025-03-24 | session 历史解析下沉：删除 `ui/view_history_lines.go` 与 `ui/session_events_export.go`，`history.Event -> UI 行` 转换迁至 `internal/session/history_lines.go`，并迁移对应测试到 `internal/session/history_lines_test.go` |
 | 2025-03-24 | `/run` 本地命令发现下沉：删除 `ui/run_completion.go`，PATH 扫描与本地可执行缓存迁至 `internal/run/local_commands.go`，`ui` 不再持有命令发现逻辑 |
 | 2025-03-24 | 路径补全能力下沉：删除 `ui/pathcomplete.go`，新增 `internal/pathcomplete/candidates.go` 并由 `remote` 等业务包直接依赖，`ui` 不再直接访问文件系统补全细节 |
+| 2025-03-24 | 审批文案组装下沉：新增 `internal/approvalview/blocks.go` 承接敏感/审批卡片文案规则，`ui/view_approval_card.go` 改为样式渲染适配层 |
+| 2025-03-24 | 审批选项规则下沉：新增 `internal/approvalview/choices.go`（选项数、选项文案、输入占位符规则），`ui/view_choices.go` 改为调用适配层 |
+| 2025-03-24 | 审批决策回写下沉：`update_approval.go` 中审批/敏感决策文案拼装改为调用 `approvalview.BuildDecision`，`ui` 仅保留样式映射与状态流转 |
 | 2025-03-24 | slash 注册下沉：`/config*`、`/cancel`、`/q`、`/sh`、`/help`、`/config auto-run` 从 `ui` 迁到 `run/feature` 包；删除 `ui.registerSlashExact` 别名 |
 | 2025-03-24 | `internal/ui` 测试镜像重组：`feature_registry_test.go` 拆分为 remote/configllm、skill、session、slash-exact 多文件，主文件仅做汇总 init |
 | 2025-03-24 | P2：`Model` 再收敛 `Layout`/`Startup`/`Approval`；新增 `hasPendingApproval`、`contentWidth`、`OpenOverlay`、`CloseOverlayVisual` 等 helper 并替换重复逻辑 |
