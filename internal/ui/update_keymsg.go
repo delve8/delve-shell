@@ -3,6 +3,10 @@ package ui
 import (
 	"strings"
 
+	"delve-shell/internal/i18n"
+	"delve-shell/internal/maininput"
+	"delve-shell/internal/slashview"
+
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -38,8 +42,19 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 	}
 
 	inputVal = m.Input.Value()
-	if m2, cmd, handled := m.handleMainScrollKey(key, msg, inputVal); handled {
-		return m2, cmd
+	inSlash = strings.HasPrefix(inputVal, "/")
+	if inSlash && (key == "up" || key == "down") {
+		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.Context.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
+		vis := visibleSlashOptions(inputVal, opts)
+		if next, changed := slashview.NextSuggestIndex(m.Interaction.SlashSuggestIndex, len(vis), key); changed {
+			m.Interaction.SlashSuggestIndex = next
+		}
+		return m, nil
+	}
+	if key == "pgup" || key == "pgdown" {
+		var cmd tea.Cmd
+		m.Viewport, cmd = m.Viewport.Update(msg)
+		return m, cmd
 	}
 
 	if key == "enter" {
@@ -51,22 +66,53 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 		if m.Interaction.WaitingForAI && !strings.HasPrefix(text, "/") {
 			return m, nil
 		}
-		// Save selected slash option before any state change; Enter handler resets SlashSuggestIndex below.
-		// Use inputVal (not text) so we match what the view shows and get correct opts/vis with trailing space.
-		var slashSelectedPath string
-		var slashSelectedIndex int
-		var filled bool
-		m, slashSelectedPath, slashSelectedIndex, filled = m.captureSlashSelectionForEnter(inputVal, text)
-		if filled {
+		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.Context.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
+		vis := visibleSlashOptions(inputVal, opts)
+		selected, ok := slashview.SelectedByVisibleIndex(toSlashViewOptions(opts), vis, m.Interaction.SlashSuggestIndex)
+		capture := maininput.CaptureSlashSelection(maininput.CaptureInput{
+			InputVal:     inputVal,
+			Text:         text,
+			SuggestIndex: m.Interaction.SlashSuggestIndex,
+			Selected:     selected,
+			HasSelected:  ok,
+		})
+		if capture.FillOnly {
+			m.Input.SetValue(capture.FillValue)
+			m.Input.CursorEnd()
+			m.Interaction.SlashSuggestIndex = 0
 			return m, nil
 		}
-		if m2, handled := m.handleNewSessionCommandIfNeeded(text); handled {
-			return m2, nil
+		if maininput.IsNewSessionCommand(text) {
+			if m.Ports.SubmitChan != nil {
+				m.Ports.SubmitChan <- text
+			}
+			m.Input.SetValue("")
+			m.Input.CursorEnd()
+			m.Interaction.SlashSuggestIndex = 0
+			m = m.RefreshViewport()
+			return m, nil
 		}
-
-		m = m.appendUserInputLine(text)
-		return m.handleMainEnterCommand(text, slashSelectedPath, slashSelectedIndex)
+		w := m.contentWidth()
+		sepLine := renderSeparator(w)
+		m.Messages = maininput.AppendUserInputLines(m.Messages, i18n.T(m.getLang(), i18n.KeyUserLabel), text, w, sepLine)
+		m = m.RefreshViewport()
+		m.Input.SetValue("")
+		m.Input.CursorEnd()
+		m.Interaction.SlashSuggestIndex = 0
+		return m.handleMainEnterCommand(text, capture.SelectedPath, capture.SelectedIndex)
 	}
 
-	return m.handleMainInputUpdate(msg)
+	var cmd tea.Cmd
+	m.Input, cmd = m.Input.Update(msg)
+	inputVal = m.Input.Value()
+	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.Context.CurrentSessionPath, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
+	vis := visibleSlashOptions(inputVal, opts)
+	firstOptionIsSession := len(opts) > 0 && opts[0].Path != ""
+	m.Interaction.SlashSuggestIndex = maininput.SyncSlashSuggestIndex(maininput.SyncInput{
+		InputVal:             inputVal,
+		CurrentSuggestIndex:  m.Interaction.SlashSuggestIndex,
+		VisibleCount:         len(vis),
+		FirstOptionIsSession: firstOptionIsSession,
+	})
+	return m, cmd
 }

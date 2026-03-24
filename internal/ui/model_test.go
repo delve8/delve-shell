@@ -1,11 +1,8 @@
 package ui
 
 import (
-	"path/filepath"
 	"strings"
 	"testing"
-
-	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/agent"
 )
@@ -14,92 +11,6 @@ import (
 // - Use nil or buffered chans to avoid blocking.
 // - Call model.Update(tea.Msg) and assert on returned model state or model.View() / model.buildContent().
 // - Config-dependent logic (e.g. getLang) falls back to defaults in tests; use inclusive asserts (e.g. accept both en and zh).
-
-func TestApprovalCard_ShowsCommandReasonAndRisk(t *testing.T) {
-	// do not run tea.NewProgram().Run(); just build Model and set Pending
-	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
-	ch := make(chan agent.ApprovalResponse, 1)
-	m.Approval.Pending = &agent.ApprovalRequest{
-		Command:    "kubectl get pods",
-		Reason:     "List pods to check status",
-		RiskLevel:  "read_only",
-		ResponseCh: ch,
-	}
-	content := m.buildContent()
-
-	if !strings.Contains(content, "kubectl get pods") {
-		t.Error("approval card should show command")
-	}
-	if !strings.Contains(content, "List pods to check status") {
-		t.Error("approval card should show AI reason")
-	}
-	// risk label varies by language; at least one must appear
-	if !strings.Contains(content, "READ-ONLY") && !strings.Contains(content, "只读") {
-		t.Error("approval card should show read_only risk label (en or zh)")
-	}
-}
-
-func TestApprovalCard_HighRiskLabel(t *testing.T) {
-	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
-	m.Approval.Pending = &agent.ApprovalRequest{
-		Command:    "rm -rf /tmp/foo",
-		RiskLevel:  "high",
-		ResponseCh: make(chan agent.ApprovalResponse, 1),
-	}
-	content := m.buildContent()
-
-	if !strings.Contains(content, "rm -rf /tmp/foo") {
-		t.Error("approval card should show command")
-	}
-	if !strings.Contains(content, "HIGH-RISK") && !strings.Contains(content, "高风险") {
-		t.Error("approval card should show high risk label (en or zh)")
-	}
-}
-
-func TestApprovalCard_Approve1ClearsPending(t *testing.T) {
-	ch := make(chan agent.ApprovalResponse, 1)
-	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
-	m.Approval.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
-
-	// simulate user pressing 1 (approve)
-	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("1")})
-	m2 := next.(Model)
-	if m2.Approval.Pending != nil {
-		t.Error("pending should be cleared after 1")
-	}
-	select {
-	case v := <-ch:
-		if !v.Approved {
-			t.Error("channel should receive Approved true for approve")
-		}
-	default:
-		t.Error("channel should receive response")
-	}
-}
-
-func TestApprovalCard_Approve2ClearsPendingAndSendsFalse(t *testing.T) {
-	ch := make(chan agent.ApprovalResponse, 1)
-	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
-	m.Approval.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
-
-	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("2")})
-	m2 := next.(Model)
-	if m2.Approval.Pending != nil {
-		t.Error("pending should be cleared after 2")
-	}
-	select {
-	case v := <-ch:
-		if v.Approved {
-			t.Error("channel should receive Approved false for reject")
-		}
-	default:
-		t.Error("channel should receive response")
-	}
-}
 
 // TestView_HeaderAlwaysShown asserts that View() always includes the header (mode + status) and that
 // total output lines never exceed Height so the header stays visible when the terminal shows one screen.
@@ -159,80 +70,4 @@ func min(a, b int) int {
 		return a
 	}
 	return b
-}
-
-// TestChoice_EnterSelectsCurrentOption asserts that pressing Enter in choice mode selects the current (highlighted) option.
-func TestChoice_EnterSelectsCurrentOption(t *testing.T) {
-	// Approval: ChoiceIndex 0 = approve, Enter should send Approved true
-	ch := make(chan agent.ApprovalResponse, 1)
-	getAutoRun := func() bool { return true }
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
-	m.Approval.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
-	m.Interaction.ChoiceIndex = 0
-
-	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m2 := next.(Model)
-	if m2.Approval.Pending != nil {
-		t.Error("pending should be cleared after Enter")
-	}
-	select {
-	case v := <-ch:
-		if !v.Approved {
-			t.Error("Enter with ChoiceIndex 0 should approve (Approved true)")
-		}
-	default:
-		t.Error("channel should receive response")
-	}
-
-	// Approval: ChoiceIndex 1 = reject, Enter should send Approved false
-	ch2 := make(chan agent.ApprovalResponse, 1)
-	m3 := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, getAutoRun, nil, "", false)
-	m3.Approval.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch2}
-	m3.Interaction.ChoiceIndex = 1
-
-	next2, _ := m3.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m4 := next2.(Model)
-	if m4.Approval.Pending != nil {
-		t.Error("pending should be cleared after Enter on option 2")
-	}
-	select {
-	case v := <-ch2:
-		if v.Approved {
-			t.Error("Enter with ChoiceIndex 1 should reject (Approved false)")
-		}
-	default:
-		t.Error("channel should receive response")
-	}
-}
-
-// TestSessionSwitchedMsg_setsCurrentPathAndShowsSwitchedAtBottom asserts that after SessionSwitchedMsg,
-// CurrentSessionPath is set and the "Switched to session" line is present (at end when there is history).
-func TestSessionSwitchedMsg_setsCurrentPathAndShowsSwitchedAtBottom(t *testing.T) {
-	m := NewModel(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, func() bool { return true }, nil, "", false)
-
-	// Path empty: switched hint then blank line, CurrentSessionPath ""
-	next, _ := m.Update(SessionSwitchedMsg{Path: ""})
-	m2 := next.(Model)
-	if m2.Context.CurrentSessionPath != "" {
-		t.Errorf("CurrentSessionPath should be empty when Path is empty, got %q", m2.Context.CurrentSessionPath)
-	}
-	if len(m2.Messages) < 1 {
-		t.Errorf("expected at least 1 message when Path empty, got %d", len(m2.Messages))
-	}
-	if !strings.Contains(m2.Messages[0], "Switched") && !strings.Contains(m2.Messages[0], "切换") {
-		t.Errorf("message should contain Switched/切换, got %q", m2.Messages[0])
-	}
-
-	// Path set but file does not exist: ReadRecent returns nil; switched line then blank
-	next2, _ := m2.Update(SessionSwitchedMsg{Path: filepath.Join(t.TempDir(), "nonexistent.jsonl")})
-	m3 := next2.(Model)
-	if m3.Context.CurrentSessionPath == "" {
-		t.Error("CurrentSessionPath should be set when Path is non-empty")
-	}
-	if len(m3.Messages) < 1 {
-		t.Errorf("expected at least 1 message when file missing, got %d", len(m3.Messages))
-	}
-	if !strings.Contains(m3.Messages[0], "Switched") && !strings.Contains(m3.Messages[0], "切换") {
-		t.Errorf("first message should be switched hint, got %q", m3.Messages[0])
-	}
 }

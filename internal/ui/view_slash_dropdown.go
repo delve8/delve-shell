@@ -1,10 +1,10 @@
 package ui
 
 import (
-	"fmt"
 	"strings"
 
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/maininput"
 	"delve-shell/internal/slashview"
 )
 
@@ -39,14 +39,17 @@ func (m Model) choiceLinesBelowInput(lang string) string {
 	if len(opts) == 0 {
 		return ""
 	}
+	adapted := make([]maininput.ChoiceOption, 0, len(opts))
+	for _, o := range opts {
+		adapted = append(adapted, maininput.ChoiceOption{Num: o.Num, Label: o.Label})
+	}
 	var out strings.Builder
 	out.WriteString("\n")
-	for i, o := range opts {
-		line := fmt.Sprintf("%d  %s", o.Num, o.Label)
-		if i == m.Interaction.ChoiceIndex {
-			out.WriteString(suggestHi.Render(" "+line) + "\n")
+	for _, line := range maininput.BuildChoiceLines(adapted, m.Interaction.ChoiceIndex) {
+		if line.Highlight {
+			out.WriteString(suggestHi.Render(" "+line.Text) + "\n")
 		} else {
-			out.WriteString(suggestStyle.Render(" "+line) + "\n")
+			out.WriteString(suggestStyle.Render(" "+line.Text) + "\n")
 		}
 	}
 	return out.String()
@@ -55,8 +58,5 @@ func (m Model) choiceLinesBelowInput(lang string) string {
 // waitingLineBelowInput returns the "wait or /cancel" hint when AI is running (empty if not applicable).
 func (m Model) waitingLineBelowInput(lang string) string {
 	inChoice := m.hasPendingApproval()
-	if m.Interaction.WaitingForAI && !inChoice {
-		return "\n" + suggestStyle.Render(i18n.T(lang, i18n.KeyWaitOrCancel))
-	}
-	return ""
+	return maininput.WaitingHint(m.Interaction.WaitingForAI, inChoice, suggestStyle.Render(i18n.T(lang, i18n.KeyWaitOrCancel)))
 }
