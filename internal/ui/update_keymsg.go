@@ -87,7 +87,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 		}
 		if maininput.IsNewSessionCommand(text) {
 			mm = mm.appendUserSubmittedEcho(text)
-			_ = mm.Host.Submit(text)
+			_ = mm.submitEffect(text)
 			ks.setInputValue("")
 			ks.setSlashSuggestIndex(0)
 			mm = mm.RefreshViewport()

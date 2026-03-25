@@ -22,6 +22,7 @@ type Model struct {
 	Viewport viewport.Model
 	messages []string
 	ChoiceCard ChoiceCardState
+	Effects   Effects
 	layout        LayoutState
 	Interaction   InteractionState
 
@@ -162,6 +163,7 @@ func NewModel(initialMessages []string, host app.Host) Model {
 		Input:    ti,
 		Viewport: vp,
 		messages: msgs,
+		Effects:  hostEffects{host: host},
 		Host:     host,
 		layout: LayoutState{
 			Width:  defaultWidth,
