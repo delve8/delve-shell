@@ -69,7 +69,8 @@
 |------|------|
 | `view.go` | `View()`、`appendSuggestedLine` |
 | `view_content.go` | `buildContent()`（消息流；审批块委托 `view_approval_card.go`） |
-| `view_approval_card.go` | `appendApprovalViewportContent`（敏感 / 标准审批卡文案与样式） |
+| `view_approval_card.go` | `appendApprovalViewportContent`（审批卡行样式经 `widget.RenderPendingApprovalLines`） |
+| `internal/ui/widget/approval_card.go` | `RenderPendingApprovalLines`、`PendingCardStyles`（样式由 `view_approval_card` 注入） |
 | `view_slash_dropdown.go` | slash 下拉、`choiceLinesBelowInput`（行样式经 `internal/ui/widget` `RenderLinesBelowInput`）、`waitingLineBelowInput` |
 | `slash_suggestion_context.go` | `slashSuggestionContext`：统一 slash 候选 options / 可见索引 / `slashview` 行 |
 | `view_overlay.go` | `renderOverlay`、`overlayBoxMaxWidth` |
@@ -155,6 +156,7 @@
 
 | 日期 | 说明 |
 |------|------|
+| 2026-03-25 | §10.8.2 第 3 轮：`widget` 审批卡 `RenderPendingApprovalLines` |
 | 2026-03-25 | §10.8.2 第 2 轮：`slashSuggestionContext` 统一 slash 候选列表构建 |
 | 2026-03-25 | §10.8.2 第 1 轮：`SlashSubmitPayload.InputLine`、`execSlashEnterKeyLocal`、slash 早路径中继 |
 | 2026-03-25 | §10.8.2：后续五轮规划（阶段 3 收口 + 阶段 5 深化，不含 registry 迁 Controller） |
@@ -323,7 +325,7 @@
 | **2** | slash 与总线/中控衔接（试点） | **已做（观测路径）**：`KindSlashRequested`（handler 前）+ `KindSlashEntered`（成功后）；`SlashRequestChan` / `SlashTraceChan`；`Host.RequestSlashDispatch` / `TraceSlashEntered`；`hostcontroller` 占位 handler；语义标签与 `RedactedSummary` 已覆盖。解析与执行仍在 TUI/registry。 |
 | **3** | slash 主路径迁入 Controller | **部分做（§10.8.2 推进中）**：**主 Enter** 与 **slash 早路径**（`handleSlashEnterKey`）均已走 `TryRelaySlashSubmit` → 总线 → `SlashSubmitRelayMsg`（`InputLine` 区分）；**未做**：`SubmitChan` 合并、Controller 内 slash **业务**路由表（registry 仍在 TUI）。 |
 | **4** | 审批/敏感/远程等待总线链审计 | **已做（第 1 轮 §10.8.1）**：`docs/host_bus_audit.md` 含路径表、`events`/`uiMsgs` 职责、主对话 / HIL / 远程序列及 §10.6 对照；细部若仍随实现演进可再补。 |
-| **5** | UI 控件化（dialog/dropdown） | **部分做（第 3 轮 §10.8.1）**：`RenderCenteredModal`（overlay）；`RenderLinesBelowInput` + `ListRow`（slash 下拉与审批/敏感数字选项行，`view_slash_dropdown.go`）。通用 dialog 与其它 overlay 变体仍可按需再抽。 |
+| **5** | UI 控件化（dialog/dropdown） | **部分做**：`RenderCenteredModal`；`RenderLinesBelowInput`；**§10.8.2 第 3 轮**：`RenderPendingApprovalLines` + `PendingCardStyles`（`view_approval_card.go`）。决策后追加行仍在 `update_approval.go`（`appendDecisionLines`）。其它 overlay 仍可按需再抽。 |
 
 **回归命令**：`go test ./internal/e2e/... -timeout=60s -count=1`（勿依赖默认 10m 超时判断健康）。
 
@@ -347,7 +349,7 @@
 |------|----------|----------------|----------|
 | **第 1 轮** | **3** | **已交付（2026-03-25）**：`SlashSubmitPayload.InputLine`；`execSlashEnterKeyLocal`；`handleSlashEnterKey` 先 `TryRelaySlashSubmit`；`SlashSubmitRelayMsg` 按 `InputLine` 调 `execSlashEnterKeyLocal`，未处理则 `executeMainEnterCommandNoRelay`；`RedactedSummary` 含 `input=`。 | `go test ./...`（含 e2e）绿。 |
 | **第 2 轮** | **3** | **已交付（2026-03-25）**：`slashSuggestionContext` / `slashSuggestionContextWithLang`（`slash_suggestion_context.go`）；`update_slash`、`update_main_enter_command`、`update_keymsg`、`view_slash_dropdown` 共用；文档与 ADR 指针更新。 | 行为等价；`go test ./...` 绿。 |
-| **第 3 轮** | **5** | **审批卡**：将 `view_approval_card.go` 中可复用的 lipgloss 条（标题、风险标签、决策行等）迁入 `internal/ui/widget`，`view` 仅组装数据。 | 视觉快照或现有 `view_approval_card_test` 仍绿；e2e 审批路径绿。 |
+| **第 3 轮** | **5** | **已交付（2026-03-25）**：`widget/approval_card.go`（`RenderPendingApprovalLines`、`PendingCardStyles`）；`view_approval_card` 传入 `ui` 包样式；`appendDecisionLines` 未动（含决策后 LineSuggest 分支逻辑）。 | `view_approval_card_test` + e2e 绿。 |
 | **第 4 轮** | **5** | **远程/顶栏相关**：远程连接结果、认证提示条或 `view_title.go` 中与顶栏重复的样式块迁入 `widget`（择一为主，避免单 PR 过大）。 | 相关 ui 测试 + e2e remote 场景绿。 |
 | **第 5 轮** | **3+5 文档收口** | **更新 §10.8 主表**：阶段 3 标为 **「已做（范围：Enter 中继统一 + 结构化载荷；不含 SubmitChan 合并、不含 Controller 内 registry）」**；阶段 5 标为 **「已做（范围：modal + 列表行 + 第 3～4 轮 widget）」**；§9 变更记录；刻意未做项指向 §10.7。 | 文档自洽；全量测试绿。 |
 

@@ -5,6 +5,7 @@ import (
 
 	"delve-shell/internal/approvalview"
 	"delve-shell/internal/textwrap"
+	"delve-shell/internal/ui/widget"
 )
 
 // appendApprovalViewportContent appends sensitive or standard approval blocks to the viewport.
@@ -21,26 +22,13 @@ func (m Model) appendApprovalViewportContent(b *strings.Builder) bool {
 		return false
 	}
 	b.WriteString("\n")
-	for i, line := range lines {
-		rendered := line.Text
-		switch line.Kind {
-		case approvalview.LineHeader:
-			rendered = approvalHeaderStyle.Render(line.Text)
-		case approvalview.LineExec:
-			rendered = execStyle.Render(line.Text)
-		case approvalview.LineSuggest:
-			rendered = suggestStyle.Render(line.Text)
-		case approvalview.LineRiskReadOnly:
-			rendered = riskReadOnlyStyle.Render(line.Text)
-		case approvalview.LineRiskLow:
-			rendered = riskLowStyle.Render(line.Text)
-		case approvalview.LineRiskHigh:
-			rendered = riskHighStyle.Render(line.Text)
-		}
-		b.WriteString(rendered)
-		if i < len(lines)-1 {
-			b.WriteString("\n")
-		}
-	}
+	b.WriteString(widget.RenderPendingApprovalLines(lines, widget.PendingCardStyles{
+		Header:       approvalHeaderStyle,
+		Exec:         execStyle,
+		Suggest:      suggestStyle,
+		RiskReadOnly: riskReadOnlyStyle,
+		RiskLow:      riskLowStyle,
+		RiskHigh:     riskHighStyle,
+	}))
 	return true
 }
