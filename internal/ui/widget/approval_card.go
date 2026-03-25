@@ -5,16 +5,16 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
-	"delve-shell/internal/approvalview"
+	"delve-shell/internal/uiflow/choicecard"
 )
 
-// PendingCardStyles maps approvalview line kinds to lipgloss styles for the pending approval / sensitive card in the viewport.
+// PendingCardStyles maps choice-card line kinds to lipgloss styles for the pending card in the viewport.
 type PendingCardStyles struct {
 	Header, Exec, Suggest, RiskReadOnly, RiskLow, RiskHigh lipgloss.Style
 }
 
-// RenderPendingApprovalLines renders approvalview.Build lines for the transcript viewport (pending prompt, not post-decision).
-func RenderPendingApprovalLines(lines []approvalview.Line, s PendingCardStyles) string {
+// RenderPendingApprovalLines renders choicecard.BuildPendingLines output for the transcript viewport.
+func RenderPendingApprovalLines(lines []choicecard.Line, s PendingCardStyles) string {
 	if len(lines) == 0 {
 		return ""
 	}
@@ -22,17 +22,17 @@ func RenderPendingApprovalLines(lines []approvalview.Line, s PendingCardStyles) 
 	for i, line := range lines {
 		rendered := line.Text
 		switch line.Kind {
-		case approvalview.LineHeader:
+		case choicecard.LineHeader:
 			rendered = s.Header.Render(line.Text)
-		case approvalview.LineExec:
+		case choicecard.LineExec:
 			rendered = s.Exec.Render(line.Text)
-		case approvalview.LineSuggest:
+		case choicecard.LineSuggest:
 			rendered = s.Suggest.Render(line.Text)
-		case approvalview.LineRiskReadOnly:
+		case choicecard.LineRiskReadOnly:
 			rendered = s.RiskReadOnly.Render(line.Text)
-		case approvalview.LineRiskLow:
+		case choicecard.LineRiskLow:
 			rendered = s.RiskLow.Render(line.Text)
-		case approvalview.LineRiskHigh:
+		case choicecard.LineRiskHigh:
 			rendered = s.RiskHigh.Render(line.Text)
 		}
 		b.WriteString(rendered)

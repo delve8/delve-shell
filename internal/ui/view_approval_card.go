@@ -3,15 +3,15 @@ package ui
 import (
 	"strings"
 
-	"delve-shell/internal/approvalview"
 	"delve-shell/internal/textwrap"
 	"delve-shell/internal/ui/widget"
+	"delve-shell/internal/uiflow/choicecard"
 )
 
 // appendApprovalViewportContent appends sensitive or standard approval blocks to the viewport.
 // Returns true if the viewport body is complete (caller should return b.String()).
 func (m Model) appendApprovalViewportContent(b *strings.Builder) bool {
-	lines, ok := approvalview.Build(
+	lines, ok := choicecard.BuildPendingLines(
 		m.getLang(),
 		m.contentWidth(),
 		m.ChoiceCard.pending,
