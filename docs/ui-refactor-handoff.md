@@ -154,6 +154,7 @@
 
 | 日期 | 说明 |
 |------|------|
+| 2026-03-25 | 交接文档 §10.7：总线目标 2 刻意未做项（Payload 分型、Kind 改名、Slash 上总线、默认观测、动态 handler）及后续演进建议 |
 | 2026-03-25 | 目标 2（总线语义可追踪）：`Kind.SemanticLabel` 与 §10.4 草稿对齐；`Event.RedactedSummary`；`hostbus.WithPublishHook`；`hostcontroller` 表驱动 `hostEventHandlers` + `Options.OnEventDispatch` |
 | 2026-03-25 | Host 主干切换：`internal/hostbus` + `internal/hostcontroller` 替代已删除的 `internal/cli/hostloop`；`internal/uipresenter` 作为 Host→Bubble Tea 消息的统一门面；`internal/run/host_wire.go` 替代 `hostloop_chans.go` |
 | 2025-03-24 | `registry core` 两阶段：`internal/slashreg` 承接 slash exact/prefix registry 与 provider chain 容器，`ui` 保持注册 API 但不再持有底层容器实现 |
@@ -296,3 +297,17 @@
 - 从用户输入到执行回显的主路径可由单一事件链追踪（而非跨多处分支猜测）。
 - UI 层新增功能优先通过控件组合，不再在 `update_*` 中扩散重复绘制逻辑。
 - 现有 e2e/关键黑盒路径通过（slash、AI、审批、敏感确认、remote）。
+
+### 10.7 总线语义化（目标 2）：刻意未做项与后续计划
+
+以下条目在目标 2 落地时有意识地**未实现**，与「语义可对表、脱敏摘要、观测钩子、中控 handler 表」正交；此处记录**原因**与**若要做时的推荐顺序**，供后续里程碑引用。
+
+| 项 | 未做原因 | 后续怎么做（建议） |
+|----|----------|-------------------|
+| **统一 `Payload` / 按 Kind 拆独立事件结构** | 属于数据模型重塑，需改动所有 `Publish`、`BridgeInputs`、controller 消费点，回归面大；当前扁平 `Event` + `RedactedSummary` 已满足可追踪与日志安全。 | 单独立项（例如 `refactor(hostbus): typed event payloads`）：先定义 `EventV2` 或 `Payload` 接口与适配函数；按 Kind 分批迁移（先只读路径或测试双写），最后一刀切换 `Bus` 泛型/联合类型并删旧字段。 |
+| **将 `Kind` 的字符串常量改为与 §10.4 草稿字面一致** | 现有字符串可能已被外部日志、监控或约定依赖；改名是破坏性变更。 | 保持 wire 值不变；若强需求对齐，仅增加**文档别名表**或监控侧映射；若必须改字符串，应版本化总线或长期保留旧值 `const` 作为兼容别名。 |
+| **`SlashRequested` 作为总线事件** | Slash 当前在 TUI/registry 内完成解析与分发；强行上总线会与现有路径重复，或要求把 slash 解析迁入 Controller（§10.2 的长期方向），超出「总线语义化」本轮范围。 | 若执行 §10.5 第 2 步「用户输入 → slash/AI 路由迁入 Controller」：再决定是否增加 `KindSlashRequested`（或等价事件），并明确 UI 仅负责采集文本、不再承载分发。 |
+| **生产路径默认接入 slog / metrics / trace** | 观测后端与采样策略属运维与产品决策；库内写死易产生噪音、性能与隐私风险（即便有脱敏摘要，字段策略仍需谨慎）。 | 在 `interactive.Run`（或配置层）按 **flag / 环境变量** 装配 `hostbus.WithPublishHook` 与 `Options.OnEventDispatch`；日志字段统一走 **`Event.RedactedSummary()`**，敏感路径禁止直接打印整 struct。 |
+| **运行时动态注册 controller handler（插件式）** | 当前 handler 均在 `hostcontroller` 包内，`hostEventHandlers` 静态表已满足可读性与单测；动态注册引入顺序、重复注册与测试隔离成本。 | 若出现「第三方扩展命令」或「测试注入 mock handler」等硬需求：再抽象 `RegisterKind(Kind, Handler)`（需 mutex + 启动期冻结或只读 map），并文档化优先级规则。 |
+
+**与 §10.5 的衔接**：§10.5 第 2～4 步（slash 路由上收、更多异步流程事件化、UI 控件化）推进时，应复查上表各行是否仍适用；尤其是 **SlashRequested** 与 **Payload 分型** 宜在「路由上收」决策确定后再动，避免两次大改。
