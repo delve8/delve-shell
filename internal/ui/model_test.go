@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"delve-shell/internal/agent"
+	"delve-shell/internal/hostapp"
 )
 
 // TUI (Bubble Tea) tests: do not run tea.Program; unit-test the Model by sending messages and asserting state/output.
@@ -15,7 +16,7 @@ import (
 // TestView_HeaderAlwaysShown asserts that View() always includes the header (mode + status) and that
 // total output lines never exceed Height so the header stays visible when the terminal shows one screen.
 func TestView_HeaderAlwaysShown(t *testing.T) {
-	m := NewModel(nil)
+	m := NewModel(nil, hostapp.Nop())
 	m.Layout.Height = 24
 	m.Layout.Width = 80
 	view := m.View()
@@ -45,7 +46,7 @@ func TestView_HeaderAlwaysShown(t *testing.T) {
 
 	// Critical: with choice mode (max 3 options) and a small Height, total lines must not exceed Height,
 	// so the header (first 2 lines) stays on screen when terminal displays one full screen.
-	m2 := NewModel(nil)
+	m2 := NewModel(nil, hostapp.Nop())
 	m2.Layout.Height = 12
 	m2.Layout.Width = 80
 	m2.Approval.pendingSensitive = &agent.SensitiveConfirmationRequest{Command: "cat /etc/shadow", ResponseCh: make(chan agent.SensitiveChoice, 1)}

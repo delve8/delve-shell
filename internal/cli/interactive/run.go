@@ -8,6 +8,7 @@ import (
 	"delve-shell/internal/config"
 	"delve-shell/internal/execenv"
 	"delve-shell/internal/history"
+	"delve-shell/internal/hostapp"
 	"delve-shell/internal/hostbus"
 	"delve-shell/internal/hostcontroller"
 	"delve-shell/internal/hostwiring"
@@ -62,7 +63,8 @@ func Run() error {
 	})
 
 	shellRequestedChan := make(chan []string, 1)
-	hostwiring.BindSendPorts(ports, shellRequestedChan)
+	rt := hostapp.NewRuntime()
+	hostwiring.BindSendPorts(rt, ports, shellRequestedChan)
 
 	var currentP atomic.Pointer[tea.Program]
 	controller := hostcontroller.New(hostcontroller.Options{
@@ -80,11 +82,11 @@ func Run() error {
 	controller.Start()
 
 	getAllowlistAutoRun := func() bool { return currentAllowlistAutoRun.Load() }
-	hostwiring.BindAllowlistAutoRun(getAllowlistAutoRun, func(v bool) {
+	hostwiring.BindAllowlistAutoRun(rt, getAllowlistAutoRun, func(v bool) {
 		currentAllowlistAutoRun.Store(v)
 		runners.SetAllowlistAutoRun(v)
 	})
 
-	loop := newTuiRestartLoop(controller, &currentP, shellRequestedChan, pf.NeedConfigLLM)
+	loop := newTuiRestartLoop(controller, &currentP, shellRequestedChan, pf.NeedConfigLLM, rt)
 	return loop.run()
 }

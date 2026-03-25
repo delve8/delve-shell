@@ -8,7 +8,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"delve-shell/internal/config"
-	"delve-shell/internal/hostapp"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/pathcomplete"
 	"delve-shell/internal/service/remotesvc"
@@ -156,7 +155,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			m.Overlay.Title = ""
 			m.Overlay.Content = ""
 			m.Input.Focus()
-			hostapp.NotifyConfigUpdated()
+			m.Host.NotifyConfigUpdated()
 			return ret(m, nil, true)
 		}
 
@@ -220,7 +219,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			delvPrefix := i18n.T(lang, i18n.KeyDelveLabel) + " "
 			m.Messages = append(m.Messages, suggestStyle.Render(delvPrefix+i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display)))
 			m.Messages = append(m.Messages, "")
-			hostapp.NotifyConfigUpdated()
+			m.Host.NotifyConfigUpdated()
 		}
 
 		m = m.RefreshViewport()
@@ -228,7 +227,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			// Show "Connecting..." and wait for RemoteConnectDoneMsg; close overlay only on success.
 			state.AddRemote.Connecting = true
 			state.AddRemote.Error = ""
-			if !PublishRemoteOnTarget(target) {
+			if !m.Host.PublishRemoteOnTarget(target) {
 				state.AddRemote.Connecting = false
 			}
 			return ret(m, nil, true)
@@ -361,7 +360,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			b.WriteString(suggestStyle.Render("Connecting...") + "\n\n")
 			b.WriteString("Press Esc to cancel.")
 			m.Overlay.Content = b.String()
-			_ = PublishRemoteAuthResponse(ui.RemoteAuthResponse{
+			_ = m.Host.PublishRemoteAuthResponse(ui.RemoteAuthResponse{
 				Target:   state.RemoteAuth.Target,
 				Username: state.RemoteAuth.Username,
 				Kind:     state.RemoteAuth.Step,
@@ -442,7 +441,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			b.WriteString(suggestStyle.Render("Connecting...") + "\n\n")
 			b.WriteString("Press Esc to cancel.")
 			m.Overlay.Content = b.String()
-			_ = PublishRemoteAuthResponse(ui.RemoteAuthResponse{
+			_ = m.Host.PublishRemoteAuthResponse(ui.RemoteAuthResponse{
 				Target:   state.RemoteAuth.Target,
 				Username: state.RemoteAuth.Username,
 				Kind:     state.RemoteAuth.Step,

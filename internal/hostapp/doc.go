@@ -1,3 +1,4 @@
-// Package hostapp is the single process-wide host façade: bus input channels, allowlist/remote UI mirrors,
-// and config-LLM startup one-shot. CLI startup wires these once; tests use ResetTestState.
+// Package hostapp defines the injectable Host façade (*Runtime): bus input channels, allowlist/remote UI mirrors,
+// and config-LLM startup one-shot. The interactive CLI constructs a *Runtime, wires it via hostwiring.BindSendPorts,
+// and passes it into ui.Model as Host.
 package hostapp

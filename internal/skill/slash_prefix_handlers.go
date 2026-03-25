@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"delve-shell/internal/hostapp"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/service/skillsvc"
 	"delve-shell/internal/skills"
@@ -73,7 +72,7 @@ func handleSlashSkillPrefix(m ui.Model, rest string) ui.Model {
 	}
 
 	payload := skillInvocationPrompt(skillName, skillContent, naturalLanguage)
-	if hostapp.Submit(payload) {
+	if m.Host.Submit(payload) {
 		m.Interaction.WaitingForAI = true
 	}
 	m.Input.SetValue("")

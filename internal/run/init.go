@@ -8,7 +8,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"delve-shell/internal/hostapp"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/ui"
 )
@@ -25,7 +24,7 @@ func init() {
 		Handle: func(mm ui.Model, rest string) (ui.Model, tea.Cmd, bool) {
 			cmd := strings.TrimSpace(rest)
 			if cmd != "" {
-				hostapp.PublishExecDirect(cmd)
+				mm.Host.PublishExecDirect(cmd)
 			} else {
 				lang := "en"
 				mm.Messages = append(mm.Messages, errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeyUsageRun))))

@@ -7,6 +7,8 @@ import (
 	"delve-shell/internal/i18n"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
+
+	"delve-shell/internal/hostapp"
 )
 
 const (
@@ -27,10 +29,13 @@ type Model struct {
 
 	// Overlay state: when Overlay.Active is true, a modal is rendered on top of the main UI.
 	Overlay OverlayState
+
+	// Host is the injectable host façade (bus send endpoints + UI mirrors). Non-nil after NewModel.
+	Host hostapp.Host
 }
 
 // RunCompletionState stores local/remote completion caches for `/run`.
-// When remote is active, hostapp.RemoteLabel identifies which remote RemoteCommands belong to.
+// When remote is active, Host.RemoteLabel identifies which remote RemoteCommands belong to.
 type RunCompletionState struct {
 	LocalCommands  []string
 	RemoteCommands []string
@@ -127,7 +132,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // NewModel creates a Model with default input (slash commands and viewport scrolling).
 // initialMessages if non-nil is used as existing conversation (e.g. after /sh return).
-func NewModel(initialMessages []string) Model {
+// host must be non-nil in production (typically *hostapp.Runtime); nil is treated as hostapp.Nop().
+func NewModel(initialMessages []string, host hostapp.Host) Model {
+	if host == nil {
+		host = hostapp.Nop()
+	}
 	ti := textinput.New()
 	ti.Placeholder = i18n.T("en", i18n.KeyPlaceholderInput)
 	ti.Prompt = "> "
@@ -148,6 +157,7 @@ func NewModel(initialMessages []string) Model {
 		Input:    ti,
 		Viewport: vp,
 		Messages: msgs,
+		Host:     host,
 		Layout: LayoutState{
 			Width:  defaultWidth,
 			Height: defaultHeight,

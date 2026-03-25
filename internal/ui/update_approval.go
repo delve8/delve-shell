@@ -8,13 +8,12 @@ import (
 	"delve-shell/internal/agent"
 	"delve-shell/internal/approvalflow"
 	"delve-shell/internal/approvalview"
-	"delve-shell/internal/hostapp"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/textwrap"
 )
 
 func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
-	allowlistAutoRunEnabled := hostapp.AllowlistAutoRunEnabled()
+	allowlistAutoRunEnabled := m.Host.AllowlistAutoRunEnabled()
 	res := approvalflow.Evaluate(
 		key,
 		m.Approval.pending != nil,

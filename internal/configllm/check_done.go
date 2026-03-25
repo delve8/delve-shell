@@ -3,7 +3,6 @@ package configllm
 import (
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/hostapp"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/ui"
 )
@@ -34,7 +33,7 @@ func handleConfigLLMCheckDoneMessage(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd
 	st = getOverlayState()
 	st.Active = false
 	setOverlayState(st)
-	hostapp.NotifyConfigUpdated()
+	m.Host.NotifyConfigUpdated()
 	return m, nil, true
 }
 

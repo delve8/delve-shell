@@ -23,6 +23,7 @@ var defaultTUIProgramOptions = []tea.ProgramOption{
 // is started on stdio; when that returns, the TUI starts again with those messages restored.
 type tuiRestartLoop struct {
 	controller *hostcontroller.Controller
+	host       hostapp.Host
 	// programPtr is shared with the host controller and UI pump so outbound tea.Msg reach the active program.
 	programPtr *atomic.Pointer[tea.Program]
 	// shellAfterExit receives at most one buffered snapshot per TUI exit when subshell was requested.
@@ -36,9 +37,14 @@ func newTuiRestartLoop(
 	programPtr *atomic.Pointer[tea.Program],
 	shellAfterExit <-chan []string,
 	openConfigLLMOnFirstLayout bool,
+	host hostapp.Host,
 ) *tuiRestartLoop {
+	if host == nil {
+		host = hostapp.Nop()
+	}
 	return &tuiRestartLoop{
 		controller:                 controller,
+		host:                       host,
 		programPtr:                 programPtr,
 		shellAfterExit:             shellAfterExit,
 		openConfigLLMOnFirstLayout: openConfigLLMOnFirstLayout,
@@ -66,8 +72,8 @@ func (l *tuiRestartLoop) run() error {
 
 func (l *tuiRestartLoop) runOneSession(saved *[]string, openConfigLLM bool) error {
 	l.controller.SyncCurrentSessionPath()
-	hostapp.SetOpenConfigLLMOnFirstLayout(openConfigLLM)
-	model := ui.NewModel(*saved)
+	l.host.SetOpenConfigLLMOnFirstLayout(openConfigLLM)
+	model := ui.NewModel(*saved, l.host)
 	p := tea.NewProgram(model, defaultTUIProgramOptions...)
 	l.programPtr.Store(p)
 	_, err := p.Run()

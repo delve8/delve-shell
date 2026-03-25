@@ -5,9 +5,9 @@ import (
 	"delve-shell/internal/hostbus"
 )
 
-// BindSendPorts installs a single hostapp.Send bundle from host bus input ports plus the /sh snapshot channel.
-func BindSendPorts(ports hostbus.InputPorts, shellSnapshot chan<- []string) {
-	hostapp.Wire(&hostapp.Send{
+// BindSendPorts wires host bus input ports and the /sh snapshot channel onto r.
+func BindSendPorts(r *hostapp.Runtime, ports hostbus.InputPorts, shellSnapshot chan<- []string) {
+	r.WireSend(&hostapp.Send{
 		Submit:         ports.SubmitChan,
 		ConfigUpdated:  ports.ConfigUpdatedChan,
 		CancelRequest:  ports.CancelRequestChan,

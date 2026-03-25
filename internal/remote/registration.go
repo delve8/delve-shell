@@ -5,7 +5,6 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/hostapp"
 	"delve-shell/internal/pathcomplete"
 	"delve-shell/internal/ui"
 )
@@ -27,7 +26,7 @@ func registerSlashExactHandlers() {
 
 	ui.RegisterSlashExact("/remote off", ui.SlashExactDispatchEntry{
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
-			_ = PublishRemoteOff()
+			_ = m.Host.PublishRemoteOff()
 			return m, nil
 		},
 		ClearInput: true,
@@ -60,7 +59,7 @@ func registerSlashPrefixHandlers() {
 			if target == "" {
 				return m, nil, true
 			}
-			_ = PublishRemoteOnTarget(target)
+			_ = m.Host.PublishRemoteOnTarget(target)
 			return m, nil, true
 		},
 	})
@@ -69,11 +68,11 @@ func registerSlashPrefixHandlers() {
 func registerProviders() {
 	ui.RegisterSlashOptionsProvider(remoteSlashOptionsProvider)
 
-	ui.RegisterTitleBarFragmentProvider(func(_ ui.Model) (string, bool) {
-		if !hostapp.RemoteActive() {
+	ui.RegisterTitleBarFragmentProvider(func(m ui.Model) (string, bool) {
+		if !m.Host.RemoteActive() {
 			return "", false
 		}
-		if lbl := hostapp.RemoteLabel(); lbl != "" {
+		if lbl := m.Host.RemoteLabel(); lbl != "" {
 			return "Remote " + lbl, true
 		}
 		return "Remote", true

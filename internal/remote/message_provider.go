@@ -6,7 +6,6 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/hostapp"
 	"delve-shell/internal/pathcomplete"
 	"delve-shell/internal/ui"
 )
@@ -15,7 +14,7 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 	state := getRemoteOverlayState()
 	switch t := msg.(type) {
 	case ui.RemoteStatusMsg:
-		hostapp.SetRemoteExecution(t.Active, t.Label)
+		m.Host.SetRemoteExecution(t.Active, t.Label)
 		if t.Active {
 			// New remote active: clear any previous remote /run completion cache.
 			m.RunCompletion.RemoteCommands = nil
@@ -28,7 +27,7 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 	case ui.RunCompletionCacheMsg:
 		// Remote cache update (sent by CLI on successful /remote on).
 		// Ignore stale results from previous remotes.
-		if t.RemoteLabel == "" || t.RemoteLabel != hostapp.RemoteLabel() {
+		if t.RemoteLabel == "" || t.RemoteLabel != m.Host.RemoteLabel() {
 			return m, nil, true
 		}
 		m.RunCompletion.RemoteCommands = t.Commands

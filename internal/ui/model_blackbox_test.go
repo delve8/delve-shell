@@ -40,7 +40,8 @@ func newBlackboxFixture(t *testing.T) blackboxFixture {
 		remoteOff:      make(chan struct{}, 2),
 		remoteAuthResp: make(chan ui.RemoteAuthResponse, 2),
 	}
-	hostapp.Wire(&hostapp.Send{
+	rt := hostapp.NewRuntime()
+	rt.WireSend(&hostapp.Send{
 		Submit:         f.submitChan,
 		ConfigUpdated:  f.configUpdated,
 		CancelRequest:  f.cancelRequest,
@@ -50,11 +51,11 @@ func newBlackboxFixture(t *testing.T) blackboxFixture {
 		RemoteAuthResp: f.remoteAuthResp,
 		ShellSnapshot:  f.shellRequested,
 	})
-	t.Cleanup(hostapp.ResetTestState)
-	hostapp.BindAllowlistAutoRun(func() bool { return true }, func(bool) {})
-	hostapp.SetRemoteExecution(false, "")
-	hostapp.SetOpenConfigLLMOnFirstLayout(false)
-	f.model = ui.NewModel(nil)
+	t.Cleanup(func() { rt.Reset() })
+	rt.BindAllowlistAutoRun(func() bool { return true }, func(bool) {})
+	rt.SetRemoteExecution(false, "")
+	rt.SetOpenConfigLLMOnFirstLayout(false)
+	f.model = ui.NewModel(nil, rt)
 	return f
 }
 
@@ -299,9 +300,11 @@ func TestBlackboxSlashSessionsPrefixSubmitsCommand(t *testing.T) {
 }
 
 func TestBlackboxStartupOverlayProviderOpensConfigLLM(t *testing.T) {
-	t.Cleanup(func() { hostapp.SetOpenConfigLLMOnFirstLayout(false) })
-	hostapp.SetOpenConfigLLMOnFirstLayout(true)
-	m := ui.NewModel(nil)
+	rt := hostapp.NewRuntime()
+	t.Cleanup(func() { rt.Reset() })
+	t.Cleanup(func() { rt.SetOpenConfigLLMOnFirstLayout(false) })
+	rt.SetOpenConfigLLMOnFirstLayout(true)
+	m := ui.NewModel(nil, rt)
 	next, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	got := next.(ui.Model)
 	if !got.Overlay.Active || !configllm.OverlayActive() {

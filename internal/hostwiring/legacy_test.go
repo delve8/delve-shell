@@ -7,23 +7,37 @@ import (
 
 	"delve-shell/internal/hostbus"
 	"delve-shell/internal/hostapp"
-	"delve-shell/internal/remote"
-	"delve-shell/internal/run"
 	"delve-shell/internal/ui"
 )
 
-// BindSendPorts installs hostapp send endpoints. Do not use t.Parallel().
+// bindTestPorts wires hostapp send endpoints. Do not use t.Parallel().
+
+func bindTestPorts(t *testing.T, ports hostbus.InputPorts, shell chan<- []string) *hostapp.Runtime {
+	t.Helper()
+	rt := hostapp.NewRuntime()
+	t.Cleanup(func() { rt.Reset() })
+	BindSendPorts(rt, ports, shell)
+	return rt
+}
+
+// installTestRuntime returns an empty *Runtime for allowlist-only tests. Resets on cleanup.
+func installTestRuntime(t *testing.T) *hostapp.Runtime {
+	t.Helper()
+	rt := hostapp.NewRuntime()
+	t.Cleanup(func() { rt.Reset() })
+	return rt
+}
 
 func TestBindSendPorts_SubmitDelivered(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindSendPorts(ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan []string, 1))
 
 	done := make(chan string, 1)
 	go func() {
 		done <- <-ports.SubmitChan
 	}()
 
-	if !hostapp.Submit("ping") {
+	if !rt.Submit("ping") {
 		t.Fatal("Submit returned false")
 	}
 	select {
@@ -38,9 +52,9 @@ func TestBindSendPorts_SubmitDelivered(t *testing.T) {
 
 func TestBindSendPorts_ConfigUpdated(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindSendPorts(ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan []string, 1))
 
-	go func() { hostapp.NotifyConfigUpdated() }()
+	go func() { rt.NotifyConfigUpdated() }()
 	select {
 	case <-ports.ConfigUpdatedChan:
 	case <-time.After(2 * time.Second):
@@ -50,14 +64,14 @@ func TestBindSendPorts_ConfigUpdated(t *testing.T) {
 
 func TestBindSendPorts_ExecDirectPublish(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindSendPorts(ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan []string, 1))
 
 	done := make(chan string, 1)
 	go func() {
 		done <- <-ports.ExecDirectChan
 	}()
 
-	go func() { run.PublishExecDirect("echo ok") }()
+	go func() { rt.PublishExecDirect("echo ok") }()
 
 	select {
 	case v := <-done:
@@ -71,20 +85,20 @@ func TestBindSendPorts_ExecDirectPublish(t *testing.T) {
 
 func TestBindSendPorts_CancelPublish(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindSendPorts(ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan []string, 1))
 
 	go func() { <-ports.CancelRequestChan }()
 
-	if !run.PublishCancelRequest() {
+	if !rt.PublishCancelRequest() {
 		t.Fatal("cancel publish failed")
 	}
 }
 
 func TestBindSendPorts_RemoteOnOffAuth(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindSendPorts(ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan []string, 1))
 
-	if !remote.PublishRemoteOnTarget("dev") {
+	if !rt.PublishRemoteOnTarget("dev") {
 		t.Fatal("remote on publish failed")
 	}
 	select {
@@ -96,7 +110,7 @@ func TestBindSendPorts_RemoteOnOffAuth(t *testing.T) {
 		t.Fatal("timeout remote on")
 	}
 
-	if !remote.PublishRemoteOff() {
+	if !rt.PublishRemoteOff() {
 		t.Fatal("remote off publish failed")
 	}
 	select {
@@ -106,7 +120,7 @@ func TestBindSendPorts_RemoteOnOffAuth(t *testing.T) {
 	}
 
 	resp := ui.RemoteAuthResponse{Target: "h", Kind: "password", Password: "x"}
-	if !remote.PublishRemoteAuthResponse(resp) {
+	if !rt.PublishRemoteAuthResponse(resp) {
 		t.Fatal("auth resp publish failed")
 	}
 	select {
@@ -122,10 +136,10 @@ func TestBindSendPorts_RemoteOnOffAuth(t *testing.T) {
 func TestBindSendPorts_ShellSnapshotPublish(t *testing.T) {
 	ports := hostbus.NewInputPorts()
 	shell := make(chan []string, 1)
-	BindSendPorts(ports, shell)
+	rt := bindTestPorts(t, ports, shell)
 
 	msgs := []string{"a", "b"}
-	if !run.PublishShellSnapshot(msgs) {
+	if !rt.PublishShellSnapshot(msgs) {
 		t.Fatal("shell snapshot publish failed")
 	}
 	select {
@@ -140,25 +154,25 @@ func TestBindSendPorts_ShellSnapshotPublish(t *testing.T) {
 
 func TestBindSendPorts_SubmitNonBlockingVsFullBuffer(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindSendPorts(ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan []string, 1))
 
 	for i := 0; i < cap(ports.SubmitChan); i++ {
-		if !hostapp.TrySubmitNonBlocking("fill") {
+		if !rt.TrySubmitNonBlocking("fill") {
 			t.Fatalf("unexpected failure filling at %d", i)
 		}
 	}
-	if hostapp.TrySubmitNonBlocking("overflow") {
+	if rt.TrySubmitNonBlocking("overflow") {
 		t.Fatal("expected full buffer to reject non-blocking submit")
 	}
 }
 
 func TestBindSendPorts_ExecDirectEmptyNoBlock(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindSendPorts(ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan []string, 1))
 
 	done := make(chan struct{})
 	go func() {
-		run.PublishExecDirect("")
+		rt.PublishExecDirect("")
 		close(done)
 	}()
 
@@ -179,11 +193,14 @@ func TestBindSendPorts_MultipleBindsLastWins(t *testing.T) {
 	p1 := hostbus.NewInputPorts()
 	p2 := hostbus.NewInputPorts()
 	shell := make(chan []string, 1)
-	BindSendPorts(p1, shell)
-	BindSendPorts(p2, shell)
+	r1 := hostapp.NewRuntime()
+	BindSendPorts(r1, p1, shell)
+	r2 := hostapp.NewRuntime()
+	BindSendPorts(r2, p2, shell)
+	t.Cleanup(func() { r1.Reset(); r2.Reset() })
 
 	go func() { <-p2.SubmitChan }()
-	if !hostapp.Submit("second") {
+	if !r2.Submit("second") {
 		t.Fatal("submit failed")
 	}
 
@@ -220,7 +237,7 @@ func TestInputPortsCapacitiesDocumented(t *testing.T) {
 
 func TestBindSendPorts_AgentUIChanUnwired(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindSendPorts(ports, make(chan []string, 1))
+	bindTestPorts(t, ports, make(chan []string, 1))
 	// Agent UI events go to runnermgr / BridgeInputs only; legacy globals do not touch AgentUIChan.
 	if cap(ports.AgentUIChan) < 1 {
 		t.Fatal("agent chan missing capacity")
@@ -228,30 +245,32 @@ func TestBindSendPorts_AgentUIChanUnwired(t *testing.T) {
 }
 
 func TestBindAllowlistAutoRun_GetterVisible(t *testing.T) {
-	BindAllowlistAutoRun(func() bool { return false }, func(bool) {})
-	if hostapp.AllowlistAutoRunEnabled() {
+	rt := installTestRuntime(t)
+	BindAllowlistAutoRun(rt, func() bool { return false }, func(bool) {})
+	if rt.AllowlistAutoRunEnabled() {
 		t.Fatal("getter should return false")
 	}
-	BindAllowlistAutoRun(func() bool { return true }, func(bool) {})
-	if !hostapp.AllowlistAutoRunEnabled() {
+	BindAllowlistAutoRun(rt, func() bool { return true }, func(bool) {})
+	if !rt.AllowlistAutoRunEnabled() {
 		t.Fatal("getter should return true")
 	}
 }
 
 func TestBindAllowlistAutoRun_RebindOverrides(t *testing.T) {
-	BindAllowlistAutoRun(func() bool { return false }, func(bool) {})
-	BindAllowlistAutoRun(func() bool { return true }, func(bool) {})
-	if !hostapp.AllowlistAutoRunEnabled() {
+	rt := installTestRuntime(t)
+	BindAllowlistAutoRun(rt, func() bool { return false }, func(bool) {})
+	BindAllowlistAutoRun(rt, func() bool { return true }, func(bool) {})
+	if !rt.AllowlistAutoRunEnabled() {
 		t.Fatal("second bind should win")
 	}
 }
 
 func TestBindSendPorts_ConfigUpdatedNonBlockingDrop(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindSendPorts(ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan []string, 1))
 	n := cap(ports.ConfigUpdatedChan)
 	for i := 0; i < n+20; i++ {
-		hostapp.NotifyConfigUpdated()
+		rt.NotifyConfigUpdated()
 	}
 	count := 0
 	for {
@@ -269,26 +288,26 @@ func TestBindSendPorts_ConfigUpdatedNonBlockingDrop(t *testing.T) {
 
 func TestBindSendPorts_RemoteBuffersIndependent(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindSendPorts(ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan []string, 1))
 
 	for i := 0; i < cap(ports.RemoteOnChan); i++ {
-		if !remote.PublishRemoteOnTarget("x") {
+		if !rt.PublishRemoteOnTarget("x") {
 			t.Fatalf("fill remote on at %d", i)
 		}
 	}
-	if remote.PublishRemoteOnTarget("overflow") {
+	if rt.PublishRemoteOnTarget("overflow") {
 		t.Fatal("expected full remote on buffer")
 	}
 }
 
 func TestBindSendPorts_SubmitStressSequential(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindSendPorts(ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan []string, 1))
 
 	const total = 200
 	go func() {
 		for i := range total {
-			_ = hostapp.Submit(strings.Repeat("a", i%5+1))
+			_ = rt.Submit(strings.Repeat("a", i%5+1))
 		}
 	}()
 	for range total {
@@ -303,10 +322,10 @@ func TestBindSendPorts_SubmitStressSequential(t *testing.T) {
 func TestBindSendPorts_ShellSnapshotDelivered(t *testing.T) {
 	ports := hostbus.NewInputPorts()
 	shell := make(chan []string, 1)
-	BindSendPorts(ports, shell)
+	rt := bindTestPorts(t, ports, shell)
 
 	msgs := []string{"line1", "line2"}
-	if !run.PublishShellSnapshot(msgs) {
+	if !rt.PublishShellSnapshot(msgs) {
 		t.Fatal("publish failed")
 	}
 	got := <-shell
@@ -317,11 +336,11 @@ func TestBindSendPorts_ShellSnapshotDelivered(t *testing.T) {
 
 func TestBindSendPorts_RemoteOnSequential(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindSendPorts(ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan []string, 1))
 
 	targets := []string{"a", "b", "c", "d", "e"}
 	for _, want := range targets {
-		if !remote.PublishRemoteOnTarget(want) {
+		if !rt.PublishRemoteOnTarget(want) {
 			t.Fatalf("publish failed for %q", want)
 		}
 		got := <-ports.RemoteOnChan
@@ -333,7 +352,7 @@ func TestBindSendPorts_RemoteOnSequential(t *testing.T) {
 
 func TestBindSendPorts_ExecDirectSequential(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindSendPorts(ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan []string, 1))
 
 	cmds := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
 	for _, want := range cmds {
@@ -341,7 +360,7 @@ func TestBindSendPorts_ExecDirectSequential(t *testing.T) {
 		go func() {
 			done <- <-ports.ExecDirectChan
 		}()
-		run.PublishExecDirect(want)
+		rt.PublishExecDirect(want)
 		if got := <-done; got != want {
 			t.Fatalf("want %q got %q", want, got)
 		}
@@ -350,14 +369,14 @@ func TestBindSendPorts_ExecDirectSequential(t *testing.T) {
 
 func TestBindSendPorts_CancelBurstWithinCapacity(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindSendPorts(ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan []string, 1))
 	n := cap(ports.CancelRequestChan)
 	for i := 0; i < n; i++ {
-		if !run.PublishCancelRequest() {
+		if !rt.PublishCancelRequest() {
 			t.Fatalf("cancel %d failed", i)
 		}
 	}
-	if run.PublishCancelRequest() {
+	if rt.PublishCancelRequest() {
 		t.Fatal("expected full cancel buffer to reject")
 	}
 	for i := 0; i < n; i++ {
@@ -367,7 +386,7 @@ func TestBindSendPorts_CancelBurstWithinCapacity(t *testing.T) {
 
 func TestBindSendPorts_AuthResponseTable(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindSendPorts(ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan []string, 1))
 
 	variants := []ui.RemoteAuthResponse{
 		{Target: "root@10.0.0.1", Username: "root", Kind: "password", Password: "secret"},
@@ -400,7 +419,7 @@ func TestBindSendPorts_AuthResponseTable(t *testing.T) {
 		{Target: "t25", Username: "", Kind: "password", Password: ""},
 	}
 	for i, want := range variants {
-		if !remote.PublishRemoteAuthResponse(want) {
+		if !rt.PublishRemoteAuthResponse(want) {
 			t.Fatalf("case %d: publish failed for %+v", i, want)
 		}
 		got := <-ports.RemoteAuthRespChan
@@ -412,7 +431,7 @@ func TestBindSendPorts_AuthResponseTable(t *testing.T) {
 
 func TestBindSendPorts_SubmitPayloadTable(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindSendPorts(ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan []string, 1))
 
 	payloads := []string{
 		"hello",
@@ -452,7 +471,7 @@ func TestBindSendPorts_SubmitPayloadTable(t *testing.T) {
 		go func() {
 			recv <- <-ports.SubmitChan
 		}()
-		if !hostapp.Submit(want) {
+		if !rt.Submit(want) {
 			t.Fatalf("case %d: submit failed for %q", i, want)
 		}
 		select {
@@ -468,7 +487,7 @@ func TestBindSendPorts_SubmitPayloadTable(t *testing.T) {
 
 func TestBindSendPorts_ExecDirectPayloadTable(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindSendPorts(ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan []string, 1))
 
 	cmds := []string{
 		"true",
@@ -485,7 +504,7 @@ func TestBindSendPorts_ExecDirectPayloadTable(t *testing.T) {
 		go func() {
 			received <- <-ports.ExecDirectChan
 		}()
-		go func() { run.PublishExecDirect(want) }()
+		go func() { rt.PublishExecDirect(want) }()
 		select {
 		case got := <-received:
 			if got != want {
@@ -498,8 +517,9 @@ func TestBindSendPorts_ExecDirectPayloadTable(t *testing.T) {
 }
 
 func TestBindAllowlistAutoRun_NilGetterFallsBackToTrue(t *testing.T) {
-	BindAllowlistAutoRun(nil, func(bool) {})
-	if !hostapp.AllowlistAutoRunEnabled() {
-		t.Fatal("nil getter should default to true in hostapp.AllowlistAutoRunEnabled")
+	rt := installTestRuntime(t)
+	BindAllowlistAutoRun(rt, nil, func(bool) {})
+	if !rt.AllowlistAutoRunEnabled() {
+		t.Fatal("nil getter should default to true in AllowlistAutoRunEnabled")
 	}
 }

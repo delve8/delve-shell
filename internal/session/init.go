@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"delve-shell/internal/history"
-	"delve-shell/internal/hostapp"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/ui"
 )
@@ -19,7 +18,7 @@ const maxSessionHistoryEvents = 500
 func init() {
 	ui.RegisterSlashExact("/new", ui.SlashExactDispatchEntry{
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
-			_ = hostapp.Submit("/new")
+			_ = m.Host.Submit("/new")
 			// /new consumes input and refreshes content (keep old behavior).
 			m = m.ClearSlashInput()
 			m = m.RefreshViewport()
@@ -35,7 +34,7 @@ func init() {
 			if id == "" {
 				return m, nil, true
 			}
-			hostapp.TrySubmitNonBlocking("/sessions " + id)
+			m.Host.TrySubmitNonBlocking("/sessions " + id)
 			return m.RefreshViewport(), nil, true
 		},
 	})

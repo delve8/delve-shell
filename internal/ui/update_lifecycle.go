@@ -1,9 +1,7 @@
 package ui
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
-
-	"delve-shell/internal/hostapp"
+	tea 	"github.com/charmbracelet/bubbletea"
 )
 
 func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
@@ -19,7 +17,7 @@ func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 		m.Viewport.Height = vh
 	}
 	m = m.RefreshViewport()
-	if hostapp.TakeOpenConfigLLMOnFirstLayout() {
+	if m.Host.TakeOpenConfigLLMOnFirstLayout() {
 		for _, p := range startupOverlayProviderChain.List() {
 			if m2, cmd, handled := p(m); handled {
 				return m2, cmd
