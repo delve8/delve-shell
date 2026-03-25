@@ -9,7 +9,7 @@ import (
 // SemanticLabel names the event shape in architecture terms (docs/ui-refactor-handoff.md §10.4 draft).
 // Wire Kind string values stay stable for logs and tests; this label is for human traceability only.
 //
-// Slash execution stays in the TUI; [KindSlashEntered] is emitted after a successful dispatch for tracing.
+// Slash execution stays in the TUI; [KindSlashRequested] is emitted before the handler runs; [KindSlashEntered] after success.
 func (k Kind) SemanticLabel() string {
 	switch k {
 	case KindSessionNewRequested:
@@ -40,6 +40,8 @@ func (k Kind) SemanticLabel() string {
 		return "AgentUIPassthrough"
 	case KindLLMRunCompleted:
 		return "LLMRunCompleted"
+	case KindSlashRequested:
+		return "SlashRequested"
 	case KindSlashEntered:
 		return "SlashEntered"
 	default:
@@ -56,6 +58,8 @@ func (e Event) RedactedSummary() string {
 		return label
 	case KindSessionSwitchRequested:
 		return fmt.Sprintf("%s session_id=%s", label, clipOneLine(e.SessionID, 64))
+	case KindSlashRequested:
+		return fmt.Sprintf("%s line=%q", label, clipOneLine(e.UserText, 200))
 	case KindSlashEntered:
 		return fmt.Sprintf("%s line=%q", label, clipOneLine(e.UserText, 200))
 	case KindUserChatSubmitted:

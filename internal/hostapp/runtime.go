@@ -15,10 +15,10 @@ type Runtime struct {
 	allowlistFn func() bool
 	// syncAllowlist persists allowlist_auto_run changes and invalidates runner.
 	syncAllowlist func(bool)
-	remoteActive bool
-	remoteLabel  string
-	cfgLLMMu     sync.Mutex
-	cfgLLMFirst  bool
+	remoteActive  bool
+	remoteLabel   string
+	cfgLLMMu      sync.Mutex
+	cfgLLMFirst   bool
 }
 
 // NewRuntime returns an empty runtime; call WireSend and BindAllowlistAutoRun, then pass *Runtime as ui.Model.Host (or embed behind hostapp.Host).
@@ -224,17 +224,30 @@ func (r *Runtime) PublishRemoteAuthResponse(resp remoteauth.Response) bool {
 	}
 }
 
+// RequestSlashDispatch records a pre-handler slash attempt on the bus (drops if unwired or buffer full).
+func (r *Runtime) RequestSlashDispatch(line string) {
+	r.trySendSlashLine(line, func(s *Send) chan<- string { return s.SlashRequest })
+}
+
 // TraceSlashEntered records a dispatched slash line on the bus (drops if unwired or buffer full).
 func (r *Runtime) TraceSlashEntered(line string) {
+	r.trySendSlashLine(line, func(s *Send) chan<- string { return s.SlashTrace })
+}
+
+func (r *Runtime) trySendSlashLine(line string, pickCh func(*Send) chan<- string) {
 	if line == "" {
 		return
 	}
 	s := r.currentSend()
-	if s == nil || s.SlashTrace == nil {
+	if s == nil {
+		return
+	}
+	ch := pickCh(s)
+	if ch == nil {
 		return
 	}
 	select {
-	case s.SlashTrace <- line:
+	case ch <- line:
 	default:
 	}
 }

@@ -367,6 +367,9 @@ func TestSemanticLabel_MapsDraftNames(t *testing.T) {
 	if g, w := KindConfigUpdated.SemanticLabel(), "ConfigReloaded"; g != w {
 		t.Fatalf("KindConfigUpdated: got %q want %q", g, w)
 	}
+	if g, w := KindSlashRequested.SemanticLabel(), "SlashRequested"; g != w {
+		t.Fatalf("KindSlashRequested: got %q want %q", g, w)
+	}
 	if g, w := KindSlashEntered.SemanticLabel(), "SlashEntered"; g != w {
 		t.Fatalf("KindSlashEntered: got %q want %q", g, w)
 	}

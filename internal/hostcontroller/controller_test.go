@@ -415,6 +415,15 @@ func TestHandleEvent_SlashEnteredNoOp(t *testing.T) {
 	}
 }
 
+func TestHandleEvent_SlashRequestedNoOp(t *testing.T) {
+	s := &recordSender{}
+	c := newTestControllerWithPresenter(s)
+	c.handleEvent(hostbus.Event{Kind: hostbus.KindSlashRequested, UserText: "/help"})
+	if len(s.msgs) != 0 {
+		t.Fatalf("slash requested is observability-only, got %d msgs", len(s.msgs))
+	}
+}
+
 func TestHandleEvent_OnEventDispatchCalled(t *testing.T) {
 	s := &recordSender{}
 	c := newTestControllerWithPresenter(s)

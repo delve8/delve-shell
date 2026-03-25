@@ -30,6 +30,7 @@ func (m Model) dispatchSlashExact(cmd string) (Model, tea.Cmd, bool) {
 	if !ok {
 		return m, nil, false
 	}
+	m.Host.RequestSlashDispatch(cmd)
 	m, outCmd := entry.Handle(m)
 	if entry.ClearInput {
 		m = m.clearSlashInput()
@@ -44,6 +45,7 @@ func (m Model) dispatchSlashPrefix(text string) (Model, tea.Cmd, bool) {
 	for _, e := range slashPrefixDispatchRegistry.Entries() {
 		if strings.HasPrefix(text, e.Prefix) {
 			rest := strings.TrimPrefix(text, e.Prefix)
+			m.Host.RequestSlashDispatch(text)
 			m2, outCmd, handled := e.Handle(m, rest)
 			if handled {
 				m2.Host.TraceSlashEntered(text)
@@ -93,6 +95,7 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 // handleSlashSelectedFallback handles suggestion-selected slash commands
 // that are intentionally not routed through exact/prefix dispatcher.
 func (m Model) handleSlashSelectedFallback(chosen string) (Model, tea.Cmd, bool) {
+	m.Host.RequestSlashDispatch(chosen)
 	for _, p := range slashSelectedProviderChain.List() {
 		if m2, cmd, handled := p(m, chosen); handled {
 			m2.Host.TraceSlashEntered(chosen)
