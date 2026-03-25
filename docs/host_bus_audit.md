@@ -85,7 +85,7 @@
 
 | 判据 | 现状 |
 |------|------|
-| `cli.Run` 全局 setter / 多路接线减少 | 生产路径经 `internal/host/wiring` + `internal/host/app`（`*app.Runtime`）；见 `interactive/host_stack.go`。 |
+| `cli.Run` 全局 setter / 多路接线减少 | 生产路径经 `internal/host/wiring` + `internal/host/app`（`*app.Runtime`）；见 `interactive/wire_stack.go`。 |
 | 主路径可追踪 | 主对话与 Agent HIL 见上表；slash 执行仍主要在 TUI，总线侧为观测事件。 |
 | UI 新增能力优先控件组合 | 进行中（§10.8 阶段 5）；overlay 已部分抽至 `internal/ui/widget`。 |
 | e2e / 黑盒通过 | `go test ./internal/e2e/...`、 `internal/ui` 黑盒测试需保持绿。 |

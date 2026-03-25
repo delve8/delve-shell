@@ -9,7 +9,7 @@ import (
 	"delve-shell/internal/ui"
 )
 
-// Sender delivers a message to the active tea.Program (typically via hostbus UI queue).
+// Sender delivers a message to the active tea.Program (typically via bus UI queue).
 type Sender interface {
 	Send(msg tea.Msg)
 }
