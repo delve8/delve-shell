@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/remoteauth"
 	"delve-shell/internal/uivm"
 )
@@ -29,13 +30,21 @@ func (s actionChannelSender) Send(action uivm.UIAction) bool {
 	}
 }
 
-func (m Model) EmitSubmitIntent(text string) bool {
+func (m Model) EmitSubmissionIntent(sub inputlifecycletype.InputSubmission) bool {
 	if m.ActionSender == nil {
 		return false
 	}
 	return m.ActionSender.Send(uivm.UIAction{
-		Kind: uivm.UIActionSubmit,
-		Text: text,
+		Kind:       uivm.UIActionSubmission,
+		Submission: sub,
+	})
+}
+
+func (m Model) EmitChatSubmitIntent(text string, source inputlifecycletype.SubmissionSource) bool {
+	return m.EmitSubmissionIntent(inputlifecycletype.InputSubmission{
+		Kind:    inputlifecycletype.SubmissionChat,
+		Source:  source,
+		RawText: text,
 	})
 }
 

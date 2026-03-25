@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/service/skillsvc"
 	"delve-shell/internal/skills"
 	"delve-shell/internal/ui"
@@ -72,7 +73,7 @@ func handleSlashSkillPrefix(m ui.Model, rest string) ui.Model {
 	}
 
 	payload := skillInvocationPrompt(skillName, skillContent, naturalLanguage)
-	if m.EmitSubmitIntent(payload) {
+	if m.EmitChatSubmitIntent(payload, inputlifecycletype.SourceProgrammatic) {
 		m.Interaction.WaitingForAI = true
 	}
 	m.Input.SetValue("")

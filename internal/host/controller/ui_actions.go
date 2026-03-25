@@ -3,13 +3,14 @@ package controller
 import (
 	"delve-shell/internal/host/bus"
 	"delve-shell/internal/host/route"
+	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/uivm"
 )
 
 func (c *Controller) handleUIAction(action uivm.UIAction) {
 	switch action.Kind {
-	case uivm.UIActionSubmit:
-		c.publishSubmitAction(action.Text)
+	case uivm.UIActionSubmission:
+		c.publishSubmissionAction(action.Submission)
 	case uivm.UIActionConfigUpdated:
 		c.bus.PublishBlocking(bus.Event{Kind: bus.KindConfigUpdated})
 	case uivm.UIActionExecDirect:
@@ -46,6 +47,13 @@ func (c *Controller) handleUIAction(action uivm.UIAction) {
 			return
 		}
 		c.bus.PublishBlocking(bus.Event{Kind: bus.KindSlashEntered, UserText: action.Text})
+	}
+}
+
+func (c *Controller) publishSubmissionAction(sub inputlifecycletype.InputSubmission) {
+	switch sub.Kind {
+	case inputlifecycletype.SubmissionChat, inputlifecycletype.SubmissionSlash:
+		c.publishSubmitAction(sub.RawText)
 	}
 }
 

@@ -1,16 +1,23 @@
 package ui
 
 import (
+	"errors"
 	"strings"
 
-	"delve-shell/internal/inputbridge"
+	"delve-shell/internal/i18n"
 	"delve-shell/internal/inputlifecycle"
 	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/inputoutput"
+	"delve-shell/internal/inputpreflight"
+	"delve-shell/internal/inputprocess/chatproc"
+	"delve-shell/internal/inputprocess/controlproc"
 	"delve-shell/internal/inputprocess/slashproc"
+	"delve-shell/internal/uivm"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+var errUIIntentRejected = errors.New("ui lifecycle: outbound submission rejected")
 
 type uiControlContexts struct {
 	m Model
@@ -29,9 +36,62 @@ func hasSlashPreInputState(m Model) bool {
 	return inputVal != "" && inputVal[0] == '/'
 }
 
-type localSlashExecutor struct{}
+type localSlashExecutor struct {
+	sender ActionSender
+}
 
-func (localSlashExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inputlifecycletype.ProcessResult, error) {
+func (e localSlashExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inputlifecycletype.ProcessResult, error) {
+	trimmed := strings.TrimSpace(req.RawText)
+	switch {
+	case trimmed == "/help":
+		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+			Kind: inputlifecycletype.OutputMessage,
+			Message: &inputlifecycletype.MessagePayload{Value: OverlayShowMsg{
+				Title:   i18n.T("en", i18n.KeyHelpTitle),
+				Content: i18n.T("en", i18n.KeyHelpText),
+			}},
+		}), nil
+	case trimmed == "/new":
+		if e.sender == nil || !e.sender.Send(uivm.UIAction{
+			Kind: uivm.UIActionSubmission,
+			Submission: inputlifecycletype.InputSubmission{
+				Kind:    inputlifecycletype.SubmissionChat,
+				Source:  inputlifecycletype.SourceProgrammatic,
+				RawText: trimmed,
+			},
+		}) {
+			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
+		}
+		return inputlifecycletype.ConsumedResult(), nil
+	case strings.HasPrefix(trimmed, "/sessions "):
+		if e.sender == nil || !e.sender.Send(uivm.UIAction{
+			Kind: uivm.UIActionSubmission,
+			Submission: inputlifecycletype.InputSubmission{
+				Kind:    inputlifecycletype.SubmissionChat,
+				Source:  inputlifecycletype.SourceProgrammatic,
+				RawText: trimmed,
+			},
+		}) {
+			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
+		}
+		return inputlifecycletype.ConsumedResult(), nil
+	case strings.HasPrefix(trimmed, "/run "):
+		cmd := strings.TrimSpace(strings.TrimPrefix(trimmed, "/run "))
+		if cmd == "" {
+			return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+				Kind: inputlifecycletype.OutputMessage,
+				Message: &inputlifecycletype.MessagePayload{Value: TranscriptAppendMsg{
+					Lines: []uivm.Line{
+						{Kind: uivm.LineSystemError, Text: i18n.T("en", i18n.KeyUsageRun)},
+					},
+				}},
+			}), nil
+		}
+		if e.sender == nil || !e.sender.Send(uivm.UIAction{Kind: uivm.UIActionExecDirect, Text: cmd}) {
+			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
+		}
+		return inputlifecycletype.ConsumedResult(), nil
+	}
 	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 		Kind: inputlifecycletype.OutputMessage,
 		Message: &inputlifecycletype.MessagePayload{Value: LifecycleSlashExecuteMsg{
@@ -42,8 +102,61 @@ func (localSlashExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inputlif
 	}), nil
 }
 
+type uiChatSubmissionExecutor struct {
+	sender ActionSender
+}
+
+func (e uiChatSubmissionExecutor) ExecuteChat(sub inputlifecycletype.InputSubmission) (inputlifecycletype.ProcessResult, error) {
+	if e.sender == nil {
+		return inputlifecycletype.ProcessResult{}, errUIIntentRejected
+	}
+	if !e.sender.Send(uivm.UIAction{
+		Kind:       uivm.UIActionSubmission,
+		Submission: sub,
+	}) {
+		return inputlifecycletype.ProcessResult{}, errUIIntentRejected
+	}
+	res := inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+		Kind:   inputlifecycletype.OutputStatusChange,
+		Status: &inputlifecycletype.StatusPayload{Key: "processing"},
+	})
+	res.WaitingForAI = true
+	return res, nil
+}
+
+type uiControlActionExecutor struct {
+	sender ActionSender
+}
+
+func (e uiControlActionExecutor) ExecuteControl(action inputlifecycletype.ControlAction) (inputlifecycletype.ProcessResult, error) {
+	switch action {
+	case inputlifecycletype.ControlCancelProcessing:
+		if e.sender == nil {
+			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
+		}
+		if !e.sender.Send(uivm.UIAction{Kind: uivm.UIActionCancelRequested}) {
+			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
+		}
+		return inputlifecycletype.ConsumedResult(), nil
+	case inputlifecycletype.ControlCloseOverlay,
+		inputlifecycletype.ControlClearPreInput:
+		return inputlifecycletype.ConsumedResult(), nil
+	case inputlifecycletype.ControlQuit, inputlifecycletype.ControlInterrupt:
+		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+			Kind: inputlifecycletype.OutputQuit,
+		}), nil
+	default:
+		return inputlifecycletype.ProcessResult{}, controlproc.ErrUnknownControlSignal
+	}
+}
+
 func (m Model) lifecycleEngine() inputlifecycle.Engine {
-	return inputbridge.NewEngine(m.ActionSender, uiControlContexts{m: m}, localSlashExecutor{})
+	router := inputlifecycle.NewRouter(
+		controlproc.New(uiControlContexts{m: m}, uiControlActionExecutor{sender: m.ActionSender}),
+		slashproc.New(localSlashExecutor{sender: m.ActionSender}),
+		chatproc.New(uiChatSubmissionExecutor{sender: m.ActionSender}),
+	)
+	return inputlifecycle.NewEngine(inputpreflight.Engine{}, router)
 }
 
 func (m Model) submitLifecycleSlash(rawText, inputLine string, selectedIndex int, source inputlifecycletype.SubmissionSource) (inputlifecycletype.ProcessResult, bool, error) {
@@ -65,11 +178,16 @@ func (m Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (Model
 		if out.Kind != inputlifecycletype.OutputMessage || out.Message == nil {
 			continue
 		}
-		msg, ok := out.Message.Value.(LifecycleSlashExecuteMsg)
-		if !ok {
-			continue
+		switch msg := out.Message.Value.(type) {
+		case LifecycleSlashExecuteMsg:
+			return m.handleLifecycleSlashExecuteMsg(msg)
+		case OverlayShowMsg:
+			return m.handleOverlayShowMsg(msg)
+		case OverlayCloseMsg:
+			return m.handleOverlayCloseMsg()
+		case TranscriptAppendMsg:
+			return m.handleTranscriptAppendMsg(msg)
 		}
-		return m.handleLifecycleSlashExecuteMsg(msg)
 	}
 	patch, cmd := inputoutput.ApplyResult(res)
 	if patch.WaitingForAI != nil {

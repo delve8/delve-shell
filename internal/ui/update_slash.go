@@ -76,9 +76,14 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 		m.Interaction.slashSuggestIndex = 0
 		return m, nil, true
 	case inputpreflight.EnterPlanSubmit:
-		if res, handled, err := m.lifecycleEngine().RouteSubmission(plan.Submission); handled && err == nil {
-			m, cmd := m.applyLifecycleResult(res)
-			return m, cmd, true
+		if res, handled, err := m.lifecycleEngine().RouteSubmission(plan.Submission); handled {
+			if err != nil {
+				m = m.AppendTranscriptLines(errStyle.Render(m.delveMsg(err.Error())))
+				return m.RefreshViewport(), nil, true
+			}
+			m = m.clearSlashInput()
+			returned, cmd := m.applyLifecycleResult(res)
+			return returned, cmd, true
 		}
 	}
 	return m.execSlashEnterKeyLocal(inputVal)

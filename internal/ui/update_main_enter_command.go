@@ -13,9 +13,12 @@ import (
 
 func (m Model) handleMainEnterCommand(text string, slashSelectedIndex int) (Model, tea.Cmd) {
 	if strings.HasPrefix(strings.TrimSpace(text), "/") {
-		if res, handled, err := m.submitLifecycleSlash(text, text, slashSelectedIndex, inputlifecycletype.SourceMainEnter); handled && err == nil {
-			m, cmd := m.applyLifecycleResult(res)
-			return m, cmd
+		if res, handled, err := m.submitLifecycleSlash(text, text, slashSelectedIndex, inputlifecycletype.SourceMainEnter); handled {
+			if err != nil {
+				m = m.AppendTranscriptLines(errStyle.Render(m.delveMsg(err.Error())))
+				return m.RefreshViewport(), nil
+			}
+			return m.applyLifecycleResult(res)
 		}
 	}
 	return m.executeMainEnterCommandNoRelay(text, slashSelectedIndex)
@@ -65,7 +68,7 @@ func (m Model) executeMainEnterCommandNoRelay(text string, slashSelectedIndex in
 		}
 	}
 
-	if m.EmitSubmitIntent(text) {
+	if m.EmitChatSubmitIntent(text, inputlifecycletype.SourceMainEnter) {
 		m.Interaction.WaitingForAI = true
 	}
 	return m, nil

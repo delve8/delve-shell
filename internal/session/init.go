@@ -1,7 +1,6 @@
 package session
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
 	"strings"
 
 	"delve-shell/internal/history"
@@ -13,29 +12,6 @@ const maxSessionHistoryEvents = 500
 
 // Register wires session slash commands and the session-switched message provider. Call from [bootstrap.Install].
 func Register() {
-	ui.RegisterSlashExact("/new", ui.SlashExactDispatchEntry{
-		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
-			_ = m.EmitSubmitIntent("/new")
-			// /new consumes input and refreshes content (keep old behavior).
-			m = m.ClearSlashInput()
-			m = m.RefreshViewport()
-			return m, nil
-		},
-		ClearInput: false,
-	})
-
-	ui.RegisterSlashPrefix("/sessions ", ui.SlashPrefixDispatchEntry{
-		Prefix: "/sessions ",
-		Handle: func(m ui.Model, rest string) (ui.Model, tea.Cmd, bool) {
-			id := strings.TrimSpace(rest)
-			if id == "" {
-				return m, nil, true
-			}
-			m.EmitSubmitIntent("/sessions " + id)
-			return m.RefreshViewport(), nil, true
-		},
-	})
-
 	ui.RegisterSlashOptionsProvider(func(
 		inputVal string,
 		lang string,

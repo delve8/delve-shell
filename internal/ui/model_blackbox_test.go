@@ -10,6 +10,7 @@ import (
 	"delve-shell/internal/bootstrap"
 	"delve-shell/internal/config"
 	"delve-shell/internal/configllm"
+	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/remote"
 	"delve-shell/internal/remoteauth"
 	"delve-shell/internal/ui"
@@ -23,7 +24,7 @@ func TestMain(m *testing.M) {
 
 type blackboxFixture struct {
 	model          ui.Model
-	submitChan     chan string
+	submissions    chan inputlifecycletype.InputSubmission
 	execDirectChan chan string
 	shellRequested chan []string
 	cancelRequest  chan struct{}
@@ -54,9 +55,9 @@ type testActionSender struct {
 
 func (s testActionSender) Send(a uivm.UIAction) bool {
 	switch a.Kind {
-	case uivm.UIActionSubmit:
+	case uivm.UIActionSubmission:
 		select {
-		case s.f.submitChan <- a.Text:
+		case s.f.submissions <- a.Submission:
 			return true
 		default:
 			return false
@@ -118,7 +119,7 @@ func (s testActionSender) Send(a uivm.UIAction) bool {
 func newBlackboxFixture(t *testing.T) blackboxFixture {
 	t.Helper()
 	f := blackboxFixture{
-		submitChan:     make(chan string, 2),
+		submissions:    make(chan inputlifecycletype.InputSubmission, 2),
 		execDirectChan: make(chan string, 2),
 		shellRequested: make(chan []string, 2),
 		cancelRequest:  make(chan struct{}, 2),
@@ -356,9 +357,9 @@ func TestBlackboxSlashNewSubmitsCommand(t *testing.T) {
 	f := newBlackboxFixture(t)
 	got := enterText(f.model, "/new")
 	select {
-	case v := <-f.submitChan:
-		if v != "/new" {
-			t.Fatalf("expected submit '/new', got %q", v)
+	case sub := <-f.submissions:
+		if sub.Kind != inputlifecycletype.SubmissionChat || sub.RawText != "/new" {
+			t.Fatalf("expected chat submission '/new', got %#v", sub)
 		}
 	default:
 		t.Fatalf("expected /new to submit command")
@@ -372,9 +373,9 @@ func TestBlackboxSlashSessionsPrefixSubmitsCommand(t *testing.T) {
 	f := newBlackboxFixture(t)
 	got := enterText(f.model, "/sessions demo")
 	select {
-	case cmd := <-f.submitChan:
-		if cmd != "/sessions demo" {
-			t.Fatalf("expected /sessions command submit, got %q", cmd)
+	case sub := <-f.submissions:
+		if sub.Kind != inputlifecycletype.SubmissionChat || sub.RawText != "/sessions demo" {
+			t.Fatalf("expected /sessions chat submission, got %#v", sub)
 		}
 	default:
 		t.Fatalf("expected /sessions <id> to submit command")

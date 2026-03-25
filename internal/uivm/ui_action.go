@@ -1,13 +1,14 @@
 package uivm
 
 import (
+	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/remoteauth"
 )
 
 type UIActionKind string
 
 const (
-	UIActionSubmit            UIActionKind = "submit"
+	UIActionSubmission        UIActionKind = "submission"
 	UIActionExecDirect        UIActionKind = "exec_direct"
 	UIActionConfigUpdated     UIActionKind = "config_updated"
 	UIActionCancelRequested   UIActionKind = "cancel_requested"
@@ -28,4 +29,5 @@ type UIAction struct {
 	BoolValue       bool
 	Messages        []string
 	RemoteAuthReply remoteauth.Response
+	Submission      inputlifecycletype.InputSubmission
 }
