@@ -13,7 +13,7 @@ import (
 	"delve-shell/internal/hostbus"
 	"delve-shell/internal/hostcontroller"
 	"delve-shell/internal/hostnotify"
-	"delve-shell/internal/run"
+	"delve-shell/internal/hostwiring"
 	"delve-shell/internal/runtime/executormgr"
 	"delve-shell/internal/runtime/runnermgr"
 	"delve-shell/internal/runtime/sessionmgr"
@@ -66,7 +66,7 @@ func Run() error {
 	})
 
 	shellRequestedChan := make(chan []string, 1)
-	WireHostChannels(ports, shellRequestedChan)
+	hostwiring.BindLegacyFeatureChannels(ports, shellRequestedChan)
 
 	var savedMessages []string
 	var currentP atomic.Pointer[tea.Program]
@@ -85,8 +85,7 @@ func Run() error {
 	controller.Start()
 
 	getAllowlistAutoRun := func() bool { return currentAllowlistAutoRun.Load() }
-	hostnotify.SetAllowlistAutoRunGetter(getAllowlistAutoRun)
-	run.SetSyncAllowlistAutoRun(func(v bool) {
+	hostwiring.BindAllowlistAutoRun(getAllowlistAutoRun, func(v bool) {
 		currentAllowlistAutoRun.Store(v)
 		runners.SetAllowlistAutoRun(v)
 	})
