@@ -6,7 +6,7 @@ import (
 	"delve-shell/internal/ui"
 )
 
-func init() {
+func registerSlashExactLifecycleCmds() {
 	ui.RegisterSlashExact("/help", ui.SlashExactDispatchEntry{
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
 			return m.OpenHelpOverlay(), nil

@@ -10,6 +10,6 @@ func applyOverlayCloseFeatureResets(m ui.Model) ui.Model {
 	return m
 }
 
-func init() {
+func registerOverlayCloseHookRun() {
 	ui.RegisterOverlayCloseHook(applyOverlayCloseFeatureResets)
 }

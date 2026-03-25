@@ -2,22 +2,22 @@
 
 ## 状态
 
-已采纳；**第 2 轮已接线**：`SlashSubmitChan` → `KindSlashRelayToUI` → Controller → `SlashSubmitRelayMsg` → `executeMainEnterCommandNoRelay`。`hostapp.Nop()` 与未接线 Runtime 仍走同帧本地执行（`TryRelaySlashSubmit` 返回 false）。
+已采纳；**第 2 轮已接线**：`SlashSubmitChan` → `KindSlashRelayToUI` → Controller → `SlashSubmitRelayMsg` → `executeMainEnterCommandNoRelay`。`app.Nop()` 与未接线 Runtime 仍走同帧本地执行（`TryRelaySlashSubmit` 返回 false）。
 
 **`InputLine`（§10.8.2 第 1 轮）**：非空时中继回调走 `execSlashEnterKeyLocal`（slash 早路径 Enter）；空时仍走主 Enter 的 `executeMainEnterCommandNoRelay`。
 
 ## 背景
 
-- `SubmitChan` 当前载荷为 **`string`**；`hostroute.ClassifyUserSubmit` 仅区分 `/new`、`/sessions …` 与其余（后者映射为 **LLM 路径** 的 `KindUserChatSubmitted`）。
+- `SubmitChan` 当前载荷为 **`string`**；`route.ClassifyUserSubmit` 仅区分 `/new`、`/sessions …` 与其余（后者映射为 **LLM 路径** 的 `KindUserChatSubmitted`）。
 - 主 Enter 路径上，slash 依赖 **下拉选中索引**、`slashflow` / `maininput.PlanMainEnter` 等上下文；若仅提交 TrimSpace 字符串，**无法**无损重建「用户选中的候选行」与歧义消解结果。
 - §10.8.1 第 2 轮需要一种**不与此冲突**的扩展点，以便将来将「意图」送达 Controller 再回灌 TUI。
 
 ## 决策
 
 1. **不**将通用 slash 行塞入现有 `SubmitChan` 的「字符串-only」路径并指望 `ClassifyUserSubmit` 单独消化；**不**改变 `/new`、`/sessions …` 在 `ClassifyUserSubmit` 中的语义，除非单独里程碑与迁移说明。
-2. 将来接线时，使用 **`hostroute.SlashSubmitPayload`**（见 `internal/hostroute/slash_submit_contract.go`）作为**候选**结构化单元；实际传输可以是：
+2. 将来接线时，使用 **`route.SlashSubmitPayload`**（`internal/host/route/slash_submit_contract.go`，包名 `route`）作为**候选**结构化单元；实际传输可以是：
    - 独立 channel（例如 `chan SlashSubmitPayload`）由 `BridgeInputs` 映射到既有或新增 `Kind`，或
-   - 扩展 `hostbus.Event` 字段（需评估 `RedactedSummary` 与兼容）。
+   - 扩展 `bus.Event` 字段（需评估 `RedactedSummary` 与兼容）。
 3. Controller 在收到该事件后的职责限于 **编排**（例如 `EnqueueUIBlocking` 携带专用 `tea.Msg`）；**registry 执行仍留在 TUI** 直至进一步里程碑。
 
 ## 后果

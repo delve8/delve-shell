@@ -72,4 +72,3 @@ func TestReadRecent_MaxLinesKeepsTail(t *testing.T) {
 		t.Fatalf("unexpected payload[1]: %s", string(out[1].Payload))
 	}
 }
-

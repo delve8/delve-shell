@@ -22,8 +22,8 @@ type Manager struct {
 	remoteCredMu sync.Mutex
 	remoteCreds  map[string]remoteCred // key: host-only
 
-	newSSH               sshNewFunc
-	newSSHWithPassword   sshNewWithPasswordFunc
+	newSSH             sshNewFunc
+	newSSHWithPassword sshNewWithPasswordFunc
 }
 
 type remoteCred struct {
@@ -149,10 +149,10 @@ func (m *Manager) HandleRemoteAuthResponse(resp remoteauth.Response) (label stri
 }
 
 type ConnectResult struct {
-	Connected   bool
-	Label       string
-	Executor    execenv.CommandExecutor // non-nil when Connected
-	AuthPrompt  *ui.RemoteAuthPromptMsg // when non-nil, UI should open auth prompt / show error
+	Connected  bool
+	Label      string
+	Executor   execenv.CommandExecutor // non-nil when Connected
+	AuthPrompt *ui.RemoteAuthPromptMsg // when non-nil, UI should open auth prompt / show error
 }
 
 // Connect attempts to switch to a remote SSH executor.
@@ -162,10 +162,10 @@ type ConnectResult struct {
 // - identityFile: configured key path for this remote (optional)
 //
 // Behavior:
-// - If a cached credential exists for hostOnly, try it first. On failure, drop it and continue.
-// - If identityFile is provided, emit an AuthPrompt in "auto identity" mode, then attempt connection.
-//   On failure, emit an AuthPrompt with error for interactive auth.
-// - Otherwise, try plain SSH; on failure, emit an AuthPrompt with error.
+//   - If a cached credential exists for hostOnly, try it first. On failure, drop it and continue.
+//   - If identityFile is provided, emit an AuthPrompt in "auto identity" mode, then attempt connection.
+//     On failure, emit an AuthPrompt with error for interactive auth.
+//   - Otherwise, try plain SSH; on failure, emit an AuthPrompt with error.
 func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 	hostOnly := config.HostFromTarget(target)
 	if label == "" {
@@ -216,4 +216,3 @@ func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 	m.Set(exec)
 	return ConnectResult{Connected: true, Label: label, Executor: exec}
 }
-

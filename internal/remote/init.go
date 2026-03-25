@@ -1,6 +1,7 @@
 package remote
 
-func init() {
+// Register wires remote slash commands and UI providers. Call from [bootstrap.Install].
+func Register() {
 	registerSlashExactHandlers()
 	registerSlashPrefixHandlers()
 	registerProviders()

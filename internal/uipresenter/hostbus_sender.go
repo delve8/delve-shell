@@ -3,12 +3,12 @@ package uipresenter
 import (
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/hostbus"
+	"delve-shell/internal/host/bus"
 )
 
-// BusSender adapts hostbus.Bus to Sender (blocking UI enqueue).
+// BusSender adapts bus.Bus to Sender (blocking UI enqueue).
 type BusSender struct {
-	Bus *hostbus.Bus
+	Bus *bus.Bus
 }
 
 func (s BusSender) Send(msg tea.Msg) {

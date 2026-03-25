@@ -96,4 +96,3 @@ func firstLine(s string) string {
 	}
 	return s
 }
-

@@ -3,7 +3,7 @@ package ui
 import (
 	"strings"
 
-	"delve-shell/internal/hostroute"
+	"delve-shell/internal/host/route"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/slashflow"
 	"delve-shell/internal/slashview"
@@ -65,7 +65,7 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 	if strings.TrimSpace(inputVal) == "" {
 		return m, nil, false
 	}
-	if m.Host.TryRelaySlashSubmit(hostroute.SlashSubmitPayload{
+	if m.Host.TryRelaySlashSubmit(route.SlashSubmitPayload{
 		RawLine:            strings.TrimSpace(inputVal),
 		SlashSelectedIndex: m.Interaction.slashSuggestIndex,
 		InputLine:          inputVal,

@@ -7,7 +7,7 @@ import (
 	"delve-shell/internal/ui"
 )
 
-func init() {
+func registerSlashExactCancelCmd() {
 	ui.RegisterSlashExact("/cancel", ui.SlashExactDispatchEntry{
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
 			if m.Interaction.WaitingForAI {

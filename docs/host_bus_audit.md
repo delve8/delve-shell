@@ -32,7 +32,7 @@
 
 当 `Host` 为已接线的 `*Runtime` 且 `SlashSubmitChan` 非 nil 时，**主 Enter** 路径上以 `/` 开头的行优先 **`TryRelaySlashSubmit`**：
 
-1. TUI：`handleMainEnterCommand` → `TryRelaySlashSubmit(hostroute.SlashSubmitPayload{…})`（成功则本帧直接返回，不在本帧内执行 registry）。
+1. TUI：`handleMainEnterCommand` → `TryRelaySlashSubmit(route.SlashSubmitPayload{…})`（成功则本帧直接返回，不在本帧内执行 registry）。
 2. `BridgeInputs` → `KindSlashRelayToUI`（`Event.SlashSubmit`）。
 3. `Controller`：`handleSlashRelayToUI` → `Presenter.Raw(SlashSubmitRelayMsg{…})` → **`EnqueueUIBlocking`**。
 4. 下一帧 TUI：`Update` 收到 `SlashSubmitRelayMsg` → **`executeMainEnterCommandNoRelay`**（与原先本地执行同逻辑，含 `RequestSlashDispatch` / `TraceSlashEntered`）。
@@ -85,7 +85,7 @@
 
 | 判据 | 现状 |
 |------|------|
-| `cli.Run` 全局 setter / 多路接线减少 | 生产路径经 `hostwiring` + `hostapp.Runtime`；见 `interactive/host_stack.go`。 |
+| `cli.Run` 全局 setter / 多路接线减少 | 生产路径经 `internal/host/wiring` + `internal/host/app`（`*app.Runtime`）；见 `interactive/host_stack.go`。 |
 | 主路径可追踪 | 主对话与 Agent HIL 见上表；slash 执行仍主要在 TUI，总线侧为观测事件。 |
 | UI 新增能力优先控件组合 | 进行中（§10.8 阶段 5）；overlay 已部分抽至 `internal/ui/widget`。 |
 | e2e / 黑盒通过 | `go test ./internal/e2e/...`、 `internal/ui` 黑盒测试需保持绿。 |
@@ -93,4 +93,4 @@
 ## 后续可收紧点
 
 - 将 `KindSlashRequested` / `KindSlashEntered` 与 metrics / 结构化日志在 `Options.OnEventDispatch` 中关联（可度量 handler 失败：有 Request 无 Entered）。
-- 若 slash 编排迁入 Controller，再引入显式路由表并保持 UI 仅提交 `tea.Cmd`；结构化载荷见 `docs/adr/0001-slash-submit-payload.md` 与 `internal/hostroute/slash_submit_contract.go`。
+- 若 slash 编排迁入 Controller，再引入显式路由表并保持 UI 仅提交 `tea.Cmd`；结构化载荷见 `docs/adr/0001-slash-submit-payload.md` 与 `internal/host/route/slash_submit_contract.go`。

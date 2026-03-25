@@ -15,7 +15,8 @@ import (
 	"delve-shell/internal/ui"
 )
 
-func init() {
+// Register wires skill-related slash commands, overlays, and message providers into the UI. Call from [bootstrap.Install].
+func Register() {
 	ui.RegisterSlashExact("/config add-skill", ui.SlashExactDispatchEntry{
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
 			return openAddSkillOverlay(m, "", "", ""), nil

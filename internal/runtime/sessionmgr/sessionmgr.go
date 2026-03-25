@@ -76,4 +76,3 @@ func (m *Manager) CloseAll() {
 		_ = old.Close()
 	}
 }
-

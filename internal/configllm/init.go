@@ -6,7 +6,8 @@ import (
 	"delve-shell/internal/ui"
 )
 
-func init() {
+// Register wires config-LLM slash routes and overlay providers into the UI. Call from [bootstrap.Install].
+func Register() {
 	registerSlashExact()
 	registerSlashPrefix()
 	ui.RegisterMessageProvider(handleConfigLLMCheckDoneMessage)

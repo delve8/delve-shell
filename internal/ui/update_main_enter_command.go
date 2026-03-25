@@ -5,14 +5,14 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/hostroute"
+	"delve-shell/internal/host/route"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/maininput"
 )
 
 func (m Model) handleMainEnterCommand(text string, slashSelectedIndex int) (Model, tea.Cmd) {
 	if strings.HasPrefix(text, "/") {
-		if m.Host.TryRelaySlashSubmit(hostroute.SlashSubmitPayload{
+		if m.Host.TryRelaySlashSubmit(route.SlashSubmitPayload{
 			RawLine:            text,
 			SlashSelectedIndex: slashSelectedIndex,
 		}) {

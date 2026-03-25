@@ -4,14 +4,14 @@ import tea "github.com/charmbracelet/bubbletea"
 import "delve-shell/internal/slashreg"
 
 // SlashExactDispatchEntry defines an exact slash command handler.
-// The registry is populated via init() functions in feature packages.
+// The registry is populated from feature packages via explicit Register() (see bootstrap.Install).
 type SlashExactDispatchEntry struct {
 	Handle     func(Model) (Model, tea.Cmd)
 	ClearInput bool
 }
 
 // SlashPrefixDispatchEntry routes slash commands with arguments by prefix match.
-// Registry is populated by init() in feature packages.
+// Registry is populated by feature packages' Register() (wired through bootstrap.Install).
 type SlashPrefixDispatchEntry struct {
 	Prefix string
 	Handle func(Model, string) (Model, tea.Cmd, bool) // rest after prefix
@@ -21,7 +21,7 @@ var slashExactDispatchRegistry = slashreg.NewExactRegistry[Model, tea.Cmd]()
 var slashPrefixDispatchRegistry = slashreg.NewPrefixRegistry[Model, tea.Cmd]()
 
 // RegisterSlashExact registers an exact slash command handler.
-// Intended to be called from feature packages' init() functions.
+// Intended to be called from feature packages' Register() functions.
 func RegisterSlashExact(cmd string, entry SlashExactDispatchEntry) {
 	if cmd == "" {
 		return
@@ -37,7 +37,7 @@ func RegisterSlashExact(cmd string, entry SlashExactDispatchEntry) {
 }
 
 // RegisterSlashPrefix registers a prefix-based slash command handler.
-// Intended to be called from feature packages' init() functions.
+// Intended to be called from feature packages' Register() functions.
 func RegisterSlashPrefix(prefix string, entry SlashPrefixDispatchEntry) {
 	if prefix == "" {
 		return

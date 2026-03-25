@@ -20,10 +20,10 @@ type SkillMeta struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description"`
 	// Optional extensions (defaults used when empty)
-	Summary          string `yaml:"summary,omitempty"`
-	RiskLevel        string `yaml:"risk_level,omitempty"`
-	Scope            string `yaml:"scope,omitempty"`             // local, remote, both
-	RemoteUploadDir  string `yaml:"remote_upload_dir,omitempty"` // default /tmp/
+	Summary         string `yaml:"summary,omitempty"`
+	RiskLevel       string `yaml:"risk_level,omitempty"`
+	Scope           string `yaml:"scope,omitempty"`             // local, remote, both
+	RemoteUploadDir string `yaml:"remote_upload_dir,omitempty"` // default /tmp/
 	// LocalName is the directory name under ~/.delve-shell/skills (used for /skill and /config del-skill commands).
 	LocalName string `yaml:"-"`
 }
@@ -179,7 +179,7 @@ func BuildCommandInDir(baseDir, scriptName string, args []string) (string, error
 	return b.String(), nil
 }
 
-// quoteForSh wraps s in single quotes and escapes single quotes as '\''.
+// quoteForSh wraps s in single quotes and escapes single quotes as '\”.
 func quoteForSh(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", "'\"'\"'") + "'"
 }
@@ -406,10 +406,10 @@ func safeNameFromSegment(s string) string {
 // SkillSource is the git source for an installed skill (for manifest and upgrade).
 type SkillSource struct {
 	URL         string `json:"url"`
-	Ref         string `json:"ref,omitempty"`   // branch or tag requested at install
+	Ref         string `json:"ref,omitempty"`       // branch or tag requested at install
 	CommitID    string `json:"commit_id,omitempty"` // resolved commit at install (ref may move)
 	Path        string `json:"path,omitempty"`      // subpath within repo (e.g. "skills/foo"); empty means repo root or unknown
-	InstalledAt string `json:"installed_at"`   // RFC3339
+	InstalledAt string `json:"installed_at"`        // RFC3339
 }
 
 type skillsManifest struct {
@@ -607,7 +607,7 @@ func Update(name, newRef string) error {
 	defer os.RemoveAll(tmpRepoDir)
 
 	var (
-		commitID          string
+		commitID           string
 		downloadedSkillDir string
 	)
 	if strings.TrimSpace(src.Path) != "" {

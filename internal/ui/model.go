@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 
-	"delve-shell/internal/hostapp"
+	"delve-shell/internal/host/app"
 )
 
 const (
@@ -31,7 +31,7 @@ type Model struct {
 	Overlay OverlayState
 
 	// Host is the injectable host façade (bus send endpoints + UI mirrors). Non-nil after NewModel.
-	Host hostapp.Host
+	Host app.Host
 }
 
 // RunCompletionState stores local/remote completion caches for `/run`.
@@ -84,6 +84,12 @@ func (m Model) delveMsg(msg string) string {
 }
 
 // Update implements tea.Model.
+//
+// Routing (first match wins):
+//   - messageProviderChain — feature-registered handlers (session, config-LLM, skills); see RegisterMessageProvider.
+//   - update_lifecycle.go — WindowSize, Blur, Focus, overlay open/close, mouse / viewport.
+//   - update_overlay_key.go then update_keymsg.go, update_slash.go, update_approval.go — keyboard when overlay vs main input.
+//   - update_approval.go, update_events.go — agent approval, transcript, SlashSubmitRelayMsg.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.syncInputPlaceholder()
 
@@ -135,10 +141,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // NewModel creates a Model with default input (slash commands and viewport scrolling).
 // initialMessages if non-nil is used as existing conversation (e.g. after /sh return).
-// host must be non-nil in production (typically *hostapp.Runtime); nil is treated as hostapp.Nop().
-func NewModel(initialMessages []string, host hostapp.Host) Model {
+// host must be non-nil in production (typically *app.Runtime); nil is treated as app.Nop().
+func NewModel(initialMessages []string, host app.Host) Model {
 	if host == nil {
-		host = hostapp.Nop()
+		host = app.Nop()
 	}
 	ti := textinput.New()
 	ti.Placeholder = i18n.T("en", i18n.KeyPlaceholderInput)

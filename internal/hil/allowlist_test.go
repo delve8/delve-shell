@@ -30,8 +30,8 @@ func TestAllowStrict_ChainedCommand(t *testing.T) {
 
 func TestContainsWriteRedirection(t *testing.T) {
 	tests := []struct {
-		cmd   string
-		want  bool
+		cmd  string
+		want bool
 	}{
 		{"ping -c 1 x.com", false},
 		{"ping -c 1 x.com > /tmp/out", true},

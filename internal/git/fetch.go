@@ -32,7 +32,7 @@ func FetchRepoTree(ctx context.Context, url, ref, destDir, subpath string) (comm
 		}
 	}
 	opts := &git.CloneOptions{
-		URL:  url,
+		URL:   url,
 		Depth: 1,
 		Auth:  auth,
 	}

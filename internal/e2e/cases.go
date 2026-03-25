@@ -32,8 +32,8 @@ var tuiReadyExpect = []string{"Local", "IDLE", "Auto-Run", "Type", "slash"}
 // TerminalCases is the registered list of terminal e2e cases; append to add cases.
 var TerminalCases = []Case{
 	{
-		Name:   "TUI_smoke_help_quit",
-		Skip:   "",
+		Name:    "TUI_smoke_help_quit",
+		Skip:    "",
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second}, // wait for TUI ready
@@ -42,8 +42,8 @@ var TerminalCases = []Case{
 		},
 	},
 	{
-		Name:   "TUI_config_show",
-		Skip:   "",
+		Name:    "TUI_config_show",
+		Skip:    "",
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
@@ -53,8 +53,8 @@ var TerminalCases = []Case{
 		},
 	},
 	{
-		Name:   "TUI_cancel_no_request",
-		Skip:   "",
+		Name:    "TUI_cancel_no_request",
+		Skip:    "",
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
@@ -63,8 +63,8 @@ var TerminalCases = []Case{
 		},
 	},
 	{
-		Name:   "TUI_unknown_cmd",
-		Skip:   "",
+		Name:    "TUI_unknown_cmd",
+		Skip:    "",
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
@@ -73,8 +73,8 @@ var TerminalCases = []Case{
 		},
 	},
 	{
-		Name:   "TUI_run_direct",
-		Skip:   "",
+		Name:    "TUI_run_direct",
+		Skip:    "",
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
@@ -83,8 +83,8 @@ var TerminalCases = []Case{
 		},
 	},
 	{
-		Name:   "TUI_reload",
-		Skip:   "",
+		Name:    "TUI_reload",
+		Skip:    "",
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
@@ -93,8 +93,8 @@ var TerminalCases = []Case{
 		},
 	},
 	{
-		Name:   "TUI_approval_flow",
-		Skip:   "need E2E_LLM=1 and valid LLM config",
+		Name:    "TUI_approval_flow",
+		Skip:    "need E2E_LLM=1 and valid LLM config",
 		Timeout: 20 * time.Second,
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},

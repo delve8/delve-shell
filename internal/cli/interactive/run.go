@@ -1,16 +1,15 @@
 package interactive
 
 import (
+	"delve-shell/internal/bootstrap"
 	"delve-shell/internal/runtime/sessionmgr"
 	"delve-shell/internal/session"
-
-	// Side-effect: register slash handlers and overlay wiring for the TUI.
-	_ "delve-shell/internal/remote"
-	_ "delve-shell/internal/run"
 )
 
 // Run starts the interactive TUI loop, host controller, and optional subshell return path.
 func Run() error {
+	bootstrap.Install()
+
 	stop := make(chan struct{})
 	defer close(stop)
 

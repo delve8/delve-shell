@@ -15,7 +15,8 @@ var sessionSwitchedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).
 
 const maxSessionHistoryEvents = 500
 
-func init() {
+// Register wires session slash commands and the session-switched message provider. Call from [bootstrap.Install].
+func Register() {
 	ui.RegisterSlashExact("/new", ui.SlashExactDispatchEntry{
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
 			_ = m.Host.Submit("/new")

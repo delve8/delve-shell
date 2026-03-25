@@ -43,4 +43,3 @@ func TestDelegation(t *testing.T) {
 		t.Fatalf("expected all functions called")
 	}
 }
-

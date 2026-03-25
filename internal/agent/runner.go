@@ -21,18 +21,33 @@ import (
 	"delve-shell/internal/history"
 )
 
-// RunnerOptions for creating a Runner; LLM is read from Config (config.yaml, supports $VAR env expansion).
-type RunnerOptions struct {
-	Config           *config.Config
+// RunnerHILInput is allowlist and sensitive matching for tools and approval flow.
+type RunnerHILInput struct {
 	AllowlistAutoRun *bool // optional runtime override; when nil use Config.AllowlistAutoRunResolved()
 	Allowlist        *hil.Allowlist
 	SensitiveMatcher *hil.SensitiveMatcher
-	Session          *history.Session
-	RulesText        string
+}
+
+// RunnerSessionInput is the active history session and injected rules text for the system prompt.
+type RunnerSessionInput struct {
+	Session   *history.Session
+	RulesText string
+}
+
+// RunnerUILoopInput connects the agent to host-side UI and command execution.
+type RunnerUILoopInput struct {
 	// UIEvents sends *ApprovalRequest, *SensitiveConfirmationRequest, or ExecEvent to the host (e.g. TUI).
 	// If nil: sensitive confirmation defaults to SensitiveRunAndStore; exec notifications are dropped; approvals are rejected without UI.
 	UIEvents         chan<- any
 	ExecutorProvider func() execenv.CommandExecutor // returns current executor (local or remote)
+}
+
+// RunnerOptions for creating a Runner; LLM is read from Config (config.yaml, supports $VAR env expansion).
+type RunnerOptions struct {
+	Config  *config.Config
+	HIL     RunnerHILInput
+	Session RunnerSessionInput
+	UILoop  RunnerUILoopInput
 }
 
 // Runner wraps the eino react agent; generates replies and runs commands via HIL approval.
@@ -54,61 +69,62 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		return nil, err
 	}
 
+	uiEvents := opts.UILoop.UIEvents
 	requestApproval := func(cmd, summary, reason, riskLevel, skillName string) ApprovalResponse {
-		if opts.UIEvents == nil {
+		if uiEvents == nil {
 			return ApprovalResponse{}
 		}
 		ch := make(chan ApprovalResponse, 1)
-		opts.UIEvents <- &ApprovalRequest{Command: cmd, Summary: summary, Reason: reason, RiskLevel: riskLevel, SkillName: strings.TrimSpace(skillName), ResponseCh: ch}
+		uiEvents <- &ApprovalRequest{Command: cmd, Summary: summary, Reason: reason, RiskLevel: riskLevel, SkillName: strings.TrimSpace(skillName), ResponseCh: ch}
 		return <-ch
 	}
 	requestSensitiveConfirmation := func(cmd string) SensitiveChoice {
-		if opts.UIEvents == nil {
+		if uiEvents == nil {
 			return SensitiveRunAndStore
 		}
 		ch := make(chan SensitiveChoice)
-		opts.UIEvents <- &SensitiveConfirmationRequest{Command: cmd, ResponseCh: ch}
+		uiEvents <- &SensitiveConfirmationRequest{Command: cmd, ResponseCh: ch}
 		return <-ch
 	}
 
 	allowlistAutoRun := opts.Config.AllowlistAutoRunResolved()
-	if opts.AllowlistAutoRun != nil {
-		allowlistAutoRun = *opts.AllowlistAutoRun
+	if opts.HIL.AllowlistAutoRun != nil {
+		allowlistAutoRun = *opts.HIL.AllowlistAutoRun
 	}
 	execTool := &agenttools.ExecuteCommandTool{
 		AllowlistAutoRun:             allowlistAutoRun,
-		Allowlist:                    opts.Allowlist,
-		SensitiveMatcher:             opts.SensitiveMatcher,
+		Allowlist:                    opts.HIL.Allowlist,
+		SensitiveMatcher:             opts.HIL.SensitiveMatcher,
 		RequestApproval:              requestApproval,
 		RequestSensitiveConfirmation: requestSensitiveConfirmation,
-		Session:                      opts.Session,
+		Session:                      opts.Session.Session,
 		OnExec: func(cmd string, allowed bool, result string, sensitive bool, suggested bool) {
-			if opts.UIEvents != nil {
-				opts.UIEvents <- ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested}
+			if uiEvents != nil {
+				uiEvents <- ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested}
 			}
 		},
-		ExecutorProvider: opts.ExecutorProvider,
+		ExecutorProvider: opts.UILoop.ExecutorProvider,
 	}
 	viewTool := &agenttools.ViewContextTool{
 		SessionPath: "",
 		MaxEvents:   50,
 	}
-	if opts.Session != nil {
-		viewTool.SessionPath = opts.Session.Path()
+	if opts.Session.Session != nil {
+		viewTool.SessionPath = opts.Session.Session.Path()
 	}
 	listSkillsTool := &agenttools.ListSkillsTool{}
 	getSkillTool := &agenttools.GetSkillTool{}
 	runSkillTool := &agenttools.RunSkillTool{
 		RequestApproval:              requestApproval,
 		RequestSensitiveConfirmation: requestSensitiveConfirmation,
-		SensitiveMatcher:             opts.SensitiveMatcher,
-		Session:                      opts.Session,
+		SensitiveMatcher:             opts.HIL.SensitiveMatcher,
+		Session:                      opts.Session.Session,
 		OnExec: func(cmd string, allowed bool, result string, sensitive bool, suggested bool) {
-			if opts.UIEvents != nil {
-				opts.UIEvents <- ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested}
+			if uiEvents != nil {
+				uiEvents <- ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested}
 			}
 		},
-		ExecutorProvider: opts.ExecutorProvider,
+		ExecutorProvider: opts.UILoop.ExecutorProvider,
 	}
 
 	sysPrompt := opts.Config.LLM.SystemPrompt
@@ -117,8 +133,8 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 	}
 	sysPrompt = config.ExpandEnv(sysPrompt)
 	sysPrompt += "\n\n--- Auto-run ---\n" + autoRunParagraph(allowlistAutoRun)
-	if opts.RulesText != "" {
-		sysPrompt += "\n\n--- User rules (rules) ---\n" + opts.RulesText
+	if opts.Session.RulesText != "" {
+		sysPrompt += "\n\n--- User rules (rules) ---\n" + opts.Session.RulesText
 	}
 
 	reactAgent, err := react.NewAgent(ctx, &react.AgentConfig{

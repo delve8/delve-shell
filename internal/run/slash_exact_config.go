@@ -7,7 +7,7 @@ import (
 	"delve-shell/internal/ui"
 )
 
-func init() {
+func registerSlashExactConfigCmds() {
 	appendConfigHint := func(m ui.Model) (ui.Model, tea.Cmd) {
 		m.Messages = append(m.Messages, delveMsg("en", i18n.T("en", i18n.KeyConfigHint)))
 		return m.RefreshViewport(), nil

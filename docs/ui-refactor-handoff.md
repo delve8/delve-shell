@@ -139,7 +139,7 @@
 - Overlay 关闭：`internal/ui/update_overlay_key.go` + `internal/run/overlay_close_hook.go`  
 - 黑盒测试入口：`internal/ui/model_blackbox_test.go`  
 - CLI 接线：`internal/cli/run.go`（空白 import 列表）  
-- Host 总线与中控：`internal/hostbus/bus.go`、`internal/hostcontroller/controller.go`  
+- Host 总线与中控：`internal/host/bus/bus.go`、`internal/host/controller/controller.go`  
 - Host→TUI 消息门面：`internal/uipresenter/presenter.go`  
 - 结构任务总表：`.cursor/code-structure-tasks.md`（若仓库跟踪该文件）
 
@@ -176,7 +176,7 @@
 | 2026-03-25 | 交接文档 §10.7.1：`Model` 显式 `*Runtime` 与 Remote 总线合并命名的可选彻底层；§10.7 补充「已无 Install 全局」现状说明 |
 | 2026-03-25 | 交接文档 §10.7：总线目标 2 刻意未做项（Payload 分型、Kind 改名、Slash 上总线、默认观测、动态 handler）及后续演进建议 |
 | 2026-03-25 | 目标 2（总线语义可追踪）：`Kind.SemanticLabel` 与 §10.4 草稿对齐；`Event.RedactedSummary`；`hostbus.WithPublishHook`；`hostcontroller` 表驱动 `hostEventHandlers` + `Options.OnEventDispatch` |
-| 2026-03-25 | Host 主干切换：`internal/hostbus` + `internal/hostcontroller` 替代已删除的 `internal/cli/hostloop`；`internal/uipresenter` 作为 Host→Bubble Tea 消息的统一门面；`internal/run/host_wire.go` 替代 `hostloop_chans.go` |
+| 2026-03-25 | Host 主干切换：`internal/host/bus` + `internal/host/controller` 替代已删除的 `internal/cli/hostloop`；`internal/uipresenter` 作为 Host→Bubble Tea 消息的统一门面；`internal/run/host_wire.go` 替代 `hostloop_chans.go` |
 | 2025-03-24 | `registry core` 两阶段：`internal/slashreg` 承接 slash exact/prefix registry 与 provider chain 容器，`ui` 保持注册 API 但不再持有底层容器实现 |
 | 2025-03-24 | overlay close 业务复位下沉：`ApplyOverlayCloseFeatureResets` 从 `ui` 迁到 `internal/run` 注册层，`ui` 保留通用 hook 执行机制 |
 | 2025-03-24 | `config` 业务逻辑继续下沉：删除 `internal/ui/config_handlers.go`，allowlist update/auto-run 处理迁至 `internal/run`；`ui` 仅保留壳层分发/渲染职责 |
@@ -298,7 +298,7 @@
 - **`hostbus.New(cap, hostbus.WithPublishHook(fn))`**：`fn(e, accepted)`，`Publish` 队列满时 `accepted == false`。
 - **`hostcontroller.Options.OnEventDispatch`**：中控从总线取出事件后、执行 handler 表之前调用（可在此打结构化日志或 metrics）。
 
-**中控分发**：**`hostEventHandlers`**（`internal/hostcontroller/event_dispatch.go`）表驱动各 `Kind`，未知 `Kind` 忽略（与原先无 `default` 的 `switch` 一致）。
+**中控分发**：**`hostEventHandlers`**（`internal/host/controller/event_dispatch.go`）表驱动各 `Kind`，未知 `Kind` 忽略（与原先无 `default` 的 `switch` 一致）。
 
 ### 10.5 渐进迁移顺序（低风险）
 
@@ -309,7 +309,7 @@
 
 ### 10.5.1 已落地（实现快照）
 
-- `cli.Run` 创建 `hostbus.Bus` 与 `hostbus.InputPorts`，`runnermgr` 的 `UIEvents` 接入 `ports.AgentUIChan`；`hostwiring.BindSendPorts` 将通道挂到 `hostapp.Runtime`，同一 `*Runtime` 作为 **`ui.Model.Host`** 注入 TUI（allowlist getter、remote 镜像、ConfigLLM 首次 layout 等仍在 `Runtime` 上）。
+- `cli.Run` 创建 `hostbus.Bus` 与 `hostbus.InputPorts`，`runnermgr` 的 `UIEvents` 接入 `ports.AgentUIChan`；`wiring.BindSendPorts` 将通道挂到 `hostapp.Runtime`，同一 `*Runtime` 作为 **`ui.Model.Host`** 注入 TUI（allowlist getter、remote 镜像、ConfigLLM 首次 layout 等仍在 `Runtime` 上）。
 - `hostcontroller.Controller` 单 goroutine 消费 Bus 事件；LLM 运行在独立 goroutine 中，完成时投递 `KindLLMRunCompleted`，避免阻塞导致 `/cancel` 失效。
 - `uipresenter.Presenter` 封装发往 TUI 的 `tea.Msg`，`hostcontroller` 不再散落 `ui.*` 结构体字面量（`DispatchAgentUI` 统一映射 Agent 侧 payload）。
 - `internal/cli/hostloop` 包已删除（原 multiplex / submit / agent_ui 等逻辑已迁入 controller + uipresenter）。
@@ -341,7 +341,7 @@
 
 | 轮次 | 侧重点 | 交付物（建议） | 验收 |
 |------|--------|----------------|------|
-| **第 1 轮** | **阶段 4 收口** + **阶段 3 的设计与契约** | **已交付（2026-03-25）**：`docs/host_bus_audit.md` 扩充为双队列说明及主对话 LLM、Agent HIL、远程三条链；§10.6 对照表；`docs/adr/0001-slash-submit-payload.md`；`internal/hostroute/slash_submit_contract.go`（`SlashSubmitPayload` 类型 + 注释，无行为变更）。 | 文档可指导第 2 轮实现；`go test ./...` 通过。 |
+| **第 1 轮** | **阶段 4 收口** + **阶段 3 的设计与契约** | **已交付（2026-03-25）**：`docs/host_bus_audit.md` 扩充为双队列说明及主对话 LLM、Agent HIL、远程三条链；§10.6 对照表；`docs/adr/0001-slash-submit-payload.md`；`internal/host/route/slash_submit_contract.go`（`SlashSubmitPayload` 类型 + 注释，无行为变更）。 | 文档可指导第 2 轮实现；`go test ./...` 通过。 |
 | **第 2 轮** | **阶段 3 最小闭环** | **已交付（2026-03-25）**：`SlashSubmitChan` / `KindSlashRelayToUI` / `Host.TryRelaySlashSubmit`；主 Enter 上 `/…` 经中继后 `SlashSubmitRelayMsg` → `executeMainEnterCommandNoRelay`；`Nop` 与失败时同帧回退。 slash 早路径（`handleSlashEnterKey`）同样经 `TryRelaySlashSubmit`：**§10.8.2 第 1 轮**补全，与主 Enter 共用中继模型。 | `go test ./...` 通过；行为与黑盒/e2e 绿。 |
 | **第 3 轮** | **阶段 5 控件化** | **已交付（2026-03-25）**：`internal/ui/widget/list_below_input.go`（`RenderLinesBelowInput`、`ListRow`）；`slashDropdownBelowInput` 与 `choiceLinesBelowInput` 共用；`widget` 包单测。 | `ui` + e2e 通过。 |
 
@@ -375,7 +375,7 @@
 
 ### 10.7 总线语义化（目标 2）：刻意未做项与后续计划
 
-**现状（避免与旧方案混淆）**：`internal/hostapp` 已不再提供进程级 `Install` / 包级 `Submit` 等全局句柄；生产路径由 **`interactive.Run`** 构造 **`*hostapp.Runtime`**，经 **`hostwiring.BindSendPorts`** 接线后，以 **`hostapp.Host` 接口** 注入 **`ui.Model.Host`**。测试使用 **`hostapp.Nop()`** 或自建 `*Runtime`。若仍提「去掉全局」，所指应为下表 **§10.7.1** 中「比接口更进一步」的收口，而非尚未删除的 `Install`（已删除）。
+**现状（避免与旧方案混淆）**：`internal/host/app` 已不再提供进程级 `Install` / 包级 `Submit` 等全局句柄；生产路径由 **`interactive.Run`** 构造 **`*app.Runtime`**，经 **`wiring.BindSendPorts`** 接线后，以 **`app.Host` 接口** 注入 **`ui.Model.Host`**。测试使用 **`app.Nop()`** 或自建 `*Runtime`。若仍提「去掉全局」，所指应为下表 **§10.7.1** 中「比接口更进一步」的收口，而非尚未删除的 `Install`（已删除）。
 
 以下条目在目标 2 落地时有意识地**未实现**，与「语义可对表、脱敏摘要、观测钩子、中控 handler 表」正交；此处记录**原因**与**若要做时的推荐顺序**，供后续里程碑引用。
 
@@ -395,7 +395,7 @@
 
 | 项 | 当前状态 | 未做或停留在此的原因 | 若以后要做（建议） |
 |----|----------|----------------------|-------------------|
-| **`ui.Model` 显式持有 `*hostapp.Runtime`（或等价具体句柄）** | `Model` 字段为 **`Host hostapp.Host`**；生产传入 `*Runtime`，测试传入 **`Nop()`**。调用链上已无「零参数取全局 Host」。 | 接口保留 **测试替身** 与 **将来第二实现** 的空间；把 Model 绑死到 `*Runtime` 会扩大 `ui` 对 `hostapp` 具体类型的耦合，且 `Nop` 路径需另设字段或可空指针。 | **方案 A**：维持接口，仅文档约定「生产必为 `*Runtime`」。**方案 B**：增加 `func (m Model) Runtime() *Runtime`（`Host` 类型断言，非 Runtime 返回 nil）供确需具体类型的调用方使用。**方案 C**：`NewModel` 重载为 `NewModelWithRuntime`，测试仍用 `NewModel(..., Nop())`；避免在 feature 包中扩散类型断言。 |
+| **`ui.Model` 显式持有 `*app.Runtime`（或等价具体句柄）** | `Model` 字段为 **`Host app.Host`**；生产传入 `*Runtime`，测试传入 **`Nop()`**。调用链上已无「零参数取全局 Host」。 | 接口保留 **测试替身** 与 **将来第二实现** 的空间；把 Model 绑死到 `*Runtime` 会扩大 `ui` 对 `hostapp` 具体类型的耦合，且 `Nop` 路径需另设字段或可空指针。 | **方案 A**：维持接口，仅文档约定「生产必为 `*Runtime`」。**方案 B**：增加 `func (m Model) Runtime() *Runtime`（`Host` 类型断言，非 Runtime 返回 nil）供确需具体类型的调用方使用。**方案 C**：`NewModel` 重载为 `NewModelWithRuntime`，测试仍用 `NewModel(..., Nop())`；避免在 feature 包中扩散类型断言。 |
 | **总线 Remote：合并 on/off/auth 等为更贴近领域的 Kind 命名** | 仍为 **`KindRemoteOnRequested` / `KindRemoteOffRequested` / `KindRemoteAuthResponseSubmitted`** 三路；`BridgeInputs` 与 `InputPorts` 仍对应三条 channel。 | 属于 **产品语义与可观测粒度** 取舍：合并后 trace 更粗、单事件字段更胖；拆分则与现有 executor/overlay 交互阶段一一对应，改动成本相对低。 | 先固定 **领域状态机**（连接中 / 已连接 / 断开 / 等待认证）再命名事件；在 **Bridge** 层将多 channel 收敛为 **一种 `Kind` + 判别子段**（或 `RemotePhase`），`hostcontroller` 单 handler 内分支；**`SemanticLabel` / `RedactedSummary`** 同步扩展，避免日志语义倒退。 |
 
 **说明**：「单包集中」指 **`hostapp` 仍集中实现 Host 行为**，这是刻意边界，不等于进程级全局；若未来要拆包，需单独做依赖倒置（例如 `Host` 接口下移到更小模块），与上表两行独立。

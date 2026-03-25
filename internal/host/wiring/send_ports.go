@@ -1,0 +1,23 @@
+package wiring
+
+import (
+	"delve-shell/internal/host/app"
+	"delve-shell/internal/host/bus"
+)
+
+// BindSendPorts wires host bus input ports and the /sh snapshot channel onto r.
+func BindSendPorts(r *app.Runtime, ports bus.InputPorts, shellSnapshot chan<- []string) {
+	r.WireSend(&app.Send{
+		Submit:         ports.SubmitChan,
+		ConfigUpdated:  ports.ConfigUpdatedChan,
+		CancelRequest:  ports.CancelRequestChan,
+		ExecDirect:     ports.ExecDirectChan,
+		RemoteOn:       ports.RemoteOnChan,
+		RemoteOff:      ports.RemoteOffChan,
+		RemoteAuthResp: ports.RemoteAuthRespChan,
+		SlashRequest:   ports.SlashRequestChan,
+		SlashTrace:     ports.SlashTraceChan,
+		SlashSubmit:    ports.SlashSubmitChan,
+		ShellSnapshot:  shellSnapshot,
+	})
+}

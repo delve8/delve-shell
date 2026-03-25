@@ -64,4 +64,3 @@ func TestSaveLLMFromOverlay_RequiresModel(t *testing.T) {
 		t.Fatalf("expected error for empty model")
 	}
 }
-

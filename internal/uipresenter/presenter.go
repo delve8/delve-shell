@@ -1,5 +1,5 @@
 // Package uipresenter is the host→TUI boundary: enqueue Bubble Tea messages in domain terms.
-// Call sites (e.g. hostcontroller) should prefer these methods over scattering ui.* struct literals.
+// Call sites (e.g. host controller) should prefer these methods over scattering ui message constructors.
 package uipresenter
 
 import (
@@ -43,44 +43,33 @@ func (p *Presenter) Raw(msg tea.Msg) {
 // --- Config / session ---
 
 func (p *Presenter) ConfigReloaded() {
-	p.Raw(ui.ConfigReloadedMsg{})
+	p.Raw(ui.NewConfigReloadedMsg())
 }
 
 func (p *Presenter) SessionSwitched() {
-	p.Raw(ui.SessionSwitchedMsg{})
+	p.Raw(ui.NewSessionSwitchedMsg())
 }
 
 // --- Agent reply (transcript) ---
 
 func (p *Presenter) AgentReply(reply string, err error) {
-	p.Raw(ui.AgentReplyMsg{Reply: reply, Err: err})
+	p.Raw(ui.NewAgentReplyMsg(reply, err))
 }
 
 // --- System line (non-AI) ---
 
 func (p *Presenter) SystemNotify(text string) {
-	p.Raw(ui.SystemNotifyMsg{Text: text})
+	p.Raw(ui.NewSystemNotifyMsg(text))
 }
 
 // --- Command execution (transcript) ---
 
 func (p *Presenter) CommandExecutedDirect(cmd, result string) {
-	p.Raw(ui.CommandExecutedMsg{
-		Command: cmd,
-		Direct:  true,
-		Result:  result,
-	})
+	p.Raw(ui.NewCommandExecutedDirectMsg(cmd, result))
 }
 
 func (p *Presenter) CommandExecutedFromTool(cmd string, allowed bool, result string, sensitive, suggested bool) {
-	p.Raw(ui.CommandExecutedMsg{
-		Command:   cmd,
-		Allowed:   allowed,
-		Direct:    false,
-		Result:    result,
-		Sensitive: sensitive,
-		Suggested: suggested,
-	})
+	p.Raw(ui.NewCommandExecutedFromToolMsg(cmd, allowed, result, sensitive, suggested))
 }
 
 // --- HIL: approval & sensitive confirmation (Agent payloads as tea.Msg) ---
@@ -114,11 +103,11 @@ func (p *Presenter) DispatchAgentUI(x any) {
 // --- Remote / header ---
 
 func (p *Presenter) RemoteStatus(active bool, label string) {
-	p.Raw(ui.RemoteStatusMsg{Active: active, Label: label})
+	p.Raw(ui.NewRemoteStatusMsg(active, label))
 }
 
 func (p *Presenter) RemoteConnectDone(success bool, label, errText string) {
-	p.Raw(ui.RemoteConnectDoneMsg{Success: success, Label: label, Err: errText})
+	p.Raw(ui.NewRemoteConnectDoneMsg(success, label, errText))
 }
 
 func (p *Presenter) RemoteAuthPrompt(m ui.RemoteAuthPromptMsg) {
@@ -135,27 +124,27 @@ func (p *Presenter) RemoteAuthPromptPtr(m *ui.RemoteAuthPromptMsg) {
 // --- Completion cache (/run) ---
 
 func (p *Presenter) RunCompletionCache(remoteLabel string, commands []string) {
-	p.Raw(ui.RunCompletionCacheMsg{RemoteLabel: remoteLabel, Commands: commands})
+	p.Raw(ui.NewRunCompletionCacheMsg(remoteLabel, commands))
 }
 
 // --- Overlays & async config checks (used by feature packages via tea.Msg today) ---
 
 func (p *Presenter) OverlayClose() {
-	p.Raw(ui.OverlayCloseMsg{})
+	p.Raw(ui.NewOverlayCloseMsg())
 }
 
 func (p *Presenter) OverlayShow(title, content string) {
-	p.Raw(ui.OverlayShowMsg{Title: title, Content: content})
+	p.Raw(ui.NewOverlayShowMsg(title, content))
 }
 
 func (p *Presenter) ConfigLLMCheckDone(err error, correctedBaseURL string) {
-	p.Raw(ui.ConfigLLMCheckDoneMsg{Err: err, CorrectedBaseURL: correctedBaseURL})
+	p.Raw(ui.NewConfigLLMCheckDoneMsg(err, correctedBaseURL))
 }
 
 func (p *Presenter) AddSkillRefsLoaded(refs []string) {
-	p.Raw(ui.AddSkillRefsLoadedMsg{Refs: refs})
+	p.Raw(ui.NewAddSkillRefsLoadedMsg(refs))
 }
 
 func (p *Presenter) AddSkillPathsLoaded(paths []string) {
-	p.Raw(ui.AddSkillPathsLoadedMsg{Paths: paths})
+	p.Raw(ui.NewAddSkillPathsLoadedMsg(paths))
 }

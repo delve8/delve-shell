@@ -3,12 +3,12 @@ package ui
 import (
 	"testing"
 
-	"delve-shell/internal/hostapp"
+	"delve-shell/internal/host/app"
 )
 
 func TestTitleBarLeadingSegment(t *testing.T) {
 	t.Run("default local when inactive", func(t *testing.T) {
-		rt := hostapp.NewRuntime()
+		rt := app.NewRuntime()
 		t.Cleanup(func() { rt.Reset() })
 		rt.SetRemoteExecution(false, "")
 		m := NewModel(nil, rt)
@@ -17,7 +17,7 @@ func TestTitleBarLeadingSegment(t *testing.T) {
 		}
 	})
 	t.Run("remote without label", func(t *testing.T) {
-		rt := hostapp.NewRuntime()
+		rt := app.NewRuntime()
 		t.Cleanup(func() { rt.Reset() })
 		rt.SetRemoteExecution(true, "")
 		m := NewModel(nil, rt)
@@ -26,7 +26,7 @@ func TestTitleBarLeadingSegment(t *testing.T) {
 		}
 	})
 	t.Run("remote with label", func(t *testing.T) {
-		rt := hostapp.NewRuntime()
+		rt := app.NewRuntime()
 		t.Cleanup(func() { rt.Reset() })
 		rt.SetRemoteExecution(true, "prod")
 		m := NewModel(nil, rt)

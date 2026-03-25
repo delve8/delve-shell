@@ -50,4 +50,3 @@ var redactRules = []redactRule{
 		repl: `[REDACTED_PRIVATE_KEY_BLOCK]`,
 	},
 }
-

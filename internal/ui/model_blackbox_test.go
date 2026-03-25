@@ -1,20 +1,23 @@
 package ui_test
 
 import (
+	"os"
 	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/bootstrap"
 	"delve-shell/internal/config"
 	"delve-shell/internal/configllm"
-	"delve-shell/internal/hostapp"
-	_ "delve-shell/internal/remote"
-	_ "delve-shell/internal/run"
-	_ "delve-shell/internal/session"
-	_ "delve-shell/internal/skill"
+	"delve-shell/internal/host/app"
 	"delve-shell/internal/ui"
 )
+
+func TestMain(m *testing.M) {
+	bootstrap.Install()
+	os.Exit(m.Run())
+}
 
 type blackboxFixture struct {
 	model          ui.Model
@@ -40,8 +43,8 @@ func newBlackboxFixture(t *testing.T) blackboxFixture {
 		remoteOff:      make(chan struct{}, 2),
 		remoteAuthResp: make(chan ui.RemoteAuthResponse, 2),
 	}
-	rt := hostapp.NewRuntime()
-	rt.WireSend(&hostapp.Send{
+	rt := app.NewRuntime()
+	rt.WireSend(&app.Send{
 		Submit:         f.submitChan,
 		ConfigUpdated:  f.configUpdated,
 		CancelRequest:  f.cancelRequest,
@@ -300,7 +303,7 @@ func TestBlackboxSlashSessionsPrefixSubmitsCommand(t *testing.T) {
 }
 
 func TestBlackboxStartupOverlayProviderOpensConfigLLM(t *testing.T) {
-	rt := hostapp.NewRuntime()
+	rt := app.NewRuntime()
 	t.Cleanup(func() { rt.Reset() })
 	t.Cleanup(func() { rt.SetOpenConfigLLMOnFirstLayout(false) })
 	rt.SetOpenConfigLLMOnFirstLayout(true)

@@ -7,7 +7,7 @@ import (
 	"delve-shell/internal/ui"
 )
 
-func init() {
+func registerSlashOptionsProviders() {
 	ui.RegisterSlashOptionsProvider(func(
 		inputVal string,
 		lang string,

@@ -8,7 +8,7 @@ import (
 	"delve-shell/internal/ui"
 )
 
-func init() {
+func registerSlashPrefixConfigAutoRun() {
 	ui.RegisterSlashPrefix("/config auto-run ", ui.SlashPrefixDispatchEntry{
 		Prefix: "/config auto-run ",
 		Handle: func(m ui.Model, rest string) (ui.Model, tea.Cmd, bool) {

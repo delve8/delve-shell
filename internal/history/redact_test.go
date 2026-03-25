@@ -93,4 +93,3 @@ func index(s, sub string) int {
 	}
 	return -1
 }
-

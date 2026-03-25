@@ -41,5 +41,3 @@ func (m *SensitiveMatcher) MayAccessSensitivePath(command string) bool {
 	}
 	return false
 }
-
-

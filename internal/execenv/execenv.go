@@ -30,4 +30,3 @@ func (LocalExecutor) Run(ctx context.Context, command string) (stdout, stderr st
 	}
 	return outBuf.String(), errBuf.String(), exitCode, runErr
 }
-

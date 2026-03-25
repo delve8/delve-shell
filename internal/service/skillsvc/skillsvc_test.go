@@ -62,4 +62,3 @@ func TestUpdate_PropagatesError(t *testing.T) {
 		t.Fatalf("expected error")
 	}
 }
-

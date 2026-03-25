@@ -7,8 +7,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/hostcontroller"
-	"delve-shell/internal/hostapp"
+	"delve-shell/internal/host/app"
+	"delve-shell/internal/host/controller"
 	"delve-shell/internal/ui"
 )
 
@@ -22,8 +22,8 @@ var defaultTUIProgramOptions = []tea.ProgramOption{
 // and the shell bridge has delivered saved transcript lines (e.g. /sh), an interactive bash
 // is started on stdio; when that returns, the TUI starts again with those messages restored.
 type tuiRestartLoop struct {
-	controller *hostcontroller.Controller
-	host       hostapp.Host
+	controller *controller.Controller
+	host       app.Host
 	// programPtr is shared with the host controller and UI pump so outbound tea.Msg reach the active program.
 	programPtr *atomic.Pointer[tea.Program]
 	// shellAfterExit receives at most one buffered snapshot per TUI exit when subshell was requested.
@@ -33,14 +33,14 @@ type tuiRestartLoop struct {
 }
 
 func newTuiRestartLoop(
-	controller *hostcontroller.Controller,
+	controller *controller.Controller,
 	programPtr *atomic.Pointer[tea.Program],
 	shellAfterExit <-chan []string,
 	openConfigLLMOnFirstLayout bool,
-	host hostapp.Host,
+	host app.Host,
 ) *tuiRestartLoop {
 	if host == nil {
-		host = hostapp.Nop()
+		host = app.Nop()
 	}
 	return &tuiRestartLoop{
 		controller:                 controller,

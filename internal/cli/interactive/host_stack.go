@@ -8,32 +8,32 @@ import (
 	"delve-shell/internal/config"
 	"delve-shell/internal/execenv"
 	"delve-shell/internal/history"
-	"delve-shell/internal/hostapp"
-	"delve-shell/internal/hostbus"
-	"delve-shell/internal/hostcontroller"
-	"delve-shell/internal/hostwiring"
+	"delve-shell/internal/host/app"
+	"delve-shell/internal/host/bus"
+	"delve-shell/internal/host/controller"
+	"delve-shell/internal/host/wiring"
 	"delve-shell/internal/runtime/executormgr"
 	"delve-shell/internal/runtime/runnermgr"
 	"delve-shell/internal/runtime/sessionmgr"
 )
 
-// hostStack wires bus, controller, runner, executor, and hostapp.Runtime for one interactive session.
+// hostStack wires bus, controller, runner, executor, and app.Runtime for one interactive session.
 type hostStack struct {
-	controller *hostcontroller.Controller
-	rt         *hostapp.Runtime
+	controller *controller.Controller
+	rt         *app.Runtime
 	currentP   *atomic.Pointer[tea.Program]
 	shellSnap  <-chan []string
 }
 
-// wireHostStack builds runners, host bus ports, controller, and *hostapp.Runtime. Caller must Start() the controller.
+// wireHostStack builds runners, host bus ports, controller, and *app.Runtime. Caller must Start() the controller.
 func wireHostStack(
 	stop <-chan struct{},
 	pf *PreflightResult,
 	sessions *sessionmgr.Manager,
 	syncSessionPath func(string),
 ) *hostStack {
-	bus := hostbus.New(512)
-	ports := hostbus.NewInputPorts()
+	hostBus := bus.New(512)
+	ports := bus.NewInputPorts()
 
 	var currentAllowlistAutoRun atomic.Bool
 	currentAllowlistAutoRun.Store(true)
@@ -62,13 +62,13 @@ func wireHostStack(
 	})
 
 	shellRequestedChan := make(chan []string, 1)
-	rt := hostapp.NewRuntime()
-	hostwiring.BindSendPorts(rt, ports, shellRequestedChan)
+	rt := app.NewRuntime()
+	wiring.BindSendPorts(rt, ports, shellRequestedChan)
 
 	var currentP atomic.Pointer[tea.Program]
-	controller := hostcontroller.New(hostcontroller.Options{
+	controller := controller.New(controller.Options{
 		Stop:                    stop,
-		Bus:                     bus,
+		Bus:                     hostBus,
 		Inputs:                  ports,
 		CurrentP:                &currentP,
 		Sessions:                sessions,
@@ -81,7 +81,7 @@ func wireHostStack(
 	controller.Start()
 
 	getAllowlistAutoRun := func() bool { return currentAllowlistAutoRun.Load() }
-	hostwiring.BindAllowlistAutoRun(rt, getAllowlistAutoRun, func(v bool) {
+	wiring.BindAllowlistAutoRun(rt, getAllowlistAutoRun, func(v bool) {
 		currentAllowlistAutoRun.Store(v)
 		runners.SetAllowlistAutoRun(v)
 	})

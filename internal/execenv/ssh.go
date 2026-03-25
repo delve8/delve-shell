@@ -235,4 +235,3 @@ func sshEscape(command string) string {
 	// Conservative escaping: wrap in double quotes and escape existing ones.
 	return `"` + strings.ReplaceAll(command, `"`, `\"`) + `"`
 }
-

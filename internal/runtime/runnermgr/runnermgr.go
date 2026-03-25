@@ -101,14 +101,20 @@ func (m *Manager) Get(ctx context.Context) (*agent.Runner, error) {
 
 	autoRun := m.allowlistAutoRun.Load()
 	r, err := agent.NewRunner(ctx, agent.RunnerOptions{
-		Config:           cfg,
-		AllowlistAutoRun: &autoRun,
-		Allowlist:        allowlist,
-		SensitiveMatcher: sensitiveMatcher,
-		Session:          m.sessionProvider(),
-		RulesText:        m.rulesText,
-		UIEvents:         m.uiEvents,
-		ExecutorProvider: m.executorProvider,
+		Config: cfg,
+		HIL: agent.RunnerHILInput{
+			AllowlistAutoRun: &autoRun,
+			Allowlist:        allowlist,
+			SensitiveMatcher: sensitiveMatcher,
+		},
+		Session: agent.RunnerSessionInput{
+			Session:   m.sessionProvider(),
+			RulesText: m.rulesText,
+		},
+		UILoop: agent.RunnerUILoopInput{
+			UIEvents:         m.uiEvents,
+			ExecutorProvider: m.executorProvider,
+		},
 	})
 	if err != nil {
 		return nil, err

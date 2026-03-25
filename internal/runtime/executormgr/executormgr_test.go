@@ -108,4 +108,3 @@ func TestHandleRemoteAuthResponse_Success_CachesAndSetsExecutor(t *testing.T) {
 		t.Fatalf("expected cred cached for hostOnly")
 	}
 }
-
