@@ -5,11 +5,11 @@ import (
 
 	"github.com/atotto/clipboard"
 
-	"delve-shell/internal/agent"
 	"delve-shell/internal/approvalflow"
 	"delve-shell/internal/approvalview"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/textwrap"
+	"delve-shell/internal/uiflow/approvalexec"
 )
 
 func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
@@ -81,56 +81,31 @@ func (m *Model) appendDecisionLines(decision approvalview.DecisionKind, lang str
 }
 
 func (m Model) applyApprovalDecision(d approvalflow.Decision) (Model, bool) {
-	lang := m.getLang()
-	switch d {
-	case approvalflow.DecisionSensitiveRefuse:
-		m.appendDecisionLines(approvalview.DecisionSensitiveRefuse, lang)
-		m = m.RefreshViewport()
-		m.Approval.pendingSensitive.ResponseCh <- agent.SensitiveRefuse
-		m.Approval.pendingSensitive = nil
-		return m, true
-	case approvalflow.DecisionSensitiveRunStore:
-		m.appendDecisionLines(approvalview.DecisionSensitiveRunStore, lang)
-		m = m.RefreshViewport()
-		m.Approval.pendingSensitive.ResponseCh <- agent.SensitiveRunAndStore
-		m.Approval.pendingSensitive = nil
-		return m, true
-	case approvalflow.DecisionSensitiveRunNoStore:
-		m.appendDecisionLines(approvalview.DecisionSensitiveRunNoStore, lang)
-		m = m.RefreshViewport()
-		m.Approval.pendingSensitive.ResponseCh <- agent.SensitiveRunNoStore
-		m.Approval.pendingSensitive = nil
-		return m, true
-	case approvalflow.DecisionApprove:
-		m.appendDecisionLines(approvalview.DecisionApprove, lang)
-		m = m.RefreshViewport()
-		m.Approval.pending.ResponseCh <- agent.ApprovalResponse{Approved: true, CopyRequested: false}
-		m.Approval.pending = nil
-		return m, true
-	case approvalflow.DecisionReject:
-		m.appendDecisionLines(approvalview.DecisionReject, lang)
-		m = m.RefreshViewport()
-		m.Approval.pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
-		m.Approval.pending = nil
-		m.Interaction.WaitingForAI = false
-		return m, true
-	case approvalflow.DecisionCopy:
-		m.appendDecisionLines(approvalview.DecisionReject, lang)
-		m = m.RefreshViewport()
-		_ = clipboard.WriteAll(m.Approval.pending.Command)
-		m.appendSuggestedLine(m.Approval.pending.Command, lang)
-		m.Messages = append(m.Messages, hintStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeySuggestedCopied))))
-		m.Approval.pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: true}
-		m.Approval.pending = nil
-		return m, true
-	case approvalflow.DecisionDismiss:
-		m.appendDecisionLines(approvalview.DecisionDismiss, lang)
-		m = m.RefreshViewport()
-		m.Approval.pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
-		m.Approval.pending = nil
-		m.Interaction.WaitingForAI = false
-		return m, true
-	default:
+	out, ok := approvalexec.OutcomeForDecision(d, m.Approval.pending, m.Approval.pendingSensitive)
+	if !ok {
 		return m, true
 	}
+	lang := m.getLang()
+	m.appendDecisionLines(out.LinesKind, lang)
+	m = m.RefreshViewport()
+
+	if out.HasSensitiveSend && m.Approval.pendingSensitive != nil {
+		m.Approval.pendingSensitive.ResponseCh <- out.SensitiveChoice
+		m.Approval.pendingSensitive = nil
+	}
+
+	if out.HasApprovalSend && m.Approval.pending != nil {
+		if out.DoCopyWorkflow {
+			_ = clipboard.WriteAll(out.CopyCommand)
+			m.appendSuggestedLine(m.Approval.pending.Command, lang)
+			m.Messages = append(m.Messages, hintStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeySuggestedCopied))))
+		}
+		m.Approval.pending.ResponseCh <- out.ApprovalResponse
+		m.Approval.pending = nil
+	}
+
+	if out.WaitingForAIClear {
+		m.Interaction.WaitingForAI = false
+	}
+	return m, true
 }

@@ -5,19 +5,14 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/host/route"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/maininput"
+	"delve-shell/internal/uiflow/enterflow"
 )
 
 func (m Model) handleMainEnterCommand(text string, slashSelectedIndex int) (Model, tea.Cmd) {
-	if strings.HasPrefix(text, "/") {
-		if m.Host.TryRelaySlashSubmit(route.SlashSubmitPayload{
-			RawLine:            text,
-			SlashSelectedIndex: slashSelectedIndex,
-		}) {
-			return m, nil
-		}
+	if enterflow.TryRelayMainEnter(text, slashSelectedIndex, m.Host.TryRelaySlashSubmit) {
+		return m, nil
 	}
 	return m.executeMainEnterCommandNoRelay(text, slashSelectedIndex)
 }
@@ -37,14 +32,7 @@ func (m Model) executeMainEnterCommandNoRelay(text string, slashSelectedIndex in
 		_, vis, viewOpts := m.slashSuggestionContext(text)
 		sessionNoneMsg := i18n.T(m.getLang(), i18n.KeySessionNone)
 		delRemoteNoneMsg := i18n.T(m.getLang(), i18n.KeyDelRemoteNoHosts)
-		plan := maininput.PlanMainEnter(maininput.MainEnterInput{
-			Text:               text,
-			SlashSelectedIndex: slashSelectedIndex,
-			Options:            viewOpts,
-			Visible:            vis,
-			SessionNoneMsg:     sessionNoneMsg,
-			DelRemoteNoneMsg:   delRemoteNoneMsg,
-		})
+		plan := enterflow.PlanAfterSlashDispatches(text, slashSelectedIndex, viewOpts, vis, sessionNoneMsg, delRemoteNoneMsg)
 		switch plan.Kind {
 		case maininput.MainEnterShowSessionNone:
 			m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(sessionNoneMsg)))

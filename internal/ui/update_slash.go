@@ -3,10 +3,10 @@ package ui
 import (
 	"strings"
 
-	"delve-shell/internal/host/route"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/slashflow"
 	"delve-shell/internal/slashview"
+	"delve-shell/internal/uiflow/enterflow"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -65,11 +65,7 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 	if strings.TrimSpace(inputVal) == "" {
 		return m, nil, false
 	}
-	if m.Host.TryRelaySlashSubmit(route.SlashSubmitPayload{
-		RawLine:            strings.TrimSpace(inputVal),
-		SlashSelectedIndex: m.Interaction.slashSuggestIndex,
-		InputLine:          inputVal,
-	}) {
+	if enterflow.TryRelaySlashInputLine(strings.TrimSpace(inputVal), inputVal, m.Interaction.slashSuggestIndex, m.Host.TryRelaySlashSubmit) {
 		return m, nil, true
 	}
 	return m.execSlashEnterKeyLocal(inputVal)

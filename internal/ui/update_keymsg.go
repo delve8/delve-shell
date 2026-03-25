@@ -23,99 +23,83 @@ func (m Model) appendUserSubmittedEcho(text string) Model {
 }
 
 func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
+	mm := m
+	ks := keySession{m: &mm}
 	key := msg.String()
 
 	// Always allow ctrl+c to quit, even during pending approvals or sensitive prompts.
 	if key == "ctrl+c" {
-		return m, tea.Quit
+		return mm, tea.Quit
 	}
 
-	state := m.currentUIState()
+	state := mm.currentUIState()
 	if state == uiStatePendingSensitive || state == uiStatePendingApproval {
-		if handledModel, handled := m.handlePendingChoiceKey(key); handled {
+		if handledModel, handled := mm.handlePendingChoiceKey(key); handled {
 			return handledModel, nil
 		}
 	}
 
 	// Slash dropdown navigation should work even if other key paths evolve.
 	// Handle it before overlay/key-to-input processing so Up/Down/Enter remain reliable.
-	inputVal := m.Input.Value()
-	inSlash := strings.HasPrefix(inputVal, "/")
-	if inSlash {
+	inputVal := ks.inputValue()
+	if strings.HasPrefix(inputVal, "/") {
 		if key == "enter" {
-			if m2, cmd, handled := m.handleSlashEnterKey(inputVal); handled {
+			if m2, cmd, handled := mm.handleSlashEnterKey(inputVal); handled {
 				return m2, cmd
 			}
 		}
 	}
 
-	if m2, cmd, handled := m.handleOverlayKey(key, msg); handled {
+	if m2, cmd, handled := mm.handleOverlayKey(key, msg); handled {
 		return m2, cmd
 	}
 
-	inputVal = m.Input.Value()
-	inSlash = strings.HasPrefix(inputVal, "/")
-	if inSlash && (key == "up" || key == "down") {
-		_, vis, _ := m.slashSuggestionContext(inputVal)
-		if next, changed := slashview.NextSuggestIndex(m.Interaction.slashSuggestIndex, len(vis), key); changed {
-			m.Interaction.slashSuggestIndex = next
-		}
-		return m, nil
+	inputVal = ks.inputValue()
+	if ks.handleSlashUpDown(key, inputVal) {
+		return mm, nil
 	}
 	if key == "pgup" || key == "pgdown" {
-		var cmd tea.Cmd
-		m.Viewport, cmd = m.Viewport.Update(msg)
-		return m, cmd
+		return mm, ks.updateViewportKey(msg)
 	}
 
 	if key == "enter" {
 		text := strings.TrimSpace(inputVal)
 		if text == "" {
-			return m, nil
+			return mm, nil
 		}
 		// WaitingForAI only blocks submitting new messages; slash commands starting with / always run
-		if m.Interaction.WaitingForAI && !strings.HasPrefix(text, "/") {
-			return m, nil
+		if ks.waitingForAI() && !strings.HasPrefix(text, "/") {
+			return mm, nil
 		}
-		_, vis, viewOpts := m.slashSuggestionContext(inputVal)
-		selected, ok := slashview.SelectedByVisibleIndex(viewOpts, vis, m.Interaction.slashSuggestIndex)
+		_, vis, viewOpts := ks.slashSuggestionTriple(inputVal)
+		selected, ok := slashview.SelectedByVisibleIndex(viewOpts, vis, ks.slashSuggestIndex())
 		capture := maininput.CaptureSlashSelection(maininput.CaptureInput{
 			InputVal:     inputVal,
 			Text:         text,
-			SuggestIndex: m.Interaction.slashSuggestIndex,
+			SuggestIndex: ks.slashSuggestIndex(),
 			Selected:     selected,
 			HasSelected:  ok,
 		})
 		if capture.FillOnly {
-			m.Input.SetValue(capture.FillValue)
-			m.Input.CursorEnd()
-			m.Interaction.slashSuggestIndex = 0
-			return m, nil
+			ks.setInputValue(capture.FillValue)
+			ks.setSlashSuggestIndex(0)
+			return mm, nil
 		}
 		if maininput.IsNewSessionCommand(text) {
-			m = m.appendUserSubmittedEcho(text)
-			_ = m.Host.Submit(text)
-			m.Input.SetValue("")
-			m.Input.CursorEnd()
-			m.Interaction.slashSuggestIndex = 0
-			m = m.RefreshViewport()
-			return m, nil
+			mm = mm.appendUserSubmittedEcho(text)
+			_ = mm.Host.Submit(text)
+			ks.setInputValue("")
+			ks.setSlashSuggestIndex(0)
+			mm = mm.RefreshViewport()
+			return mm, nil
 		}
-		m = m.appendUserSubmittedEcho(text)
-		m.Input.SetValue("")
-		m.Input.CursorEnd()
-		m.Interaction.slashSuggestIndex = 0
-		return m.handleMainEnterCommand(text, capture.SelectedIndex)
+		mm = mm.appendUserSubmittedEcho(text)
+		ks.setInputValue("")
+		ks.setSlashSuggestIndex(0)
+		return mm.handleMainEnterCommand(text, capture.SelectedIndex)
 	}
 
-	var cmd tea.Cmd
-	m.Input, cmd = m.Input.Update(msg)
-	inputVal = m.Input.Value()
-	_, vis, _ := m.slashSuggestionContext(inputVal)
-	m.Interaction.slashSuggestIndex = maininput.SyncSlashSuggestIndex(maininput.SyncInput{
-		InputVal:            inputVal,
-		CurrentSuggestIndex: m.Interaction.slashSuggestIndex,
-		VisibleCount:        len(vis),
-	})
-	return m, cmd
+	cmd := ks.updateTextInput(msg)
+	ks.syncSuggestAfterInputChange(ks.inputValue())
+	return mm, cmd
 }

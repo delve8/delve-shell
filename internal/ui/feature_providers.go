@@ -1,37 +1,27 @@
 package ui
 
-import tea "github.com/charmbracelet/bubbletea"
-import "delve-shell/internal/slashreg"
+import (
+	tea "github.com/charmbracelet/bubbletea"
+
+	"delve-shell/internal/slashreg"
+	"delve-shell/internal/uiregistry"
+)
 
 // SlashOptionsProvider can provide slash suggestion options for a given input.
 // When handled==true, the returned options should override the default ui logic.
-type SlashOptionsProvider func(
-	inputVal string,
-	lang string,
-	localRunCommands []string,
-	remoteRunCommands []string,
-	remoteActive bool,
-) (opts []SlashOption, handled bool)
-
-var slashOptionsProviderChain = slashreg.NewProviderChain[SlashOptionsProvider]()
-var rootSlashOptionProviderChain = slashreg.NewProviderChain[func(string) []SlashOption]()
+// Registration is stored in [uiregistry] so feature packages do not couple to ui.Model.
+type SlashOptionsProvider = uiregistry.SlashOptionsProvider
 
 // RegisterSlashOptionsProvider registers a slash options provider.
 // Providers are executed in registration order; the first one that returns handled=true wins.
 func RegisterSlashOptionsProvider(p SlashOptionsProvider) {
-	if p == nil {
-		return
-	}
-	slashOptionsProviderChain.Add(p, func(x SlashOptionsProvider) bool { return x == nil })
+	uiregistry.RegisterSlashOptionsProvider(p)
 }
 
 // RegisterRootSlashOptionProvider registers a provider for top-level slash options.
 // Providers are concatenated in registration order.
-func RegisterRootSlashOptionProvider(p func(lang string) []SlashOption) {
-	if p == nil {
-		return
-	}
-	rootSlashOptionProviderChain.Add(p, func(x func(string) []SlashOption) bool { return x == nil })
+func RegisterRootSlashOptionProvider(p uiregistry.RootSlashOptionProvider) {
+	uiregistry.RegisterRootSlashOptionProvider(p)
 }
 
 // SlashSelectedProvider handles Enter on a chosen slash suggestion when the
