@@ -95,11 +95,11 @@ func TestEnqueueUI_NilMessage(t *testing.T) {
 func TestEnqueueUI_QueueFull(t *testing.T) {
 	b := New(2)
 	for i := 0; i < cap(b.uiMsgs); i++ {
-		if !b.EnqueueUI(ui.SystemNotifyMsg{Text: "x"}) {
+		if !b.EnqueueUI(ui.TranscriptAppendMsg{}) {
 			t.Fatalf("enqueue failed unexpectedly at index %d", i)
 		}
 	}
-	if b.EnqueueUI(ui.SystemNotifyMsg{Text: "overflow"}) {
+	if b.EnqueueUI(ui.TranscriptAppendMsg{}) {
 		t.Fatal("enqueue should fail when ui queue full")
 	}
 }
@@ -364,7 +364,7 @@ func TestStartUIPump_NoProgram(t *testing.T) {
 	StartUIPump(stop, b, &currentP)
 
 	// No active tea program; enqueue should not block or panic.
-	if !b.EnqueueUI(ui.SystemNotifyMsg{Text: "hello"}) {
+	if !b.EnqueueUI(ui.TranscriptAppendMsg{}) {
 		t.Fatal("enqueue failed unexpectedly")
 	}
 	time.Sleep(20 * time.Millisecond)
@@ -380,7 +380,7 @@ func TestStartUIPump_Stop(t *testing.T) {
 	time.Sleep(20 * time.Millisecond)
 
 	// Queue still accepts data; no receiver guarantee after stop.
-	_ = b.EnqueueUI(ui.SystemNotifyMsg{Text: "after-stop"})
+	_ = b.EnqueueUI(ui.TranscriptAppendMsg{})
 }
 
 func TestSemanticLabel_MapsDraftNames(t *testing.T) {

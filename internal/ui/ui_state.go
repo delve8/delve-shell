@@ -4,19 +4,19 @@ type uiState string
 
 const (
 	uiStateMainInput        uiState = "main_input"
-	uiStatePendingApproval  uiState = "pending_approval"
-	uiStatePendingSensitive uiState = "pending_sensitive"
+	uiStateChoiceCard       uiState = "choice_card"
+	uiStateChoiceCardAlt    uiState = "choice_card_alt"
 	uiStateOverlay          uiState = "overlay"
 )
 
 // currentUIState is a lightweight FSM view of current UI mode.
 // Priority follows interactive exclusivity: pending > overlay > main.
 func (m Model) currentUIState() uiState {
-	if m.Approval.pendingSensitive != nil {
-		return uiStatePendingSensitive
+	if m.ChoiceCard.pendingSensitive != nil {
+		return uiStateChoiceCardAlt
 	}
-	if m.Approval.pending != nil {
-		return uiStatePendingApproval
+	if m.ChoiceCard.pending != nil {
+		return uiStateChoiceCard
 	}
 	if m.Overlay.Active {
 		return uiStateOverlay

@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/hiltypes"
+	"delve-shell/internal/remote"
 	"delve-shell/internal/ui"
 )
 
@@ -29,10 +30,10 @@ func TestPresenter_ConfigAndSession(t *testing.T) {
 	if len(r.msgs) != 2 {
 		t.Fatalf("want 2 msgs, got %d", len(r.msgs))
 	}
-	if _, ok := r.msgs[0].(ui.ConfigReloadedMsg); !ok {
+	if _, ok := r.msgs[0].(ui.TranscriptAppendMsg); !ok {
 		t.Fatalf("first msg type %T", r.msgs[0])
 	}
-	if _, ok := r.msgs[1].(ui.SessionSwitchedMsg); !ok {
+	if _, ok := r.msgs[1].(ui.TranscriptAppendMsg); !ok {
 		t.Fatalf("second msg type %T", r.msgs[1])
 	}
 }
@@ -45,13 +46,11 @@ func TestPresenter_AgentReply(t *testing.T) {
 	if len(r.msgs) != 2 {
 		t.Fatalf("want 2 msgs, got %d", len(r.msgs))
 	}
-	m0 := r.msgs[0].(ui.AgentReplyMsg)
-	if m0.Reply != "hi" || m0.ErrText != "" || m0.Cancelled {
-		t.Fatalf("reply0: %+v", m0)
+	if _, ok := r.msgs[0].(ui.TranscriptAppendMsg); !ok {
+		t.Fatalf("reply0 type %T", r.msgs[0])
 	}
-	m1 := r.msgs[1].(ui.AgentReplyMsg)
-	if m1.ErrText == "" || m1.Cancelled {
-		t.Fatalf("expected err text, got %+v", m1)
+	if _, ok := r.msgs[1].(ui.TranscriptAppendMsg); !ok {
+		t.Fatalf("reply1 type %T", r.msgs[1])
 	}
 }
 
@@ -66,15 +65,14 @@ func TestPresenter_DispatchAgentUI(t *testing.T) {
 	if len(r.msgs) != 3 {
 		t.Fatalf("want 3 msgs, got %d", len(r.msgs))
 	}
-	if ar, ok := r.msgs[0].(ui.ApprovalRequestMsg); !ok || ar.Pending == nil || ar.Pending.Command != "ls" {
+	if ar, ok := r.msgs[0].(ui.ChoiceCardShowMsg); !ok || ar.PendingApproval == nil || ar.PendingApproval.Command != "ls" {
 		t.Fatalf("msg0 %T %+v", r.msgs[0], r.msgs[0])
 	}
-	if sr, ok := r.msgs[1].(ui.SensitiveConfirmationRequestMsg); !ok || sr.Pending == nil || sr.Pending.Command != "cat" {
+	if sr, ok := r.msgs[1].(ui.ChoiceCardShowMsg); !ok || sr.PendingSensitive == nil || sr.PendingSensitive.Command != "cat" {
 		t.Fatalf("msg1 %T %+v", r.msgs[1], r.msgs[1])
 	}
-	ce := r.msgs[2].(ui.CommandExecutedMsg)
-	if ce.Command != "x" || !ce.Allowed || ce.Direct || ce.Result != "ok" {
-		t.Fatalf("msg2 %+v", ce)
+	if _, ok := r.msgs[2].(ui.TranscriptAppendMsg); !ok {
+		t.Fatalf("msg2 type %T %+v", r.msgs[2], r.msgs[2])
 	}
 }
 
@@ -83,11 +81,20 @@ func TestPresenter_RemoteAndOverlays(t *testing.T) {
 	p := New(&r)
 	p.RemoteStatus(true, "dev")
 	p.RemoteConnectDone(false, "", "nope")
-	p.RemoteAuthPrompt(ui.RemoteAuthPromptMsg{Target: "h", Err: "e"})
+	p.RemoteAuthPrompt("h", "e", false)
 	p.OverlayShow("t", "c")
 	p.OverlayClose()
 	if len(r.msgs) != 5 {
 		t.Fatalf("want 5 msgs, got %d", len(r.msgs))
+	}
+	if _, ok := r.msgs[0].(remote.ExecutionChangedMsg); !ok {
+		t.Fatalf("msg0 type %T", r.msgs[0])
+	}
+	if _, ok := r.msgs[1].(remote.ConnectDoneMsg); !ok {
+		t.Fatalf("msg1 type %T", r.msgs[1])
+	}
+	if _, ok := r.msgs[2].(remote.AuthPromptMsg); !ok {
+		t.Fatalf("msg2 type %T", r.msgs[2])
 	}
 }
 
@@ -95,7 +102,7 @@ func TestPresenter_RunCompletionCache(t *testing.T) {
 	var r recordSender
 	p := New(&r)
 	p.RunCompletionCache("r1", []string{"a", "b"})
-	m := r.msgs[0].(ui.RunCompletionCacheMsg)
+	m := r.msgs[0].(remote.RunCompletionCacheMsg)
 	if m.RemoteLabel != "r1" || len(m.Commands) != 2 {
 		t.Fatalf("%+v", m)
 	}

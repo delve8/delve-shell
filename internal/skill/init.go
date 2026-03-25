@@ -124,7 +124,7 @@ func Register() {
 	ui.RegisterMessageProvider(func(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		state := getSkillOverlayState()
 		switch t := msg.(type) {
-		case ui.AddSkillRefsLoadedMsg:
+		case AddRefsLoadedMsg:
 			if state.AddSkill.Active {
 				state.AddSkill.RefsFullList = t.Refs
 				state.AddSkill.RefCandidates = filterByPrefix(t.Refs, state.AddSkill.RefInput.Value())
@@ -132,7 +132,7 @@ func Register() {
 				setSkillOverlayState(state)
 			}
 			return m, nil, true
-		case ui.AddSkillPathsLoadedMsg:
+		case AddPathsLoadedMsg:
 			if state.AddSkill.Active {
 				state.AddSkill.PathsFullList = t.Paths
 				state = updateAddSkillPathCandidates(state)

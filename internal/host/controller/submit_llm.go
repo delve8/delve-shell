@@ -15,6 +15,8 @@ import (
 	"delve-shell/internal/history"
 	"delve-shell/internal/host/bus"
 	"delve-shell/internal/modelinfo"
+	"delve-shell/internal/session"
+	"delve-shell/internal/uivm"
 )
 
 func (c *Controller) handleUserChat(userMsg string) {
@@ -76,7 +78,7 @@ func (c *Controller) handleSubmitNewSession() {
 	if c.syncSessionPath != nil {
 		c.syncSessionPath(newSession.Path())
 	}
-	c.ui.SessionSwitched()
+	c.publishSessionTranscript(newSession.Path())
 }
 
 func (c *Controller) handleSubmitSwitchSession(sessionID string) {
@@ -93,7 +95,15 @@ func (c *Controller) handleSubmitSwitchSession(sessionID string) {
 	if c.syncSessionPath != nil {
 		c.syncSessionPath(sessionPath)
 	}
-	c.ui.SessionSwitched()
+	c.publishSessionTranscript(sessionPath)
+}
+
+func (c *Controller) publishSessionTranscript(path string) {
+	events, _ := history.ReadRecent(path, agent.MaxConversationEvents)
+	lines := session.EventsToTranscriptLines(events)
+	lines = append(lines, uivm.Line{Kind: uivm.LineSystemSuggest, Text: "Session switched."})
+	lines = append(lines, uivm.Line{Kind: uivm.LineBlank})
+	c.ui.TranscriptReplace(lines)
 }
 
 func (c *Controller) handleLLMRunCompleted(reply string, runErr error) {

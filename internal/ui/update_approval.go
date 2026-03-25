@@ -9,14 +9,15 @@ import (
 	"delve-shell/internal/approvalview"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/textwrap"
+	"delve-shell/internal/uivm"
 )
 
 func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 	allowlistAutoRunEnabled := m.Host.AllowlistAutoRunEnabled()
 	res := approvalflow.Evaluate(
 		key,
-		m.Approval.pending != nil,
-		m.Approval.pendingSensitive != nil,
+		m.ChoiceCard.pending != nil,
+		m.ChoiceCard.pendingSensitive != nil,
 		allowlistAutoRunEnabled,
 		m.Interaction.ChoiceIndex,
 		choiceCount(m),
@@ -32,7 +33,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 }
 
 func (m *Model) appendDecisionLines(decision approvalview.DecisionKind, lang string) {
-	lines, ok := approvalview.BuildDecision(lang, m.contentWidth(), m.Approval.pending, m.Approval.pendingSensitive, decision, textwrap.WrapString)
+	lines, ok := approvalview.BuildDecision(lang, m.contentWidth(), m.ChoiceCard.pending, m.ChoiceCard.pendingSensitive, decision, textwrap.WrapString)
 	if !ok {
 		return
 	}
@@ -83,36 +84,36 @@ func (m Model) applyApprovalDecision(d approvalflow.Decision) (Model, bool) {
 	lang := m.getLang()
 	switch d {
 	case approvalflow.DecisionSensitiveRefuse, approvalflow.DecisionSensitiveRunStore, approvalflow.DecisionSensitiveRunNoStore:
-		if m.Approval.pendingSensitive == nil {
+		if m.ChoiceCard.pendingSensitive == nil {
 			return m, true
 		}
 		var kind approvalview.DecisionKind
-		var choice approvalview.SensitiveChoice
+		var choice uivm.SensitiveChoice
 		switch d {
 		case approvalflow.DecisionSensitiveRunStore:
 			kind = approvalview.DecisionSensitiveRunStore
-			choice = approvalview.SensitiveRunAndStore
+			choice = uivm.SensitiveRunAndStore
 		case approvalflow.DecisionSensitiveRunNoStore:
 			kind = approvalview.DecisionSensitiveRunNoStore
-			choice = approvalview.SensitiveRunNoStore
+			choice = uivm.SensitiveRunNoStore
 		default:
 			kind = approvalview.DecisionSensitiveRefuse
-			choice = approvalview.SensitiveRefuse
+			choice = uivm.SensitiveRefuse
 		}
 		m.appendDecisionLines(kind, lang)
 		m = m.RefreshViewport()
-		if m.Approval.pendingSensitive.Respond != nil {
-			m.Approval.pendingSensitive.Respond(choice)
+		if m.ChoiceCard.pendingSensitive.Respond != nil {
+			m.ChoiceCard.pendingSensitive.Respond(choice)
 		}
-		m.Approval.pendingSensitive = nil
+		m.ChoiceCard.pendingSensitive = nil
 		return m, true
 
 	case approvalflow.DecisionApprove, approvalflow.DecisionReject, approvalflow.DecisionDismiss, approvalflow.DecisionCopy:
-		if m.Approval.pending == nil {
+		if m.ChoiceCard.pending == nil {
 			return m, true
 		}
 		var kind approvalview.DecisionKind
-		resp := approvalview.ApprovalResponse{Approved: false, CopyRequested: false}
+		resp := uivm.ApprovalResponse{Approved: false, CopyRequested: false}
 		waitingClear := false
 		doCopy := false
 		switch d {
@@ -133,14 +134,14 @@ func (m Model) applyApprovalDecision(d approvalflow.Decision) (Model, bool) {
 		m.appendDecisionLines(kind, lang)
 		m = m.RefreshViewport()
 		if doCopy {
-			_ = clipboard.WriteAll(m.Approval.pending.Command)
-			m.appendSuggestedLine(m.Approval.pending.Command, lang)
+			_ = clipboard.WriteAll(m.ChoiceCard.pending.Command)
+			m.appendSuggestedLine(m.ChoiceCard.pending.Command, lang)
 			m.messages = append(m.messages, hintStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeySuggestedCopied))))
 		}
-		if m.Approval.pending.Respond != nil {
-			m.Approval.pending.Respond(resp)
+		if m.ChoiceCard.pending.Respond != nil {
+			m.ChoiceCard.pending.Respond(resp)
 		}
-		m.Approval.pending = nil
+		m.ChoiceCard.pending = nil
 		if waitingClear {
 			m.Interaction.WaitingForAI = false
 		}

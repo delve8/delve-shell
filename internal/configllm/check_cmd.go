@@ -7,7 +7,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/service/configsvc"
-	"delve-shell/internal/ui"
 )
 
 func runConfigLLMCheckCmd() tea.Cmd {
@@ -16,11 +15,11 @@ func runConfigLLMCheckCmd() tea.Cmd {
 		defer cancel()
 		corrected, err := configsvc.CheckLLMAndMaybeAutoCorrect(ctx, nil)
 		if err != nil {
-			return ui.ConfigLLMCheckDoneMsg{Err: err}
+			return CheckDoneMsg{ErrText: err.Error()}
 		}
 		if corrected != "" {
-			return ui.ConfigLLMCheckDoneMsg{CorrectedBaseURL: corrected}
+			return CheckDoneMsg{CorrectedBaseURL: corrected}
 		}
-		return ui.ConfigLLMCheckDoneMsg{Err: nil}
+		return CheckDoneMsg{}
 	}
 }

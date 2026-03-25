@@ -11,6 +11,7 @@ import (
 	"delve-shell/internal/config"
 	"delve-shell/internal/configllm"
 	"delve-shell/internal/host/app"
+	"delve-shell/internal/remote"
 	"delve-shell/internal/remoteauth"
 	"delve-shell/internal/ui"
 )
@@ -179,9 +180,9 @@ func TestBlackboxSlashRunDropdownUsesRemoteCachedSuggestionsWhenAvailable(t *tes
 	f := newBlackboxFixture(t)
 
 	// Simulate remote on and a cached /run suggestion list from host.
-	next, _ := f.model.Update(ui.RemoteStatusMsg{Active: true, Label: "r1"})
+	next, _ := f.model.Update(remote.ExecutionChangedMsg{Active: true, Label: "r1"})
 	m1 := next.(ui.Model)
-	next2, _ := m1.Update(ui.RunCompletionCacheMsg{RemoteLabel: "r1", Commands: []string{"busybox", "bzip2"}})
+	next2, _ := m1.Update(remote.RunCompletionCacheMsg{RemoteLabel: "r1", Commands: []string{"busybox", "bzip2"}})
 	m2 := next2.(ui.Model)
 
 	m2.Input.SetValue("/run b")

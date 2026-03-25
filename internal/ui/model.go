@@ -3,8 +3,8 @@ package ui
 import (
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/approvalview"
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/uivm"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 
@@ -21,7 +21,7 @@ type Model struct {
 	Input    textinput.Model
 	Viewport viewport.Model
 	messages []string
-	Approval ApprovalState
+	ChoiceCard ChoiceCardState
 	layout        LayoutState
 	Interaction   InteractionState
 
@@ -39,10 +39,10 @@ type InteractionState struct {
 	WaitingForAI      bool // when true only blocks submitting new messages (Enter); /xxx slash commands always allowed
 }
 
-// ApprovalState stores current pending approvals.
-type ApprovalState struct {
-	pending          *approvalview.PendingApproval
-	pendingSensitive *approvalview.PendingSensitive
+// ChoiceCardState stores current pending choice card (approval or sensitive confirmation).
+type ChoiceCardState struct {
+	pending          *uivm.PendingApproval
+	pendingSensitive *uivm.PendingSensitive
 }
 
 // LayoutState stores terminal layout dimensions for rendering.
@@ -120,21 +120,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.MouseMsg:
 		return m.handleMouseMsg(msg)
 
-	case ApprovalRequestMsg:
-		return m.handleApprovalRequestMsg(msg)
+	case ChoiceCardShowMsg:
+		return m.handleChoiceCardShowMsg(msg)
 
-	case SensitiveConfirmationRequestMsg:
-		return m.handleSensitiveConfirmationRequestMsg(msg)
-
-	case ConfigReloadedMsg:
-		return m.handleConfigReloadedMsg()
-	case AgentReplyMsg:
-		return m.handleAgentReplyMsg(msg)
-	case SystemNotifyMsg:
-		return m.handleSystemNotifyMsg(msg)
-
-	case CommandExecutedMsg:
-		return m.handleCommandExecutedMsg(msg)
+	case TranscriptAppendMsg:
+		return m.handleTranscriptAppendMsg(msg)
+	case TranscriptReplaceMsg:
+		return m.handleTranscriptReplaceMsg(msg)
 
 	case SlashSubmitRelayMsg:
 		return m.handleSlashSubmitRelayMsg(msg)

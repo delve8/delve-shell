@@ -13,13 +13,13 @@ import (
 func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 	state := getRemoteOverlayState()
 	switch t := msg.(type) {
-	case ui.RemoteStatusMsg:
+	case ExecutionChangedMsg:
 		m.Host.SetRemoteExecution(t.Active, t.Label)
 		// Remote execution state changed: clear any previously cached /run suggestions.
 		clearCachedRunSuggestions()
 		m = m.RefreshViewport()
 		return m, nil, true
-	case ui.RunCompletionCacheMsg:
+	case RunCompletionCacheMsg:
 		// Remote cache update (sent by CLI on successful /remote on).
 		// Ignore stale results from previous remotes.
 		if t.RemoteLabel == "" || t.RemoteLabel != m.Host.RemoteLabel() {
@@ -27,7 +27,7 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		}
 		setCachedRunSuggestions(t.Commands)
 		return m, nil, true
-	case ui.RemoteConnectDoneMsg:
+	case ConnectDoneMsg:
 		state.AddRemote.Connecting = false
 		state.AddRemote.Error = ""
 		state.AddRemote.OfferOverwrite = false
@@ -58,7 +58,7 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		}
 		setRemoteOverlayState(state)
 		return m, nil, true
-	case ui.RemoteAuthPromptMsg:
+	case AuthPromptMsg:
 		state.AddRemote.Connecting = false
 		state.AddRemote.Active = false
 		m.Overlay.Active = true

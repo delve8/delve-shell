@@ -2,16 +2,12 @@ package session
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"path/filepath"
 	"strings"
 
 	"delve-shell/internal/history"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/ui"
 )
-
-var sessionSwitchedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Italic(true)
 
 const maxSessionHistoryEvents = 500
 
@@ -38,36 +34,6 @@ func Register() {
 			m.Host.TrySubmitNonBlocking("/sessions " + id)
 			return m.RefreshViewport(), nil, true
 		},
-	})
-
-	// Delegate session switched message to ui handler.
-	ui.RegisterMessageProvider(func(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
-		switch t := msg.(type) {
-		case ui.SessionSwitchedMsg:
-			lang := "en"
-			_ = t
-			path := getCurrentSessionPath()
-			sessionID := ""
-			if path != "" {
-				sessionID = strings.TrimSuffix(filepath.Base(path), ".jsonl")
-			}
-			switchedLine := sessionSwitchedStyle.Render(i18n.T(lang, i18n.KeyDelveLabel) + " " + i18n.Tf(lang, i18n.KeySessionSwitchedTo, sessionID))
-			if path != "" {
-				events, _ := history.ReadRecent(path, maxSessionHistoryEvents)
-				msgs := sessionEventsToMessages(events, lang, m.LayoutWidth())
-				lines := make([]string, 0, len(msgs)+2)
-				lines = append(lines, msgs...)
-				lines = append(lines, switchedLine)
-				m = m.WithTranscriptLines(lines)
-			} else {
-				m = m.WithTranscriptLines([]string{switchedLine})
-			}
-			m = m.AppendTranscriptLines("")
-			m = m.RefreshViewport()
-			return m, nil, true
-		default:
-			return m, nil, false
-		}
 	})
 
 	ui.RegisterSlashOptionsProvider(func(

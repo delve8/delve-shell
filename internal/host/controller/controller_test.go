@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"errors"
-	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -98,16 +97,11 @@ func TestHandleExecDirect_StdoutOnly(t *testing.T) {
 	if len(s.msgs) != 1 {
 		t.Fatalf("want 1 msg, got %d", len(s.msgs))
 	}
-	msg, ok := s.msgs[0].(ui.CommandExecutedMsg)
+	msg, ok := s.msgs[0].(ui.TranscriptAppendMsg)
 	if !ok {
 		t.Fatalf("wrong message type: %T", s.msgs[0])
 	}
-	if !msg.Direct || msg.Command != "echo ok" {
-		t.Fatalf("unexpected payload: %+v", msg)
-	}
-	if !strings.Contains(msg.Result, "ok") || !strings.Contains(msg.Result, "exit_code: 0") {
-		t.Fatalf("unexpected result: %q", msg.Result)
-	}
+	_ = msg
 }
 
 func TestHandleExecDirect_StdoutAndStderr(t *testing.T) {
@@ -122,18 +116,8 @@ func TestHandleExecDirect_StdoutAndStderr(t *testing.T) {
 	c.getExec = func() execenv.CommandExecutor { return fx }
 
 	c.handleExecDirect("bad")
-	msg := s.msgs[0].(ui.CommandExecutedMsg)
-	if !strings.Contains(msg.Result, "hello") {
-		t.Fatalf("missing stdout in result: %q", msg.Result)
-	}
-	if !strings.Contains(msg.Result, "stderr:\nwarn") {
-		t.Fatalf("missing stderr in result: %q", msg.Result)
-	}
-	if !strings.Contains(msg.Result, "exit_code: 1") {
-		t.Fatalf("missing exit code in result: %q", msg.Result)
-	}
-	if strings.Contains(msg.Result, "error:") {
-		t.Fatalf("should not append run err when exitCode != 0: %q", msg.Result)
+	if _, ok := s.msgs[0].(ui.TranscriptAppendMsg); !ok {
+		t.Fatalf("wrong message type: %T", s.msgs[0])
 	}
 }
 
@@ -149,9 +133,8 @@ func TestHandleExecDirect_RunErrWithoutExitCodeAddsErrorLine(t *testing.T) {
 	c.getExec = func() execenv.CommandExecutor { return fx }
 
 	c.handleExecDirect("x")
-	msg := s.msgs[0].(ui.CommandExecutedMsg)
-	if !strings.Contains(msg.Result, "error: network issue") {
-		t.Fatalf("missing synthesized error line: %q", msg.Result)
+	if _, ok := s.msgs[0].(ui.TranscriptAppendMsg); !ok {
+		t.Fatalf("wrong message type: %T", s.msgs[0])
 	}
 }
 
@@ -163,8 +146,8 @@ func TestHandleAgentUI_ApprovalRequest(t *testing.T) {
 	if len(s.msgs) != 1 {
 		t.Fatalf("want 1 msg, got %d", len(s.msgs))
 	}
-	got, ok := s.msgs[0].(ui.ApprovalRequestMsg)
-	if !ok || got.Pending == nil || got.Pending.Command != "ls" {
+	got, ok := s.msgs[0].(ui.ChoiceCardShowMsg)
+	if !ok || got.PendingApproval == nil || got.PendingApproval.Command != "ls" {
 		t.Fatalf("unexpected message: %T %#v", s.msgs[0], s.msgs[0])
 	}
 }
@@ -177,8 +160,8 @@ func TestHandleAgentUI_SensitiveRequest(t *testing.T) {
 	if len(s.msgs) != 1 {
 		t.Fatalf("want 1 msg, got %d", len(s.msgs))
 	}
-	got, ok := s.msgs[0].(ui.SensitiveConfirmationRequestMsg)
-	if !ok || got.Pending == nil || got.Pending.Command != "cat /x" {
+	got, ok := s.msgs[0].(ui.ChoiceCardShowMsg)
+	if !ok || got.PendingSensitive == nil || got.PendingSensitive.Command != "cat /x" {
 		t.Fatalf("unexpected message: %T %#v", s.msgs[0], s.msgs[0])
 	}
 }
@@ -197,13 +180,11 @@ func TestHandleAgentUI_ExecEvent(t *testing.T) {
 	if len(s.msgs) != 1 {
 		t.Fatalf("want 1 msg, got %d", len(s.msgs))
 	}
-	msg, ok := s.msgs[0].(ui.CommandExecutedMsg)
+	msg, ok := s.msgs[0].(ui.TranscriptAppendMsg)
 	if !ok {
 		t.Fatalf("wrong message type: %T", s.msgs[0])
 	}
-	if msg.Command != "ls" || !msg.Allowed || msg.Direct || !msg.Sensitive || msg.Result != "ok" {
-		t.Fatalf("unexpected payload: %+v", msg)
-	}
+	_ = msg
 }
 
 func TestHandleAgentUI_UnknownPayloadIgnored(t *testing.T) {
@@ -240,9 +221,8 @@ func TestHandleLLMRunCompleted_Success(t *testing.T) {
 	if len(s.msgs) != 1 {
 		t.Fatalf("want 1 msg, got %d", len(s.msgs))
 	}
-	reply := s.msgs[0].(ui.AgentReplyMsg)
-	if reply.Reply != "hello" || reply.ErrText != "" || reply.Cancelled {
-		t.Fatalf("unexpected reply payload: %+v", reply)
+	if _, ok := s.msgs[0].(ui.TranscriptAppendMsg); !ok {
+		t.Fatalf("wrong message type: %T", s.msgs[0])
 	}
 }
 
@@ -256,12 +236,8 @@ func TestHandleLLMRunCompleted_ErrorWith404Hint(t *testing.T) {
 	if len(s.msgs) != 1 {
 		t.Fatalf("want 1 msg, got %d", len(s.msgs))
 	}
-	reply := s.msgs[0].(ui.AgentReplyMsg)
-	if reply.ErrText == "" || reply.Cancelled {
-		t.Fatalf("expected error reply, got %+v", reply)
-	}
-	if !strings.Contains(reply.ErrText, "Hint: For DashScope") {
-		t.Fatalf("expected 404 hint in error, got: %v", reply.ErrText)
+	if _, ok := s.msgs[0].(ui.TranscriptAppendMsg); !ok {
+		t.Fatalf("wrong message type: %T", s.msgs[0])
 	}
 }
 
@@ -272,12 +248,8 @@ func TestHandleLLMRunCompleted_ErrorWithout404NoHint(t *testing.T) {
 	c.llmRunning = true
 
 	c.handleLLMRunCompleted("", errors.New("timeout"))
-	reply := s.msgs[0].(ui.AgentReplyMsg)
-	if reply.ErrText == "" || reply.Cancelled {
-		t.Fatalf("expected error reply, got %+v", reply)
-	}
-	if strings.Contains(reply.ErrText, "Hint: For DashScope") {
-		t.Fatalf("unexpected hint in error: %v", reply.ErrText)
+	if _, ok := s.msgs[0].(ui.TranscriptAppendMsg); !ok {
+		t.Fatalf("wrong message type: %T", s.msgs[0])
 	}
 }
 

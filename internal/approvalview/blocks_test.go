@@ -3,10 +3,12 @@ package approvalview
 import (
 	"strings"
 	"testing"
+
+	"delve-shell/internal/uivm"
 )
 
 func TestBuildSensitive(t *testing.T) {
-	lines, ok := Build("en", 80, nil, &PendingSensitive{Command: "rm -rf /"}, nil)
+	lines, ok := Build("en", 80, nil, &uivm.PendingSensitive{Command: "rm -rf /"}, nil)
 	if !ok {
 		t.Fatal("expected sensitive block")
 	}
@@ -19,7 +21,7 @@ func TestBuildSensitive(t *testing.T) {
 }
 
 func TestBuildApprovalRiskAndSummary(t *testing.T) {
-	lines, ok := Build("en", 80, &PendingApproval{
+	lines, ok := Build("en", 80, &uivm.PendingApproval{
 		Command:   "kubectl get pods",
 		RiskLevel: "read_only",
 		SkillName: "k8s",

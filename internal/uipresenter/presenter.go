@@ -8,9 +8,12 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/approvalview"
+	"delve-shell/internal/configllm"
 	"delve-shell/internal/hiltypes"
+	"delve-shell/internal/remote"
+	"delve-shell/internal/skill"
 	"delve-shell/internal/ui"
+	"delve-shell/internal/uivm"
 )
 
 // Sender delivers a message to the active tea.Program (typically via bus UI queue).
@@ -44,14 +47,31 @@ func (p *Presenter) Raw(msg tea.Msg) {
 	p.send.Send(msg)
 }
 
+// TranscriptAppend appends semantic transcript lines.
+func (p *Presenter) TranscriptAppend(lines []uivm.Line) {
+	if len(lines) == 0 {
+		return
+	}
+	p.Raw(ui.TranscriptAppendMsg{Lines: lines})
+}
+
+// TranscriptReplace replaces the whole transcript.
+func (p *Presenter) TranscriptReplace(lines []uivm.Line) {
+	p.Raw(ui.TranscriptReplaceMsg{Lines: lines})
+}
+
 // --- Config / session ---
 
 func (p *Presenter) ConfigReloaded() {
-	p.Raw(ui.NewConfigReloadedMsg())
+	p.Raw(ui.TranscriptAppendMsg{Lines: []uivm.Line{
+		{Kind: uivm.LineSystemSuggest, Text: "Config reloaded."},
+		{Kind: uivm.LineBlank},
+	}})
 }
 
 func (p *Presenter) SessionSwitched() {
-	p.Raw(ui.NewSessionSwitchedMsg())
+	// Deprecated: use TranscriptReplace with session replay content.
+	p.Raw(ui.TranscriptAppendMsg{Lines: []uivm.Line{{Kind: uivm.LineSystemSuggest, Text: "Session switched."}, {Kind: uivm.LineBlank}}})
 }
 
 // --- Agent reply (transcript) ---
@@ -60,29 +80,63 @@ func (p *Presenter) AgentReply(reply string, err error) {
 	if err != nil {
 		// Keep UI pure of agent/config; presenter provides a stable, human-readable error.
 		if errors.Is(err, context.Canceled) {
-			p.Raw(ui.AgentReplyMsg{Cancelled: true})
+			p.Raw(ui.TranscriptAppendMsg{Lines: []uivm.Line{
+				{Kind: uivm.LineSystemSuggest, Text: "Cancelled."},
+				{Kind: uivm.LineBlank},
+			}})
 			return
 		}
-		p.Raw(ui.AgentReplyMsg{ErrText: err.Error()})
+		p.Raw(ui.TranscriptAppendMsg{Lines: []uivm.Line{
+			{Kind: uivm.LineSystemError, Text: err.Error()},
+			{Kind: uivm.LineBlank},
+		}})
 		return
 	}
-	p.Raw(ui.AgentReplyMsg{Reply: reply})
+	if reply == "" {
+		return
+	}
+	p.Raw(ui.TranscriptAppendMsg{Lines: []uivm.Line{
+		{Kind: uivm.LineAI, Text: reply},
+		{Kind: uivm.LineSeparator},
+	}})
 }
 
 // --- System line (non-AI) ---
 
 func (p *Presenter) SystemNotify(text string) {
-	p.Raw(ui.NewSystemNotifyMsg(text))
+	if text == "" {
+		return
+	}
+	p.Raw(ui.TranscriptAppendMsg{Lines: []uivm.Line{
+		{Kind: uivm.LineSystemSuggest, Text: text},
+		{Kind: uivm.LineBlank},
+	}})
 }
 
 // --- Command execution (transcript) ---
 
 func (p *Presenter) CommandExecutedDirect(cmd, result string) {
-	p.Raw(ui.NewCommandExecutedDirectMsg(cmd, result))
+	p.CommandExecutedFromTool(cmd, false, result, false, false)
 }
 
 func (p *Presenter) CommandExecutedFromTool(cmd string, allowed bool, result string, sensitive, suggested bool) {
-	p.Raw(ui.NewCommandExecutedFromToolMsg(cmd, allowed, result, sensitive, suggested))
+	// Presenter builds transcript semantics; UI owns styling and wrapping.
+	tag := "approved"
+	if suggested {
+		tag = "suggested"
+	} else if allowed {
+		tag = "allowlist"
+	}
+	runLine := "Run: " + cmd + " (" + tag + ")"
+	lines := []uivm.Line{{Kind: uivm.LineExec, Text: runLine}}
+	if sensitive {
+		lines = append(lines, uivm.Line{Kind: uivm.LineSystemSuggest, Text: "Result contains sensitive data."})
+	}
+	if result != "" {
+		lines = append(lines, uivm.Line{Kind: uivm.LineResult, Text: result})
+	}
+	lines = append(lines, uivm.Line{Kind: uivm.LineBlank})
+	p.Raw(ui.TranscriptAppendMsg{Lines: lines})
 }
 
 // --- HIL: approval & sensitive confirmation (Agent payloads as tea.Msg) ---
@@ -92,13 +146,13 @@ func (p *Presenter) ShowApproval(req *hiltypes.ApprovalRequest) {
 		return
 	}
 	// Map domain request to UI view-model; respond writes back into domain channel.
-	p.Raw(ui.ApprovalRequestMsg{Pending: &approvalview.PendingApproval{
+	p.Raw(ui.ChoiceCardShowMsg{PendingApproval: &uivm.PendingApproval{
 		Command:   req.Command,
 		Summary:   req.Summary,
 		Reason:    req.Reason,
 		RiskLevel: req.RiskLevel,
 		SkillName: req.SkillName,
-		Respond: func(r approvalview.ApprovalResponse) {
+		Respond: func(r uivm.ApprovalResponse) {
 			req.ResponseCh <- hiltypes.ApprovalResponse{Approved: r.Approved, CopyRequested: r.CopyRequested}
 		},
 	}})
@@ -108,13 +162,13 @@ func (p *Presenter) ShowSensitiveConfirmation(req *hiltypes.SensitiveConfirmatio
 	if req == nil {
 		return
 	}
-	p.Raw(ui.SensitiveConfirmationRequestMsg{Pending: &approvalview.PendingSensitive{
+	p.Raw(ui.ChoiceCardShowMsg{PendingSensitive: &uivm.PendingSensitive{
 		Command: req.Command,
-		Respond: func(c approvalview.SensitiveChoice) {
+		Respond: func(c uivm.SensitiveChoice) {
 			switch c {
-			case approvalview.SensitiveRunAndStore:
+			case uivm.SensitiveRunAndStore:
 				req.ResponseCh <- hiltypes.SensitiveRunAndStore
-			case approvalview.SensitiveRunNoStore:
+			case uivm.SensitiveRunNoStore:
 				req.ResponseCh <- hiltypes.SensitiveRunNoStore
 			default:
 				req.ResponseCh <- hiltypes.SensitiveRefuse
@@ -138,28 +192,21 @@ func (p *Presenter) DispatchAgentUI(x any) {
 // --- Remote / header ---
 
 func (p *Presenter) RemoteStatus(active bool, label string) {
-	p.Raw(ui.NewRemoteStatusMsg(active, label))
+	p.Raw(remote.ExecutionChangedMsg{Active: active, Label: label})
 }
 
 func (p *Presenter) RemoteConnectDone(success bool, label, errText string) {
-	p.Raw(ui.NewRemoteConnectDoneMsg(success, label, errText))
+	p.Raw(remote.ConnectDoneMsg{Success: success, Label: label, Err: errText})
 }
 
-func (p *Presenter) RemoteAuthPrompt(m ui.RemoteAuthPromptMsg) {
-	p.Raw(m)
-}
-
-func (p *Presenter) RemoteAuthPromptPtr(m *ui.RemoteAuthPromptMsg) {
-	if m == nil {
-		return
-	}
-	p.Raw(*m)
+func (p *Presenter) RemoteAuthPrompt(target, errText string, useConfiguredIdentity bool) {
+	p.Raw(remote.AuthPromptMsg{Target: target, Err: errText, UseConfiguredIdentity: useConfiguredIdentity})
 }
 
 // --- Completion cache (/run) ---
 
 func (p *Presenter) RunCompletionCache(remoteLabel string, commands []string) {
-	p.Raw(ui.NewRunCompletionCacheMsg(remoteLabel, commands))
+	p.Raw(remote.RunCompletionCacheMsg{RemoteLabel: remoteLabel, Commands: commands})
 }
 
 // --- Overlays & async config checks (used by feature packages via tea.Msg today) ---
@@ -173,13 +220,17 @@ func (p *Presenter) OverlayShow(title, content string) {
 }
 
 func (p *Presenter) ConfigLLMCheckDone(err error, correctedBaseURL string) {
-	p.Raw(ui.NewConfigLLMCheckDoneMsg(err, correctedBaseURL))
+	if err != nil {
+		p.Raw(configllm.CheckDoneMsg{ErrText: err.Error(), CorrectedBaseURL: correctedBaseURL})
+		return
+	}
+	p.Raw(configllm.CheckDoneMsg{CorrectedBaseURL: correctedBaseURL})
 }
 
 func (p *Presenter) AddSkillRefsLoaded(refs []string) {
-	p.Raw(ui.NewAddSkillRefsLoadedMsg(refs))
+	p.Raw(skill.AddRefsLoadedMsg{Refs: refs})
 }
 
 func (p *Presenter) AddSkillPathsLoaded(paths []string) {
-	p.Raw(ui.NewAddSkillPathsLoadedMsg(paths))
+	p.Raw(skill.AddPathsLoadedMsg{Paths: paths})
 }

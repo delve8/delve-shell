@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"delve-shell/internal/approvalview"
 	"delve-shell/internal/host/app"
+	"delve-shell/internal/uivm"
 )
 
 // TUI (Bubble Tea) tests: do not run tea.Program; unit-test the Model by sending messages and asserting state/output.
@@ -36,7 +36,7 @@ func TestView_HeaderAlwaysShown(t *testing.T) {
 	}
 
 	// With Pending, header shows [NEED APPROVAL] or [待确认]
-	m.Approval.pending = &approvalview.PendingApproval{Command: "ls"}
+	m.ChoiceCard.pending = &uivm.PendingApproval{Command: "ls"}
 	m.layout.Height = 24
 	viewPending := m.View()
 	if !strings.Contains(viewPending, "[NEED APPROVAL]") && !strings.Contains(viewPending, "[待确认]") {
@@ -48,7 +48,7 @@ func TestView_HeaderAlwaysShown(t *testing.T) {
 	m2 := NewModel(nil, app.Nop())
 	m2.layout.Height = 12
 	m2.layout.Width = 80
-	m2.Approval.pendingSensitive = &approvalview.PendingSensitive{Command: "cat /etc/shadow"}
+	m2.ChoiceCard.pendingSensitive = &uivm.PendingSensitive{Command: "cat /etc/shadow"}
 	viewChoice := m2.View()
 	lines := strings.Split(viewChoice, "\n")
 	if len(lines) > m2.layout.Height {

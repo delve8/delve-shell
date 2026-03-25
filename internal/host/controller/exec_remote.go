@@ -9,8 +9,8 @@ import (
 
 	"delve-shell/internal/config"
 	"delve-shell/internal/execenv"
+	"delve-shell/internal/remote"
 	"delve-shell/internal/remoteauth"
-	"delve-shell/internal/ui"
 )
 
 func (c *Controller) handleExecDirect(cmd string) {
@@ -52,7 +52,7 @@ func (c *Controller) handleRemoteOn(target string) {
 	}
 	res := c.executors.Connect(target, label, identityFile)
 	if res.AuthPrompt != nil {
-		c.ui.RemoteAuthPrompt(ui.RemoteAuthPromptMsg{
+		c.ui.Raw(remote.AuthPromptMsg{
 			Target:                res.AuthPrompt.Target,
 			Err:                   res.AuthPrompt.Err,
 			UseConfiguredIdentity: res.AuthPrompt.UseConfiguredIdentity,
@@ -79,10 +79,7 @@ func (c *Controller) handleRemoteAuthResp(resp remoteauth.Response) {
 	}
 	labelStr, err := c.executors.HandleRemoteAuthResponse(resp)
 	if err != nil {
-		c.ui.RemoteAuthPrompt(ui.RemoteAuthPromptMsg{
-			Target: resp.Target,
-			Err:    fmt.Sprintf("Auth failed: %v", err),
-		})
+		c.ui.Raw(remote.AuthPromptMsg{Target: resp.Target, Err: fmt.Sprintf("Auth failed: %v", err)})
 		return
 	}
 	c.updateRemoteRunCompletion(c.getExec(), labelStr)

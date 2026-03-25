@@ -22,7 +22,7 @@ func (m Model) titleBarStatus() widget.TitleBarStatus {
 
 // statusKey returns the i18n key for current state: idle, running, or pending approval.
 func (m Model) statusKey() string {
-	if m.hasPendingApproval() {
+	if m.hasPendingChoiceCard() {
 		return i18n.KeyStatusPendingApproval
 	}
 	if m.Interaction.WaitingForAI {

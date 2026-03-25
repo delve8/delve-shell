@@ -51,14 +51,14 @@ func filterByPrefix(s []string, prefix string) []string {
 func runListRefsCmd(url string) tea.Cmd {
 	return func() tea.Msg {
 		refs := git.ListRefs(context.Background(), url)
-		return ui.AddSkillRefsLoadedMsg{Refs: refs}
+		return AddRefsLoadedMsg{Refs: refs}
 	}
 }
 
 func runListPathsCmd(url, ref string) tea.Cmd {
 	return func() tea.Msg {
 		paths, _ := git.ListPaths(context.Background(), url, ref)
-		return ui.AddSkillPathsLoadedMsg{Paths: paths}
+		return AddPathsLoadedMsg{Paths: paths}
 	}
 }
 

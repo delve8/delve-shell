@@ -12,8 +12,8 @@ const (
 )
 
 // hasPendingApproval reports whether the UI is in approval choice mode.
-func (m Model) hasPendingApproval() bool {
-	return m.Approval.pending != nil || m.Approval.pendingSensitive != nil
+func (m Model) hasPendingChoiceCard() bool {
+	return m.ChoiceCard.pending != nil || m.ChoiceCard.pendingSensitive != nil
 }
 
 // contentWidth returns a safe rendering width with fallback.

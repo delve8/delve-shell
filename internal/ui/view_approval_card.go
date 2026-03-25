@@ -14,8 +14,8 @@ func (m Model) appendApprovalViewportContent(b *strings.Builder) bool {
 	lines, ok := approvalview.Build(
 		m.getLang(),
 		m.contentWidth(),
-		m.Approval.pending,
-		m.Approval.pendingSensitive,
+		m.ChoiceCard.pending,
+		m.ChoiceCard.pendingSensitive,
 		textwrap.WrapString,
 	)
 	if !ok {

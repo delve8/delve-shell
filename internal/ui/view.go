@@ -15,7 +15,7 @@ func (m Model) View() string {
 	sepLine := renderSeparator(sepW)
 	header := m.titleLine() + "\n" + sepLine + "\n"
 
-	inChoice := m.hasPendingApproval()
+	inChoice := m.hasPendingChoiceCard()
 	if m.layout.Height <= minInputLayoutWidth {
 		out := header + m.buildContent() + "\n" + m.Input.View()
 		out += m.waitingLineBelowInput(lang)

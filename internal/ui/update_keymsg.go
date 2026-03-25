@@ -33,7 +33,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 	}
 
 	state := mm.currentUIState()
-	if state == uiStatePendingSensitive || state == uiStatePendingApproval {
+	if state == uiStateChoiceCardAlt || state == uiStateChoiceCard {
 		if handledModel, handled := mm.handlePendingChoiceKey(key); handled {
 			return handledModel, nil
 		}

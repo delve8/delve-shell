@@ -5,88 +5,91 @@ import (
 
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/textwrap"
+	"delve-shell/internal/uivm"
 )
 
-func (m Model) handleConfigReloadedMsg() (Model, tea.Cmd) {
-	lang := m.getLang()
-	m = m.AppendTranscriptLines(
-		suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyConfigReloaded))),
-		"",
-	)
-	m = m.RefreshViewport()
-	return m, nil
-}
-
-func (m Model) handleAgentReplyMsg(msg AgentReplyMsg) (Model, tea.Cmd) {
-	m.Interaction.WaitingForAI = false
-	lang := m.getLang()
-	if msg.Cancelled {
-		m = m.AppendTranscriptLines(suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyCancelled))))
-		m = m.AppendTranscriptLines("")
-	} else if msg.ErrText != "" {
-		m = m.AppendTranscriptLines(errStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyErrorPrefix) + msg.ErrText)))
-		m = m.AppendTranscriptLines("")
-	} else if msg.Reply != "" {
-		aiLine := i18n.T(lang, i18n.KeyAILabel) + msg.Reply
-		w := m.contentWidth()
-		m = m.AppendTranscriptLines(
-			textwrap.WrapString(aiLine, w),
-			renderSeparator(w),
-		)
+func (m Model) handleTranscriptAppendMsg(msg TranscriptAppendMsg) (Model, tea.Cmd) {
+	if len(msg.Lines) == 0 {
+		return m, nil
 	}
-	m = m.RefreshViewport()
-	return m, nil
-}
-
-func (m Model) handleSystemNotifyMsg(msg SystemNotifyMsg) (Model, tea.Cmd) {
-	if msg.Text != "" {
-		w := m.contentWidth()
-		m = m.AppendTranscriptLines(
-			suggestStyle.Render(m.delveMsg(textwrap.WrapString(msg.Text, w))),
-			"",
-		)
-		m = m.RefreshViewport()
-	}
-	return m, nil
-}
-
-func (m Model) handleCommandExecutedMsg(msg CommandExecutedMsg) (Model, tea.Cmd) {
 	lang := m.getLang()
-	var tag string
-	if msg.Direct {
-		tag = i18n.T(lang, i18n.KeyRunTagDirect)
-	} else if msg.Allowed {
-		tag = i18n.T(lang, i18n.KeyRunTagAllowlist)
-	} else {
-		tag = i18n.T(lang, i18n.KeyRunTagApproved)
-	}
-	runLine := i18n.T(lang, i18n.KeyRunLabel) + msg.Command + " (" + tag + ")"
 	w := m.contentWidth()
-	m = m.AppendTranscriptLines(execStyle.Render(textwrap.WrapString(runLine, w)))
-	if msg.Sensitive {
-		m = m.AppendTranscriptLines(suggestStyle.Render(i18n.T(lang, i18n.KeyResultSensitive)))
+	rendered := make([]string, 0, len(msg.Lines))
+	for _, l := range msg.Lines {
+		switch l.Kind {
+		case uivm.LineBlank:
+			rendered = append(rendered, "")
+		case uivm.LineSeparator:
+			rendered = append(rendered, renderSeparator(w))
+		case uivm.LineUser:
+			rendered = append(rendered, textwrap.WrapString(i18n.T(lang, i18n.KeyUserLabel)+l.Text, w))
+		case uivm.LineAI:
+			rendered = append(rendered, textwrap.WrapString(i18n.T(lang, i18n.KeyAILabel)+l.Text, w))
+		case uivm.LineSystemSuggest:
+			rendered = append(rendered, suggestStyle.Render(m.delveMsg(textwrap.WrapString(l.Text, w))))
+		case uivm.LineSystemError:
+			rendered = append(rendered, errStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyErrorPrefix)+l.Text)))
+		case uivm.LineExec:
+			rendered = append(rendered, execStyle.Render(textwrap.WrapString(l.Text, w)))
+		case uivm.LineResult:
+			rendered = append(rendered, resultStyle.Render(textwrap.WrapString(l.Text, w)))
+		default:
+			rendered = append(rendered, textwrap.WrapString(l.Text, w))
+		}
 	}
-	if msg.Result != "" {
-		m = m.AppendTranscriptLines(resultStyle.Render(textwrap.WrapString(msg.Result, w)))
-	}
-	m = m.AppendTranscriptLines("") // blank line after command output
+	m = m.AppendTranscriptLines(rendered...)
 	m = m.RefreshViewport()
 	return m, nil
 }
 
-func (m Model) handleApprovalRequestMsg(msg ApprovalRequestMsg) (Model, tea.Cmd) {
-	// When an approval is requested, immediately refresh the viewport so the
-	// approval card becomes visible, and scroll to bottom.
-	m.Approval.pending = msg.Pending
-	m.Interaction.ChoiceIndex = 0
-	m.syncInputPlaceholder()
+func (m Model) handleTranscriptReplaceMsg(msg TranscriptReplaceMsg) (Model, tea.Cmd) {
+	if len(msg.Lines) == 0 {
+		m = m.WithTranscriptLines(nil)
+		m = m.RefreshViewport()
+		return m, nil
+	}
+	// Reuse append renderer but without appending.
+	lang := m.getLang()
+	w := m.contentWidth()
+	rendered := make([]string, 0, len(msg.Lines))
+	for _, l := range msg.Lines {
+		switch l.Kind {
+		case uivm.LineBlank:
+			rendered = append(rendered, "")
+		case uivm.LineSeparator:
+			rendered = append(rendered, renderSeparator(w))
+		case uivm.LineUser:
+			rendered = append(rendered, textwrap.WrapString(i18n.T(lang, i18n.KeyUserLabel)+l.Text, w))
+		case uivm.LineAI:
+			rendered = append(rendered, textwrap.WrapString(i18n.T(lang, i18n.KeyAILabel)+l.Text, w))
+		case uivm.LineSystemSuggest:
+			rendered = append(rendered, suggestStyle.Render(m.delveMsg(textwrap.WrapString(l.Text, w))))
+		case uivm.LineSystemError:
+			rendered = append(rendered, errStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyErrorPrefix)+l.Text)))
+		case uivm.LineExec:
+			rendered = append(rendered, execStyle.Render(textwrap.WrapString(l.Text, w)))
+		case uivm.LineResult:
+			rendered = append(rendered, resultStyle.Render(textwrap.WrapString(l.Text, w)))
+		default:
+			rendered = append(rendered, textwrap.WrapString(l.Text, w))
+		}
+	}
+	m = m.WithTranscriptLines(rendered)
 	m = m.RefreshViewport()
 	return m, nil
 }
 
-func (m Model) handleSensitiveConfirmationRequestMsg(msg SensitiveConfirmationRequestMsg) (Model, tea.Cmd) {
-	// Same as approval: ensure the sensitive confirmation card is visible.
-	m.Approval.pendingSensitive = msg.Pending
+func (m Model) handleChoiceCardShowMsg(msg ChoiceCardShowMsg) (Model, tea.Cmd) {
+	// Immediately refresh viewport so the card becomes visible and scrolls to bottom.
+	if msg.PendingSensitive != nil {
+		m.ChoiceCard.pendingSensitive = msg.PendingSensitive
+		m.ChoiceCard.pending = nil
+	} else if msg.PendingApproval != nil {
+		m.ChoiceCard.pending = msg.PendingApproval
+		m.ChoiceCard.pendingSensitive = nil
+	} else {
+		return m, nil
+	}
 	m.Interaction.ChoiceIndex = 0
 	m.syncInputPlaceholder()
 	m = m.RefreshViewport()
