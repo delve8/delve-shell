@@ -7,6 +7,8 @@ import (
 	"delve-shell/internal/ui"
 )
 
+const remoteRunUsageOption = "/run <cmd>"
+
 func remoteSlashOptionsProvider(
 	inputVal string,
 	lang string,
@@ -53,7 +55,7 @@ func remoteSlashOptionsProvider(
 			return nil, false
 		}
 		if normalizedLower == "run" {
-			return []ui.SlashOption{{Cmd: ui.SlashRunUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun)}}, true
+			return []ui.SlashOption{{Cmd: remoteRunUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun)}}, true
 		}
 		rest := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "run"))
 		if strings.Contains(rest, " ") || strings.Contains(rest, "\t") {

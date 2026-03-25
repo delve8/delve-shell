@@ -22,7 +22,7 @@ func registerSlashOptionsProviders() {
 			return nil, false
 		}
 		if normalizedLower == "run" {
-			return []ui.SlashOption{{Cmd: ui.SlashRunUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun)}}, true
+			return []ui.SlashOption{{Cmd: slashRunUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun)}}, true
 		}
 		rest := ""
 		if len(normalized) >= 3 {
@@ -61,7 +61,7 @@ func rootSlashOptions(lang string) []ui.SlashOption {
 		{Cmd: "/new", Desc: i18n.T(lang, i18n.KeySessionNew)},
 		{Cmd: "/sessions", Desc: i18n.T(lang, i18n.KeyDescSessions)},
 		{Cmd: "/skill <skill-name> [detail]", Desc: i18n.T(lang, i18n.KeyDescSkill)},
-		{Cmd: ui.SlashRunUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun)},
+		{Cmd: slashRunUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun)},
 		{Cmd: "/sh", Desc: i18n.T(lang, i18n.KeyDescSh)},
 		{Cmd: "/q", Desc: i18n.T(lang, i18n.KeyDescExit)},
 	}

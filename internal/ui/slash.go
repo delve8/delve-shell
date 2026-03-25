@@ -5,9 +5,6 @@ import (
 	"delve-shell/internal/uiregistry"
 )
 
-// SlashRunUsageOption is the Cmd string for the /run usage row in slash suggestions (fill-only on select).
-const SlashRunUsageOption = "/run <cmd>"
-
 // SlashOption is one row in the slash command list (command + description).
 // It is a UI view-model; provider registries may use their own internal types.
 type SlashOption struct {
