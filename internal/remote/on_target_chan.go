@@ -6,7 +6,7 @@ import (
 	"delve-shell/internal/ui"
 )
 
-// Send sides for signals consumed by cli/hostloop multiplex (same channel instances as Deps).
+// Send sides for signals consumed by the host controller via hostbus input ports.
 // Set once from CLI before the UI runs.
 var (
 	remoteOnTargetMu sync.RWMutex
@@ -50,7 +50,7 @@ func SetRemoteOffChan(c chan<- struct{}) {
 	remoteOffC = c
 }
 
-// trySendRemoteOff notifies hostloop to disconnect remote. Returns false if unwired or channel full.
+// trySendRemoteOff notifies the host controller to disconnect remote. Returns false if unwired or channel full.
 func trySendRemoteOff() bool {
 	remoteOffMu.RLock()
 	ch := remoteOffC
@@ -66,7 +66,7 @@ func trySendRemoteOff() bool {
 	}
 }
 
-// SetRemoteAuthRespChan wires SSH auth answers (password / identity path) to hostloop.
+// SetRemoteAuthRespChan wires SSH auth answers (password / identity path) to the host controller.
 func SetRemoteAuthRespChan(c chan<- ui.RemoteAuthResponse) {
 	authRespMu.Lock()
 	defer authRespMu.Unlock()

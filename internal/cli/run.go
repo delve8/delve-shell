@@ -11,12 +11,12 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
-	"delve-shell/internal/cli/hostfsm"
-	"delve-shell/internal/cli/hostloop"
 	"delve-shell/internal/config"
 	_ "delve-shell/internal/configllm"
 	"delve-shell/internal/execenv"
 	"delve-shell/internal/history"
+	"delve-shell/internal/hostbus"
+	"delve-shell/internal/hostcontroller"
 	"delve-shell/internal/hostnotify"
 	"delve-shell/internal/remote"
 	"delve-shell/internal/rules"
@@ -59,8 +59,8 @@ func Run(cmd *cobra.Command, args []string) error {
 	syncSessionPath(initialSession.Path())
 	defer sessions.CloseAll()
 
-	uiEvents := make(chan any, 16)
-	configUpdatedChan := make(chan struct{}, 1)
+	bus := hostbus.New(512)
+	ports := hostbus.NewInputPorts()
 
 	var currentAllowlistAutoRun atomic.Bool
 	currentAllowlistAutoRun.Store(true)
@@ -85,58 +85,33 @@ func Run(cmd *cobra.Command, args []string) error {
 		SessionProvider:  func() *history.Session { return sessions.Current() },
 		ExecutorProvider: getExecutor,
 		AllowlistAutoRun: currentAllowlistAutoRun.Load(),
-		UIEvents:         uiEvents,
+		UIEvents:         ports.AgentUIChan,
 	})
 
-	submitChan := make(chan string, 4)
-	hostnotify.SetSubmitChan(submitChan)
-	execDirectChan := make(chan string, 4)
-	run.SetExecDirectChan(execDirectChan)
-	hostnotify.SetConfigUpdatedChan(configUpdatedChan)
+	hostnotify.SetSubmitChan(ports.SubmitChan)
+	run.SetExecDirectChan(ports.ExecDirectChan)
+	hostnotify.SetConfigUpdatedChan(ports.ConfigUpdatedChan)
 	shellRequestedChan := make(chan []string, 1)
 	run.SetShellRequestedChan(shellRequestedChan)
-	cancelRequestChan := make(chan struct{}, 1)
-	run.SetCancelRequestChan(cancelRequestChan)
-	remoteOnChan := make(chan string, 1)
-	remote.SetRemoteOnTargetChan(remoteOnChan)
-	remoteOffChan := make(chan struct{}, 1)
-	remote.SetRemoteOffChan(remoteOffChan)
-	remoteAuthRespChan := make(chan ui.RemoteAuthResponse, 1)
-	remote.SetRemoteAuthRespChan(remoteAuthRespChan)
+	run.SetCancelRequestChan(ports.CancelRequestChan)
+	remote.SetRemoteOnTargetChan(ports.RemoteOnChan)
+	remote.SetRemoteOffChan(ports.RemoteOffChan)
+	remote.SetRemoteAuthRespChan(ports.RemoteAuthRespChan)
 	var savedMessages []string
 	var currentP atomic.Pointer[tea.Program]
-	uiMsgChan := make(chan tea.Msg, 256)
-
-	sendToUI := func(msg tea.Msg) {
-		if msg == nil {
-			return
-		}
-		select {
-		case uiMsgChan <- msg:
-		default:
-		}
-	}
-
-	deps := &hostloop.Deps{
+	controller := hostcontroller.New(hostcontroller.Options{
 		Stop:                    stop,
-		Send:                    sendToUI,
+		Bus:                     bus,
+		Inputs:                  ports,
+		CurrentP:                &currentP,
 		Sessions:                sessions,
 		Runners:                 runners,
 		Executors:               executors,
-		SyncSessionPath:         syncSessionPath,
-		GetExecutor:             getExecutor,
-		CurrentP:                &currentP,
+		GetExec:                 getExecutor,
 		CurrentAllowlistAutoRun: &currentAllowlistAutoRun,
-		UIEvents:                uiEvents,
-		ConfigUpdatedChan:       configUpdatedChan,
-		ExecDirectChan:          execDirectChan,
-		RemoteOnChan:            remoteOnChan,
-		RemoteOffChan:           remoteOffChan,
-		RemoteAuthRespChan:      remoteAuthRespChan,
-	}
-
-	fsm := hostfsm.NewMachine(hostfsm.StateIdle)
-	hostloop.StartBackgroundLoops(stop, deps, uiMsgChan, submitChan, cancelRequestChan, fsm, &currentP)
+		SyncSessionPath:         syncSessionPath,
+	})
+	controller.Start()
 
 	getAllowlistAutoRun := func() bool { return currentAllowlistAutoRun.Load() }
 	hostnotify.SetAllowlistAutoRunGetter(getAllowlistAutoRun)
@@ -146,9 +121,7 @@ func Run(cmd *cobra.Command, args []string) error {
 	})
 	initialShowConfigLLM := needConfigLLM
 	for {
-		if s := sessions.Current(); s != nil {
-			syncSessionPath(s.Path())
-		}
+		controller.SyncCurrentSessionPath()
 		hostnotify.SetOpenConfigLLMOnFirstLayout(initialShowConfigLLM)
 		initialShowConfigLLM = false
 		model := ui.NewModel(savedMessages)

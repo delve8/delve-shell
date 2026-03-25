@@ -136,6 +136,8 @@
 - Overlay 关闭：`internal/ui/update_overlay_key.go` + `internal/run/overlay_close_hook.go`  
 - 黑盒测试入口：`internal/ui/model_blackbox_test.go`  
 - CLI 接线：`internal/cli/run.go`（空白 import 列表）  
+- Host 总线与中控：`internal/hostbus/bus.go`、`internal/hostcontroller/controller.go`  
+- Host→TUI 消息门面：`internal/uipresenter/presenter.go`  
 - 结构任务总表：`.cursor/code-structure-tasks.md`（若仓库跟踪该文件）
 
 ---
@@ -152,6 +154,7 @@
 
 | 日期 | 说明 |
 |------|------|
+| 2026-03-25 | Host 主干切换：`internal/hostbus` + `internal/hostcontroller` 替代已删除的 `internal/cli/hostloop`；`internal/uipresenter` 作为 Host→Bubble Tea 消息的统一门面；`internal/run/host_wire.go` 替代 `hostloop_chans.go` |
 | 2025-03-24 | `registry core` 两阶段：`internal/slashreg` 承接 slash exact/prefix registry 与 provider chain 容器，`ui` 保持注册 API 但不再持有底层容器实现 |
 | 2025-03-24 | overlay close 业务复位下沉：`ApplyOverlayCloseFeatureResets` 从 `ui` 迁到 `internal/run` 注册层，`ui` 保留通用 hook 执行机制 |
 | 2025-03-24 | `config` 业务逻辑继续下沉：删除 `internal/ui/config_handlers.go`，allowlist update/auto-run 处理迁至 `internal/run`；`ui` 仅保留壳层分发/渲染职责 |
@@ -194,3 +197,69 @@
 | 2025-03-24 | 集中 overlay 关闭复位：`ApplyOverlayCloseFeatureResets`（移除 remote/skill/configllm 分散 hook） |
 | 2025-03-24 | P1：`RegisterTitleBarFragmentProvider` + `view_approval_card.go`；交接文档 §4/§5 同步 |
 | （待填） | 初版：registry、overlay close hook、view 文件拆分、`SlashRunUsageOption`、import 循环说明 |
+
+---
+
+## 10. 下一阶段方向：Host Bus + Controller + UI 控件化（2026-03-25）
+
+本节记录当前重构共识，用于后续会话直接续接。
+
+### 10.1 目标
+
+- 收敛现有多路 channel / setter 接线，建立单一「主机事件总线（Host Bus）」。
+- 引入中控（Controller）作为编排层，统一处理输入路由：slash 命令与 AI 对话主路径。
+- 将 `internal/ui` 进一步收敛为壳层：提供少量控制接口 + 可复用控件，不承载业务分支。
+- 在不改变 HIL 安全边界与审计语义前提下，降低跨包耦合与路径追踪成本。
+
+### 10.2 共识架构（高层）
+
+1. 用户输入先进入 Host Bus（事件形式，不直接调用具体业务包）。
+2. Controller 监听输入事件并路由：
+   - slash 开头 -> 对应 slash handler；
+   - 非 slash -> AI 流程（runner/agent）。
+3. UI 通过窄接口暴露控制能力（如 header 状态、对话框显示/关闭、消息追加）。
+4. UI 可复用能力抽象为控件（dialog/dropdown/selector 等），由功能模块组合调用。
+
+### 10.3 关键边界约束（防止重构后再次失控）
+
+- Host Bus 传递领域事件，不传样式细节与布局参数。
+- Controller 只做编排与状态推进，不承载具体业务实现。
+- UI 控件层不得反向依赖 `agent` / `run` / `remote` 等业务包，避免循环依赖。
+- 保持 HIL 语义不变：命令执行前审批与敏感确认流程不可绕过。
+- 迁移期间优先适配层方案，避免大面积目录重排导致行为回归。
+
+### 10.4 建议的最小事件集合（初稿）
+
+- `UserSubmitted{text}`
+- `SlashRequested{text}`
+- `AIRequested{text}`
+- `ApprovalRequested{command,...}`
+- `ApprovalResolved{choice}`
+- `SensitiveConfirmationRequested{command}`
+- `SensitiveConfirmationResolved{choice}`
+- `CommandExecuted{command,result,...}`
+- `RemoteStatusChanged{active,label}`
+- `ConfigReloaded{}`
+
+注：命名可调整，但事件职责应保持「业务语义优先，UI 表现后置」。
+
+### 10.5 渐进迁移顺序（低风险）
+
+1. 定义 Bus 接口与事件类型，先接入适配层，不改现有主逻辑。
+2. 将「用户输入 -> slash/AI 路由」迁移到 Controller。
+3. 将审批、敏感确认、远程切换等异步流程迁移到 Bus 事件链。
+4. 最后抽 UI 控件并替换分散实现（dialog/dropdown 等）。
+
+### 10.5.1 已落地（实现快照）
+
+- `cli.Run` 创建 `hostbus.Bus` 与 `hostbus.InputPorts`，`runnermgr` 的 `UIEvents` 接入 `ports.AgentUIChan`；`hostnotify` / `run` / `remote` 的 setter 指向同一组端口。
+- `hostcontroller.Controller` 单 goroutine 消费 Bus 事件；LLM 运行在独立 goroutine 中，完成时投递 `KindLLMRunCompleted`，避免阻塞导致 `/cancel` 失效。
+- `uipresenter.Presenter` 封装发往 TUI 的 `tea.Msg`，`hostcontroller` 不再散落 `ui.*` 结构体字面量（`DispatchAgentUI` 统一映射 Agent 侧 payload）。
+- `internal/cli/hostloop` 包已删除（原 multiplex / submit / agent_ui 等逻辑已迁入 controller + uipresenter）。
+
+### 10.6 完成判据（可验证）
+
+- `internal/cli/run.go` 中全局 setter / 多路 channel 接线数量显著下降。
+- 从用户输入到执行回显的主路径可由单一事件链追踪（而非跨多处分支猜测）。
+- UI 层新增功能优先通过控件组合，不再在 `update_*` 中扩散重复绘制逻辑。
+- 现有 e2e/关键黑盒路径通过（slash、AI、审批、敏感确认、remote）。

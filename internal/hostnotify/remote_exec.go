@@ -2,7 +2,7 @@ package hostnotify
 
 import "sync"
 
-// Current remote execution mode (same source as hostloop RemoteStatusMsg → UI).
+// Current remote execution mode (same source as hostcontroller RemoteStatusMsg → UI).
 var (
 	remoteExecMu     sync.RWMutex
 	remoteExecActive bool

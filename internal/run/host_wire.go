@@ -2,7 +2,7 @@ package run
 
 import "sync"
 
-// Send sides for hostloop (same channel instances as StartBackgroundLoops / shell return path).
+// Send sides for the host controller (same channel instances as cli.Run / hostbus input ports).
 // Set once from cli/run.go before the UI runs.
 var (
 	shellSnapMu sync.RWMutex
@@ -48,7 +48,7 @@ func SetCancelRequestChan(c chan<- struct{}) {
 	cancelReqC = c
 }
 
-// trySendCancelRequest notifies hostloop to cancel the in-flight LLM request.
+// trySendCancelRequest notifies the host controller to cancel the in-flight LLM request.
 func trySendCancelRequest() bool {
 	cancelReqMu.RLock()
 	ch := cancelReqC
@@ -81,7 +81,7 @@ func invokeSyncAllowlistAutoRun(v bool) {
 	}
 }
 
-// SetExecDirectChan wires /run <cmd> execution requests to hostloop multiplex.
+// SetExecDirectChan wires /run <cmd> execution requests to the host controller.
 func SetExecDirectChan(c chan<- string) {
 	execDirectMu.Lock()
 	defer execDirectMu.Unlock()

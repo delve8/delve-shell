@@ -2,13 +2,13 @@ package hostnotify
 
 import "sync"
 
-// Send side for hostloop ConfigUpdatedChan (same instance as hostloop.Deps / cli/run wiring).
+// Send side for config-updated notifications (bridged into hostbus; consumed by hostcontroller).
 var (
 	configUpdatedMu sync.RWMutex
 	configUpdatedC  chan<- struct{}
 )
 
-// SetConfigUpdatedChan wires config save/reload notifications to hostloop (runner invalidate + ConfigReloadedMsg).
+// SetConfigUpdatedChan wires config save/reload notifications to the host controller.
 func SetConfigUpdatedChan(c chan<- struct{}) {
 	configUpdatedMu.Lock()
 	defer configUpdatedMu.Unlock()

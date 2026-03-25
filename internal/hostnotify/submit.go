@@ -2,20 +2,20 @@ package hostnotify
 
 import "sync"
 
-// Send side for hostloop user submit (same instance as RunSubmitLoop / cli/run wiring).
+// Send side for user submit (bridged into hostbus; consumed by hostcontroller).
 var (
 	submitMu sync.RWMutex
 	submitC  chan<- string
 )
 
-// SetSubmitChan wires user text submission to the host submit loop.
+// SetSubmitChan wires user text submission to the host controller (via hostbus).
 func SetSubmitChan(c chan<- string) {
 	submitMu.Lock()
 	defer submitMu.Unlock()
 	submitC = c
 }
 
-// Submit sends text to the host submit loop (blocking when buffer has space). Returns false if unwired.
+// Submit sends text to the host controller (blocking when buffer has space). Returns false if unwired.
 func Submit(text string) bool {
 	submitMu.RLock()
 	ch := submitC
