@@ -23,7 +23,7 @@ type Runtime struct {
 	cfgLLMFirst   bool
 }
 
-// NewRuntime returns an empty runtime; call WireSend and BindAllowlistAutoRun, then pass *Runtime as ui.Model.Host (or embed behind app.Host).
+// NewRuntime returns an empty runtime; call WireSend and BindAllowlistAutoRun, then adapt *Runtime for the interactive UI loop.
 func NewRuntime() *Runtime {
 	return &Runtime{}
 }

@@ -67,6 +67,6 @@ func applyConfigLLMField(m ui.Model, field, value string) ui.Model {
 		"",
 	)
 	m = m.RefreshViewport()
-	m.Host.NotifyConfigUpdated()
+	m.NotifyConfigUpdated()
 	return m
 }

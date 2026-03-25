@@ -14,7 +14,8 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 	state := getRemoteOverlayState()
 	switch t := msg.(type) {
 	case ExecutionChangedMsg:
-		m.Host.SetRemoteExecution(t.Active, t.Label)
+		m.Remote.Active = t.Active
+		m.Remote.Label = t.Label
 		// Remote execution state changed: clear any previously cached /run suggestions.
 		clearCachedRunSuggestions()
 		m = m.RefreshViewport()
@@ -22,7 +23,7 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 	case RunCompletionCacheMsg:
 		// Remote cache update (sent by CLI on successful /remote on).
 		// Ignore stale results from previous remotes.
-		if t.RemoteLabel == "" || t.RemoteLabel != m.Host.RemoteLabel() {
+		if t.RemoteLabel == "" || t.RemoteLabel != m.Remote.Label {
 			return m, nil, true
 		}
 		setCachedRunSuggestions(t.Commands)

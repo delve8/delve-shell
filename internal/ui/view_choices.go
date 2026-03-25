@@ -12,13 +12,13 @@ type choiceOption struct {
 
 // choiceCount returns the number of options when in a choice state (approval 2 or 3, sensitive 3, or session list N).
 func choiceCount(m Model) int {
-	allowlistAutoRunEnabled := m.Host.AllowlistAutoRunEnabled()
+	allowlistAutoRunEnabled := m.allowlistAutoRunEnabled()
 	return choicecard.ChoiceCount(m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil, allowlistAutoRunEnabled)
 }
 
 // getChoiceOptions returns the option list for the current choice state (approval 2 or 3 options / sensitive / session list).
 func getChoiceOptions(m Model, lang string) []choiceOption {
-	allowlistAutoRunEnabled := m.Host.AllowlistAutoRunEnabled()
+	allowlistAutoRunEnabled := m.allowlistAutoRunEnabled()
 	opts := choicecard.ChoiceOptions(lang, m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil, allowlistAutoRunEnabled)
 	out := make([]choiceOption, 0, len(opts))
 	for _, opt := range opts {
@@ -30,6 +30,6 @@ func getChoiceOptions(m Model, lang string) []choiceOption {
 // syncInputPlaceholder sets the input placeholder to selection hint (1/2 or 1/2/3) when waiting for choice, else normal placeholder.
 func (m *Model) syncInputPlaceholder() {
 	lang := m.getLang()
-	allowlistAutoRunEnabled := m.Host.AllowlistAutoRunEnabled()
+	allowlistAutoRunEnabled := m.allowlistAutoRunEnabled()
 	m.Input.Placeholder = choicecard.InputPlaceholder(lang, m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil, allowlistAutoRunEnabled)
 }

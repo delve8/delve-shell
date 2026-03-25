@@ -11,7 +11,7 @@ func registerSlashExactCancelCmd() {
 	ui.RegisterSlashExact("/cancel", ui.SlashExactDispatchEntry{
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
 			if m.Interaction.WaitingForAI {
-				_ = m.Host.PublishCancelRequest()
+				_ = m.PublishCancelRequest()
 				m.Interaction.WaitingForAI = false
 				return m, nil
 			}

@@ -45,7 +45,7 @@ func (m Model) titleLine() string {
 	lang := m.getLang()
 	remotePart := m.titleBarLeadingSegment()
 	autoRunStr := i18n.T(lang, i18n.KeyAutoRunListOnly)
-	if !m.Host.AllowlistAutoRunEnabled() {
+	if !m.allowlistAutoRunEnabled() {
 		autoRunStr = i18n.T(lang, i18n.KeyAutoRunNone)
 	}
 	autoRunPart := remotePart + " | " + i18n.T(lang, i18n.KeyAutoRunLabel) + autoRunStr + " | "

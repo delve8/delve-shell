@@ -26,6 +26,7 @@ type Options struct {
 	Inputs   bus.InputPorts
 	CurrentP *atomic.Pointer[tea.Program]
 	UIActions <-chan uivm.UIAction
+	ShellSnapshot chan<- []string
 
 	Sessions *sessionmgr.Manager
 	Runners  *runnermgr.Manager
@@ -52,6 +53,7 @@ type Controller struct {
 
 	currentP *atomic.Pointer[tea.Program]
 	uiActions <-chan uivm.UIAction
+	shellSnapshot chan<- []string
 
 	sessions *sessionmgr.Manager
 	runners  *runnermgr.Manager
@@ -80,6 +82,7 @@ func New(opts Options) *Controller {
 
 		currentP: opts.CurrentP,
 		uiActions: opts.UIActions,
+		shellSnapshot: opts.ShellSnapshot,
 
 		sessions: opts.Sessions,
 		runners:  opts.Runners,

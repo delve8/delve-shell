@@ -10,10 +10,10 @@ import (
 	"delve-shell/internal/bootstrap"
 	"delve-shell/internal/config"
 	"delve-shell/internal/configllm"
-	"delve-shell/internal/host/app"
 	"delve-shell/internal/remote"
 	"delve-shell/internal/remoteauth"
 	"delve-shell/internal/ui"
+	"delve-shell/internal/uivm"
 )
 
 func TestMain(m *testing.M) {
@@ -31,6 +31,91 @@ type blackboxFixture struct {
 	remoteOn       chan string
 	remoteOff      chan struct{}
 	remoteAuthResp chan remoteauth.Response
+	openConfigLLM  bool
+}
+
+type testReadModel struct {
+	openConfigLLM *bool
+}
+
+func (r testReadModel) AllowlistAutoRunEnabled() bool { return true }
+func (r testReadModel) TakeOpenConfigLLMOnFirstLayout() bool {
+	if r.openConfigLLM == nil {
+		return false
+	}
+	v := *r.openConfigLLM
+	*r.openConfigLLM = false
+	return v
+}
+
+type testActionSender struct {
+	f *blackboxFixture
+}
+
+func (s testActionSender) Send(a uivm.UIAction) bool {
+	switch a.Kind {
+	case uivm.UIActionSubmit:
+		select {
+		case s.f.submitChan <- a.Text:
+			return true
+		default:
+			return false
+		}
+	case uivm.UIActionConfigUpdated:
+		select {
+		case s.f.configUpdated <- struct{}{}:
+			return true
+		default:
+			return false
+		}
+	case uivm.UIActionExecDirect:
+		select {
+		case s.f.execDirectChan <- a.Text:
+			return true
+		default:
+			return false
+		}
+	case uivm.UIActionCancelRequested:
+		select {
+		case s.f.cancelRequest <- struct{}{}:
+			return true
+		default:
+			return false
+		}
+	case uivm.UIActionShellSnapshot:
+		select {
+		case s.f.shellRequested <- a.Messages:
+			return true
+		default:
+			return false
+		}
+	case uivm.UIActionRemoteOnTarget:
+		select {
+		case s.f.remoteOn <- a.Text:
+			return true
+		default:
+			return false
+		}
+	case uivm.UIActionRemoteOff:
+		select {
+		case s.f.remoteOff <- struct{}{}:
+			return true
+		default:
+			return false
+		}
+	case uivm.UIActionRemoteAuthReply:
+		select {
+		case s.f.remoteAuthResp <- a.RemoteAuthReply:
+			return true
+		default:
+			return false
+		}
+	case uivm.UIActionRelaySlashSubmit:
+		// Blackbox tests run model-only (no controller action consumer), so force local path.
+		return false
+	default:
+		return true
+	}
 }
 
 func newBlackboxFixture(t *testing.T) blackboxFixture {
@@ -45,22 +130,8 @@ func newBlackboxFixture(t *testing.T) blackboxFixture {
 		remoteOff:      make(chan struct{}, 2),
 		remoteAuthResp: make(chan remoteauth.Response, 2),
 	}
-	rt := app.NewRuntime()
-	rt.WireSend(&app.Send{
-		Submit:         f.submitChan,
-		ConfigUpdated:  f.configUpdated,
-		CancelRequest:  f.cancelRequest,
-		ExecDirect:     f.execDirectChan,
-		RemoteOn:       f.remoteOn,
-		RemoteOff:      f.remoteOff,
-		RemoteAuthResp: f.remoteAuthResp,
-		ShellSnapshot:  f.shellRequested,
-	})
-	t.Cleanup(func() { rt.Reset() })
-	rt.BindAllowlistAutoRun(func() bool { return true }, func(bool) {})
-	rt.SetRemoteExecution(false, "")
-	rt.SetOpenConfigLLMOnFirstLayout(false)
-	f.model = ui.NewModel(nil, rt)
+	f.model = ui.NewModel(nil, testReadModel{openConfigLLM: &f.openConfigLLM})
+	f.model.ActionSender = testActionSender{f: &f}
 	return f
 }
 
@@ -325,11 +396,8 @@ func TestBlackboxSlashSessionsPrefixSubmitsCommand(t *testing.T) {
 }
 
 func TestBlackboxStartupOverlayProviderOpensConfigLLM(t *testing.T) {
-	rt := app.NewRuntime()
-	t.Cleanup(func() { rt.Reset() })
-	t.Cleanup(func() { rt.SetOpenConfigLLMOnFirstLayout(false) })
-	rt.SetOpenConfigLLMOnFirstLayout(true)
-	m := ui.NewModel(nil, rt)
+	open := true
+	m := ui.NewModel(nil, testReadModel{openConfigLLM: &open})
 	next, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	got := next.(ui.Model)
 	if !got.Overlay.Active || !configllm.OverlayActive() {

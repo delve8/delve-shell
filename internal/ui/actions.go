@@ -1,7 +1,8 @@
 package ui
 
 import (
-	"delve-shell/internal/host/route"
+	"delve-shell/internal/remoteauth"
+	"delve-shell/internal/uitypes"
 	"delve-shell/internal/uivm"
 )
 
@@ -39,7 +40,7 @@ func (m Model) submitAction(text string) bool {
 	})
 }
 
-func (m Model) relaySlashSubmitAction(p route.SlashSubmitPayload) bool {
+func (m Model) relaySlashSubmitAction(p uitypes.SlashSubmitPayload) bool {
 	if m.ActionSender == nil {
 		return false
 	}
@@ -67,4 +68,70 @@ func (m Model) traceSlashEnteredAction(line string) {
 		Kind: uivm.UIActionEnterSlashTrace,
 		Text: line,
 	})
+}
+
+func (m Model) Submit(text string) bool {
+	return m.submitAction(text)
+}
+
+func (m Model) TrySubmitNonBlocking(text string) bool {
+	return m.submitAction(text)
+}
+
+func (m Model) NotifyConfigUpdated() {
+	if m.ActionSender == nil {
+		return
+	}
+	_ = m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionConfigUpdated})
+}
+
+func (m Model) PublishExecDirect(cmd string) {
+	if m.ActionSender == nil {
+		return
+	}
+	_ = m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionExecDirect, Text: cmd})
+}
+
+func (m Model) PublishCancelRequest() bool {
+	if m.ActionSender == nil {
+		return false
+	}
+	return m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionCancelRequested})
+}
+
+func (m Model) PublishShellSnapshot(msgs []string) bool {
+	if m.ActionSender == nil {
+		return false
+	}
+	out := make([]string, len(msgs))
+	copy(out, msgs)
+	return m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionShellSnapshot, Messages: out})
+}
+
+func (m Model) PublishRemoteOnTarget(target string) bool {
+	if m.ActionSender == nil {
+		return false
+	}
+	return m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionRemoteOnTarget, Text: target})
+}
+
+func (m Model) PublishRemoteOff() bool {
+	if m.ActionSender == nil {
+		return false
+	}
+	return m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionRemoteOff})
+}
+
+func (m Model) PublishRemoteAuthResponse(resp remoteauth.Response) bool {
+	if m.ActionSender == nil {
+		return false
+	}
+	return m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionRemoteAuthReply, RemoteAuthReply: resp})
+}
+
+func (m Model) InvokeSyncAllowlistAutoRun(v bool) {
+	if m.ActionSender == nil {
+		return
+	}
+	_ = m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionAllowlistAutoRun, BoolValue: v})
 }

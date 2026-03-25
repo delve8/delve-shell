@@ -75,6 +75,7 @@ func wireHostStack(
 		Inputs:                  ports,
 		CurrentP:                &currentP,
 		UIActions:               uiActions,
+		ShellSnapshot:           shellRequestedChan,
 		Sessions:                sessions,
 		Runners:                 runners,
 		Executors:               executors,

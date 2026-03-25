@@ -79,7 +79,7 @@ func handleUpdateSkillOverlayKey(m ui.Model, key string) (ui.Model, tea.Cmd, boo
 		m = m.AppendTranscriptLines("")
 		m = m.RefreshViewport()
 		m.Input.Focus()
-		m.Host.NotifyConfigUpdated()
+		m.NotifyConfigUpdated()
 		return ret(m, nil, true)
 	}
 

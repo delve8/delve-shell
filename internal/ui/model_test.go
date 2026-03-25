@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"delve-shell/internal/host/app"
 	"delve-shell/internal/uivm"
 )
 
@@ -16,7 +15,7 @@ import (
 // TestView_HeaderAlwaysShown asserts that View() always includes the header (mode + status) and that
 // total output lines never exceed Height so the header stays visible when the terminal shows one screen.
 func TestView_HeaderAlwaysShown(t *testing.T) {
-	m := NewModel(nil, app.Nop())
+	m := NewModel(nil, nil)
 	m.layout.Height = 24
 	m.layout.Width = 80
 	view := m.View()
@@ -45,7 +44,7 @@ func TestView_HeaderAlwaysShown(t *testing.T) {
 
 	// Critical: with choice mode (max 3 options) and a small Height, total lines must not exceed Height,
 	// so the header (first 2 lines) stays on screen when terminal displays one full screen.
-	m2 := NewModel(nil, app.Nop())
+	m2 := NewModel(nil, nil)
 	m2.layout.Height = 12
 	m2.layout.Width = 80
 	m2.ChoiceCard.pendingSensitive = &uivm.PendingSensitive{Command: "cat /etc/shadow"}

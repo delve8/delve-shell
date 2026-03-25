@@ -37,6 +37,6 @@ func handleConfigLLMCheckDoneMessage(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd
 	st = getOverlayState()
 	st.Active = false
 	setOverlayState(st)
-	m.Host.NotifyConfigUpdated()
+	m.NotifyConfigUpdated()
 	return m, nil, true
 }

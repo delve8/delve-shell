@@ -38,7 +38,7 @@ func applyConfigAddRemote(m ui.Model, args string) ui.Model {
 		"",
 	)
 	m = m.RefreshViewport()
-	m.Host.NotifyConfigUpdated()
+	m.NotifyConfigUpdated()
 	return m
 }
 

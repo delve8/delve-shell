@@ -12,7 +12,7 @@ import (
 )
 
 func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
-	allowlistAutoRunEnabled := m.Host.AllowlistAutoRunEnabled()
+	allowlistAutoRunEnabled := m.allowlistAutoRunEnabled()
 	res := choicecard.EvaluateKey(
 		key,
 		m.ChoiceCard.pending != nil,

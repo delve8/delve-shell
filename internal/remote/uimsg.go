@@ -1,7 +1,7 @@
 package remote
 
 // ExecutionChangedMsg mirrors host-side remote execution status into the TUI model.
-// It is consumed by remoteMessageProvider and updates the ui.Host mirror.
+// It is consumed by remoteMessageProvider and updates ui.Model remote state.
 type ExecutionChangedMsg struct {
 	Active bool   // true = remote, false = local
 	Label  string // e.g. "dev (root@1.2.3.4)" or "user@host"

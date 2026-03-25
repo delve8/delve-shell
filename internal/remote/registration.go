@@ -26,7 +26,7 @@ func registerSlashExactHandlers() {
 
 	ui.RegisterSlashExact("/remote off", ui.SlashExactDispatchEntry{
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
-			_ = m.Host.PublishRemoteOff()
+			_ = m.PublishRemoteOff()
 			return m, nil
 		},
 		ClearInput: true,
@@ -59,7 +59,7 @@ func registerSlashPrefixHandlers() {
 			if target == "" {
 				return m, nil, true
 			}
-			_ = m.Host.PublishRemoteOnTarget(target)
+			_ = m.PublishRemoteOnTarget(target)
 			return m, nil, true
 		},
 	})
@@ -69,10 +69,10 @@ func registerProviders() {
 	ui.RegisterSlashOptionsProvider(remoteSlashOptionsProvider)
 
 	ui.RegisterTitleBarFragmentProvider(func(m ui.Model) (string, bool) {
-		if !m.Host.RemoteActive() {
+		if !m.Remote.Active {
 			return "", false
 		}
-		if lbl := m.Host.RemoteLabel(); lbl != "" {
+		if lbl := m.Remote.Label; lbl != "" {
 			return "Remote " + lbl, true
 		}
 		return "Remote", true

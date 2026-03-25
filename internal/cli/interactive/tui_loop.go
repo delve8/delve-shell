@@ -34,6 +34,24 @@ type tuiRestartLoop struct {
 	openConfigLLMOnFirstLayout bool
 }
 
+type hostReadModel struct {
+	host app.Host
+}
+
+func (r hostReadModel) AllowlistAutoRunEnabled() bool {
+	if r.host == nil {
+		return true
+	}
+	return r.host.AllowlistAutoRunEnabled()
+}
+
+func (r hostReadModel) TakeOpenConfigLLMOnFirstLayout() bool {
+	if r.host == nil {
+		return false
+	}
+	return r.host.TakeOpenConfigLLMOnFirstLayout()
+}
+
 func newTuiRestartLoop(
 	controller *controller.Controller,
 	programPtr *atomic.Pointer[tea.Program],
@@ -77,7 +95,7 @@ func (l *tuiRestartLoop) run() error {
 func (l *tuiRestartLoop) runOneSession(saved *[]string, openConfigLLM bool) error {
 	l.controller.SyncCurrentSessionPath()
 	l.host.SetOpenConfigLLMOnFirstLayout(openConfigLLM)
-	model := ui.NewModel(*saved, l.host)
+	model := ui.NewModel(*saved, hostReadModel{host: l.host})
 	model.ActionSender = ui.NewActionChannelSender(l.uiActions)
 	p := tea.NewProgram(model, defaultTUIProgramOptions...)
 	l.programPtr.Store(p)

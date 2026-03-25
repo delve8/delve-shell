@@ -7,8 +7,6 @@ import (
 	"delve-shell/internal/uivm"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
-
-	"delve-shell/internal/host/app"
 )
 
 const (
@@ -29,8 +27,9 @@ type Model struct {
 	// Overlay state: when Overlay.Active is true, a modal is rendered on top of the main UI.
 	Overlay OverlayState
 
-	// Host is the injectable host façade (bus send endpoints + UI mirrors). Non-nil after NewModel.
-	Host app.Host
+	// ReadModel is the injected read-only state provider for UI decisions/render.
+	ReadModel ReadModel
+	Remote   RemoteState
 }
 
 // InteractionState stores transient keyboard/interaction state.
@@ -71,6 +70,11 @@ type OverlayState struct {
 	Title    string
 	Content  string
 	Viewport viewport.Model
+}
+
+type RemoteState struct {
+	Active bool
+	Label  string
 }
 
 // Init implements tea.Model.
@@ -138,11 +142,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // NewModel creates a Model with default input (slash commands and viewport scrolling).
 // initialMessages if non-nil is used as existing conversation (e.g. after /sh return).
-// host must be non-nil in production (typically *app.Runtime); nil is treated as app.Nop().
-func NewModel(initialMessages []string, host app.Host) Model {
-	if host == nil {
-		host = app.Nop()
-	}
+func NewModel(initialMessages []string, readModel ReadModel) Model {
 	ti := textinput.New()
 	ti.Placeholder = i18n.T("en", i18n.KeyPlaceholderInput)
 	ti.Prompt = "> "
@@ -163,7 +163,7 @@ func NewModel(initialMessages []string, host app.Host) Model {
 		Input:    ti,
 		Viewport: vp,
 		messages: msgs,
-		Host:     host,
+		ReadModel: defaultReadModel(readModel),
 		layout: LayoutState{
 			Width:  defaultWidth,
 			Height: defaultHeight,
