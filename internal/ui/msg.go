@@ -1,21 +1,23 @@
 package ui
 
-import (
-	"delve-shell/internal/agent"
-	"delve-shell/internal/host/route"
-	"delve-shell/internal/remoteauth"
-)
+import "delve-shell/internal/approvalview"
 
-// ApprovalRequestMsg is a command pending user approval (forwarded from agent on UIEvents).
-type ApprovalRequestMsg = *agent.ApprovalRequest
+// ApprovalRequestMsg asks the UI to show an approval card.
+// Pending is a UI view-model; Respond is invoked by UI when user decides.
+type ApprovalRequestMsg struct {
+	Pending *approvalview.PendingApproval
+}
 
-// SensitiveConfirmationRequestMsg is a command that may access sensitive file(s) (forwarded on UIEvents).
-type SensitiveConfirmationRequestMsg = *agent.SensitiveConfirmationRequest
+// SensitiveConfirmationRequestMsg asks the UI to show a sensitive confirmation card.
+type SensitiveConfirmationRequestMsg struct {
+	Pending *approvalview.PendingSensitive
+}
 
 // AgentReplyMsg is the agent's reply to the user message.
 type AgentReplyMsg struct {
-	Reply string
-	Err   error
+	Reply     string
+	ErrText   string // already human-readable
+	Cancelled bool
 }
 
 // SystemNotifyMsg is a system/tool notification (e.g. connected to remote, switched to local), not from the AI.
@@ -53,16 +55,12 @@ type RemoteConnectDoneMsg struct {
 	Err     string
 }
 
-// RemoteAuthPromptMsg asks the user to provide additional credentials (e.g. password) for a remote target,
-// or to show a Remote Auth dialog while an automatic connection attempt is in progress (e.g. using a configured key).
+// RemoteAuthPromptMsg asks the user to provide additional credentials for a remote target.
 type RemoteAuthPromptMsg struct {
 	Target                string
 	Err                   string
-	UseConfiguredIdentity bool // true when connecting immediately with a configured identity file; dialog shows "Connecting..." first
+	UseConfiguredIdentity bool
 }
-
-// RemoteAuthResponse is the credential payload from the remote auth overlay; defined in remoteauth for host/runtime use.
-type RemoteAuthResponse = remoteauth.Response
 
 // OverlayCloseMsg closes any active overlay.
 type OverlayCloseMsg struct{}
@@ -100,5 +98,8 @@ type RunCompletionCacheMsg struct {
 // SlashSubmitRelayMsg carries structured slash intent from host controller back into Update (§10.8.1).
 // Handlers must call executeMainEnterCommandNoRelay, not handleMainEnterCommand, to avoid relay recursion.
 type SlashSubmitRelayMsg struct {
-	Payload route.SlashSubmitPayload
+	RawLine            string
+	SlashSelectedIndex int
+	// InputLine is set when relaying slash-mode Enter (preserve raw input buffer).
+	InputLine string
 }

@@ -48,7 +48,7 @@ func (m Model) CloseOverlayVisual() Model {
 
 // InitOverlayViewport initializes the generic overlay viewport from current layout.
 func (m Model) InitOverlayViewport() Model {
-	m.Overlay.Viewport = viewport.New(m.Layout.Width-minOverlayLayoutWidth, min(m.Layout.Height-minOverlayLayoutHeight, maxOverlayViewportHeight))
+	m.Overlay.Viewport = viewport.New(m.layout.Width-minOverlayLayoutWidth, min(m.layout.Height-minOverlayLayoutHeight, maxOverlayViewportHeight))
 	m.Overlay.Viewport.SetContent(m.Overlay.Content)
 	return m
 }

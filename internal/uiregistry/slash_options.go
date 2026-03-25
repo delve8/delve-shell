@@ -3,20 +3,25 @@ package uiregistry
 
 import (
 	"delve-shell/internal/slashreg"
-	"delve-shell/internal/uitypes"
 )
+
+// SlashOption is one row in the slash command list (command + description).
+type SlashOption struct {
+	Cmd  string
+	Desc string
+}
 
 // SlashOptionsProvider supplies slash dropdown rows for a given input buffer.
 // When handled==true, the returned options should override the default root list.
 type SlashOptionsProvider func(
 	inputVal string,
 	lang string,
-) (opts []uitypes.SlashOption, handled bool)
+) (opts []SlashOption, handled bool)
 
 var slashOptionsProviderChain = slashreg.NewProviderChain[SlashOptionsProvider]()
 
 // RootSlashOptionProvider supplies top-level / commands for the root dropdown.
-type RootSlashOptionProvider func(lang string) []uitypes.SlashOption
+type RootSlashOptionProvider func(lang string) []SlashOption
 
 var rootSlashOptionProviderChain = slashreg.NewProviderChain[RootSlashOptionProvider]()
 
@@ -37,8 +42,8 @@ func RegisterRootSlashOptionProvider(p RootSlashOptionProvider) {
 }
 
 // RootSlashOptions returns merged top-level slash rows from registered root providers.
-func RootSlashOptions(lang string) []uitypes.SlashOption {
-	opts := make([]uitypes.SlashOption, 0, 16)
+func RootSlashOptions(lang string) []SlashOption {
+	opts := make([]SlashOption, 0, 16)
 	for _, p := range rootSlashOptionProviderChain.List() {
 		opts = append(opts, p(lang)...)
 	}
@@ -46,7 +51,7 @@ func RootSlashOptions(lang string) []uitypes.SlashOption {
 }
 
 // SlashOptionsForInput returns slash options for the current input buffer.
-func SlashOptionsForInput(inputVal, lang string) []uitypes.SlashOption {
+func SlashOptionsForInput(inputVal, lang string) []SlashOption {
 	for _, p := range slashOptionsProviderChain.List() {
 		if o, handled := p(inputVal, lang); handled {
 			return o

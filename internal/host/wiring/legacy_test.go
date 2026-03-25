@@ -7,7 +7,7 @@ import (
 
 	"delve-shell/internal/host/app"
 	"delve-shell/internal/host/bus"
-	"delve-shell/internal/ui"
+	"delve-shell/internal/remoteauth"
 )
 
 // bindTestPorts wires hostapp send endpoints. Do not use t.Parallel().
@@ -119,7 +119,7 @@ func TestBindSendPorts_RemoteOnOffAuth(t *testing.T) {
 		t.Fatal("timeout remote off")
 	}
 
-	resp := ui.RemoteAuthResponse{Target: "h", Kind: "password", Password: "x"}
+	resp := remoteauth.Response{Target: "h", Kind: "password", Password: "x"}
 	if !rt.PublishRemoteAuthResponse(resp) {
 		t.Fatal("auth resp publish failed")
 	}
@@ -391,7 +391,7 @@ func TestBindSendPorts_AuthResponseTable(t *testing.T) {
 	ports := bus.NewInputPorts()
 	rt := bindTestPorts(t, ports, make(chan []string, 1))
 
-	variants := []ui.RemoteAuthResponse{
+	variants := []remoteauth.Response{
 		{Target: "root@10.0.0.1", Username: "root", Kind: "password", Password: "secret"},
 		{Target: "host", Username: "", Kind: "identity", Password: "/path/to/key"},
 		{Target: "u@h", Username: "u", Kind: "password", Password: "x"},

@@ -7,12 +7,12 @@ import (
 )
 
 func (m Model) handleSlashSubmitRelayMsg(msg SlashSubmitRelayMsg) (Model, tea.Cmd) {
-	if msg.Payload.InputLine != "" {
-		m2, cmd, handled := m.execSlashEnterKeyLocal(msg.Payload.InputLine)
+	if msg.InputLine != "" {
+		m2, cmd, handled := m.execSlashEnterKeyLocal(msg.InputLine)
 		if handled {
 			return m2, cmd
 		}
-		return m.executeMainEnterCommandNoRelay(strings.TrimSpace(msg.Payload.InputLine), msg.Payload.SlashSelectedIndex)
+		return m.executeMainEnterCommandNoRelay(strings.TrimSpace(msg.InputLine), msg.SlashSelectedIndex)
 	}
-	return m.executeMainEnterCommandNoRelay(msg.Payload.RawLine, msg.Payload.SlashSelectedIndex)
+	return m.executeMainEnterCommandNoRelay(msg.RawLine, msg.SlashSelectedIndex)
 }

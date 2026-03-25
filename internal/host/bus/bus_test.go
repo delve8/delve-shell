@@ -8,7 +8,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/agent/hiltypes"
+	"delve-shell/internal/hiltypes"
 	"delve-shell/internal/host/route"
 	"delve-shell/internal/remoteauth"
 	"delve-shell/internal/ui"

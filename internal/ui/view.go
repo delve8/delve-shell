@@ -8,7 +8,7 @@ import (
 // View implements tea.Model.
 func (m Model) View() string {
 	lang := m.getLang()
-	sepW := m.Layout.Width
+	sepW := m.layout.Width
 	if sepW <= 0 {
 		sepW = 40
 	}
@@ -16,14 +16,14 @@ func (m Model) View() string {
 	header := m.titleLine() + "\n" + sepLine + "\n"
 
 	inChoice := m.hasPendingApproval()
-	if m.Layout.Height <= minInputLayoutWidth {
+	if m.layout.Height <= minInputLayoutWidth {
 		out := header + m.buildContent() + "\n" + m.Input.View()
 		out += m.waitingLineBelowInput(lang)
 		return out
 	}
 	// Base viewport height: leave room for header, separator, input line, and slash/choice dropdown (the two lines at bottom are for input + suggestions).
 	vh := m.mainViewportHeight()
-	m.Viewport.Width = m.Layout.Width
+	m.Viewport.Width = m.layout.Width
 	m.Viewport.Height = vh
 	out := header
 	out += m.Viewport.View()

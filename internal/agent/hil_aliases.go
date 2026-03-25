@@ -1,6 +1,6 @@
 package agent
 
-import "delve-shell/internal/agent/hiltypes"
+import "delve-shell/internal/hiltypes"
 
 // Type aliases keep imports stable for UI and CLI (hiltypes is the canonical definition).
 type (

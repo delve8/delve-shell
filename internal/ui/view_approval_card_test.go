@@ -4,14 +4,14 @@ import (
 	"strings"
 	"testing"
 
-	"delve-shell/internal/agent"
+	"delve-shell/internal/approvalview"
 )
 
 func TestAppendApprovalViewportContent_sensitive(t *testing.T) {
 	m := Model{
-		Layout: LayoutState{Width: 80},
+		layout: LayoutState{Width: 80},
 		Approval: ApprovalState{
-			pendingSensitive: &agent.SensitiveConfirmationRequest{
+			pendingSensitive: &approvalview.PendingSensitive{
 				Command: "rm -rf /",
 			},
 		},
@@ -28,9 +28,9 @@ func TestAppendApprovalViewportContent_sensitive(t *testing.T) {
 
 func TestAppendApprovalViewportContent_pendingRisk(t *testing.T) {
 	m := Model{
-		Layout: LayoutState{Width: 80},
+		layout: LayoutState{Width: 80},
 		Approval: ApprovalState{
-			pending: &agent.ApprovalRequest{
+			pending: &approvalview.PendingApproval{
 				Command:   "kubectl get pods",
 				RiskLevel: "read_only",
 				SkillName: "k8s",

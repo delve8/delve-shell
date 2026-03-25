@@ -7,8 +7,8 @@ const overlayBoxMaxWidth = widget.DefaultOverlayBoxMaxWidth
 
 // renderOverlay draws a centered modal box over the base content.
 func (m Model) renderOverlay(base string) string {
-	w := m.Layout.Width
-	h := m.Layout.Height
+	w := m.layout.Width
+	h := m.layout.Height
 	if w < 20 || h < 6 {
 		return base
 	}

@@ -2,6 +2,14 @@
 // It stays free of Bubble Tea and UI styling so host bus and runtime packages do not depend on internal/ui.
 package remoteauth
 
+// Prompt asks the user to provide additional credentials (e.g. password) for a remote target,
+// or indicates that an automatic connection attempt is in progress (e.g. using a configured key).
+type Prompt struct {
+	Target                string
+	Err                   string
+	UseConfiguredIdentity bool // true when connecting immediately with a configured identity file; dialog shows "Connecting..." first
+}
+
 // Response carries user-provided credentials from the remote auth overlay back to the host.
 //
 // Kind is "password" or "identity" (key file path).

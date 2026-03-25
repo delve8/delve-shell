@@ -18,7 +18,7 @@ func (m Model) hasPendingApproval() bool {
 
 // contentWidth returns a safe rendering width with fallback.
 func (m Model) contentWidth() int {
-	w := m.Layout.Width
+	w := m.layout.Width
 	if w <= 0 {
 		return minContentWidthFallback
 	}
@@ -27,7 +27,7 @@ func (m Model) contentWidth() int {
 
 // mainViewportHeight returns the viewport height used by main content.
 func (m Model) mainViewportHeight() int {
-	vh := m.Layout.Height - mainViewportPadding
+	vh := m.layout.Height - mainViewportPadding
 	if vh < 1 {
 		return 1
 	}

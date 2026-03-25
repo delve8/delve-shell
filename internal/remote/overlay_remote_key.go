@@ -10,6 +10,7 @@ import (
 	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/pathcomplete"
+	"delve-shell/internal/remoteauth"
 	"delve-shell/internal/service/remotesvc"
 	"delve-shell/internal/ui"
 )
@@ -364,7 +365,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			b.WriteString(suggestStyle.Render("Connecting...") + "\n\n")
 			b.WriteString("Press Esc to cancel.")
 			m.Overlay.Content = b.String()
-			_ = m.Host.PublishRemoteAuthResponse(ui.RemoteAuthResponse{
+			_ = m.Host.PublishRemoteAuthResponse(remoteauth.Response{
 				Target:   state.RemoteAuth.Target,
 				Username: state.RemoteAuth.Username,
 				Kind:     state.RemoteAuth.Step,
@@ -445,7 +446,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			b.WriteString(suggestStyle.Render("Connecting...") + "\n\n")
 			b.WriteString("Press Esc to cancel.")
 			m.Overlay.Content = b.String()
-			_ = m.Host.PublishRemoteAuthResponse(ui.RemoteAuthResponse{
+			_ = m.Host.PublishRemoteAuthResponse(remoteauth.Response{
 				Target:   state.RemoteAuth.Target,
 				Username: state.RemoteAuth.Username,
 				Kind:     state.RemoteAuth.Step,

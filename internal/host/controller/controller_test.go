@@ -15,6 +15,7 @@ import (
 	"delve-shell/internal/execenv"
 	"delve-shell/internal/host/bus"
 	"delve-shell/internal/host/route"
+	"delve-shell/internal/hiltypes"
 	"delve-shell/internal/runtime/sessionmgr"
 	"delve-shell/internal/ui"
 	"delve-shell/internal/uipresenter"
@@ -157,13 +158,13 @@ func TestHandleExecDirect_RunErrWithoutExitCodeAddsErrorLine(t *testing.T) {
 func TestHandleAgentUI_ApprovalRequest(t *testing.T) {
 	s := &recordSender{}
 	c := newTestControllerWithPresenter(s)
-	req := &agent.ApprovalRequest{Command: "ls"}
+	req := &hiltypes.ApprovalRequest{Command: "ls", ResponseCh: make(chan hiltypes.ApprovalResponse, 1)}
 	c.handleAgentUI(req)
 	if len(s.msgs) != 1 {
 		t.Fatalf("want 1 msg, got %d", len(s.msgs))
 	}
-	got, ok := s.msgs[0].(*agent.ApprovalRequest)
-	if !ok || got.Command != "ls" {
+	got, ok := s.msgs[0].(ui.ApprovalRequestMsg)
+	if !ok || got.Pending == nil || got.Pending.Command != "ls" {
 		t.Fatalf("unexpected message: %T %#v", s.msgs[0], s.msgs[0])
 	}
 }
@@ -171,13 +172,13 @@ func TestHandleAgentUI_ApprovalRequest(t *testing.T) {
 func TestHandleAgentUI_SensitiveRequest(t *testing.T) {
 	s := &recordSender{}
 	c := newTestControllerWithPresenter(s)
-	req := &agent.SensitiveConfirmationRequest{Command: "cat /x"}
+	req := &hiltypes.SensitiveConfirmationRequest{Command: "cat /x", ResponseCh: make(chan hiltypes.SensitiveChoice, 1)}
 	c.handleAgentUI(req)
 	if len(s.msgs) != 1 {
 		t.Fatalf("want 1 msg, got %d", len(s.msgs))
 	}
-	got, ok := s.msgs[0].(*agent.SensitiveConfirmationRequest)
-	if !ok || got.Command != "cat /x" {
+	got, ok := s.msgs[0].(ui.SensitiveConfirmationRequestMsg)
+	if !ok || got.Pending == nil || got.Pending.Command != "cat /x" {
 		t.Fatalf("unexpected message: %T %#v", s.msgs[0], s.msgs[0])
 	}
 }
@@ -185,7 +186,7 @@ func TestHandleAgentUI_SensitiveRequest(t *testing.T) {
 func TestHandleAgentUI_ExecEvent(t *testing.T) {
 	s := &recordSender{}
 	c := newTestControllerWithPresenter(s)
-	c.handleAgentUI(agent.ExecEvent{
+	c.handleAgentUI(hiltypes.ExecEvent{
 		Command:   "ls",
 		Allowed:   true,
 		Result:    "ok",
@@ -240,7 +241,7 @@ func TestHandleLLMRunCompleted_Success(t *testing.T) {
 		t.Fatalf("want 1 msg, got %d", len(s.msgs))
 	}
 	reply := s.msgs[0].(ui.AgentReplyMsg)
-	if reply.Reply != "hello" || reply.Err != nil {
+	if reply.Reply != "hello" || reply.ErrText != "" || reply.Cancelled {
 		t.Fatalf("unexpected reply payload: %+v", reply)
 	}
 }
@@ -256,11 +257,11 @@ func TestHandleLLMRunCompleted_ErrorWith404Hint(t *testing.T) {
 		t.Fatalf("want 1 msg, got %d", len(s.msgs))
 	}
 	reply := s.msgs[0].(ui.AgentReplyMsg)
-	if reply.Err == nil {
-		t.Fatal("expected error reply")
+	if reply.ErrText == "" || reply.Cancelled {
+		t.Fatalf("expected error reply, got %+v", reply)
 	}
-	if !strings.Contains(reply.Err.Error(), "Hint: For DashScope") {
-		t.Fatalf("expected 404 hint in error, got: %v", reply.Err)
+	if !strings.Contains(reply.ErrText, "Hint: For DashScope") {
+		t.Fatalf("expected 404 hint in error, got: %v", reply.ErrText)
 	}
 }
 
@@ -272,11 +273,11 @@ func TestHandleLLMRunCompleted_ErrorWithout404NoHint(t *testing.T) {
 
 	c.handleLLMRunCompleted("", errors.New("timeout"))
 	reply := s.msgs[0].(ui.AgentReplyMsg)
-	if reply.Err == nil {
-		t.Fatal("expected error reply")
+	if reply.ErrText == "" || reply.Cancelled {
+		t.Fatalf("expected error reply, got %+v", reply)
 	}
-	if strings.Contains(reply.Err.Error(), "Hint: For DashScope") {
-		t.Fatalf("unexpected hint in error: %v", reply.Err)
+	if strings.Contains(reply.ErrText, "Hint: For DashScope") {
+		t.Fatalf("unexpected hint in error: %v", reply.ErrText)
 	}
 }
 
@@ -434,7 +435,7 @@ func TestHandleEvent_SlashRelayToUIEnqueuesRelayMsg(t *testing.T) {
 		t.Fatalf("want 1 msg, got %d", len(s.msgs))
 	}
 	relay, ok := s.msgs[0].(ui.SlashSubmitRelayMsg)
-	if !ok || relay.Payload.RawLine != "/help" || relay.Payload.SlashSelectedIndex != 0 {
+	if !ok || relay.RawLine != "/help" || relay.SlashSelectedIndex != 0 {
 		t.Fatalf("unexpected msg: %#v", s.msgs[0])
 	}
 }

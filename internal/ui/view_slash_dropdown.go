@@ -20,7 +20,7 @@ func (m Model) slashDropdownBelowInput(lang string) string {
 		return ""
 	}
 	const maxSlashVisible = 4
-	rows := slashview.BuildDropdownRows(viewOpts, vis, m.Interaction.slashSuggestIndex, m.Layout.Width, maxSlashVisible)
+	rows := slashview.BuildDropdownRows(viewOpts, vis, m.Interaction.slashSuggestIndex, m.layout.Width, maxSlashVisible)
 	list := make([]widget.ListRow, len(rows))
 	for i, row := range rows {
 		list[i] = widget.ListRow{Text: row.Text, Highlight: row.Highlight}

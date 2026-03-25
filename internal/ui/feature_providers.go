@@ -9,19 +9,43 @@ import (
 
 // SlashOptionsProvider can provide slash suggestion options for a given input.
 // When handled==true, the returned options should override the default ui logic.
+//
 // Registration is stored in [uiregistry] so feature packages do not couple to ui.Model.
-type SlashOptionsProvider = uiregistry.SlashOptionsProvider
+type SlashOptionsProvider func(inputVal string, lang string) (opts []SlashOption, handled bool)
 
 // RegisterSlashOptionsProvider registers a slash options provider.
 // Providers are executed in registration order; the first one that returns handled=true wins.
 func RegisterSlashOptionsProvider(p SlashOptionsProvider) {
-	uiregistry.RegisterSlashOptionsProvider(p)
+	if p == nil {
+		return
+	}
+	uiregistry.RegisterSlashOptionsProvider(func(inputVal string, lang string) ([]uiregistry.SlashOption, bool) {
+		opts, handled := p(inputVal, lang)
+		if !handled || len(opts) == 0 {
+			return nil, handled
+		}
+		out := make([]uiregistry.SlashOption, 0, len(opts))
+		for _, o := range opts {
+			out = append(out, uiregistry.SlashOption{Cmd: o.Cmd, Desc: o.Desc})
+		}
+		return out, true
+	})
 }
 
 // RegisterRootSlashOptionProvider registers a provider for top-level slash options.
 // Providers are concatenated in registration order.
-func RegisterRootSlashOptionProvider(p uiregistry.RootSlashOptionProvider) {
-	uiregistry.RegisterRootSlashOptionProvider(p)
+func RegisterRootSlashOptionProvider(p func(lang string) []SlashOption) {
+	if p == nil {
+		return
+	}
+	uiregistry.RegisterRootSlashOptionProvider(func(lang string) []uiregistry.SlashOption {
+		raw := p(lang)
+		out := make([]uiregistry.SlashOption, 0, len(raw))
+		for _, o := range raw {
+			out = append(out, uiregistry.SlashOption{Cmd: o.Cmd, Desc: o.Desc})
+		}
+		return out
+	})
 }
 
 // SlashSelectedProvider handles Enter on a chosen slash suggestion when the

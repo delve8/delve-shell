@@ -3,9 +3,13 @@
 package uipresenter
 
 import (
+	"context"
+	"errors"
+
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/agent"
+	"delve-shell/internal/approvalview"
+	"delve-shell/internal/hiltypes"
 	"delve-shell/internal/ui"
 )
 
@@ -53,7 +57,16 @@ func (p *Presenter) SessionSwitched() {
 // --- Agent reply (transcript) ---
 
 func (p *Presenter) AgentReply(reply string, err error) {
-	p.Raw(ui.NewAgentReplyMsg(reply, err))
+	if err != nil {
+		// Keep UI pure of agent/config; presenter provides a stable, human-readable error.
+		if errors.Is(err, context.Canceled) {
+			p.Raw(ui.AgentReplyMsg{Cancelled: true})
+			return
+		}
+		p.Raw(ui.AgentReplyMsg{ErrText: err.Error()})
+		return
+	}
+	p.Raw(ui.AgentReplyMsg{Reply: reply})
 }
 
 // --- System line (non-AI) ---
@@ -74,28 +87,50 @@ func (p *Presenter) CommandExecutedFromTool(cmd string, allowed bool, result str
 
 // --- HIL: approval & sensitive confirmation (Agent payloads as tea.Msg) ---
 
-func (p *Presenter) ShowApproval(req *agent.ApprovalRequest) {
+func (p *Presenter) ShowApproval(req *hiltypes.ApprovalRequest) {
 	if req == nil {
 		return
 	}
-	p.Raw(req)
+	// Map domain request to UI view-model; respond writes back into domain channel.
+	p.Raw(ui.ApprovalRequestMsg{Pending: &approvalview.PendingApproval{
+		Command:   req.Command,
+		Summary:   req.Summary,
+		Reason:    req.Reason,
+		RiskLevel: req.RiskLevel,
+		SkillName: req.SkillName,
+		Respond: func(r approvalview.ApprovalResponse) {
+			req.ResponseCh <- hiltypes.ApprovalResponse{Approved: r.Approved, CopyRequested: r.CopyRequested}
+		},
+	}})
 }
 
-func (p *Presenter) ShowSensitiveConfirmation(req *agent.SensitiveConfirmationRequest) {
+func (p *Presenter) ShowSensitiveConfirmation(req *hiltypes.SensitiveConfirmationRequest) {
 	if req == nil {
 		return
 	}
-	p.Raw(req)
+	p.Raw(ui.SensitiveConfirmationRequestMsg{Pending: &approvalview.PendingSensitive{
+		Command: req.Command,
+		Respond: func(c approvalview.SensitiveChoice) {
+			switch c {
+			case approvalview.SensitiveRunAndStore:
+				req.ResponseCh <- hiltypes.SensitiveRunAndStore
+			case approvalview.SensitiveRunNoStore:
+				req.ResponseCh <- hiltypes.SensitiveRunNoStore
+			default:
+				req.ResponseCh <- hiltypes.SensitiveRefuse
+			}
+		},
+	}})
 }
 
 // DispatchAgentUI maps agent-side UIEvents payloads to TUI messages.
 func (p *Presenter) DispatchAgentUI(x any) {
 	switch v := x.(type) {
-	case *agent.ApprovalRequest:
+	case *hiltypes.ApprovalRequest:
 		p.ShowApproval(v)
-	case *agent.SensitiveConfirmationRequest:
+	case *hiltypes.SensitiveConfirmationRequest:
 		p.ShowSensitiveConfirmation(v)
-	case agent.ExecEvent:
+	case hiltypes.ExecEvent:
 		p.CommandExecutedFromTool(v.Command, v.Allowed, v.Result, v.Sensitive, v.Suggested)
 	}
 }

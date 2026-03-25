@@ -54,7 +54,7 @@ func Register() {
 			switchedLine := sessionSwitchedStyle.Render(i18n.T(lang, i18n.KeyDelveLabel) + " " + i18n.Tf(lang, i18n.KeySessionSwitchedTo, sessionID))
 			if path != "" {
 				events, _ := history.ReadRecent(path, maxSessionHistoryEvents)
-				msgs := sessionEventsToMessages(events, lang, m.Layout.Width)
+				msgs := sessionEventsToMessages(events, lang, m.LayoutWidth())
 				lines := make([]string, 0, len(msgs)+2)
 				lines = append(lines, msgs...)
 				lines = append(lines, switchedLine)

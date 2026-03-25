@@ -9,7 +9,6 @@ import (
 	"delve-shell/internal/approvalview"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/textwrap"
-	"delve-shell/internal/uiflow/approvalexec"
 )
 
 func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
@@ -81,31 +80,72 @@ func (m *Model) appendDecisionLines(decision approvalview.DecisionKind, lang str
 }
 
 func (m Model) applyApprovalDecision(d approvalflow.Decision) (Model, bool) {
-	out, ok := approvalexec.OutcomeForDecision(d, m.Approval.pending, m.Approval.pendingSensitive)
-	if !ok {
-		return m, true
-	}
 	lang := m.getLang()
-	m.appendDecisionLines(out.LinesKind, lang)
-	m = m.RefreshViewport()
-
-	if out.HasSensitiveSend && m.Approval.pendingSensitive != nil {
-		m.Approval.pendingSensitive.ResponseCh <- out.SensitiveChoice
+	switch d {
+	case approvalflow.DecisionSensitiveRefuse, approvalflow.DecisionSensitiveRunStore, approvalflow.DecisionSensitiveRunNoStore:
+		if m.Approval.pendingSensitive == nil {
+			return m, true
+		}
+		var kind approvalview.DecisionKind
+		var choice approvalview.SensitiveChoice
+		switch d {
+		case approvalflow.DecisionSensitiveRunStore:
+			kind = approvalview.DecisionSensitiveRunStore
+			choice = approvalview.SensitiveRunAndStore
+		case approvalflow.DecisionSensitiveRunNoStore:
+			kind = approvalview.DecisionSensitiveRunNoStore
+			choice = approvalview.SensitiveRunNoStore
+		default:
+			kind = approvalview.DecisionSensitiveRefuse
+			choice = approvalview.SensitiveRefuse
+		}
+		m.appendDecisionLines(kind, lang)
+		m = m.RefreshViewport()
+		if m.Approval.pendingSensitive.Respond != nil {
+			m.Approval.pendingSensitive.Respond(choice)
+		}
 		m.Approval.pendingSensitive = nil
-	}
+		return m, true
 
-	if out.HasApprovalSend && m.Approval.pending != nil {
-		if out.DoCopyWorkflow {
-			_ = clipboard.WriteAll(out.CopyCommand)
+	case approvalflow.DecisionApprove, approvalflow.DecisionReject, approvalflow.DecisionDismiss, approvalflow.DecisionCopy:
+		if m.Approval.pending == nil {
+			return m, true
+		}
+		var kind approvalview.DecisionKind
+		resp := approvalview.ApprovalResponse{Approved: false, CopyRequested: false}
+		waitingClear := false
+		doCopy := false
+		switch d {
+		case approvalflow.DecisionApprove:
+			kind = approvalview.DecisionApprove
+			resp.Approved = true
+		case approvalflow.DecisionReject:
+			kind = approvalview.DecisionReject
+			waitingClear = true
+		case approvalflow.DecisionDismiss:
+			kind = approvalview.DecisionDismiss
+			waitingClear = true
+		case approvalflow.DecisionCopy:
+			kind = approvalview.DecisionReject
+			resp.CopyRequested = true
+			doCopy = true
+		}
+		m.appendDecisionLines(kind, lang)
+		m = m.RefreshViewport()
+		if doCopy {
+			_ = clipboard.WriteAll(m.Approval.pending.Command)
 			m.appendSuggestedLine(m.Approval.pending.Command, lang)
 			m.messages = append(m.messages, hintStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeySuggestedCopied))))
 		}
-		m.Approval.pending.ResponseCh <- out.ApprovalResponse
+		if m.Approval.pending.Respond != nil {
+			m.Approval.pending.Respond(resp)
+		}
 		m.Approval.pending = nil
+		if waitingClear {
+			m.Interaction.WaitingForAI = false
+		}
+		return m, true
+	default:
+		return m, true
 	}
-
-	if out.WaitingForAIClear {
-		m.Interaction.WaitingForAI = false
-	}
-	return m, true
 }

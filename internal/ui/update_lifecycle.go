@@ -5,15 +5,15 @@ import (
 )
 
 func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
-	m.Layout.Width = msg.Width
-	m.Layout.Height = msg.Height
+	m.layout.Width = msg.Width
+	m.layout.Height = msg.Height
 	// Use full terminal width for input so long lines don't scroll until they exceed the line.
-	if m.Layout.Width > minInputLayoutWidth {
-		m.Input.Width = m.Layout.Width - minInputLayoutWidth // leave margin for prompt "> " and right edge
+	if m.layout.Width > minInputLayoutWidth {
+		m.Input.Width = m.layout.Width - minInputLayoutWidth // leave margin for prompt "> " and right edge
 	}
-	if m.Layout.Height > minInputLayoutWidth {
+	if m.layout.Height > minInputLayoutWidth {
 		vh := m.mainViewportHeight() // header + sep + viewport; bottom 2 lines for input + slash/choice dropdown
-		m.Viewport.Width = m.Layout.Width
+		m.Viewport.Width = m.layout.Width
 		m.Viewport.Height = vh
 	}
 	m = m.RefreshViewport()

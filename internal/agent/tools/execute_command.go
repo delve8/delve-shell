@@ -9,8 +9,8 @@ import (
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
 
-	"delve-shell/internal/agent/hiltypes"
 	"delve-shell/internal/execenv"
+	"delve-shell/internal/hiltypes"
 	"delve-shell/internal/hil"
 	"delve-shell/internal/history"
 )

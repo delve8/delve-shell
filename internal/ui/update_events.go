@@ -1,13 +1,8 @@
 package ui
 
 import (
-	"context"
-	"errors"
-
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/agent"
-	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/textwrap"
 )
@@ -25,14 +20,11 @@ func (m Model) handleConfigReloadedMsg() (Model, tea.Cmd) {
 func (m Model) handleAgentReplyMsg(msg AgentReplyMsg) (Model, tea.Cmd) {
 	m.Interaction.WaitingForAI = false
 	lang := m.getLang()
-	if msg.Err != nil {
-		if errors.Is(msg.Err, context.Canceled) {
-			m = m.AppendTranscriptLines(suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyCancelled))))
-		} else if errors.Is(msg.Err, agent.ErrLLMNotConfigured) {
-			m = m.AppendTranscriptLines(errStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyErrLLMNotConfigured, config.ConfigPath()))))
-		} else {
-			m = m.AppendTranscriptLines(errStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyErrorPrefix) + msg.Err.Error())))
-		}
+	if msg.Cancelled {
+		m = m.AppendTranscriptLines(suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyCancelled))))
+		m = m.AppendTranscriptLines("")
+	} else if msg.ErrText != "" {
+		m = m.AppendTranscriptLines(errStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyErrorPrefix) + msg.ErrText)))
 		m = m.AppendTranscriptLines("")
 	} else if msg.Reply != "" {
 		aiLine := i18n.T(lang, i18n.KeyAILabel) + msg.Reply
@@ -85,7 +77,7 @@ func (m Model) handleCommandExecutedMsg(msg CommandExecutedMsg) (Model, tea.Cmd)
 func (m Model) handleApprovalRequestMsg(msg ApprovalRequestMsg) (Model, tea.Cmd) {
 	// When an approval is requested, immediately refresh the viewport so the
 	// approval card becomes visible, and scroll to bottom.
-	m.Approval.pending = msg
+	m.Approval.pending = msg.Pending
 	m.Interaction.ChoiceIndex = 0
 	m.syncInputPlaceholder()
 	m = m.RefreshViewport()
@@ -94,7 +86,7 @@ func (m Model) handleApprovalRequestMsg(msg ApprovalRequestMsg) (Model, tea.Cmd)
 
 func (m Model) handleSensitiveConfirmationRequestMsg(msg SensitiveConfirmationRequestMsg) (Model, tea.Cmd) {
 	// Same as approval: ensure the sensitive confirmation card is visible.
-	m.Approval.pendingSensitive = msg
+	m.Approval.pendingSensitive = msg.Pending
 	m.Interaction.ChoiceIndex = 0
 	m.syncInputPlaceholder()
 	m = m.RefreshViewport()

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"delve-shell/internal/agent"
+	"delve-shell/internal/approvalview"
 	"delve-shell/internal/host/app"
 )
 
@@ -17,8 +17,8 @@ import (
 // total output lines never exceed Height so the header stays visible when the terminal shows one screen.
 func TestView_HeaderAlwaysShown(t *testing.T) {
 	m := NewModel(nil, app.Nop())
-	m.Layout.Height = 24
-	m.Layout.Width = 80
+	m.layout.Height = 24
+	m.layout.Width = 80
 	view := m.View()
 	// Header contains Auto-run label and a status in brackets
 	if !strings.Contains(view, "[IDLE]") && !strings.Contains(view, "[空闲]") && !strings.Contains(view, "[PROCESSING]") && !strings.Contains(view, "[处理中]") {
@@ -29,16 +29,15 @@ func TestView_HeaderAlwaysShown(t *testing.T) {
 	}
 
 	// Small height path: header must still appear first
-	m.Layout.Height = 4
+	m.layout.Height = 4
 	viewSmall := m.View()
 	if !strings.Contains(viewSmall, "Auto-Run") && !strings.Contains(viewSmall, "自动执行") {
 		t.Error("View() at small height should still show header with Auto-Run label")
 	}
 
 	// With Pending, header shows [NEED APPROVAL] or [待确认]
-	ch := make(chan agent.ApprovalResponse, 1)
-	m.Approval.pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
-	m.Layout.Height = 24
+	m.Approval.pending = &approvalview.PendingApproval{Command: "ls"}
+	m.layout.Height = 24
 	viewPending := m.View()
 	if !strings.Contains(viewPending, "[NEED APPROVAL]") && !strings.Contains(viewPending, "[待确认]") {
 		t.Error("View() with Pending should show pending status in header")
@@ -47,16 +46,16 @@ func TestView_HeaderAlwaysShown(t *testing.T) {
 	// Critical: with choice mode (max 3 options) and a small Height, total lines must not exceed Height,
 	// so the header (first 2 lines) stays on screen when terminal displays one full screen.
 	m2 := NewModel(nil, app.Nop())
-	m2.Layout.Height = 12
-	m2.Layout.Width = 80
-	m2.Approval.pendingSensitive = &agent.SensitiveConfirmationRequest{Command: "cat /etc/shadow", ResponseCh: make(chan agent.SensitiveChoice, 1)}
+	m2.layout.Height = 12
+	m2.layout.Width = 80
+	m2.Approval.pendingSensitive = &approvalview.PendingSensitive{Command: "cat /etc/shadow"}
 	viewChoice := m2.View()
 	lines := strings.Split(viewChoice, "\n")
-	if len(lines) > m2.Layout.Height {
-		t.Errorf("View() in choice mode (3 options) must not exceed Height: got %d lines, Height=%d (header would scroll off)", len(lines), m2.Layout.Height)
+	if len(lines) > m2.layout.Height {
+		t.Errorf("View() in choice mode (3 options) must not exceed Height: got %d lines, Height=%d (header would scroll off)", len(lines), m2.layout.Height)
 	}
 	// First line must be the header title (Auto-Run + status)
-	visible := strings.Join(lines[:min(len(lines), m2.Layout.Height)], "\n")
+	visible := strings.Join(lines[:min(len(lines), m2.layout.Height)], "\n")
 	if !strings.Contains(visible, "Auto-Run") && !strings.Contains(visible, "自动执行") {
 		t.Error("header (Auto-Run label) must appear in visible area")
 	}

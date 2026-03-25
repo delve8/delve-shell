@@ -51,7 +51,13 @@ func (c *Controller) handleRemoteOn(target string) {
 		}
 	}
 	res := c.executors.Connect(target, label, identityFile)
-	c.ui.RemoteAuthPromptPtr(res.AuthPrompt)
+	if res.AuthPrompt != nil {
+		c.ui.RemoteAuthPrompt(ui.RemoteAuthPromptMsg{
+			Target:                res.AuthPrompt.Target,
+			Err:                   res.AuthPrompt.Err,
+			UseConfiguredIdentity: res.AuthPrompt.UseConfiguredIdentity,
+		})
+	}
 	if !res.Connected {
 		return
 	}

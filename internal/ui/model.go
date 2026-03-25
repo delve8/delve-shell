@@ -3,7 +3,7 @@ package ui
 import (
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/agent"
+	"delve-shell/internal/approvalview"
 	"delve-shell/internal/i18n"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -22,7 +22,7 @@ type Model struct {
 	Viewport viewport.Model
 	messages []string
 	Approval ApprovalState
-	Layout        LayoutState
+	layout        LayoutState
 	Interaction   InteractionState
 
 	// Overlay state: when Overlay.Active is true, a modal is rendered on top of the main UI.
@@ -41,14 +41,27 @@ type InteractionState struct {
 
 // ApprovalState stores current pending approvals.
 type ApprovalState struct {
-	pending          *agent.ApprovalRequest
-	pendingSensitive *agent.SensitiveConfirmationRequest
+	pending          *approvalview.PendingApproval
+	pendingSensitive *approvalview.PendingSensitive
 }
 
 // LayoutState stores terminal layout dimensions for rendering.
 type LayoutState struct {
 	Width  int
 	Height int
+}
+
+// Layout returns a copy of the current layout dimensions.
+func (m Model) Layout() LayoutState {
+	return m.layout
+}
+
+func (m Model) LayoutWidth() int {
+	return m.layout.Width
+}
+
+func (m Model) LayoutHeight() int {
+	return m.layout.Height
 }
 
 // OverlayState stores generic modal overlay state shared across features.
@@ -158,7 +171,7 @@ func NewModel(initialMessages []string, host app.Host) Model {
 		Viewport: vp,
 		messages: msgs,
 		Host:     host,
-		Layout: LayoutState{
+		layout: LayoutState{
 			Width:  defaultWidth,
 			Height: defaultHeight,
 		},

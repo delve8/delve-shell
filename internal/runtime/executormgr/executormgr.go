@@ -7,7 +7,6 @@ import (
 	"delve-shell/internal/config"
 	"delve-shell/internal/execenv"
 	"delve-shell/internal/remoteauth"
-	"delve-shell/internal/ui"
 )
 
 type sshNewFunc func(target, identityFile string) (execenv.CommandExecutor, string, error)
@@ -152,7 +151,7 @@ type ConnectResult struct {
 	Connected  bool
 	Label      string
 	Executor   execenv.CommandExecutor // non-nil when Connected
-	AuthPrompt *ui.RemoteAuthPromptMsg // when non-nil, UI should open auth prompt / show error
+	AuthPrompt *remoteauth.Prompt // when non-nil, UI should open auth prompt / show error
 }
 
 // Connect attempts to switch to a remote SSH executor.
@@ -196,11 +195,11 @@ func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 	// 2) Configured identity
 	if identityFile != "" {
 		info := fmt.Sprintf("Using configured SSH key: %s", identityFile)
-		prompt := &ui.RemoteAuthPromptMsg{Target: target, Err: info, UseConfiguredIdentity: true}
+		prompt := &remoteauth.Prompt{Target: target, Err: info, UseConfiguredIdentity: true}
 		exec, _, err := m.newSSH(target, identityFile)
 		if err != nil || exec == nil {
 			msg := fmt.Sprintf("Remote connect failed for %s: %v", hostOnly, err)
-			return ConnectResult{Connected: false, Label: label, AuthPrompt: &ui.RemoteAuthPromptMsg{Target: target, Err: msg}}
+			return ConnectResult{Connected: false, Label: label, AuthPrompt: &remoteauth.Prompt{Target: target, Err: msg}}
 		}
 		m.Set(exec)
 		_ = prompt
@@ -211,7 +210,7 @@ func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 	exec, _, err := m.newSSH(target, "")
 	if err != nil || exec == nil {
 		msg := fmt.Sprintf("Remote connect failed for %s: %v", hostOnly, err)
-		return ConnectResult{Connected: false, Label: label, AuthPrompt: &ui.RemoteAuthPromptMsg{Target: target, Err: msg}}
+		return ConnectResult{Connected: false, Label: label, AuthPrompt: &remoteauth.Prompt{Target: target, Err: msg}}
 	}
 	m.Set(exec)
 	return ConnectResult{Connected: true, Label: label, Executor: exec}

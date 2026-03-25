@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"delve-shell/internal/execenv"
-	"delve-shell/internal/ui"
+	"delve-shell/internal/remoteauth"
 )
 
 type fakeExec struct{}
@@ -89,7 +89,7 @@ func TestHandleRemoteAuthResponse_Success_CachesAndSetsExecutor(t *testing.T) {
 			return fakeExec{}, "", nil
 		},
 	)
-	label, err := m.HandleRemoteAuthResponse(ui.RemoteAuthResponse{
+	label, err := m.HandleRemoteAuthResponse(remoteauth.Response{
 		Target:   "root@example.com",
 		Username: "root",
 		Kind:     "password",

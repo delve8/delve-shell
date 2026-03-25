@@ -11,6 +11,7 @@ import (
 	"delve-shell/internal/config"
 	"delve-shell/internal/configllm"
 	"delve-shell/internal/host/app"
+	"delve-shell/internal/remoteauth"
 	"delve-shell/internal/ui"
 )
 
@@ -28,7 +29,7 @@ type blackboxFixture struct {
 	configUpdated  chan struct{}
 	remoteOn       chan string
 	remoteOff      chan struct{}
-	remoteAuthResp chan ui.RemoteAuthResponse
+	remoteAuthResp chan remoteauth.Response
 }
 
 func newBlackboxFixture(t *testing.T) blackboxFixture {
@@ -41,7 +42,7 @@ func newBlackboxFixture(t *testing.T) blackboxFixture {
 		configUpdated:  make(chan struct{}, 2),
 		remoteOn:       make(chan string, 2),
 		remoteOff:      make(chan struct{}, 2),
-		remoteAuthResp: make(chan ui.RemoteAuthResponse, 2),
+		remoteAuthResp: make(chan remoteauth.Response, 2),
 	}
 	rt := app.NewRuntime()
 	rt.WireSend(&app.Send{

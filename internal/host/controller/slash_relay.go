@@ -11,5 +11,9 @@ func (c *Controller) handleSlashRelayToUI(e bus.Event) {
 		return
 	}
 	p := *e.SlashSubmit
-	c.ui.Raw(ui.SlashSubmitRelayMsg{Payload: p})
+	c.ui.Raw(ui.SlashSubmitRelayMsg{
+		RawLine:            p.RawLine,
+		SlashSelectedIndex: p.SlashSelectedIndex,
+		InputLine:          p.InputLine,
+	})
 }

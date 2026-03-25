@@ -3,24 +3,37 @@ package ui
 import (
 	"delve-shell/internal/slashview"
 	"delve-shell/internal/uiregistry"
-	"delve-shell/internal/uitypes"
 )
 
-// SlashOption is the exported view-model row for slash command suggestions.
-type SlashOption = uitypes.SlashOption
-
 // SlashRunUsageOption is the Cmd string for the /run usage row in slash suggestions (fill-only on select).
-const SlashRunUsageOption = uitypes.SlashRunUsageOption
+const SlashRunUsageOption = "/run <cmd>"
+
+// SlashOption is one row in the slash command list (command + description).
+// It is a UI view-model; provider registries may use their own internal types.
+type SlashOption struct {
+	Cmd  string
+	Desc string
+}
 
 // getSlashOptions returns top-level slash commands from registered providers.
 func getSlashOptions(lang string) []SlashOption {
-	return uiregistry.RootSlashOptions(lang)
+	raw := uiregistry.RootSlashOptions(lang)
+	out := make([]SlashOption, 0, len(raw))
+	for _, o := range raw {
+		out = append(out, SlashOption{Cmd: o.Cmd, Desc: o.Desc})
+	}
+	return out
 }
 
 // getSlashOptionsForInput returns slash options to show.
 // Specialized domains (e.g. /sessions, /run, /config) are expected to be handled by providers.
 func getSlashOptionsForInput(inputVal string, lang string) []SlashOption {
-	return uiregistry.SlashOptionsForInput(inputVal, lang)
+	raw := uiregistry.SlashOptionsForInput(inputVal, lang)
+	out := make([]SlashOption, 0, len(raw))
+	for _, o := range raw {
+		out = append(out, SlashOption{Cmd: o.Cmd, Desc: o.Desc})
+	}
+	return out
 }
 
 // visibleSlashOptions filters options by input prefix and returns matching indices.

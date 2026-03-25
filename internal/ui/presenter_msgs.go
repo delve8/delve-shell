@@ -8,10 +8,6 @@ func NewConfigReloadedMsg() tea.Msg { return ConfigReloadedMsg{} }
 
 func NewSessionSwitchedMsg() tea.Msg { return SessionSwitchedMsg{} }
 
-func NewAgentReplyMsg(reply string, err error) tea.Msg {
-	return AgentReplyMsg{Reply: reply, Err: err}
-}
-
 func NewSystemNotifyMsg(text string) tea.Msg {
 	return SystemNotifyMsg{Text: text}
 }

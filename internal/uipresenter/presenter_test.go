@@ -6,7 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/agent"
+	"delve-shell/internal/hiltypes"
 	"delve-shell/internal/ui"
 )
 
@@ -46,12 +46,12 @@ func TestPresenter_AgentReply(t *testing.T) {
 		t.Fatalf("want 2 msgs, got %d", len(r.msgs))
 	}
 	m0 := r.msgs[0].(ui.AgentReplyMsg)
-	if m0.Reply != "hi" || m0.Err != nil {
+	if m0.Reply != "hi" || m0.ErrText != "" || m0.Cancelled {
 		t.Fatalf("reply0: %+v", m0)
 	}
 	m1 := r.msgs[1].(ui.AgentReplyMsg)
-	if m1.Err == nil {
-		t.Fatal("expected err")
+	if m1.ErrText == "" || m1.Cancelled {
+		t.Fatalf("expected err text, got %+v", m1)
 	}
 }
 
@@ -59,17 +59,17 @@ func TestPresenter_DispatchAgentUI(t *testing.T) {
 	var r recordSender
 	p := New(&r)
 
-	p.DispatchAgentUI(&agent.ApprovalRequest{Command: "ls"})
-	p.DispatchAgentUI(&agent.SensitiveConfirmationRequest{Command: "cat"})
-	p.DispatchAgentUI(agent.ExecEvent{Command: "x", Allowed: true, Result: "ok", Sensitive: false, Suggested: false})
+	p.DispatchAgentUI(&hiltypes.ApprovalRequest{Command: "ls", ResponseCh: make(chan hiltypes.ApprovalResponse, 1)})
+	p.DispatchAgentUI(&hiltypes.SensitiveConfirmationRequest{Command: "cat", ResponseCh: make(chan hiltypes.SensitiveChoice, 1)})
+	p.DispatchAgentUI(hiltypes.ExecEvent{Command: "x", Allowed: true, Result: "ok", Sensitive: false, Suggested: false})
 
 	if len(r.msgs) != 3 {
 		t.Fatalf("want 3 msgs, got %d", len(r.msgs))
 	}
-	if ar, ok := r.msgs[0].(*agent.ApprovalRequest); !ok || ar.Command != "ls" {
+	if ar, ok := r.msgs[0].(ui.ApprovalRequestMsg); !ok || ar.Pending == nil || ar.Pending.Command != "ls" {
 		t.Fatalf("msg0 %T %+v", r.msgs[0], r.msgs[0])
 	}
-	if sr, ok := r.msgs[1].(*agent.SensitiveConfirmationRequest); !ok || sr.Command != "cat" {
+	if sr, ok := r.msgs[1].(ui.SensitiveConfirmationRequestMsg); !ok || sr.Pending == nil || sr.Pending.Command != "cat" {
 		t.Fatalf("msg1 %T %+v", r.msgs[1], r.msgs[1])
 	}
 	ce := r.msgs[2].(ui.CommandExecutedMsg)
@@ -104,5 +104,5 @@ func TestPresenter_RunCompletionCache(t *testing.T) {
 func TestPresenter_NilSenderNoPanic(t *testing.T) {
 	p := New(nil)
 	p.ConfigReloaded()
-	p.DispatchAgentUI(&agent.ApprovalRequest{Command: "x"})
+	p.DispatchAgentUI(&hiltypes.ApprovalRequest{Command: "x", ResponseCh: make(chan hiltypes.ApprovalResponse, 1)})
 }
