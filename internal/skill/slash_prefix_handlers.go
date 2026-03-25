@@ -15,14 +15,14 @@ func handleSlashConfigDelSkillPrefix(m ui.Model, rest string) ui.Model {
 	lang := "en"
 	name := strings.TrimSpace(rest)
 	if name == "" {
-		m.Messages = append(m.Messages, errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeyUsageSkillRemove))))
+		m = m.AppendTranscriptLines(errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeyUsageSkillRemove))))
 		return m.RefreshViewport()
 	}
 
 	if err := skillsvc.Remove(name); err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(delveMsg(lang, i18n.Tf(lang, i18n.KeySkillRemoveFailed, err))))
+		m = m.AppendTranscriptLines(errStyle.Render(delveMsg(lang, i18n.Tf(lang, i18n.KeySkillRemoveFailed, err))))
 	} else {
-		m.Messages = append(m.Messages, suggestStyle.Render(delveMsg(lang, i18n.Tf(lang, i18n.KeySkillRemoved, name))))
+		m = m.AppendTranscriptLines(suggestStyle.Render(delveMsg(lang, i18n.Tf(lang, i18n.KeySkillRemoved, name))))
 	}
 	m = m.ClearSlashInput()
 	return m.RefreshViewport()
@@ -33,7 +33,7 @@ func handleSlashConfigUpdateSkillPrefix(m ui.Model, rest string) ui.Model {
 	rest = strings.TrimSpace(rest)
 	fields := strings.Fields(rest)
 	if len(fields) == 0 {
-		m.Messages = append(m.Messages, errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeyDescConfigUpdateSkill))))
+		m = m.AppendTranscriptLines(errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeyDescConfigUpdateSkill))))
 		return m.RefreshViewport()
 	}
 
@@ -48,26 +48,26 @@ func handleSlashSkillPrefix(m ui.Model, rest string) ui.Model {
 	rest = strings.TrimSpace(rest)
 	fields := strings.Fields(rest)
 	if len(fields) < 1 {
-		m.Messages = append(m.Messages, errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeyUsageSkill))))
+		m = m.AppendTranscriptLines(errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeyUsageSkill))))
 		return m
 	}
 
 	skillName := fields[0]
 	naturalLanguage := strings.TrimSpace(strings.TrimPrefix(rest, skillName))
 	if naturalLanguage == "" {
-		m.Messages = append(m.Messages, errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeyUsageSkill))))
+		m = m.AppendTranscriptLines(errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeyUsageSkill))))
 		return m
 	}
 
 	skillDir := skills.SkillDir(skillName)
 	if _, err := os.Stat(filepath.Join(skillDir, "SKILL.md")); err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeySkillNotFound))))
+		m = m.AppendTranscriptLines(errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeySkillNotFound))))
 		return m
 	}
 
 	skillContent, err := skills.ReadSKILLContent(skillDir)
 	if err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(delveMsg(lang, i18n.Tf(lang, i18n.KeySkillInstallFailed, err))))
+		m = m.AppendTranscriptLines(errStyle.Render(delveMsg(lang, i18n.Tf(lang, i18n.KeySkillInstallFailed, err))))
 		return m
 	}
 

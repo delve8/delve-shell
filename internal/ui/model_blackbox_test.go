@@ -125,10 +125,10 @@ func TestBlackboxSlashCancelWhenIdleShowsHint(t *testing.T) {
 	if strings.TrimSpace(got.Input.Value()) != "" {
 		t.Fatalf("expected input cleared after idle /cancel, got %q", got.Input.Value())
 	}
-	if len(got.Messages) == 0 {
+	if len(got.TranscriptLines()) == 0 {
 		t.Fatalf("expected feedback message when /cancel has no in-flight request")
 	}
-	last := strings.Join(got.Messages, "\n")
+	last := strings.Join(got.TranscriptLines(), "\n")
 	if !strings.Contains(strings.ToLower(last), "no request") {
 		t.Fatalf("expected no-request hint, got %q", last)
 	}
@@ -136,7 +136,7 @@ func TestBlackboxSlashCancelWhenIdleShowsHint(t *testing.T) {
 
 func TestBlackboxSlashShSendsMessagesToShell(t *testing.T) {
 	f := newBlackboxFixture(t)
-	f.model.Messages = []string{"a", "b"}
+	f.model = f.model.WithTranscriptLines([]string{"a", "b"})
 
 	_ = enterText(f.model, "/sh")
 	select {
@@ -202,7 +202,7 @@ func TestBlackboxSlashConfigDelRemoteNoHostsShowsHint(t *testing.T) {
 	if strings.TrimSpace(got.Input.Value()) != "" {
 		t.Fatalf("expected input cleared after no-hosts del-remote, got %q", got.Input.Value())
 	}
-	joined := strings.Join(got.Messages, "\n")
+	joined := strings.Join(got.TranscriptLines(), "\n")
 	if !strings.Contains(joined, "No hosts") {
 		t.Fatalf("expected no-hosts hint in transcript, got %q", joined)
 	}
@@ -308,7 +308,7 @@ func TestBlackboxSlashNewSubmitsCommand(t *testing.T) {
 
 func TestBlackboxSlashSessionsPrefixSubmitsCommand(t *testing.T) {
 	f := newBlackboxFixture(t)
-	_ = enterText(f.model, "/sessions demo")
+	got := enterText(f.model, "/sessions demo")
 	select {
 	case cmd := <-f.submitChan:
 		if cmd != "/sessions demo" {
@@ -316,6 +316,9 @@ func TestBlackboxSlashSessionsPrefixSubmitsCommand(t *testing.T) {
 		}
 	default:
 		t.Fatalf("expected /sessions <id> to submit command")
+	}
+	if strings.TrimSpace(got.Input.Value()) != "" {
+		t.Fatalf("expected input cleared after prefix slash execution, got %q", got.Input.Value())
 	}
 }
 

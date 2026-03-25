@@ -55,13 +55,14 @@ func Register() {
 			if path != "" {
 				events, _ := history.ReadRecent(path, maxSessionHistoryEvents)
 				msgs := sessionEventsToMessages(events, lang, m.Layout.Width)
-				m.Messages = make([]string, 0, len(msgs)+2)
-				m.Messages = append(m.Messages, msgs...)
-				m.Messages = append(m.Messages, switchedLine)
+				lines := make([]string, 0, len(msgs)+2)
+				lines = append(lines, msgs...)
+				lines = append(lines, switchedLine)
+				m = m.WithTranscriptLines(lines)
 			} else {
-				m.Messages = []string{switchedLine}
+				m = m.WithTranscriptLines([]string{switchedLine})
 			}
-			m.Messages = append(m.Messages, "")
+			m = m.AppendTranscriptLines("")
 			m = m.RefreshViewport()
 			return m, nil, true
 		default:

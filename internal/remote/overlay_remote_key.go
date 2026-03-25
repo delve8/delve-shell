@@ -143,8 +143,10 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			}
 			lang := "en"
 			delvPrefix := i18n.T(lang, i18n.KeyDelveLabel) + " "
-			m.Messages = append(m.Messages, suggestStyle.Render(delvPrefix+i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display)))
-			m.Messages = append(m.Messages, "")
+			m = m.AppendTranscriptLines(
+				suggestStyle.Render(delvPrefix+i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display)),
+				"",
+			)
 			// Refresh content before closing overlay to preserve old behavior.
 			m = m.RefreshViewport()
 
@@ -217,8 +219,10 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			}
 			lang := "en"
 			delvPrefix := i18n.T(lang, i18n.KeyDelveLabel) + " "
-			m.Messages = append(m.Messages, suggestStyle.Render(delvPrefix+i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display)))
-			m.Messages = append(m.Messages, "")
+			m = m.AppendTranscriptLines(
+				suggestStyle.Render(delvPrefix+i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display)),
+				"",
+			)
 			m.Host.NotifyConfigUpdated()
 		}
 

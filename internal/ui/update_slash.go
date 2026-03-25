@@ -49,6 +49,7 @@ func (m Model) dispatchSlashPrefix(text string) (Model, tea.Cmd, bool) {
 			m.Host.RequestSlashDispatch(text)
 			m2, outCmd, handled := e.Handle(m, rest)
 			if handled {
+				m2 = m2.clearSlashInput()
 				m2.Host.TraceSlashEntered(text)
 			}
 			return m2, outCmd, handled

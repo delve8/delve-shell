@@ -18,7 +18,7 @@ func (m Model) appendUserSubmittedEcho(text string) Model {
 	}
 	w := m.contentWidth()
 	sepLine := renderSeparator(w)
-	m.Messages = maininput.AppendUserInputLines(m.Messages, i18n.T(m.getLang(), i18n.KeyUserLabel), text, w, sepLine)
+	m.messages = maininput.AppendUserInputLines(m.messages, i18n.T(m.getLang(), i18n.KeyUserLabel), text, w, sepLine)
 	return m.RefreshViewport()
 }
 

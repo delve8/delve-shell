@@ -63,20 +63,20 @@ func handleUpdateSkillOverlayKey(m ui.Model, key string) (ui.Model, tea.Cmd, boo
 			shortCommit = shortCommit[:7]
 		}
 		if shortCommit != "" {
-			m.Messages = append(m.Messages, suggestStyleUpdate.Render(delveMsg(lang, fmt.Sprintf(
+			m = m.AppendTranscriptLines(suggestStyleUpdate.Render(delveMsg(lang, fmt.Sprintf(
 				"Skill %s updated to %s@%s.",
 				state.UpdateSkill.Name,
 				selectedRef,
 				shortCommit,
 			))))
 		} else {
-			m.Messages = append(m.Messages, suggestStyleUpdate.Render(delveMsg(lang, fmt.Sprintf(
+			m = m.AppendTranscriptLines(suggestStyleUpdate.Render(delveMsg(lang, fmt.Sprintf(
 				"Skill %s updated to %s.",
 				state.UpdateSkill.Name,
 				selectedRef,
 			))))
 		}
-		m.Messages = append(m.Messages, "")
+		m = m.AppendTranscriptLines("")
 		m = m.RefreshViewport()
 		m.Input.Focus()
 		m.Host.NotifyConfigUpdated()

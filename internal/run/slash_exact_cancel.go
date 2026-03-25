@@ -15,7 +15,7 @@ func registerSlashExactCancelCmd() {
 				m.Interaction.WaitingForAI = false
 				return m, nil
 			}
-			m.Messages = append(m.Messages, delveMsg("en", i18n.T("en", i18n.KeyNoRequestInProgress)))
+			m = m.AppendTranscriptLines(delveMsg("en", i18n.T("en", i18n.KeyNoRequestInProgress)))
 			return m.RefreshViewport(), nil
 		},
 		ClearInput: true,

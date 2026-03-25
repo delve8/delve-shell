@@ -35,12 +35,12 @@ func (m Model) executeMainEnterCommandNoRelay(text string, slashSelectedIndex in
 		plan := enterflow.PlanAfterSlashDispatches(text, slashSelectedIndex, viewOpts, vis, sessionNoneMsg, delRemoteNoneMsg)
 		switch plan.Kind {
 		case maininput.MainEnterShowSessionNone:
-			m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(sessionNoneMsg)))
+			m = m.AppendTranscriptLines(suggestStyle.Render(m.delveMsg(sessionNoneMsg)))
 			m = m.RefreshViewport()
 			m = m.clearSlashInput()
 			return m, nil
 		case maininput.MainEnterShowDelRemoteNone:
-			m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(delRemoteNoneMsg)))
+			m = m.AppendTranscriptLines(suggestStyle.Render(m.delveMsg(delRemoteNoneMsg)))
 			m = m.RefreshViewport()
 			m = m.clearSlashInput()
 			return m, nil
@@ -55,7 +55,7 @@ func (m Model) executeMainEnterCommandNoRelay(text string, slashSelectedIndex in
 				return m2, cmd
 			}
 		case maininput.MainEnterUnknownSlash:
-			m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyUnknownCmd))))
+			m = m.AppendTranscriptLines(errStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyUnknownCmd))))
 			m = m.RefreshViewport()
 			return m, nil
 		}

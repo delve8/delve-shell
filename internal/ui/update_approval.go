@@ -76,7 +76,7 @@ func (m *Model) appendDecisionLines(decision approvalview.DecisionKind, lang str
 		case approvalview.LineRiskHigh:
 			rendered = riskHighStyle.Render(line.Text)
 		}
-		m.Messages = append(m.Messages, rendered)
+		m.messages = append(m.messages, rendered)
 	}
 }
 
@@ -98,7 +98,7 @@ func (m Model) applyApprovalDecision(d approvalflow.Decision) (Model, bool) {
 		if out.DoCopyWorkflow {
 			_ = clipboard.WriteAll(out.CopyCommand)
 			m.appendSuggestedLine(m.Approval.pending.Command, lang)
-			m.Messages = append(m.Messages, hintStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeySuggestedCopied))))
+			m.messages = append(m.messages, hintStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeySuggestedCopied))))
 		}
 		m.Approval.pending.ResponseCh <- out.ApprovalResponse
 		m.Approval.pending = nil

@@ -22,12 +22,14 @@ func handleConfigLLMCheckDoneMessage(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd
 	}
 	st.Error = ""
 	setOverlayState(st)
-	m.Messages = append(m.Messages, ui.SuggestStyleRender(delveLine(lang, i18n.T(lang, i18n.KeyConfigSavedLLM))))
+	m = m.AppendTranscriptLines(ui.SuggestStyleRender(delveLine(lang, i18n.T(lang, i18n.KeyConfigSavedLLM))))
 	if done.CorrectedBaseURL != "" {
-		m.Messages = append(m.Messages, ui.SuggestStyleRender(delveLine(lang, i18n.Tf(lang, i18n.KeyConfigLLMBaseURLAutoCorrected, done.CorrectedBaseURL))))
+		m = m.AppendTranscriptLines(ui.SuggestStyleRender(delveLine(lang, i18n.Tf(lang, i18n.KeyConfigLLMBaseURLAutoCorrected, done.CorrectedBaseURL))))
 	}
-	m.Messages = append(m.Messages, ui.SuggestStyleRender(delveLine(lang, i18n.T(lang, i18n.KeyConfigLLMCheckOK))))
-	m.Messages = append(m.Messages, "")
+	m = m.AppendTranscriptLines(
+		ui.SuggestStyleRender(delveLine(lang, i18n.T(lang, i18n.KeyConfigLLMCheckOK))),
+		"",
+	)
 	m = m.RefreshViewport()
 	m = m.CloseOverlayVisual()
 	st = getOverlayState()

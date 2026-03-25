@@ -17,13 +17,13 @@ func applyConfigAllowlistAutoRun(m ui.Model, value string) ui.Model {
 	case "disable":
 		on = false
 	default:
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T("en", i18n.KeyConfigPrefix)+i18n.T("en", i18n.KeyConfigAutoRunRequired)))
+		m = m.AppendTranscriptLines(errStyle.Render(i18n.T("en", i18n.KeyConfigPrefix) + i18n.T("en", i18n.KeyConfigAutoRunRequired)))
 		return m.RefreshViewport()
 	}
 
 	cfg, err := config.Load()
 	if err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T("en", i18n.KeyConfigPrefix)+err.Error()))
+		m = m.AppendTranscriptLines(errStyle.Render(i18n.T("en", i18n.KeyConfigPrefix) + err.Error()))
 		return m.RefreshViewport()
 	}
 	cfg.AllowlistAutoRun = &on
@@ -33,15 +33,17 @@ func applyConfigAllowlistAutoRun(m ui.Model, value string) ui.Model {
 		cfg.Mode = "suggest"
 	}
 	if err := config.Write(cfg); err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T("en", i18n.KeyConfigPrefix)+err.Error()))
+		m = m.AppendTranscriptLines(errStyle.Render(i18n.T("en", i18n.KeyConfigPrefix) + err.Error()))
 		return m.RefreshViewport()
 	}
 	display := i18n.T("en", i18n.KeyAutoRunListOnly)
 	if !on {
 		display = i18n.T("en", i18n.KeyAutoRunNone)
 	}
-	m.Messages = append(m.Messages, delveMsg("en", i18n.Tf("en", i18n.KeyConfigSavedAllowlistAutoRun, display)))
-	m.Messages = append(m.Messages, "")
+	m = m.AppendTranscriptLines(
+		delveMsg("en", i18n.Tf("en", i18n.KeyConfigSavedAllowlistAutoRun, display)),
+		"",
+	)
 	m = m.RefreshViewport()
 	m.Host.InvokeSyncAllowlistAutoRun(on)
 	return m
@@ -50,11 +52,13 @@ func applyConfigAllowlistAutoRun(m ui.Model, value string) ui.Model {
 func applyConfigAllowlistUpdate(m ui.Model) ui.Model {
 	added, err := config.AllowlistUpdateWithDefaults()
 	if err != nil {
-		m.Messages = append(m.Messages, errStyle.Render(i18n.T("en", i18n.KeyConfigPrefix)+err.Error()))
+		m = m.AppendTranscriptLines(errStyle.Render(i18n.T("en", i18n.KeyConfigPrefix) + err.Error()))
 		return m.RefreshViewport()
 	}
-	m.Messages = append(m.Messages, delveMsg("en", i18n.Tf("en", i18n.KeyAllowlistUpdateDone, added)))
-	m.Messages = append(m.Messages, "")
+	m = m.AppendTranscriptLines(
+		delveMsg("en", i18n.Tf("en", i18n.KeyAllowlistUpdateDone, added)),
+		"",
+	)
 	m = m.RefreshViewport()
 	m.Host.NotifyConfigUpdated()
 	return m

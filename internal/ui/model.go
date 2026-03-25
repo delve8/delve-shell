@@ -20,7 +20,7 @@ const (
 type Model struct {
 	Input    textinput.Model
 	Viewport viewport.Model
-	Messages []string
+	messages []string
 	Approval ApprovalState
 	Layout        LayoutState
 	Interaction   InteractionState
@@ -156,7 +156,7 @@ func NewModel(initialMessages []string, host app.Host) Model {
 	return Model{
 		Input:    ti,
 		Viewport: vp,
-		Messages: msgs,
+		messages: msgs,
 		Host:     host,
 		Layout: LayoutState{
 			Width:  defaultWidth,

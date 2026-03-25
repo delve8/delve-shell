@@ -48,6 +48,9 @@ func (m *Model) appendSuggestedLine(command, lang string) {
 	tag := i18n.T(lang, i18n.KeyRunTagSuggested)
 	line := i18n.T(lang, i18n.KeyRunLabel) + command + " (" + tag + ")"
 	w := m.contentWidth()
-	m.Messages = append(m.Messages, execStyle.Render(textwrap.WrapString(line, w)))
-	m.Messages = append(m.Messages, hintStyle.Render(i18n.T(lang, i18n.KeySuggestedCopyHint)))
+	m.messages = append(
+		m.messages,
+		execStyle.Render(textwrap.WrapString(line, w)),
+		hintStyle.Render(i18n.T(lang, i18n.KeySuggestedCopyHint)),
+	)
 }

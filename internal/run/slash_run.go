@@ -27,7 +27,7 @@ func registerSlashRunCore() {
 				mm.Host.PublishExecDirect(cmd)
 			} else {
 				lang := "en"
-				mm.Messages = append(mm.Messages, errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeyUsageRun))))
+				mm = mm.AppendTranscriptLines(errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeyUsageRun))))
 			}
 			return mm, nil, true
 		},

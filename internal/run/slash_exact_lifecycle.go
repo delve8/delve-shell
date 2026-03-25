@@ -19,9 +19,7 @@ func registerSlashExactLifecycleCmds() {
 	})
 	ui.RegisterSlashExact("/sh", ui.SlashExactDispatchEntry{
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
-			msgs := make([]string, len(m.Messages))
-			copy(msgs, m.Messages)
-			_ = m.Host.PublishShellSnapshot(msgs)
+			_ = m.Host.PublishShellSnapshot(m.TranscriptLines())
 			return m, tea.Quit
 		},
 		ClearInput: true,
