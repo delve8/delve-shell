@@ -27,5 +27,5 @@
 
 ## 相关
 
-- `docs/host_bus_audit.md`
-- `docs/ui-refactor-handoff.md` §10.8.1
+- `docs/host_bus_audit.md`（含 Enter 中继与 **slash 候选列表单一入口** §10.8.2 第 2 轮）
+- `docs/ui-refactor-handoff.md` §10.8.1 / §10.8.2

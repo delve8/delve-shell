@@ -34,14 +34,13 @@ func (m Model) executeMainEnterCommandNoRelay(text string, slashSelectedIndex in
 	}
 
 	if strings.HasPrefix(text, "/") {
-		opts := getSlashOptionsForInput(text, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Host.RemoteActive())
-		vis := visibleSlashOptions(text, opts)
+		_, vis, viewOpts := m.slashSuggestionContext(text)
 		sessionNoneMsg := i18n.T(m.getLang(), i18n.KeySessionNone)
 		delRemoteNoneMsg := i18n.T(m.getLang(), i18n.KeyDelRemoteNoHosts)
 		plan := maininput.PlanMainEnter(maininput.MainEnterInput{
 			Text:               text,
 			SlashSelectedIndex: slashSelectedIndex,
-			Options:            toSlashViewOptions(opts),
+			Options:            viewOpts,
 			Visible:            vis,
 			SessionNoneMsg:     sessionNoneMsg,
 			DelRemoteNoneMsg:   delRemoteNoneMsg,

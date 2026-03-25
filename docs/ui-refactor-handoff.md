@@ -71,6 +71,7 @@
 | `view_content.go` | `buildContent()`（消息流；审批块委托 `view_approval_card.go`） |
 | `view_approval_card.go` | `appendApprovalViewportContent`（敏感 / 标准审批卡文案与样式） |
 | `view_slash_dropdown.go` | slash 下拉、`choiceLinesBelowInput`（行样式经 `internal/ui/widget` `RenderLinesBelowInput`）、`waitingLineBelowInput` |
+| `slash_suggestion_context.go` | `slashSuggestionContext`：统一 slash 候选 options / 可见索引 / `slashview` 行 |
 | `view_overlay.go` | `renderOverlay`、`overlayBoxMaxWidth` |
 | `view_title.go` | `titleLine`、`statusKey` |
 | `view_choices.go` | 审批/敏感数字选项、`syncInputPlaceholder` |
@@ -154,6 +155,7 @@
 
 | 日期 | 说明 |
 |------|------|
+| 2026-03-25 | §10.8.2 第 2 轮：`slashSuggestionContext` 统一 slash 候选列表构建 |
 | 2026-03-25 | §10.8.2 第 1 轮：`SlashSubmitPayload.InputLine`、`execSlashEnterKeyLocal`、slash 早路径中继 |
 | 2026-03-25 | §10.8.2：后续五轮规划（阶段 3 收口 + 阶段 5 深化，不含 registry 迁 Controller） |
 | 2026-03-25 | §10.8.1 第 3 轮：`widget.RenderLinesBelowInput`（slash 下拉 + 审批/敏感选项行） |
@@ -344,7 +346,7 @@
 | 轮次 | 对准阶段 | 交付物（建议） | 验收要点 |
 |------|----------|----------------|----------|
 | **第 1 轮** | **3** | **已交付（2026-03-25）**：`SlashSubmitPayload.InputLine`；`execSlashEnterKeyLocal`；`handleSlashEnterKey` 先 `TryRelaySlashSubmit`；`SlashSubmitRelayMsg` 按 `InputLine` 调 `execSlashEnterKeyLocal`，未处理则 `executeMainEnterCommandNoRelay`；`RedactedSummary` 含 `input=`。 | `go test ./...`（含 e2e）绿。 |
-| **第 2 轮** | **3** | **减少重复**：从 `update_slash.go` / `update_main_enter_command.go` 抽出共用的 slash 行构建或意图说明（小步，避免与 registry 强耦合）；更新 `docs/host_bus_audit.md` / ADR 中「Enter 路径」表述。 | 无行为变化或可证明等价；测试绿。 |
+| **第 2 轮** | **3** | **已交付（2026-03-25）**：`slashSuggestionContext` / `slashSuggestionContextWithLang`（`slash_suggestion_context.go`）；`update_slash`、`update_main_enter_command`、`update_keymsg`、`view_slash_dropdown` 共用；文档与 ADR 指针更新。 | 行为等价；`go test ./...` 绿。 |
 | **第 3 轮** | **5** | **审批卡**：将 `view_approval_card.go` 中可复用的 lipgloss 条（标题、风险标签、决策行等）迁入 `internal/ui/widget`，`view` 仅组装数据。 | 视觉快照或现有 `view_approval_card_test` 仍绿；e2e 审批路径绿。 |
 | **第 4 轮** | **5** | **远程/顶栏相关**：远程连接结果、认证提示条或 `view_title.go` 中与顶栏重复的样式块迁入 `widget`（择一为主，避免单 PR 过大）。 | 相关 ui 测试 + e2e remote 场景绿。 |
 | **第 5 轮** | **3+5 文档收口** | **更新 §10.8 主表**：阶段 3 标为 **「已做（范围：Enter 中继统一 + 结构化载荷；不含 SubmitChan 合并、不含 Controller 内 registry）」**；阶段 5 标为 **「已做（范围：modal + 列表行 + 第 3～4 轮 widget）」**；§9 变更记录；刻意未做项指向 §10.7。 | 文档自洽；全量测试绿。 |

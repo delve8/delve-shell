@@ -43,6 +43,10 @@
 
 **未走此链的路径**：`/new` / `/sessions` 经 `SubmitChan` 的会话命令（不经 `SlashSubmitChan`）。
 
+## TUI：slash 候选列表的单一入口（§10.8.2 第 2 轮）
+
+`internal/ui` 中 **`slashSuggestionContext` / `slashSuggestionContextWithLang`** 统一 **`getSlashOptionsForInput` → `visibleSlashOptions` → `toSlashViewOptions`**，供 slash 早路径 Enter、主 Enter 后半段、`update_keymsg` 的 Up/Down 与索引同步、以及 **`view_slash_dropdown`** 下拉绘制共用，避免多处复制 provider 调用与可见性过滤逻辑。
+
 ## 主对话 → LLM（典型顺序）
 
 以下描述**稳态**下的主路径；具体函数名以代码为准。

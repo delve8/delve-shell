@@ -15,13 +15,12 @@ func (m Model) slashDropdownBelowInput(lang string) string {
 	if !strings.HasPrefix(inputVal, "/") {
 		return ""
 	}
-	opts := getSlashOptionsForInput(inputVal, lang, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Host.RemoteActive())
-	vis := visibleSlashOptions(inputVal, opts)
+	_, vis, viewOpts := m.slashSuggestionContextWithLang(inputVal, lang)
 	if len(vis) == 0 {
 		return ""
 	}
 	const maxSlashVisible = 4
-	rows := slashview.BuildDropdownRows(toSlashViewOptions(opts), vis, m.Interaction.slashSuggestIndex, m.Layout.Width, maxSlashVisible)
+	rows := slashview.BuildDropdownRows(viewOpts, vis, m.Interaction.slashSuggestIndex, m.Layout.Width, maxSlashVisible)
 	list := make([]widget.ListRow, len(rows))
 	for i, row := range rows {
 		list[i] = widget.ListRow{Text: row.Text, Highlight: row.Highlight}

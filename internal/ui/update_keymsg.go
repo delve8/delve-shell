@@ -56,8 +56,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 	inputVal = m.Input.Value()
 	inSlash = strings.HasPrefix(inputVal, "/")
 	if inSlash && (key == "up" || key == "down") {
-		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Host.RemoteActive())
-		vis := visibleSlashOptions(inputVal, opts)
+		_, vis, _ := m.slashSuggestionContext(inputVal)
 		if next, changed := slashview.NextSuggestIndex(m.Interaction.slashSuggestIndex, len(vis), key); changed {
 			m.Interaction.slashSuggestIndex = next
 		}
@@ -78,9 +77,8 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 		if m.Interaction.WaitingForAI && !strings.HasPrefix(text, "/") {
 			return m, nil
 		}
-		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Host.RemoteActive())
-		vis := visibleSlashOptions(inputVal, opts)
-		selected, ok := slashview.SelectedByVisibleIndex(toSlashViewOptions(opts), vis, m.Interaction.slashSuggestIndex)
+		_, vis, viewOpts := m.slashSuggestionContext(inputVal)
+		selected, ok := slashview.SelectedByVisibleIndex(viewOpts, vis, m.Interaction.slashSuggestIndex)
 		capture := maininput.CaptureSlashSelection(maininput.CaptureInput{
 			InputVal:     inputVal,
 			Text:         text,
@@ -113,8 +111,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.Input, cmd = m.Input.Update(msg)
 	inputVal = m.Input.Value()
-	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Host.RemoteActive())
-	vis := visibleSlashOptions(inputVal, opts)
+	_, vis, _ := m.slashSuggestionContext(inputVal)
 	m.Interaction.slashSuggestIndex = maininput.SyncSlashSuggestIndex(maininput.SyncInput{
 		InputVal:            inputVal,
 		CurrentSuggestIndex: m.Interaction.slashSuggestIndex,
