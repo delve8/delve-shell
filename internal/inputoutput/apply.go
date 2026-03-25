@@ -24,9 +24,15 @@ func ApplyResult(res inputlifecycletype.ProcessResult) (StatePatch, tea.Cmd) {
 	for _, out := range res.Outputs {
 		switch out.Kind {
 		case inputlifecycletype.OutputStatusChange:
-			if out.Status != nil && out.Status.Key == "processing" {
-				v := true
-				patch.WaitingForAI = &v
+			if out.Status != nil {
+				switch out.Status.Key {
+				case "processing":
+					v := true
+					patch.WaitingForAI = &v
+				case "idle":
+					v := false
+					patch.WaitingForAI = &v
+				}
 			}
 		case inputlifecycletype.OutputMessage:
 			if out.Message != nil && out.Message.Value != nil {

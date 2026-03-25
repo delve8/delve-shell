@@ -111,25 +111,16 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 		}
 	}
 
-	if m2, cmd, handled := mm.handleOverlayKey(key, msg); handled {
-		return m2, cmd
+	if key == "esc" {
+		res, err := mm.lifecycleEngine().SubmitControl(inputlifecycletype.ControlSignalEsc, inputlifecycletype.SourceKeyboardSignal)
+		if err == nil {
+			mm, cmd := mm.applyLifecycleResult(res)
+			return mm, cmd
+		}
 	}
 
-	if key == "esc" {
-		inputVal = ks.inputValue()
-		if strings.HasPrefix(inputVal, "/") && strings.TrimSpace(inputVal) != "" {
-			mm = mm.clearSlashInput()
-			return mm, nil
-		}
-		if ks.waitingForAI() {
-			res, err := mm.lifecycleEngine().SubmitControl(inputlifecycletype.ControlSignalEsc, inputlifecycletype.SourceKeyboardSignal)
-			if err == nil {
-				mm.Interaction.WaitingForAI = false
-				mm, cmd := mm.applyLifecycleResult(res)
-				return mm, cmd
-			}
-			return mm, nil
-		}
+	if m2, cmd, handled := mm.handleOverlayKey(key, msg); handled {
+		return m2, cmd
 	}
 
 	inputVal = ks.inputValue()
@@ -165,13 +156,15 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 		mm = mm.appendUserSubmittedEcho(text)
 		ks.setInputValue("")
 		ks.setSlashSuggestIndex(0)
-		if !strings.HasPrefix(text, "/") {
-			if res, handled, err := mm.lifecycleEngine().SubmitEnter(text, capture.SelectedIndex); handled && err == nil {
-				mm, cmd := mm.applyLifecycleResult(res)
-				return mm, cmd
+		if res, handled, err := mm.lifecycleEngine().SubmitEnter(text, capture.SelectedIndex); handled {
+			if err != nil {
+				mm = mm.AppendTranscriptLines(errStyle.Render(mm.delveMsg(err.Error())))
+				return mm.RefreshViewport(), nil
 			}
+			mm, cmd := mm.applyLifecycleResult(res)
+			return mm, cmd
 		}
-		return mm.handleMainEnterCommand(text, capture.SelectedIndex)
+		return mm, nil
 	}
 
 	cmd := ks.updateTextInput(msg)
@@ -314,7 +307,7 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 			return returned, cmd, true
 		}
 	}
-	return m.execSlashEnterKeyLocal(inputVal)
+	return m, nil, false
 }
 
 // execSlashEnterKeyLocal runs slash-mode Enter locally after lifecycle submission routing.

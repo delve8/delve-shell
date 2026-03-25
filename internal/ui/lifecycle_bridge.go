@@ -147,10 +147,22 @@ func (e uiControlActionExecutor) ExecuteControl(action inputlifecycletype.Contro
 		if !e.sender.Send(uivm.UIAction{Kind: uivm.UIActionCancelRequested}) {
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 		}
-		return inputlifecycletype.ConsumedResult(), nil
+		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+			Kind:   inputlifecycletype.OutputStatusChange,
+			Status: &inputlifecycletype.StatusPayload{Key: "idle"},
+		}), nil
 	case inputlifecycletype.ControlCloseOverlay,
 		inputlifecycletype.ControlClearPreInput:
-		return inputlifecycletype.ConsumedResult(), nil
+		var msg any = OverlayCloseMsg{}
+		if action == inputlifecycletype.ControlClearPreInput {
+			msg = PreInputClearMsg{}
+		}
+		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+			Kind: inputlifecycletype.OutputMessage,
+			Message: &inputlifecycletype.MessagePayload{
+				Value: msg,
+			},
+		}), nil
 	case inputlifecycletype.ControlQuit, inputlifecycletype.ControlInterrupt:
 		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 			Kind: inputlifecycletype.OutputQuit,
@@ -196,6 +208,8 @@ func (m Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (Model
 			return m.handleOverlayShowMsg(typed)
 		case OverlayCloseMsg:
 			return m.handleOverlayCloseMsg()
+		case PreInputClearMsg:
+			return m.clearSlashInput(), nil
 		case TranscriptAppendMsg:
 			return m.handleTranscriptAppendMsg(typed)
 		default:

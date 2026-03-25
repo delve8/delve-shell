@@ -69,7 +69,7 @@ slash：
 
 ### 3.1 统一的是生命周期，不是旧 channel
 
-当前项目中的核心问题，不是“普通问题与 slash 是否都叫提交”，而是它们尚未进入同一条生命周期主链。
+当前项目中的核心问题，不是“普通问题与 slash 是否都叫提交”，而是它们是否真的进入同一条生命周期主链。
 
 因此下一阶段不建议继续扩展：
 
@@ -82,7 +82,12 @@ slash：
 补充：
 
 - 2026-03-25 当前实现已移除旧的 `SlashSubmitChan -> controller -> TUI relay` 回路。
-- slash 提交现在经统一 lifecycle 进入 `slashproc`，再由 `ui` 本地执行现有 slash 处理逻辑。
+- 2026-03-26 当前实现中，主输入框的 `Enter` 与 `Esc` 已统一先进入 lifecycle：
+  - 普通输入经 `inputpreflight.Engine.OnEnter -> chatproc`
+  - slash 早路径经 `inputpreflight.PlanSlashEnter -> slashproc`
+  - `Esc` / `Ctrl-C` / `/q` 经 `controlproc`
+- `Esc` 的优先级（overlay -> pre-input -> cancel processing）现在由 `controlproc` 统一解析，UI 不再在按键分支里分别判断。
+- 仍未完全收敛的点：slash 业务执行本身短期仍通过 `slashproc` 适配到 UI 本地 registry/handler。
 
 ### 3.2 slash 的执行权短期仍可留在专用处理器
 
@@ -130,7 +135,7 @@ slash：
 说明：
 
 - 这个优先级属于统一输入生命周期的一部分，不应由各 slash 命令各自决定
-- 后续实现中，`Esc` 应进入 `controlproc`，而不是继续作为 slash handler 处理
+- 该项已于 2026-03-26 落地：`Esc` 现在统一进入 `controlproc`
 
 ## 4. 新模块策略
 
@@ -148,6 +153,24 @@ slash：
 - 避免旧模块继续叠加兼容分支
 - 避免在 `ui` / `controller` / `bus` 多处同时打补丁
 - 让新架构的边界从第一天开始就清晰
+
+### 4.1 2026-03-26 当前状态
+
+本轮第一优先级已经完成的部分：
+
+- 主输入框 `Enter` 不再区分“普通输入走 lifecycle、slash 再回落旧执行链”的双轨提交；提交统一先走 lifecycle。
+- `Esc` 不再在 `ui.handleKeyMsg` 中手写 overlay / slash / cancel 分支，而是统一交给 `controlproc` 解析。
+- UI 侧保留的职责收敛为：
+  - 输入期状态维护
+  - slash 候选与 fill-only
+  - lifecycle 结果应用
+  - 现有 slash registry 的本地执行适配
+
+尚未完成的部分：
+
+- `controller` 对 `UIActionSubmission` 仍会基于 `RawText` 再做一次 submit 分类。
+- `host/bus.InputPorts` 中旧的 `SubmitChan` / `Slash*Chan` 仍保留，用于兼容和观测。
+- slash 处理器的长期执行归属（继续留在 UI 适配层，还是迁往 controller/service）还未最终收口。
 
 ## 5. 建议的新模块分层
 
