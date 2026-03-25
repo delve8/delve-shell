@@ -158,7 +158,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			m.Overlay.Title = ""
 			m.Overlay.Content = ""
 			m.Input.Focus()
-			m.NotifyConfigUpdated()
+			m.EmitConfigUpdatedIntent()
 			return ret(m, nil, true)
 		}
 
@@ -224,7 +224,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 				suggestStyle.Render(delvPrefix+i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display)),
 				"",
 			)
-			m.NotifyConfigUpdated()
+			m.EmitConfigUpdatedIntent()
 		}
 
 		m = m.RefreshViewport()
@@ -232,7 +232,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			// Show "Connecting..." and wait for RemoteConnectDoneMsg; close overlay only on success.
 			state.AddRemote.Connecting = true
 			state.AddRemote.Error = ""
-			if !m.PublishRemoteOnTarget(target) {
+			if !m.EmitRemoteOnTargetIntent(target) {
 				state.AddRemote.Connecting = false
 			}
 			return ret(m, nil, true)
@@ -365,7 +365,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			b.WriteString(suggestStyle.Render("Connecting...") + "\n\n")
 			b.WriteString("Press Esc to cancel.")
 			m.Overlay.Content = b.String()
-			_ = m.PublishRemoteAuthResponse(remoteauth.Response{
+			_ = m.EmitRemoteAuthResponseIntent(remoteauth.Response{
 				Target:   state.RemoteAuth.Target,
 				Username: state.RemoteAuth.Username,
 				Kind:     state.RemoteAuth.Step,
@@ -446,7 +446,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			b.WriteString(suggestStyle.Render("Connecting...") + "\n\n")
 			b.WriteString("Press Esc to cancel.")
 			m.Overlay.Content = b.String()
-			_ = m.PublishRemoteAuthResponse(remoteauth.Response{
+			_ = m.EmitRemoteAuthResponseIntent(remoteauth.Response{
 				Target:   state.RemoteAuth.Target,
 				Username: state.RemoteAuth.Username,
 				Kind:     state.RemoteAuth.Step,

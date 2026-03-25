@@ -26,7 +26,7 @@ func registerSlashExactHandlers() {
 
 	ui.RegisterSlashExact("/remote off", ui.SlashExactDispatchEntry{
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
-			_ = m.PublishRemoteOff()
+			_ = m.EmitRemoteOffIntent()
 			return m, nil
 		},
 		ClearInput: true,
@@ -59,7 +59,7 @@ func registerSlashPrefixHandlers() {
 			if target == "" {
 				return m, nil, true
 			}
-			_ = m.PublishRemoteOnTarget(target)
+			_ = m.EmitRemoteOnTargetIntent(target)
 			return m, nil, true
 		},
 	})

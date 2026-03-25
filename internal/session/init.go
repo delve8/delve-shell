@@ -15,7 +15,7 @@ const maxSessionHistoryEvents = 500
 func Register() {
 	ui.RegisterSlashExact("/new", ui.SlashExactDispatchEntry{
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
-			_ = m.Submit("/new")
+			_ = m.EmitSubmitIntent("/new")
 			// /new consumes input and refreshes content (keep old behavior).
 			m = m.ClearSlashInput()
 			m = m.RefreshViewport()
@@ -31,7 +31,7 @@ func Register() {
 			if id == "" {
 				return m, nil, true
 			}
-			m.TrySubmitNonBlocking("/sessions " + id)
+			m.EmitSubmitIntentNonBlocking("/sessions " + id)
 			return m.RefreshViewport(), nil, true
 		},
 	})

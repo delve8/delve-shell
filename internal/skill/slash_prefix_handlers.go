@@ -72,7 +72,7 @@ func handleSlashSkillPrefix(m ui.Model, rest string) ui.Model {
 	}
 
 	payload := skillInvocationPrompt(skillName, skillContent, naturalLanguage)
-	if m.Submit(payload) {
+	if m.EmitSubmitIntent(payload) {
 		m.Interaction.WaitingForAI = true
 	}
 	m.Input.SetValue("")

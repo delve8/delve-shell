@@ -70,36 +70,36 @@ func (m Model) traceSlashEnteredAction(line string) {
 	})
 }
 
-func (m Model) Submit(text string) bool {
+func (m Model) EmitSubmitIntent(text string) bool {
 	return m.submitAction(text)
 }
 
-func (m Model) TrySubmitNonBlocking(text string) bool {
+func (m Model) EmitSubmitIntentNonBlocking(text string) bool {
 	return m.submitAction(text)
 }
 
-func (m Model) NotifyConfigUpdated() {
+func (m Model) EmitConfigUpdatedIntent() {
 	if m.ActionSender == nil {
 		return
 	}
 	_ = m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionConfigUpdated})
 }
 
-func (m Model) PublishExecDirect(cmd string) {
+func (m Model) EmitExecDirectIntent(cmd string) {
 	if m.ActionSender == nil {
 		return
 	}
 	_ = m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionExecDirect, Text: cmd})
 }
 
-func (m Model) PublishCancelRequest() bool {
+func (m Model) EmitCancelRequestIntent() bool {
 	if m.ActionSender == nil {
 		return false
 	}
 	return m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionCancelRequested})
 }
 
-func (m Model) PublishShellSnapshot(msgs []string) bool {
+func (m Model) EmitShellSnapshotIntent(msgs []string) bool {
 	if m.ActionSender == nil {
 		return false
 	}
@@ -108,28 +108,28 @@ func (m Model) PublishShellSnapshot(msgs []string) bool {
 	return m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionShellSnapshot, Messages: out})
 }
 
-func (m Model) PublishRemoteOnTarget(target string) bool {
+func (m Model) EmitRemoteOnTargetIntent(target string) bool {
 	if m.ActionSender == nil {
 		return false
 	}
 	return m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionRemoteOnTarget, Text: target})
 }
 
-func (m Model) PublishRemoteOff() bool {
+func (m Model) EmitRemoteOffIntent() bool {
 	if m.ActionSender == nil {
 		return false
 	}
 	return m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionRemoteOff})
 }
 
-func (m Model) PublishRemoteAuthResponse(resp remoteauth.Response) bool {
+func (m Model) EmitRemoteAuthResponseIntent(resp remoteauth.Response) bool {
 	if m.ActionSender == nil {
 		return false
 	}
 	return m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionRemoteAuthReply, RemoteAuthReply: resp})
 }
 
-func (m Model) InvokeSyncAllowlistAutoRun(v bool) {
+func (m Model) EmitAllowlistAutoRunSyncIntent(v bool) {
 	if m.ActionSender == nil {
 		return
 	}

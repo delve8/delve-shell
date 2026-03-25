@@ -24,7 +24,7 @@ func registerSlashRunCore() {
 		Handle: func(mm ui.Model, rest string) (ui.Model, tea.Cmd, bool) {
 			cmd := strings.TrimSpace(rest)
 			if cmd != "" {
-				mm.PublishExecDirect(cmd)
+				mm.EmitExecDirectIntent(cmd)
 			} else {
 				lang := "en"
 				mm = mm.AppendTranscriptLines(errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeyUsageRun))))

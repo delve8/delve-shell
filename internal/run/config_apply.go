@@ -45,7 +45,7 @@ func applyConfigAllowlistAutoRun(m ui.Model, value string) ui.Model {
 		"",
 	)
 	m = m.RefreshViewport()
-	m.InvokeSyncAllowlistAutoRun(on)
+	m.EmitAllowlistAutoRunSyncIntent(on)
 	return m
 }
 
@@ -60,6 +60,6 @@ func applyConfigAllowlistUpdate(m ui.Model) ui.Model {
 		"",
 	)
 	m = m.RefreshViewport()
-	m.NotifyConfigUpdated()
+	m.EmitConfigUpdatedIntent()
 	return m
 }

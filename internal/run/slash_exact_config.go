@@ -13,7 +13,7 @@ func registerSlashExactConfigCmds() {
 		return m.RefreshViewport(), nil
 	}
 	triggerConfigReload := func(m ui.Model) (ui.Model, tea.Cmd) {
-		m.NotifyConfigUpdated()
+		m.EmitConfigUpdatedIntent()
 		return m, nil
 	}
 
