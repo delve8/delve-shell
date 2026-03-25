@@ -62,26 +62,13 @@ func (e localSlashExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inputl
 			}},
 		}), nil
 	case trimmed == "/new":
-		if e.sender == nil || !e.sender.Send(uivm.UIAction{
-			Kind: uivm.UIActionSubmission,
-			Submission: inputlifecycletype.InputSubmission{
-				Kind:    inputlifecycletype.SubmissionChat,
-				Source:  inputlifecycletype.SourceProgrammatic,
-				RawText: trimmed,
-			},
-		}) {
+		if e.sender == nil || !e.sender.Send(uivm.UIAction{Kind: uivm.UIActionSessionNew}) {
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 		}
 		return inputlifecycletype.ConsumedResult(), nil
 	case strings.HasPrefix(trimmed, "/sessions "):
-		if e.sender == nil || !e.sender.Send(uivm.UIAction{
-			Kind: uivm.UIActionSubmission,
-			Submission: inputlifecycletype.InputSubmission{
-				Kind:    inputlifecycletype.SubmissionChat,
-				Source:  inputlifecycletype.SourceProgrammatic,
-				RawText: trimmed,
-			},
-		}) {
+		sessionID := strings.TrimSpace(strings.TrimPrefix(trimmed, "/sessions "))
+		if e.sender == nil || !e.sender.Send(uivm.UIAction{Kind: uivm.UIActionSessionSwitch, Text: sessionID}) {
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 		}
 		return inputlifecycletype.ConsumedResult(), nil

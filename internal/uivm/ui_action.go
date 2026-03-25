@@ -9,6 +9,8 @@ type UIActionKind string
 
 const (
 	UIActionSubmission        UIActionKind = "submission"
+	UIActionSessionNew        UIActionKind = "session_new"
+	UIActionSessionSwitch     UIActionKind = "session_switch"
 	UIActionExecDirect        UIActionKind = "exec_direct"
 	UIActionConfigUpdated     UIActionKind = "config_updated"
 	UIActionCancelRequested   UIActionKind = "cancel_requested"

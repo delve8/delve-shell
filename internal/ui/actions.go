@@ -48,6 +48,20 @@ func (m Model) EmitChatSubmitIntent(text string, source inputlifecycletype.Submi
 	})
 }
 
+func (m Model) EmitSessionNewIntent() bool {
+	if m.ActionSender == nil {
+		return false
+	}
+	return m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionSessionNew})
+}
+
+func (m Model) EmitSessionSwitchIntent(sessionID string) bool {
+	if m.ActionSender == nil {
+		return false
+	}
+	return m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionSessionSwitch, Text: sessionID})
+}
+
 func (m Model) requestSlashDispatchAction(line string) {
 	if m.ActionSender == nil {
 		return

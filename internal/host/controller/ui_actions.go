@@ -2,15 +2,21 @@ package controller
 
 import (
 	"delve-shell/internal/host/bus"
-	"delve-shell/internal/host/route"
-	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/uivm"
 )
 
 func (c *Controller) handleUIAction(action uivm.UIAction) {
 	switch action.Kind {
 	case uivm.UIActionSubmission:
-		c.publishSubmissionAction(action.Submission)
+		c.bus.PublishBlocking(bus.Event{
+			Kind:       bus.KindUserChatSubmitted,
+			UserText:   action.Submission.RawText,
+			Submission: action.Submission,
+		})
+	case uivm.UIActionSessionNew:
+		c.bus.PublishBlocking(bus.Event{Kind: bus.KindSessionNewRequested})
+	case uivm.UIActionSessionSwitch:
+		c.bus.PublishBlocking(bus.Event{Kind: bus.KindSessionSwitchRequested, SessionID: action.Text})
 	case uivm.UIActionConfigUpdated:
 		c.bus.PublishBlocking(bus.Event{Kind: bus.KindConfigUpdated})
 	case uivm.UIActionExecDirect:
@@ -47,24 +53,5 @@ func (c *Controller) handleUIAction(action uivm.UIAction) {
 			return
 		}
 		c.bus.PublishBlocking(bus.Event{Kind: bus.KindSlashEntered, UserText: action.Text})
-	}
-}
-
-func (c *Controller) publishSubmissionAction(sub inputlifecycletype.InputSubmission) {
-	switch sub.Kind {
-	case inputlifecycletype.SubmissionChat, inputlifecycletype.SubmissionSlash:
-		c.publishSubmitAction(sub.RawText)
-	}
-}
-
-func (c *Controller) publishSubmitAction(text string) {
-	classified := route.ClassifyUserSubmit(text)
-	switch classified.Kind {
-	case route.UserSubmitNewSession:
-		c.bus.PublishBlocking(bus.Event{Kind: bus.KindSessionNewRequested})
-	case route.UserSubmitSwitchSession:
-		c.bus.PublishBlocking(bus.Event{Kind: bus.KindSessionSwitchRequested, SessionID: classified.SessionID})
-	default:
-		c.bus.PublishBlocking(bus.Event{Kind: bus.KindUserChatSubmitted, UserText: text})
 	}
 }

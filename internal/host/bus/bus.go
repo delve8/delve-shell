@@ -7,6 +7,7 @@ import (
 
 	"delve-shell/internal/hiltypes"
 	"delve-shell/internal/host/route"
+	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/remoteauth"
 )
 
@@ -73,6 +74,7 @@ type Event struct {
 	Command            string
 	RemoteTarget       string
 	RemoteAuthResponse remoteauth.Response
+	Submission         inputlifecycletype.InputSubmission
 
 	Approval  *hiltypes.ApprovalRequest
 	Sensitive *hiltypes.SensitiveConfirmationRequest

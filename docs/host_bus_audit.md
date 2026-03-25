@@ -6,12 +6,15 @@
 
 - 下文中关于 `SlashSubmitChan` / `KindSlashRelayToUI` / `TryRelaySlashSubmit` / `SlashSubmitRelayMsg` 的描述属于 2026-03-25 的历史实现记录。
 - 当前代码已经移除该回路，slash 主提交改为统一 lifecycle 后在 `ui` 本地执行。
+- 2026-03-26 起，`UIActionSubmission` 不再在 `controller` 中二次调用 `ClassifyUserSubmit`；普通 chat submission 直接发布为 `KindUserChatSubmitted`，`/new` 与 `/sessions` 由 UI 发出显式 session intent。
 
 ## 进入 `hostbus.Bus` 的来源
 
 | 来源 | 事件形态 |
 |------|----------|
 | `BridgeInputs` ← `SubmitChan` | `hostroute.ClassifyUserSubmit` → `KindSessionNewRequested` / `KindSessionSwitchRequested` / `KindUserChatSubmitted` |
+| `Controller.handleUIAction` ← `UIActionSubmission` | 直接发布 `KindUserChatSubmitted`（保留 `Event.Submission`） |
+| `Controller.handleUIAction` ← `UIActionSessionNew` / `UIActionSessionSwitch` | 直接发布 `KindSessionNewRequested` / `KindSessionSwitchRequested` |
 | `BridgeInputs` ← `ConfigUpdatedChan` | `KindConfigUpdated` |
 | `BridgeInputs` ← `CancelRequestChan` | `KindCancelRequested` |
 | `BridgeInputs` ← `ExecDirectChan` | `KindExecDirectRequested` |
@@ -56,11 +59,17 @@
 
 以下描述**稳态**下的主路径；具体函数名以代码为准。
 
-1. TUI：`Host.Submit(text)` → `SubmitChan`（仅当 UI 决定走主对话提交；普通文本、非 slash 专线路径）。
-2. `BridgeInputs`：`ClassifyUserSubmit` → 若非 `/new` / `/sessions …`，则 `PublishBlocking(KindUserChatSubmitted)`。
-3. `Controller`：`handleUserChat` → 启动/续跑 runner 侧 LLM 工作流。
-4. LLM 结束后：`PublishBlocking(KindLLMRunCompleted)`（在独立 goroutine 中投递，避免阻塞中控循环）。
-5. `Controller`：`handleLLMRunCompleted` → `uipresenter` → `AgentReply` 等 → **`EnqueueUIBlocking`** → `StartUIPump` → TUI `Update`。
+1. TUI lifecycle：普通聊天提交形成 `InputSubmission{Kind: chat, RawText: ...}`。
+2. UI：`ActionSender.Send(UIActionSubmission{Submission: ...})`。
+3. `Controller.handleUIAction`：直接 `PublishBlocking(KindUserChatSubmitted)`，并保留 `Event.Submission`。
+4. `Controller`：`handleUserChat` → 启动/续跑 runner 侧 LLM 工作流。
+5. LLM 结束后：`PublishBlocking(KindLLMRunCompleted)`（在独立 goroutine 中投递，避免阻塞中控循环）。
+6. `Controller`：`handleLLMRunCompleted` → `uipresenter` → `AgentReply` 等 → **`EnqueueUIBlocking`** → `StartUIPump` → TUI `Update`。
+
+兼容路径：
+
+- `Host.Submit(text)` → `SubmitChan` 仍存在，`BridgeInputs` 仍会通过 `ClassifyUserSubmit` 把旧的字符串-only 提交映射为会话/聊天事件。
+- 该路径现在视为兼容桥接，而不是交互 UI 的首选主路径。
 
 **对照 §10.6**：主路径可由 **Bus 事件 Kind + Controller handler + Presenter 方法** 追踪；TUI 内仍有输入编辑与 slash 专线路径（见下节）。
 
@@ -83,7 +92,7 @@
 
 ## 仍仅在 TUI 内、不经「Submit→总线→LLM」主链的部分
 
-- **Slash 解析与执行**：`ui` registry；主 Enter 的 slash 分支不调用 `SubmitChan`（除 `/new`、`/sessions` 等已走 Submit 的特例）。总线侧另有 **`KindSlashRequested` / `KindSlashEntered`**（专用 channel，仅观测）。
+- **Slash 解析与执行**：`ui` registry；slash 提交先经 lifecycle，再由 `slashproc` 适配到本地 registry。总线侧另有 **`KindSlashRequested` / `KindSlashEntered`**（专用 channel，仅观测）。
 - **样式与 overlay 绘制**：不经过 Bus。
 
 ## 与 §10.6 完成判据的对照

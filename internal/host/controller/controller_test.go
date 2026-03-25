@@ -12,11 +12,13 @@ import (
 	"delve-shell/internal/agent"
 	"delve-shell/internal/cli/hostfsm"
 	"delve-shell/internal/execenv"
-	"delve-shell/internal/host/bus"
 	"delve-shell/internal/hiltypes"
+	"delve-shell/internal/host/bus"
+	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/runtime/sessionmgr"
 	"delve-shell/internal/ui"
 	"delve-shell/internal/uipresenter"
+	"delve-shell/internal/uivm"
 )
 
 type recordSender struct {
@@ -444,5 +446,61 @@ func TestNew_WiresBusAndPump(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("expected bridged event")
+	}
+}
+
+func TestHandleUIAction_SubmissionPublishesStructuredChatEvent(t *testing.T) {
+	s := &recordSender{}
+	c := newTestControllerWithPresenter(s)
+	sub := inputlifecycletype.InputSubmission{
+		Kind:    inputlifecycletype.SubmissionChat,
+		Source:  inputlifecycletype.SourceProgrammatic,
+		RawText: "abc",
+	}
+
+	c.handleUIAction(uivm.UIAction{Kind: uivm.UIActionSubmission, Submission: sub})
+
+	select {
+	case ev := <-c.bus.Events():
+		if ev.Kind != bus.KindUserChatSubmitted || ev.UserText != "abc" {
+			t.Fatalf("unexpected event header: %+v", ev)
+		}
+		if ev.Submission != sub {
+			t.Fatalf("submission mismatch: got %#v want %#v", ev.Submission, sub)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("expected chat event")
+	}
+}
+
+func TestHandleUIAction_SessionNewPublishesEvent(t *testing.T) {
+	s := &recordSender{}
+	c := newTestControllerWithPresenter(s)
+
+	c.handleUIAction(uivm.UIAction{Kind: uivm.UIActionSessionNew})
+
+	select {
+	case ev := <-c.bus.Events():
+		if ev.Kind != bus.KindSessionNewRequested {
+			t.Fatalf("unexpected event: %+v", ev)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("expected session new event")
+	}
+}
+
+func TestHandleUIAction_SessionSwitchPublishesEvent(t *testing.T) {
+	s := &recordSender{}
+	c := newTestControllerWithPresenter(s)
+
+	c.handleUIAction(uivm.UIAction{Kind: uivm.UIActionSessionSwitch, Text: "demo"})
+
+	select {
+	case ev := <-c.bus.Events():
+		if ev.Kind != bus.KindSessionSwitchRequested || ev.SessionID != "demo" {
+			t.Fatalf("unexpected event: %+v", ev)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("expected session switch event")
 	}
 }

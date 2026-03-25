@@ -25,6 +25,8 @@ func TestMain(m *testing.M) {
 type blackboxFixture struct {
 	model          ui.Model
 	submissions    chan inputlifecycletype.InputSubmission
+	sessionNew     chan struct{}
+	sessionSwitch  chan string
 	execDirectChan chan string
 	shellRequested chan []string
 	cancelRequest  chan struct{}
@@ -58,6 +60,20 @@ func (s testActionSender) Send(a uivm.UIAction) bool {
 	case uivm.UIActionSubmission:
 		select {
 		case s.f.submissions <- a.Submission:
+			return true
+		default:
+			return false
+		}
+	case uivm.UIActionSessionNew:
+		select {
+		case s.f.sessionNew <- struct{}{}:
+			return true
+		default:
+			return false
+		}
+	case uivm.UIActionSessionSwitch:
+		select {
+		case s.f.sessionSwitch <- a.Text:
 			return true
 		default:
 			return false
@@ -120,6 +136,8 @@ func newBlackboxFixture(t *testing.T) blackboxFixture {
 	t.Helper()
 	f := blackboxFixture{
 		submissions:    make(chan inputlifecycletype.InputSubmission, 2),
+		sessionNew:     make(chan struct{}, 2),
+		sessionSwitch:  make(chan string, 2),
 		execDirectChan: make(chan string, 2),
 		shellRequested: make(chan []string, 2),
 		cancelRequest:  make(chan struct{}, 2),
@@ -357,12 +375,9 @@ func TestBlackboxSlashNewSubmitsCommand(t *testing.T) {
 	f := newBlackboxFixture(t)
 	got := enterText(f.model, "/new")
 	select {
-	case sub := <-f.submissions:
-		if sub.Kind != inputlifecycletype.SubmissionChat || sub.RawText != "/new" {
-			t.Fatalf("expected chat submission '/new', got %#v", sub)
-		}
+	case <-f.sessionNew:
 	default:
-		t.Fatalf("expected /new to submit command")
+		t.Fatalf("expected /new to emit session-new intent")
 	}
 	if got.Input.Value() != "" {
 		t.Fatalf("expected input to be cleared after /new, got %q", got.Input.Value())
@@ -373,12 +388,12 @@ func TestBlackboxSlashSessionsPrefixSubmitsCommand(t *testing.T) {
 	f := newBlackboxFixture(t)
 	got := enterText(f.model, "/sessions demo")
 	select {
-	case sub := <-f.submissions:
-		if sub.Kind != inputlifecycletype.SubmissionChat || sub.RawText != "/sessions demo" {
-			t.Fatalf("expected /sessions chat submission, got %#v", sub)
+	case sessionID := <-f.sessionSwitch:
+		if sessionID != "demo" {
+			t.Fatalf("expected session switch 'demo', got %q", sessionID)
 		}
 	default:
-		t.Fatalf("expected /sessions <id> to submit command")
+		t.Fatalf("expected /sessions <id> to emit session-switch intent")
 	}
 	if strings.TrimSpace(got.Input.Value()) != "" {
 		t.Fatalf("expected input cleared after prefix slash execution, got %q", got.Input.Value())
