@@ -174,6 +174,23 @@ func TestBlackboxSlashRunUsageFillsInput(t *testing.T) {
 	}
 }
 
+func TestBlackboxSlashRunDropdownUsesRemoteCachedSuggestionsWhenAvailable(t *testing.T) {
+	f := newBlackboxFixture(t)
+
+	// Simulate remote on and a cached /run suggestion list from host.
+	next, _ := f.model.Update(ui.RemoteStatusMsg{Active: true, Label: "r1"})
+	m1 := next.(ui.Model)
+	next2, _ := m1.Update(ui.RunCompletionCacheMsg{RemoteLabel: "r1", Commands: []string{"busybox", "bzip2"}})
+	m2 := next2.(ui.Model)
+
+	m2.Input.SetValue("/run b")
+	m2.Input.CursorEnd()
+	view := m2.View()
+	if !strings.Contains(view, "/run busybox") || !strings.Contains(view, "/run bzip2") {
+		t.Fatalf("expected remote cached /run suggestions in dropdown, got view:\n%s", view)
+	}
+}
+
 func TestBlackboxSlashConfigDelRemoteNoHostsShowsHint(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("DELVE_SHELL_ROOT", dir)

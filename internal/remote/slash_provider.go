@@ -10,8 +10,6 @@ import (
 func remoteSlashOptionsProvider(
 	inputVal string,
 	lang string,
-	_ []string,
-	_ bool,
 ) ([]ui.SlashOption, bool) {
 	normalized := strings.TrimPrefix(inputVal, "/")
 	normalized = strings.TrimSpace(normalized)
@@ -46,6 +44,34 @@ func remoteSlashOptionsProvider(
 			filter := strings.TrimSpace(strings.TrimPrefix(rest, "del-remote"))
 			return getRemoveRemoteSlashOptions(lang, filter), true
 		}
+	}
+
+	// Remote /run suggestions: when a cached list exists, prefer it over local PATH scanning.
+	if normalizedLower == "run" || strings.HasPrefix(normalizedLower, "run ") {
+		cands := getCachedRunSuggestions()
+		if len(cands) == 0 {
+			return nil, false
+		}
+		if normalizedLower == "run" {
+			return []ui.SlashOption{{Cmd: ui.SlashRunUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun)}}, true
+		}
+		rest := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "run"))
+		if strings.Contains(rest, " ") || strings.Contains(rest, "\t") {
+			return []ui.SlashOption{}, true
+		}
+		prefix := strings.ToLower(rest)
+		const maxRunCands = 50
+		opts := make([]ui.SlashOption, 0, 12)
+		for _, c := range cands {
+			if prefix != "" && !strings.HasPrefix(strings.ToLower(c), prefix) {
+				continue
+			}
+			opts = append(opts, ui.SlashOption{Cmd: "/run " + c, Desc: ""})
+			if len(opts) >= maxRunCands {
+				break
+			}
+		}
+		return opts, true
 	}
 
 	return nil, false

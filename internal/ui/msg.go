@@ -90,7 +90,7 @@ type AddSkillPathsLoadedMsg struct {
 	Paths []string
 }
 
-// RunCompletionCacheMsg provides a cached list of runnable command names for /run completion.
+// RunCompletionCacheMsg provides a cached list of candidate strings for /run completion.
 // RemoteLabel identifies which remote the list belongs to (empty for local).
 type RunCompletionCacheMsg struct {
 	RemoteLabel string

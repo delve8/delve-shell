@@ -22,8 +22,6 @@ type Model struct {
 	Viewport viewport.Model
 	Messages []string
 	Approval ApprovalState
-	// /run completion cache (best-effort).
-	RunCompletion RunCompletionState
 	Layout        LayoutState
 	Interaction   InteractionState
 
@@ -32,14 +30,6 @@ type Model struct {
 
 	// Host is the injectable host façade (bus send endpoints + UI mirrors). Non-nil after NewModel.
 	Host app.Host
-}
-
-// RunCompletionState holds best-effort `/run` completion data.
-// RemoteRunCommands is populated when remote execution is on (see RunCompletionCacheMsg);
-// Host.RemoteLabel identifies which remote the cache belongs to. Local /run completion does
-// not use this field—it scans PATH on demand inside the run slash options provider.
-type RunCompletionState struct {
-	RemoteRunCommands []string
 }
 
 // InteractionState stores transient keyboard/interaction state.

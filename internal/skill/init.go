@@ -84,8 +84,6 @@ func Register() {
 	ui.RegisterSlashOptionsProvider(func(
 		inputVal string,
 		lang string,
-		_ []string,
-		_ bool,
 	) ([]ui.SlashOption, bool) {
 		normalized := strings.TrimPrefix(inputVal, "/")
 		normalized = strings.TrimSpace(normalized)
