@@ -88,3 +88,12 @@ func trySendRemoteAuthResp(resp ui.RemoteAuthResponse) bool {
 		return false
 	}
 }
+
+// PublishRemoteOnTarget forwards a remote connect target to the host controller. Returns false if unwired or buffer full.
+func PublishRemoteOnTarget(target string) bool { return trySendRemoteOnTarget(target) }
+
+// PublishRemoteOff requests switching back to the local executor. Returns false if unwired or buffer full.
+func PublishRemoteOff() bool { return trySendRemoteOff() }
+
+// PublishRemoteAuthResponse forwards SSH auth answers to the host controller. Returns false if unwired or buffer full.
+func PublishRemoteAuthResponse(resp ui.RemoteAuthResponse) bool { return trySendRemoteAuthResp(resp) }

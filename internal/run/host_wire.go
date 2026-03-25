@@ -101,3 +101,12 @@ func sendExecDirect(cmd string) {
 	}
 	ch <- cmd
 }
+
+// PublishCancelRequest forwards /cancel to the host controller when wired. Returns false if unwired or buffer full.
+func PublishCancelRequest() bool { return trySendCancelRequest() }
+
+// PublishShellSnapshot sends transcript lines for /sh return restore. Returns false if unwired or buffer full.
+func PublishShellSnapshot(msgs []string) bool { return trySendShellSnapshot(msgs) }
+
+// PublishExecDirect sends a direct execution command to the host controller (blocking until the channel accepts).
+func PublishExecDirect(cmd string) { sendExecDirect(cmd) }
