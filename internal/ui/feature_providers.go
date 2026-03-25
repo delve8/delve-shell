@@ -3,6 +3,7 @@ package ui
 import (
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/slashreg"
 	"delve-shell/internal/uiregistry"
 )
@@ -150,4 +151,25 @@ func RegisterStartupOverlayProvider(p StartupOverlayProvider) {
 		return
 	}
 	startupOverlayProviderChain.Add(p, func(x StartupOverlayProvider) bool { return x == nil })
+}
+
+// SlashExecutionRequest is the normalized slash work item exposed to feature packages.
+type SlashExecutionRequest struct {
+	RawText       string
+	InputLine     string
+	SelectedIndex int
+	ActionSender  ActionSender
+}
+
+// SlashExecutionProvider handles slash execution outside the ui package.
+type SlashExecutionProvider func(req SlashExecutionRequest) (inputlifecycletype.ProcessResult, bool, error)
+
+var slashExecutionProviderChain = slashreg.NewProviderChain[SlashExecutionProvider]()
+
+// RegisterSlashExecutionProvider registers a slash execution provider.
+func RegisterSlashExecutionProvider(p SlashExecutionProvider) {
+	if p == nil {
+		return
+	}
+	slashExecutionProviderChain.Add(p, func(x SlashExecutionProvider) bool { return x == nil })
 }

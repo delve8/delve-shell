@@ -16,20 +16,20 @@ const (
 
 // Model is the Bubble Tea session and approval UI.
 type Model struct {
-	Input    textinput.Model
-	Viewport viewport.Model
-	messages []string
-	ChoiceCard ChoiceCardState
+	Input        textinput.Model
+	Viewport     viewport.Model
+	messages     []string
+	ChoiceCard   ChoiceCardState
 	ActionSender ActionSender
-	layout        LayoutState
-	Interaction   InteractionState
+	layout       LayoutState
+	Interaction  InteractionState
 
 	// Overlay state: when Overlay.Active is true, a modal is rendered on top of the main UI.
 	Overlay OverlayState
 
 	// ReadModel is the injected read-only state provider for UI decisions/render.
 	ReadModel ReadModel
-	Remote   RemoteState
+	Remote    RemoteState
 }
 
 // InteractionState stores transient keyboard/interaction state.
@@ -160,9 +160,9 @@ func NewModel(initialMessages []string, readModel ReadModel) Model {
 		copy(msgs, initialMessages)
 	}
 	return Model{
-		Input:    ti,
-		Viewport: vp,
-		messages: msgs,
+		Input:     ti,
+		Viewport:  vp,
+		messages:  msgs,
 		ReadModel: defaultReadModel(readModel),
 		layout: LayoutState{
 			Width:  defaultWidth,

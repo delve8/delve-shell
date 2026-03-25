@@ -17,19 +17,7 @@ import (
 
 // Register wires skill-related slash commands, overlays, and message providers into the UI. Call from [bootstrap.Install].
 func Register() {
-	ui.RegisterSlashExact("/config add-skill", ui.SlashExactDispatchEntry{
-		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
-			return openAddSkillOverlay(m, "", "", ""), nil
-		},
-		ClearInput: true,
-	})
-
-	ui.RegisterSlashPrefix("/skill ", ui.SlashPrefixDispatchEntry{
-		Prefix: "/skill ",
-		Handle: func(m ui.Model, rest string) (ui.Model, tea.Cmd, bool) {
-			return handleSlashSkillPrefix(m, rest), nil, true
-		},
-	})
+	registerSlashExecutionProvider()
 
 	ui.RegisterSlashSelectedProvider(func(m ui.Model, chosen string) (ui.Model, tea.Cmd, bool) {
 		if !strings.HasPrefix(chosen, "/skill ") {
@@ -39,46 +27,6 @@ func Register() {
 		m.Input.CursorEnd()
 		m = m.ResetSlashSuggestIndex()
 		return m, nil, true
-	})
-
-	ui.RegisterSlashPrefix("/config add-skill", ui.SlashPrefixDispatchEntry{
-		Prefix: "/config add-skill",
-		Handle: func(m ui.Model, rest string) (ui.Model, tea.Cmd, bool) {
-			rest = strings.TrimSpace(rest)
-			url, ref, path := "", "", ""
-			if rest != "" {
-				fields := strings.Fields(rest)
-				if len(fields) >= 1 {
-					url = fields[0]
-				}
-				if len(fields) >= 2 {
-					if strings.Contains(fields[1], "/") {
-						path = fields[1]
-					} else {
-						ref = fields[1]
-					}
-				}
-				if len(fields) >= 3 {
-					ref = fields[1]
-					path = fields[2]
-				}
-			}
-			return openAddSkillOverlay(m, url, ref, path), nil, true
-		},
-	})
-
-	ui.RegisterSlashPrefix("/config update-skill", ui.SlashPrefixDispatchEntry{
-		Prefix: "/config update-skill",
-		Handle: func(m ui.Model, rest string) (ui.Model, tea.Cmd, bool) {
-			return handleSlashConfigUpdateSkillPrefix(m, rest), nil, true
-		},
-	})
-
-	ui.RegisterSlashPrefix("/config del-skill ", ui.SlashPrefixDispatchEntry{
-		Prefix: "/config del-skill ",
-		Handle: func(m ui.Model, rest string) (ui.Model, tea.Cmd, bool) {
-			return handleSlashConfigDelSkillPrefix(m, rest), nil, true
-		},
 	})
 
 	ui.RegisterSlashOptionsProvider(func(
@@ -124,6 +72,12 @@ func Register() {
 	ui.RegisterMessageProvider(func(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		state := getSkillOverlayState()
 		switch t := msg.(type) {
+		case OpenAddSkillOverlayMsg:
+			return openAddSkillOverlay(m, t.URL, t.Ref, t.Path), nil, true
+		case OpenUpdateSkillOverlayMsg:
+			return openUpdateSkillOverlay(m, t.Name), nil, true
+		case ApplyDelSkillMsg:
+			return handleSlashConfigDelSkillPrefix(m, t.Name), nil, true
 		case AddRefsLoadedMsg:
 			if state.AddSkill.Active {
 				state.AddSkill.RefsFullList = t.Refs

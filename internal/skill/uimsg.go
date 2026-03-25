@@ -10,3 +10,19 @@ type AddPathsLoadedMsg struct {
 	Paths []string
 }
 
+// OpenAddSkillOverlayMsg opens the add-skill overlay.
+type OpenAddSkillOverlayMsg struct {
+	URL  string
+	Ref  string
+	Path string
+}
+
+// OpenUpdateSkillOverlayMsg opens the update-skill overlay.
+type OpenUpdateSkillOverlayMsg struct {
+	Name string
+}
+
+// ApplyDelSkillMsg applies `/config del-skill ...`.
+type ApplyDelSkillMsg struct {
+	Name string
+}

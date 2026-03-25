@@ -3,8 +3,8 @@ package ui
 import (
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/textwrap"
-	"delve-shell/internal/uiflow/choicecard"
 	"delve-shell/internal/ui/widget"
+	"delve-shell/internal/uiflow/choicecard"
 	"strings"
 )
 

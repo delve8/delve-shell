@@ -4,7 +4,6 @@ import (
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/service/configsvc"
@@ -46,16 +45,4 @@ func openOverlay(m ui.Model) ui.Model {
 	st.MaxCharsInput.Blur()
 	setOverlayState(st)
 	return m.OpenOverlay(i18n.T("en", i18n.KeyConfigLLMTitle), "")
-}
-
-func registerSlashExact() {
-	ui.RegisterSlashExact("/config llm", ui.SlashExactDispatchEntry{
-		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
-			return openOverlay(m), nil
-		},
-		ClearInput: true,
-	})
-	ui.RegisterStartupOverlayProvider(func(m ui.Model) (ui.Model, tea.Cmd, bool) {
-		return openOverlay(m), nil, true
-	})
 }

@@ -1,6 +1,10 @@
 package ui
 
-import "delve-shell/internal/uivm"
+import (
+	tea "github.com/charmbracelet/bubbletea"
+
+	"delve-shell/internal/uivm"
+)
 
 // ChoiceCardShowMsg asks the UI to show a pending choice card (approval or sensitive confirmation).
 // Exactly one of PendingApproval/PendingSensitive should be non-nil.
@@ -33,4 +37,11 @@ type LifecycleSlashExecuteMsg struct {
 	RawText       string
 	InputLine     string
 	SelectedIndex int
+}
+
+// Presenter message factories (used by uipresenter; keeps struct literals out of the host→TUI boundary).
+func NewOverlayCloseMsg() tea.Msg { return OverlayCloseMsg{} }
+
+func NewOverlayShowMsg(title, content string) tea.Msg {
+	return OverlayShowMsg{Title: title, Content: content}
 }

@@ -42,6 +42,16 @@ type localSlashExecutor struct {
 
 func (e localSlashExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inputlifecycletype.ProcessResult, error) {
 	trimmed := strings.TrimSpace(req.RawText)
+	for _, p := range slashExecutionProviderChain.List() {
+		if res, handled, err := p(SlashExecutionRequest{
+			RawText:       trimmed,
+			InputLine:     req.InputLine,
+			SelectedIndex: req.SelectedIndex,
+			ActionSender:  e.sender,
+		}); handled {
+			return res, err
+		}
+	}
 	switch {
 	case trimmed == "/help":
 		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
@@ -178,15 +188,22 @@ func (m Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (Model
 		if out.Kind != inputlifecycletype.OutputMessage || out.Message == nil {
 			continue
 		}
-		switch msg := out.Message.Value.(type) {
+		msg := out.Message.Value
+		switch typed := msg.(type) {
 		case LifecycleSlashExecuteMsg:
-			return m.handleLifecycleSlashExecuteMsg(msg)
+			return m.handleLifecycleSlashExecuteMsg(typed)
 		case OverlayShowMsg:
-			return m.handleOverlayShowMsg(msg)
+			return m.handleOverlayShowMsg(typed)
 		case OverlayCloseMsg:
 			return m.handleOverlayCloseMsg()
 		case TranscriptAppendMsg:
-			return m.handleTranscriptAppendMsg(msg)
+			return m.handleTranscriptAppendMsg(typed)
+		default:
+			for _, p := range messageProviderChain.List() {
+				if m2, cmd, handled := p(m, msg); handled {
+					return m2, cmd
+				}
+			}
 		}
 	}
 	patch, cmd := inputoutput.ApplyResult(res)

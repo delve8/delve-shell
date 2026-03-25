@@ -1,14 +1,10 @@
 package skill
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 
 	"delve-shell/internal/i18n"
-	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/service/skillsvc"
-	"delve-shell/internal/skills"
 	"delve-shell/internal/ui"
 )
 
@@ -27,58 +23,6 @@ func handleSlashConfigDelSkillPrefix(m ui.Model, rest string) ui.Model {
 	}
 	m = m.ClearSlashInput()
 	return m.RefreshViewport()
-}
-
-func handleSlashConfigUpdateSkillPrefix(m ui.Model, rest string) ui.Model {
-	lang := "en"
-	rest = strings.TrimSpace(rest)
-	fields := strings.Fields(rest)
-	if len(fields) == 0 {
-		m = m.AppendTranscriptLines(errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeyDescConfigUpdateSkill))))
-		return m.RefreshViewport()
-	}
-
-	skillName := fields[0]
-	m = openUpdateSkillOverlay(m, skillName)
-	m = m.ClearSlashInput()
-	return m.RefreshViewport()
-}
-
-func handleSlashSkillPrefix(m ui.Model, rest string) ui.Model {
-	lang := "en"
-	rest = strings.TrimSpace(rest)
-	fields := strings.Fields(rest)
-	if len(fields) < 1 {
-		m = m.AppendTranscriptLines(errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeyUsageSkill))))
-		return m
-	}
-
-	skillName := fields[0]
-	naturalLanguage := strings.TrimSpace(strings.TrimPrefix(rest, skillName))
-	if naturalLanguage == "" {
-		m = m.AppendTranscriptLines(errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeyUsageSkill))))
-		return m
-	}
-
-	skillDir := skills.SkillDir(skillName)
-	if _, err := os.Stat(filepath.Join(skillDir, "SKILL.md")); err != nil {
-		m = m.AppendTranscriptLines(errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeySkillNotFound))))
-		return m
-	}
-
-	skillContent, err := skills.ReadSKILLContent(skillDir)
-	if err != nil {
-		m = m.AppendTranscriptLines(errStyle.Render(delveMsg(lang, i18n.Tf(lang, i18n.KeySkillInstallFailed, err))))
-		return m
-	}
-
-	payload := skillInvocationPrompt(skillName, skillContent, naturalLanguage)
-	if m.EmitChatSubmitIntent(payload, inputlifecycletype.SourceProgrammatic) {
-		m.Interaction.WaitingForAI = true
-	}
-	m.Input.SetValue("")
-	m.Input.CursorEnd()
-	return m
 }
 
 func skillInvocationPrompt(skillName, skillContent, naturalLanguage string) string {
