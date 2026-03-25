@@ -59,8 +59,8 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 	if inSlash && (key == "up" || key == "down") {
 		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, hostnotify.RemoteActive())
 		vis := visibleSlashOptions(inputVal, opts)
-		if next, changed := slashview.NextSuggestIndex(m.Interaction.SlashSuggestIndex, len(vis), key); changed {
-			m.Interaction.SlashSuggestIndex = next
+		if next, changed := slashview.NextSuggestIndex(m.Interaction.slashSuggestIndex, len(vis), key); changed {
+			m.Interaction.slashSuggestIndex = next
 		}
 		return m, nil
 	}
@@ -81,18 +81,18 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 		}
 		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, hostnotify.RemoteActive())
 		vis := visibleSlashOptions(inputVal, opts)
-		selected, ok := slashview.SelectedByVisibleIndex(toSlashViewOptions(opts), vis, m.Interaction.SlashSuggestIndex)
+		selected, ok := slashview.SelectedByVisibleIndex(toSlashViewOptions(opts), vis, m.Interaction.slashSuggestIndex)
 		capture := maininput.CaptureSlashSelection(maininput.CaptureInput{
 			InputVal:     inputVal,
 			Text:         text,
-			SuggestIndex: m.Interaction.SlashSuggestIndex,
+			SuggestIndex: m.Interaction.slashSuggestIndex,
 			Selected:     selected,
 			HasSelected:  ok,
 		})
 		if capture.FillOnly {
 			m.Input.SetValue(capture.FillValue)
 			m.Input.CursorEnd()
-			m.Interaction.SlashSuggestIndex = 0
+			m.Interaction.slashSuggestIndex = 0
 			return m, nil
 		}
 		if maininput.IsNewSessionCommand(text) {
@@ -100,14 +100,14 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 			_ = hostnotify.Submit(text)
 			m.Input.SetValue("")
 			m.Input.CursorEnd()
-			m.Interaction.SlashSuggestIndex = 0
+			m.Interaction.slashSuggestIndex = 0
 			m = m.RefreshViewport()
 			return m, nil
 		}
 		m = m.appendUserSubmittedEcho(text)
 		m.Input.SetValue("")
 		m.Input.CursorEnd()
-		m.Interaction.SlashSuggestIndex = 0
+		m.Interaction.slashSuggestIndex = 0
 		return m.handleMainEnterCommand(text, capture.SelectedIndex)
 	}
 
@@ -116,9 +116,9 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 	inputVal = m.Input.Value()
 	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, hostnotify.RemoteActive())
 	vis := visibleSlashOptions(inputVal, opts)
-	m.Interaction.SlashSuggestIndex = maininput.SyncSlashSuggestIndex(maininput.SyncInput{
+	m.Interaction.slashSuggestIndex = maininput.SyncSlashSuggestIndex(maininput.SyncInput{
 		InputVal:            inputVal,
-		CurrentSuggestIndex: m.Interaction.SlashSuggestIndex,
+		CurrentSuggestIndex: m.Interaction.slashSuggestIndex,
 		VisibleCount:        len(vis),
 	})
 	return m, cmd

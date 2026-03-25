@@ -20,7 +20,7 @@ func (m Model) openHelpOverlay() Model {
 func (m Model) clearSlashInput() Model {
 	m.Input.SetValue("")
 	m.Input.CursorEnd()
-	m.Interaction.SlashSuggestIndex = 0
+	m.Interaction.slashSuggestIndex = 0
 	return m
 }
 
@@ -61,7 +61,7 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 	}
 	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, hostnotify.RemoteActive())
 	vis := visibleSlashOptions(inputVal, opts)
-	selected, ok := slashview.SelectedByVisibleIndex(toSlashViewOptions(opts), vis, m.Interaction.SlashSuggestIndex)
+	selected, ok := slashview.SelectedByVisibleIndex(toSlashViewOptions(opts), vis, m.Interaction.slashSuggestIndex)
 	result := slashflow.EvaluateSlashEnter(inputVal, trimmed, selected, ok)
 	switch result.Action {
 	case slashflow.EnterKeyDispatchExactChosen:
@@ -74,7 +74,7 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 	case slashflow.EnterKeyFillOnly:
 		m.Input.SetValue(result.Fill)
 		m.Input.CursorEnd()
-		m.Interaction.SlashSuggestIndex = 0
+		m.Interaction.slashSuggestIndex = 0
 		return m, nil, true
 	}
 	if _, regOK := slashExactDispatchRegistry.Get(trimmed); regOK {

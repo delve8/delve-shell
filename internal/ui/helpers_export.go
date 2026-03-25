@@ -9,6 +9,12 @@ func (m Model) ClearSlashInput() Model {
 	return m.clearSlashInput()
 }
 
+// ResetSlashSuggestIndex sets the slash dropdown highlight to the first visible option.
+func (m Model) ResetSlashSuggestIndex() Model {
+	m.Interaction.slashSuggestIndex = 0
+	return m
+}
+
 // RefreshViewport rebuilds the view content and scrolls to bottom.
 // This is used by exact slash handlers that need immediate UI feedback.
 func (m Model) RefreshViewport() Model {

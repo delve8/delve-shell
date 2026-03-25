@@ -38,7 +38,7 @@ type RunCompletionState struct {
 
 // InteractionState stores transient keyboard/interaction state.
 type InteractionState struct {
-	SlashSuggestIndex int  // 0..len(visible)-1 when input starts with /
+	slashSuggestIndex int  // 0..len(visible)-1 when input starts with /
 	ChoiceIndex       int  // 0-based selection when in Pending/PendingSensitive/PendingSuggested; Up/Down to move, Enter to confirm
 	WaitingForAI      bool // when true only blocks submitting new messages (Enter); /xxx slash commands always allowed
 }

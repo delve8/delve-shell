@@ -23,7 +23,7 @@ func (m Model) slashDropdownBelowInput(lang string) string {
 	var out strings.Builder
 	out.WriteString("\n")
 	const maxSlashVisible = 4
-	rows := slashview.BuildDropdownRows(toSlashViewOptions(opts), vis, m.Interaction.SlashSuggestIndex, m.Layout.Width, maxSlashVisible)
+	rows := slashview.BuildDropdownRows(toSlashViewOptions(opts), vis, m.Interaction.slashSuggestIndex, m.Layout.Width, maxSlashVisible)
 	for _, row := range rows {
 		if row.Highlight {
 			out.WriteString(suggestHi.Render("   "+row.Text) + "\n")
