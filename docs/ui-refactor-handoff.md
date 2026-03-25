@@ -157,6 +157,7 @@
 
 | 日期 | 说明 |
 |------|------|
+| 2026-03-25 | §10.8.2 第 5 轮：§10.8 主表阶段 3/5 范围收口文档、§9、与 §10.7 交叉引用 |
 | 2026-03-25 | §10.8.2 第 4 轮：`widget` 顶栏 `RenderTitleLine` |
 | 2026-03-25 | §10.8.2 第 3 轮：`widget` 审批卡 `RenderPendingApprovalLines` |
 | 2026-03-25 | §10.8.2 第 2 轮：`slashSuggestionContext` 统一 slash 候选列表构建 |
@@ -319,15 +320,15 @@
 
 ### 10.8 五阶段计划执行状态（2026-03-25）
 
-与「先 e2e 打底 → slash 上收 → 总线收口 → UI 控件化」对应的五轮中，本轮仓库内**已落地**与**仍待后续 PR**如下：
+与「先 e2e 打底 → slash 上收 → 总线收口 → UI 控件化」对应的五阶段中，**§10.8.2 第 5 轮**起阶段 3 与阶段 5 已在下表按**可交付范围**收口表述；不在该范围内的架构项见 **§10.7** 与 §10.8.2 文末「与『彻底』的边界」。
 
 | 阶段 | 目标 | 状态 |
 |------|------|------|
 | **1** | e2e 可验证、不因错误假设长时间无输出 | **已做**：`interactive` 补充 `_ "internal/run"`、`_ "internal/remote"`（与 `session` 并列），真实二进制具备 slash 注册；`cases` 期望与 `KeyConfigHint` 对齐；`ReadUntil`/`ReadUntilAny` 按墙钟截止收紧读片段时间并识别 `os.ErrDeadlineExceeded`；`internal/e2e/README.md` 写明 `-timeout` 与排障。 |
 | **2** | slash 与总线/中控衔接（试点） | **已做（观测路径）**：`KindSlashRequested`（handler 前）+ `KindSlashEntered`（成功后）；`SlashRequestChan` / `SlashTraceChan`；`Host.RequestSlashDispatch` / `TraceSlashEntered`；`hostcontroller` 占位 handler；语义标签与 `RedactedSummary` 已覆盖。解析与执行仍在 TUI/registry。 |
-| **3** | slash 主路径迁入 Controller | **部分做（§10.8.2 推进中）**：**主 Enter** 与 **slash 早路径**（`handleSlashEnterKey`）均已走 `TryRelaySlashSubmit` → 总线 → `SlashSubmitRelayMsg`（`InputLine` 区分）；**未做**：`SubmitChan` 合并、Controller 内 slash **业务**路由表（registry 仍在 TUI）。 |
+| **3** | slash 主路径迁入 Controller | **已做（范围：Enter 中继统一 + `SlashSubmitPayload` / `InputLine` 等结构化载荷；`TryRelaySlashSubmit` → `SlashSubmitRelayMsg`；`slashSuggestionContext` 共用）**。**不含**：`SubmitChan` 合并、Controller 内 slash **业务**路由表（registry 仍在 TUI）。余量与总线刻意未做项见 **§10.7**。 |
 | **4** | 审批/敏感/远程等待总线链审计 | **已做（第 1 轮 §10.8.1）**：`docs/host_bus_audit.md` 含路径表、`events`/`uiMsgs` 职责、主对话 / HIL / 远程序列及 §10.6 对照；细部若仍随实现演进可再补。 |
-| **5** | UI 控件化（dialog/dropdown） | **部分做**：`RenderCenteredModal`；`RenderLinesBelowInput`；`RenderPendingApprovalLines`；**§10.8.2 第 4 轮**：`RenderTitleLine`（`view_title.go`）。决策后追加行仍在 `update_approval.go`。远程连接结果/认证条未单独抽 widget。 |
+| **5** | UI 控件化（dialog/dropdown） | **已做（范围：`RenderCenteredModal`；`RenderLinesBelowInput`；§10.8.2 第 3～4 轮：`RenderPendingApprovalLines`、`RenderTitleLine`；样式由 `ui` 注入 `widget`）**。**未纳入范围**：`update_approval.go` 中决策后 `appendDecisionLines`；远程连接结果/认证条单独 widget 化。 |
 
 **回归命令**：`go test ./internal/e2e/... -timeout=60s -count=1`（勿依赖默认 10m 超时判断健康）。
 
@@ -353,7 +354,7 @@
 | **第 2 轮** | **3** | **已交付（2026-03-25）**：`slashSuggestionContext` / `slashSuggestionContextWithLang`（`slash_suggestion_context.go`）；`update_slash`、`update_main_enter_command`、`update_keymsg`、`view_slash_dropdown` 共用；文档与 ADR 指针更新。 | 行为等价；`go test ./...` 绿。 |
 | **第 3 轮** | **5** | **已交付（2026-03-25）**：`widget/approval_card.go`（`RenderPendingApprovalLines`、`PendingCardStyles`）；`view_approval_card` 传入 `ui` 包样式；`appendDecisionLines` 未动（含决策后 LineSuggest 分支逻辑）。 | `view_approval_card_test` + e2e 绿。 |
 | **第 4 轮** | **5** | **已交付（2026-03-25）**：`widget/title_bar.go`（`RenderTitleLine`、`TitleBarStatus`、`TitleLineStyles`）；`view_title` 注入 `ui` 包样式。刻意未抽：远程连接结果文案、认证 overlay 条（仍可按需后续一轮）。 | `view_title_test` + `widget` 单测 + e2e 绿。 |
-| **第 5 轮** | **3+5 文档收口** | **更新 §10.8 主表**：阶段 3 标为 **「已做（范围：Enter 中继统一 + 结构化载荷；不含 SubmitChan 合并、不含 Controller 内 registry）」**；阶段 5 标为 **「已做（范围：modal + 列表行 + 第 3～4 轮 widget）」**；§9 变更记录；刻意未做项指向 §10.7。 | 文档自洽；全量测试绿。 |
+| **第 5 轮** | **3+5 文档收口** | **已交付（2026-03-25）**：§10.8 主表阶段 3 / 5 按可交付范围重写；表前说明与 §10.7 / 「与彻底边界」交叉引用；§9 变更记录。 | 文档自洽；`go test ./...`（含 e2e）绿。 |
 
 **与「彻底」的边界**：若产品后续要求 **slash 仅经 `SubmitChan`** 或 **Controller 持有可插拔路由表**，在 §10.8.2 之外 **另开里程碑** 并评估对 HIL / feature 注册的影响。
 
