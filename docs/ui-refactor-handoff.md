@@ -154,6 +154,7 @@
 
 | 日期 | 说明 |
 |------|------|
+| 2026-03-25 | 交接文档 §10.7.1：`Model` 显式 `*Runtime` 与 Remote 总线合并命名的可选彻底层；§10.7 补充「已无 Install 全局」现状说明 |
 | 2026-03-25 | 交接文档 §10.7：总线目标 2 刻意未做项（Payload 分型、Kind 改名、Slash 上总线、默认观测、动态 handler）及后续演进建议 |
 | 2026-03-25 | 目标 2（总线语义可追踪）：`Kind.SemanticLabel` 与 §10.4 草稿对齐；`Event.RedactedSummary`；`hostbus.WithPublishHook`；`hostcontroller` 表驱动 `hostEventHandlers` + `Options.OnEventDispatch` |
 | 2026-03-25 | Host 主干切换：`internal/hostbus` + `internal/hostcontroller` 替代已删除的 `internal/cli/hostloop`；`internal/uipresenter` 作为 Host→Bubble Tea 消息的统一门面；`internal/run/host_wire.go` 替代 `hostloop_chans.go` |
@@ -300,6 +301,8 @@
 
 ### 10.7 总线语义化（目标 2）：刻意未做项与后续计划
 
+**现状（避免与旧方案混淆）**：`internal/hostapp` 已不再提供进程级 `Install` / 包级 `Submit` 等全局句柄；生产路径由 **`interactive.Run`** 构造 **`*hostapp.Runtime`**，经 **`hostwiring.BindSendPorts`** 接线后，以 **`hostapp.Host` 接口** 注入 **`ui.Model.Host`**。测试使用 **`hostapp.Nop()`** 或自建 `*Runtime`。若仍提「去掉全局」，所指应为下表 **§10.7.1** 中「比接口更进一步」的收口，而非尚未删除的 `Install`（已删除）。
+
 以下条目在目标 2 落地时有意识地**未实现**，与「语义可对表、脱敏摘要、观测钩子、中控 handler 表」正交；此处记录**原因**与**若要做时的推荐顺序**，供后续里程碑引用。
 
 | 项 | 未做原因 | 后续怎么做（建议） |
@@ -311,3 +314,14 @@
 | **运行时动态注册 controller handler（插件式）** | 当前 handler 均在 `hostcontroller` 包内，`hostEventHandlers` 静态表已满足可读性与单测；动态注册引入顺序、重复注册与测试隔离成本。 | 若出现「第三方扩展命令」或「测试注入 mock handler」等硬需求：再抽象 `RegisterKind(Kind, Handler)`（需 mutex + 启动期冻结或只读 map），并文档化优先级规则。 |
 
 **与 §10.5 的衔接**：§10.5 第 2～4 步（slash 路由上收、更多异步流程事件化、UI 控件化）推进时，应复查上表各行是否仍适用；尤其是 **SlashRequested** 与 **Payload 分型** 宜在「路由上收」决策确定后再动，避免两次大改。
+
+#### 10.7.1 更彻底一层（可选，未排期）
+
+与目标 1/2 已交付能力相比，下列工作属于**进一步收紧类型与领域边界**，非当前缺陷；仅当团队希望「类型上只认一种生产实现」或「总线命名与运维语义完全同源」时再立项。
+
+| 项 | 当前状态 | 未做或停留在此的原因 | 若以后要做（建议） |
+|----|----------|----------------------|-------------------|
+| **`ui.Model` 显式持有 `*hostapp.Runtime`（或等价具体句柄）** | `Model` 字段为 **`Host hostapp.Host`**；生产传入 `*Runtime`，测试传入 **`Nop()`**。调用链上已无「零参数取全局 Host」。 | 接口保留 **测试替身** 与 **将来第二实现** 的空间；把 Model 绑死到 `*Runtime` 会扩大 `ui` 对 `hostapp` 具体类型的耦合，且 `Nop` 路径需另设字段或可空指针。 | **方案 A**：维持接口，仅文档约定「生产必为 `*Runtime`」。**方案 B**：增加 `func (m Model) Runtime() *Runtime`（`Host` 类型断言，非 Runtime 返回 nil）供确需具体类型的调用方使用。**方案 C**：`NewModel` 重载为 `NewModelWithRuntime`，测试仍用 `NewModel(..., Nop())`；避免在 feature 包中扩散类型断言。 |
+| **总线 Remote：合并 on/off/auth 等为更贴近领域的 Kind 命名** | 仍为 **`KindRemoteOnRequested` / `KindRemoteOffRequested` / `KindRemoteAuthResponseSubmitted`** 三路；`BridgeInputs` 与 `InputPorts` 仍对应三条 channel。 | 属于 **产品语义与可观测粒度** 取舍：合并后 trace 更粗、单事件字段更胖；拆分则与现有 executor/overlay 交互阶段一一对应，改动成本相对低。 | 先固定 **领域状态机**（连接中 / 已连接 / 断开 / 等待认证）再命名事件；在 **Bridge** 层将多 channel 收敛为 **一种 `Kind` + 判别子段**（或 `RemotePhase`），`hostcontroller` 单 handler 内分支；**`SemanticLabel` / `RedactedSummary`** 同步扩展，避免日志语义倒退。 |
+
+**说明**：「单包集中」指 **`hostapp` 仍集中实现 Host 行为**，这是刻意边界，不等于进程级全局；若未来要拆包，需单独做依赖倒置（例如 `Host` 接口下移到更小模块），与上表两行独立。

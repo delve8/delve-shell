@@ -224,7 +224,7 @@ func (r *Runtime) PublishRemoteAuthResponse(resp remoteauth.Response) bool {
 	}
 }
 
-// Reset clears runtime state (for tests). Does not change Install target.
+// Reset clears runtime wiring and UI mirrors (for tests).
 func (r *Runtime) Reset() {
 	r.mu.Lock()
 	r.send = nil
