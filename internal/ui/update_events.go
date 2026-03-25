@@ -7,7 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/agent"
-	"delve-shell/internal/hostnotify"
+	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/textwrap"
 )
@@ -27,7 +27,7 @@ func (m Model) handleAgentReplyMsg(msg AgentReplyMsg) (Model, tea.Cmd) {
 		if errors.Is(msg.Err, context.Canceled) {
 			m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyCancelled))))
 		} else if errors.Is(msg.Err, agent.ErrLLMNotConfigured) {
-			m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyErrLLMNotConfigured, m.Context.ConfigPath))))
+			m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyErrLLMNotConfigured, config.ConfigPath()))))
 		} else {
 			m.Messages = append(m.Messages, errStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyErrorPrefix)+msg.Err.Error())))
 		}
@@ -73,28 +73,6 @@ func (m Model) handleCommandExecutedMsg(msg CommandExecutedMsg) (Model, tea.Cmd)
 	}
 	m.Messages = append(m.Messages, "") // blank line after command output
 	m = m.RefreshViewport()
-	return m, nil
-}
-
-func (m Model) handleConfigLLMCheckDoneMsg(msg ConfigLLMCheckDoneMsg) (Model, tea.Cmd) {
-	m.ConfigLLM.Checking = false
-	lang := m.getLang()
-	if msg.Err != nil {
-		m.ConfigLLM.Error = i18n.Tf(lang, i18n.KeyConfigLLMCheckFailed, msg.Err)
-		m.Viewport.SetContent(m.buildContent())
-		return m, nil
-	}
-	m.ConfigLLM.Error = ""
-	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyConfigSavedLLM))))
-	if msg.CorrectedBaseURL != "" {
-		m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.Tf(lang, i18n.KeyConfigLLMBaseURLAutoCorrected, msg.CorrectedBaseURL))))
-	}
-	m.Messages = append(m.Messages, suggestStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyConfigLLMCheckOK))))
-	m.Messages = append(m.Messages, "")
-	m = m.RefreshViewport()
-	m = m.CloseOverlayVisual()
-	m.ConfigLLM.Active = false
-	hostnotify.NotifyConfigUpdated()
 	return m, nil
 }
 

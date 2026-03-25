@@ -14,37 +14,38 @@ import (
 // openOverlay opens Config LLM dialog with current config values pre-filled.
 func openOverlay(m ui.Model) ui.Model {
 	cfg := configsvc.LoadOrDefault()
-	m = m.OpenOverlay(i18n.T("en", i18n.KeyConfigLLMTitle), "")
-	m.ConfigLLM.Active = true
-	m.ConfigLLM.Checking = false
-	m.ConfigLLM.Error = ""
-	m.ConfigLLM.FieldIndex = 0
-	m.ConfigLLM.BaseURLInput = textinput.New()
-	m.ConfigLLM.BaseURLInput.Placeholder = "https://api.openai.com/v1 (optional)"
-	m.ConfigLLM.BaseURLInput.SetValue(cfg.LLM.BaseURL)
-	m.ConfigLLM.BaseURLInput.Focus()
-	m.ConfigLLM.ApiKeyInput = textinput.New()
-	m.ConfigLLM.ApiKeyInput.Placeholder = "sk-... or $API_KEY"
-	m.ConfigLLM.ApiKeyInput.EchoMode = textinput.EchoPassword
-	m.ConfigLLM.ApiKeyInput.SetValue(cfg.LLM.APIKey)
-	m.ConfigLLM.ApiKeyInput.Blur()
-	m.ConfigLLM.ModelInput = textinput.New()
-	m.ConfigLLM.ModelInput.Placeholder = "gpt-4o-mini (optional)"
-	m.ConfigLLM.ModelInput.SetValue(cfg.LLM.Model)
-	m.ConfigLLM.ModelInput.Blur()
-	m.ConfigLLM.MaxMessagesInput = textinput.New()
-	m.ConfigLLM.MaxMessagesInput.Placeholder = ""
+	var st overlayState
+	st.Active = true
+	st.Checking = false
+	st.Error = ""
+	st.FieldIndex = 0
+	st.BaseURLInput = textinput.New()
+	st.BaseURLInput.Placeholder = "https://api.openai.com/v1 (optional)"
+	st.BaseURLInput.SetValue(cfg.LLM.BaseURL)
+	st.BaseURLInput.Focus()
+	st.ApiKeyInput = textinput.New()
+	st.ApiKeyInput.Placeholder = "sk-... or $API_KEY"
+	st.ApiKeyInput.EchoMode = textinput.EchoPassword
+	st.ApiKeyInput.SetValue(cfg.LLM.APIKey)
+	st.ApiKeyInput.Blur()
+	st.ModelInput = textinput.New()
+	st.ModelInput.Placeholder = "gpt-4o-mini (optional)"
+	st.ModelInput.SetValue(cfg.LLM.Model)
+	st.ModelInput.Blur()
+	st.MaxMessagesInput = textinput.New()
+	st.MaxMessagesInput.Placeholder = ""
 	if cfg.LLM.MaxContextMessages > 0 {
-		m.ConfigLLM.MaxMessagesInput.SetValue(strconv.Itoa(cfg.LLM.MaxContextMessages))
+		st.MaxMessagesInput.SetValue(strconv.Itoa(cfg.LLM.MaxContextMessages))
 	}
-	m.ConfigLLM.MaxMessagesInput.Blur()
-	m.ConfigLLM.MaxCharsInput = textinput.New()
-	m.ConfigLLM.MaxCharsInput.Placeholder = ""
+	st.MaxMessagesInput.Blur()
+	st.MaxCharsInput = textinput.New()
+	st.MaxCharsInput.Placeholder = ""
 	if cfg.LLM.MaxContextChars > 0 {
-		m.ConfigLLM.MaxCharsInput.SetValue(strconv.Itoa(cfg.LLM.MaxContextChars))
+		st.MaxCharsInput.SetValue(strconv.Itoa(cfg.LLM.MaxContextChars))
 	}
-	m.ConfigLLM.MaxCharsInput.Blur()
-	return m
+	st.MaxCharsInput.Blur()
+	setOverlayState(st)
+	return m.OpenOverlay(i18n.T("en", i18n.KeyConfigLLMTitle), "")
 }
 
 func registerSlashExact() {

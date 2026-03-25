@@ -31,28 +31,12 @@ type Model struct {
 
 	// Startup stores one-time startup toggles consumed in lifecycle handlers.
 	Startup StartupState
-	// Config LLM overlay state.
-	ConfigLLM ConfigLLMOverlayState
-}
-
-// ConfigLLMOverlayState stores overlay-only state for `/config llm`.
-type ConfigLLMOverlayState struct {
-	Active           bool
-	Checking         bool // true while async "hello" check is in progress after save
-	BaseURLInput     textinput.Model
-	ApiKeyInput      textinput.Model
-	ModelInput       textinput.Model
-	MaxMessagesInput textinput.Model
-	MaxCharsInput    textinput.Model
-	FieldIndex       int // 0=base_url, 1=api_key, 2=model, 3=max_messages, 4=max_chars
-	Error            string
 }
 
 // RuntimeContextState stores session and remote execution context reflected in UI.
 type RuntimeContextState struct {
 	RemoteActive bool   // whether commands run on a remote executor
 	RemoteLabel  string // label for remote in header, e.g. "dev (root@1.2.3.4)" or "user@host"
-	ConfigPath   string // config path for user-facing hints (injected by host)
 }
 
 // RunCompletionState stores local/remote completion caches for `/run`.
@@ -128,8 +112,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleBlurMsg()
 	case tea.FocusMsg:
 		return m.handleFocusMsg()
-	case ConfigLLMCheckDoneMsg:
-		return m.handleConfigLLMCheckDoneMsg(msg)
 	case OverlayShowMsg:
 		return m.handleOverlayShowMsg(msg)
 	case OverlayCloseMsg:

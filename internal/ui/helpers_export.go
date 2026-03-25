@@ -17,6 +17,12 @@ func (m Model) RefreshViewport() Model {
 	return m
 }
 
+// SetMainViewportContent rebuilds the main transcript viewport without changing scroll position.
+func (m Model) SetMainViewportContent() Model {
+	m.Viewport.SetContent(m.buildContent())
+	return m
+}
+
 // OpenOverlay opens a generic overlay and sets title/content.
 func (m Model) OpenOverlay(title, content string) Model {
 	m.Overlay.Active = true

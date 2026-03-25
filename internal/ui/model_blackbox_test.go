@@ -7,7 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/config"
-	_ "delve-shell/internal/configllm"
+	"delve-shell/internal/configllm"
 	"delve-shell/internal/hostnotify"
 	"delve-shell/internal/remote"
 	"delve-shell/internal/run"
@@ -296,7 +296,7 @@ func TestBlackboxStartupOverlayProviderOpensConfigLLM(t *testing.T) {
 	m := ui.NewModel(nil, true) // InitialShowConfigLLM
 	next, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	got := next.(ui.Model)
-	if !got.Overlay.Active || !got.ConfigLLM.Active {
+	if !got.Overlay.Active || !configllm.OverlayActive() {
 		t.Fatalf("expected startup overlay provider to open config llm overlay")
 	}
 }

@@ -12,7 +12,8 @@ import (
 const configLLMFieldCount = 5
 
 func handleOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
-	if !m.ConfigLLM.Active {
+	st := getOverlayState()
+	if !st.Active {
 		return m, nil, false
 	}
 
@@ -22,57 +23,61 @@ func handleOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd
 		if key == "up" {
 			dir = -1
 		}
-		m.ConfigLLM.FieldIndex = (m.ConfigLLM.FieldIndex + dir + configLLMFieldCount) % configLLMFieldCount
-		m.ConfigLLM.BaseURLInput.Blur()
-		m.ConfigLLM.ApiKeyInput.Blur()
-		m.ConfigLLM.ModelInput.Blur()
-		m.ConfigLLM.MaxMessagesInput.Blur()
-		m.ConfigLLM.MaxCharsInput.Blur()
-		switch m.ConfigLLM.FieldIndex {
+		st.FieldIndex = (st.FieldIndex + dir + configLLMFieldCount) % configLLMFieldCount
+		st.BaseURLInput.Blur()
+		st.ApiKeyInput.Blur()
+		st.ModelInput.Blur()
+		st.MaxMessagesInput.Blur()
+		st.MaxCharsInput.Blur()
+		switch st.FieldIndex {
 		case 0:
-			m.ConfigLLM.BaseURLInput.Focus()
+			st.BaseURLInput.Focus()
 		case 1:
-			m.ConfigLLM.ApiKeyInput.Focus()
+			st.ApiKeyInput.Focus()
 		case 2:
-			m.ConfigLLM.ModelInput.Focus()
+			st.ModelInput.Focus()
 		case 3:
-			m.ConfigLLM.MaxMessagesInput.Focus()
+			st.MaxMessagesInput.Focus()
 		case 4:
-			m.ConfigLLM.MaxCharsInput.Focus()
+			st.MaxCharsInput.Focus()
 		}
+		setOverlayState(st)
 		return m, nil, true
 	case "enter":
-		if m.ConfigLLM.Checking {
+		if st.Checking {
 			return m, nil, true
 		}
-		baseURL := strings.TrimSpace(m.ConfigLLM.BaseURLInput.Value())
-		apiKey := strings.TrimSpace(m.ConfigLLM.ApiKeyInput.Value())
-		model := strings.TrimSpace(m.ConfigLLM.ModelInput.Value())
-		maxMessagesStr := strings.TrimSpace(m.ConfigLLM.MaxMessagesInput.Value())
-		maxCharsStr := strings.TrimSpace(m.ConfigLLM.MaxCharsInput.Value())
+		baseURL := strings.TrimSpace(st.BaseURLInput.Value())
+		apiKey := strings.TrimSpace(st.ApiKeyInput.Value())
+		model := strings.TrimSpace(st.ModelInput.Value())
+		maxMessagesStr := strings.TrimSpace(st.MaxMessagesInput.Value())
+		maxCharsStr := strings.TrimSpace(st.MaxCharsInput.Value())
 		if model == "" {
-			m.ConfigLLM.Error = i18n.T("en", i18n.KeyConfigLLMModelRequired)
+			st.Error = i18n.T("en", i18n.KeyConfigLLMModelRequired)
+			setOverlayState(st)
 			return m, nil, true
 		}
 		m = applyConfigLLMFromOverlayStart(m, baseURL, apiKey, model, maxMessagesStr, maxCharsStr)
-		if !m.ConfigLLM.Checking {
+		st = getOverlayState()
+		if !st.Checking {
 			return m, nil, true
 		}
 		return m, runConfigLLMCheckCmd(), true
 	}
 
 	var cmd tea.Cmd
-	switch m.ConfigLLM.FieldIndex {
+	switch st.FieldIndex {
 	case 0:
-		m.ConfigLLM.BaseURLInput, cmd = m.ConfigLLM.BaseURLInput.Update(msg)
+		st.BaseURLInput, cmd = st.BaseURLInput.Update(msg)
 	case 1:
-		m.ConfigLLM.ApiKeyInput, cmd = m.ConfigLLM.ApiKeyInput.Update(msg)
+		st.ApiKeyInput, cmd = st.ApiKeyInput.Update(msg)
 	case 2:
-		m.ConfigLLM.ModelInput, cmd = m.ConfigLLM.ModelInput.Update(msg)
+		st.ModelInput, cmd = st.ModelInput.Update(msg)
 	case 3:
-		m.ConfigLLM.MaxMessagesInput, cmd = m.ConfigLLM.MaxMessagesInput.Update(msg)
+		st.MaxMessagesInput, cmd = st.MaxMessagesInput.Update(msg)
 	case 4:
-		m.ConfigLLM.MaxCharsInput, cmd = m.ConfigLLM.MaxCharsInput.Update(msg)
+		st.MaxCharsInput, cmd = st.MaxCharsInput.Update(msg)
 	}
+	setOverlayState(st)
 	return m, cmd, true
 }

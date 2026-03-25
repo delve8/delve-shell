@@ -29,8 +29,10 @@ func applyConfigLLMFromOverlayStart(m ui.Model, baseURL, apiKey, model, maxMessa
 		m = m.RefreshViewport()
 		return m
 	}
-	m.ConfigLLM.Error = ""
-	m.ConfigLLM.Checking = true
+	st := getOverlayState()
+	st.Error = ""
+	st.Checking = true
+	setOverlayState(st)
 	return m
 }
 

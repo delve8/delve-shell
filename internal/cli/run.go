@@ -150,7 +150,6 @@ func Run(cmd *cobra.Command, args []string) error {
 			syncSessionPath(s.Path())
 		}
 		model := ui.NewModel(savedMessages, initialShowConfigLLM)
-		model.Context.ConfigPath = config.ConfigPath()
 		initialShowConfigLLM = false
 		p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithReportFocus())
 		currentP.Store(p)
