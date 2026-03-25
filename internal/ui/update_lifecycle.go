@@ -17,7 +17,7 @@ func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 		m.Viewport.Height = vh
 	}
 	m = m.RefreshViewport()
-	if m.takeOpenConfigLLMOnFirstLayoutEffect() {
+	if m.Host != nil && m.Host.TakeOpenConfigLLMOnFirstLayout() {
 		for _, p := range startupOverlayProviderChain.List() {
 			if m2, cmd, handled := p(m); handled {
 				return m2, cmd

@@ -16,6 +16,7 @@ import (
 	"delve-shell/internal/runtime/runnermgr"
 	"delve-shell/internal/runtime/sessionmgr"
 	"delve-shell/internal/uipresenter"
+	"delve-shell/internal/uivm"
 )
 
 type Options struct {
@@ -24,6 +25,7 @@ type Options struct {
 	Bus      *bus.Bus
 	Inputs   bus.InputPorts
 	CurrentP *atomic.Pointer[tea.Program]
+	UIActions <-chan uivm.UIAction
 
 	Sessions *sessionmgr.Manager
 	Runners  *runnermgr.Manager
@@ -49,6 +51,7 @@ type Controller struct {
 	ui *uipresenter.Presenter
 
 	currentP *atomic.Pointer[tea.Program]
+	uiActions <-chan uivm.UIAction
 
 	sessions *sessionmgr.Manager
 	runners  *runnermgr.Manager
@@ -76,6 +79,7 @@ func New(opts Options) *Controller {
 		ui:  uipresenter.New(uipresenter.BusSender{Bus: opts.Bus}),
 
 		currentP: opts.CurrentP,
+		uiActions: opts.UIActions,
 
 		sessions: opts.Sessions,
 		runners:  opts.Runners,
@@ -109,6 +113,8 @@ func (c *Controller) run() {
 			return
 		case e := <-c.bus.Events():
 			c.handleEvent(e)
+		case action := <-c.uiActions:
+			c.handleUIAction(action)
 		}
 	}
 }

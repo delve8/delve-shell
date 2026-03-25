@@ -31,12 +31,12 @@ func (m Model) dispatchSlashExact(cmd string) (Model, tea.Cmd, bool) {
 	if !ok {
 		return m, nil, false
 	}
-	m.requestSlashDispatchEffect(cmd)
+	m.requestSlashDispatchAction(cmd)
 	m, outCmd := entry.Handle(m)
 	if entry.ClearInput {
 		m = m.clearSlashInput()
 	}
-	m.traceSlashEnteredEffect(cmd)
+	m.traceSlashEnteredAction(cmd)
 	return m, outCmd, true
 }
 
@@ -46,11 +46,11 @@ func (m Model) dispatchSlashPrefix(text string) (Model, tea.Cmd, bool) {
 	for _, e := range slashPrefixDispatchRegistry.Entries() {
 		if strings.HasPrefix(text, e.Prefix) {
 			rest := strings.TrimPrefix(text, e.Prefix)
-			m.requestSlashDispatchEffect(text)
+			m.requestSlashDispatchAction(text)
 			m2, outCmd, handled := e.Handle(m, rest)
 			if handled {
 				m2 = m2.clearSlashInput()
-				m2.traceSlashEnteredEffect(text)
+				m2.traceSlashEnteredAction(text)
 			}
 			return m2, outCmd, handled
 		}
@@ -66,7 +66,7 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 	if strings.TrimSpace(inputVal) == "" {
 		return m, nil, false
 	}
-	if enterflow.TryRelaySlashInputLine(strings.TrimSpace(inputVal), inputVal, m.Interaction.slashSuggestIndex, m.relaySlashSubmitEffect) {
+	if enterflow.TryRelaySlashInputLine(strings.TrimSpace(inputVal), inputVal, m.Interaction.slashSuggestIndex, m.relaySlashSubmitAction) {
 		return m, nil, true
 	}
 	return m.execSlashEnterKeyLocal(inputVal)
@@ -107,10 +107,10 @@ func (m Model) execSlashEnterKeyLocal(inputVal string) (Model, tea.Cmd, bool) {
 // handleSlashSelectedFallback handles suggestion-selected slash commands
 // that are intentionally not routed through exact/prefix dispatcher.
 func (m Model) handleSlashSelectedFallback(chosen string) (Model, tea.Cmd, bool) {
-	m.requestSlashDispatchEffect(chosen)
+	m.requestSlashDispatchAction(chosen)
 	for _, p := range slashSelectedProviderChain.List() {
 		if m2, cmd, handled := p(m, chosen); handled {
-			m2.traceSlashEnteredEffect(chosen)
+			m2.traceSlashEnteredAction(chosen)
 			return m2, cmd, true
 		}
 	}

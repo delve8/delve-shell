@@ -10,6 +10,7 @@ import (
 	"delve-shell/internal/host/app"
 	"delve-shell/internal/host/controller"
 	"delve-shell/internal/ui"
+	"delve-shell/internal/uivm"
 )
 
 // defaultTUIProgramOptions are passed to every tea.NewProgram for the main interactive session.
@@ -28,6 +29,7 @@ type tuiRestartLoop struct {
 	programPtr *atomic.Pointer[tea.Program]
 	// shellAfterExit receives at most one buffered snapshot per TUI exit when subshell was requested.
 	shellAfterExit <-chan []string
+	uiActions      chan<- uivm.UIAction
 	// openConfigLLMOnFirstLayout is applied only for the first TUI session in this process (startup overlay).
 	openConfigLLMOnFirstLayout bool
 }
@@ -36,6 +38,7 @@ func newTuiRestartLoop(
 	controller *controller.Controller,
 	programPtr *atomic.Pointer[tea.Program],
 	shellAfterExit <-chan []string,
+	uiActions chan<- uivm.UIAction,
 	openConfigLLMOnFirstLayout bool,
 	host app.Host,
 ) *tuiRestartLoop {
@@ -47,6 +50,7 @@ func newTuiRestartLoop(
 		host:                       host,
 		programPtr:                 programPtr,
 		shellAfterExit:             shellAfterExit,
+		uiActions:                  uiActions,
 		openConfigLLMOnFirstLayout: openConfigLLMOnFirstLayout,
 	}
 }
@@ -74,6 +78,7 @@ func (l *tuiRestartLoop) runOneSession(saved *[]string, openConfigLLM bool) erro
 	l.controller.SyncCurrentSessionPath()
 	l.host.SetOpenConfigLLMOnFirstLayout(openConfigLLM)
 	model := ui.NewModel(*saved, l.host)
+	model.ActionSender = ui.NewActionChannelSender(l.uiActions)
 	p := tea.NewProgram(model, defaultTUIProgramOptions...)
 	l.programPtr.Store(p)
 	_, err := p.Run()

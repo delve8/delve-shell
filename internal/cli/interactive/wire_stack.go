@@ -15,6 +15,7 @@ import (
 	"delve-shell/internal/runtime/executormgr"
 	"delve-shell/internal/runtime/runnermgr"
 	"delve-shell/internal/runtime/sessionmgr"
+	"delve-shell/internal/uivm"
 )
 
 // hostStack wires bus, controller, runner, executor, and app.Runtime for one interactive session.
@@ -23,6 +24,7 @@ type hostStack struct {
 	rt         *app.Runtime
 	currentP   *atomic.Pointer[tea.Program]
 	shellSnap  <-chan []string
+	uiActions  chan uivm.UIAction
 }
 
 // wireHostStack builds runners, host bus ports, controller, and *app.Runtime. Caller must Start() the controller.
@@ -66,11 +68,13 @@ func wireHostStack(
 	wiring.BindSendPorts(rt, ports, shellRequestedChan)
 
 	var currentP atomic.Pointer[tea.Program]
+	uiActions := make(chan uivm.UIAction, 128)
 	controller := controller.New(controller.Options{
 		Stop:                    stop,
 		Bus:                     hostBus,
 		Inputs:                  ports,
 		CurrentP:                &currentP,
+		UIActions:               uiActions,
 		Sessions:                sessions,
 		Runners:                 runners,
 		Executors:               executors,
@@ -91,5 +95,6 @@ func wireHostStack(
 		rt:         rt,
 		currentP:   &currentP,
 		shellSnap:  shellRequestedChan,
+		uiActions:  uiActions,
 	}
 }

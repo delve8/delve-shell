@@ -11,7 +11,7 @@ import (
 )
 
 func (m Model) handleMainEnterCommand(text string, slashSelectedIndex int) (Model, tea.Cmd) {
-	if enterflow.TryRelayMainEnter(text, slashSelectedIndex, m.relaySlashSubmitEffect) {
+	if enterflow.TryRelayMainEnter(text, slashSelectedIndex, m.relaySlashSubmitAction) {
 		return m, nil
 	}
 	return m.executeMainEnterCommandNoRelay(text, slashSelectedIndex)
@@ -61,7 +61,7 @@ func (m Model) executeMainEnterCommandNoRelay(text string, slashSelectedIndex in
 		}
 	}
 
-	if m.submitEffect(text) {
+	if m.submitAction(text) {
 		m.Interaction.WaitingForAI = true
 	}
 	return m, nil
