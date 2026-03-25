@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/hostnotify"
 	"delve-shell/internal/pathcomplete"
 	"delve-shell/internal/ui"
 )
@@ -14,15 +15,12 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 	state := getRemoteOverlayState()
 	switch t := msg.(type) {
 	case ui.RemoteStatusMsg:
-		m.Context.RemoteActive = t.Active
-		m.Context.RemoteLabel = t.Label
+		hostnotify.SetRemoteExecution(t.Active, t.Label)
 		if t.Active {
 			// New remote active: clear any previous remote /run completion cache.
-			m.RunCompletion.RemoteLabel = t.Label
 			m.RunCompletion.RemoteCommands = nil
 		} else {
 			// Switching back to local: drop any remote /run completion cache.
-			m.RunCompletion.RemoteLabel = ""
 			m.RunCompletion.RemoteCommands = nil
 		}
 		m = m.RefreshViewport()
@@ -30,10 +28,9 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 	case ui.RunCompletionCacheMsg:
 		// Remote cache update (sent by CLI on successful /remote on).
 		// Ignore stale results from previous remotes.
-		if t.RemoteLabel == "" || t.RemoteLabel != m.Context.RemoteLabel {
+		if t.RemoteLabel == "" || t.RemoteLabel != hostnotify.RemoteLabel() {
 			return m, nil, true
 		}
-		m.RunCompletion.RemoteLabel = t.RemoteLabel
 		m.RunCompletion.RemoteCommands = t.Commands
 		return m, nil, true
 	case ui.RemoteConnectDoneMsg:

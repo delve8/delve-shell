@@ -5,6 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/hostnotify"
 	"delve-shell/internal/pathcomplete"
 	"delve-shell/internal/ui"
 )
@@ -68,12 +69,12 @@ func registerSlashPrefixHandlers() {
 func registerProviders() {
 	ui.RegisterSlashOptionsProvider(remoteSlashOptionsProvider)
 
-	ui.RegisterTitleBarFragmentProvider(func(m ui.Model) (string, bool) {
-		if !m.Context.RemoteActive {
+	ui.RegisterTitleBarFragmentProvider(func(_ ui.Model) (string, bool) {
+		if !hostnotify.RemoteActive() {
 			return "", false
 		}
-		if m.Context.RemoteLabel != "" {
-			return "Remote " + m.Context.RemoteLabel, true
+		if lbl := hostnotify.RemoteLabel(); lbl != "" {
+			return "Remote " + lbl, true
 		}
 		return "Remote", true
 	})

@@ -57,7 +57,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 	inputVal = m.Input.Value()
 	inSlash = strings.HasPrefix(inputVal, "/")
 	if inSlash && (key == "up" || key == "down") {
-		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
+		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, hostnotify.RemoteActive())
 		vis := visibleSlashOptions(inputVal, opts)
 		if next, changed := slashview.NextSuggestIndex(m.Interaction.SlashSuggestIndex, len(vis), key); changed {
 			m.Interaction.SlashSuggestIndex = next
@@ -79,7 +79,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 		if m.Interaction.WaitingForAI && !strings.HasPrefix(text, "/") {
 			return m, nil
 		}
-		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
+		opts := getSlashOptionsForInput(inputVal, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, hostnotify.RemoteActive())
 		vis := visibleSlashOptions(inputVal, opts)
 		selected, ok := slashview.SelectedByVisibleIndex(toSlashViewOptions(opts), vis, m.Interaction.SlashSuggestIndex)
 		capture := maininput.CaptureSlashSelection(maininput.CaptureInput{
@@ -114,7 +114,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.Input, cmd = m.Input.Update(msg)
 	inputVal = m.Input.Value()
-	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
+	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, hostnotify.RemoteActive())
 	vis := visibleSlashOptions(inputVal, opts)
 	m.Interaction.SlashSuggestIndex = maininput.SyncSlashSuggestIndex(maininput.SyncInput{
 		InputVal:            inputVal,

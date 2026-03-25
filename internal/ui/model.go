@@ -20,7 +20,6 @@ type Model struct {
 	Viewport viewport.Model
 	Messages []string
 	Approval ApprovalState
-	Context  RuntimeContextState
 	// /run completion cache (best-effort).
 	RunCompletion RunCompletionState
 	Layout        LayoutState
@@ -33,17 +32,11 @@ type Model struct {
 	Startup StartupState
 }
 
-// RuntimeContextState stores session and remote execution context reflected in UI.
-type RuntimeContextState struct {
-	RemoteActive bool   // whether commands run on a remote executor
-	RemoteLabel  string // label for remote in header, e.g. "dev (root@1.2.3.4)" or "user@host"
-}
-
 // RunCompletionState stores local/remote completion caches for `/run`.
+// When remote is active, hostnotify.RemoteLabel identifies which remote RemoteCommands belong to.
 type RunCompletionState struct {
 	LocalCommands  []string
 	RemoteCommands []string
-	RemoteLabel    string // which remote the RemoteCommands came from
 }
 
 // InteractionState stores transient keyboard/interaction state.
@@ -169,7 +162,6 @@ func NewModel(
 		Input:    ti,
 		Viewport: vp,
 		Messages: msgs,
-		Context:  RuntimeContextState{},
 		Startup: StartupState{
 			InitialShowConfigLLM: initialShowConfigLLM,
 		},

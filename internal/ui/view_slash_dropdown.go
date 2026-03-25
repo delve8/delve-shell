@@ -3,6 +3,7 @@ package ui
 import (
 	"strings"
 
+	"delve-shell/internal/hostnotify"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/maininput"
 	"delve-shell/internal/slashview"
@@ -14,7 +15,7 @@ func (m Model) slashDropdownBelowInput(lang string) string {
 	if !strings.HasPrefix(inputVal, "/") {
 		return ""
 	}
-	opts := getSlashOptionsForInput(inputVal, lang, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
+	opts := getSlashOptionsForInput(inputVal, lang, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, hostnotify.RemoteActive())
 	vis := visibleSlashOptions(inputVal, opts)
 	if len(vis) == 0 {
 		return ""

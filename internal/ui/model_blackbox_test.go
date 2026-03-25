@@ -48,6 +48,7 @@ func newBlackboxFixture() blackboxFixture {
 	hostnotify.SetConfigUpdatedChan(f.configUpdated)
 	hostnotify.SetSubmitChan(f.submitChan)
 	hostnotify.SetAllowlistAutoRunGetter(func() bool { return true })
+	hostnotify.SetRemoteExecution(false, "")
 	f.model = ui.NewModel(nil, false)
 	return f
 }

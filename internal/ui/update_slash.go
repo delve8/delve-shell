@@ -3,6 +3,7 @@ package ui
 import (
 	"strings"
 
+	"delve-shell/internal/hostnotify"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/slashflow"
 	"delve-shell/internal/slashview"
@@ -58,7 +59,7 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 	if trimmed == "" {
 		return m, nil, false
 	}
-	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
+	opts := getSlashOptionsForInput(inputVal, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, hostnotify.RemoteActive())
 	vis := visibleSlashOptions(inputVal, opts)
 	selected, ok := slashview.SelectedByVisibleIndex(toSlashViewOptions(opts), vis, m.Interaction.SlashSuggestIndex)
 	result := slashflow.EvaluateSlashEnter(inputVal, trimmed, selected, ok)

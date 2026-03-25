@@ -21,7 +21,7 @@ func (m Model) handleMainEnterCommand(text string, slashSelectedIndex int) (Mode
 	}
 
 	if strings.HasPrefix(text, "/") {
-		opts := getSlashOptionsForInput(text, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Context.RemoteActive)
+		opts := getSlashOptionsForInput(text, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, hostnotify.RemoteActive())
 		vis := visibleSlashOptions(text, opts)
 		sessionNoneMsg := i18n.T(m.getLang(), i18n.KeySessionNone)
 		delRemoteNoneMsg := i18n.T(m.getLang(), i18n.KeyDelRemoteNoHosts)
