@@ -31,7 +31,7 @@ func Register() {
 			if id == "" {
 				return m, nil, true
 			}
-			m.EmitSubmitIntentNonBlocking("/sessions " + id)
+			m.EmitSubmitIntent("/sessions " + id)
 			return m.RefreshViewport(), nil, true
 		},
 	})

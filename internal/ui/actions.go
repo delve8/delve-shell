@@ -74,10 +74,6 @@ func (m Model) EmitSubmitIntent(text string) bool {
 	return m.submitAction(text)
 }
 
-func (m Model) EmitSubmitIntentNonBlocking(text string) bool {
-	return m.submitAction(text)
-}
-
 func (m Model) EmitConfigUpdatedIntent() {
 	if m.ActionSender == nil {
 		return
