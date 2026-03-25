@@ -406,6 +406,15 @@ func TestHandleEvent_UnknownKindNoOp(t *testing.T) {
 	}
 }
 
+func TestHandleEvent_SlashEnteredNoOp(t *testing.T) {
+	s := &recordSender{}
+	c := newTestControllerWithPresenter(s)
+	c.handleEvent(hostbus.Event{Kind: hostbus.KindSlashEntered, UserText: "/help"})
+	if len(s.msgs) != 0 {
+		t.Fatalf("slash entered is observability-only, got %d msgs", len(s.msgs))
+	}
+}
+
 func TestHandleEvent_OnEventDispatchCalled(t *testing.T) {
 	s := &recordSender{}
 	c := newTestControllerWithPresenter(s)

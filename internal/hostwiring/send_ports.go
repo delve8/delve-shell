@@ -15,6 +15,7 @@ func BindSendPorts(r *hostapp.Runtime, ports hostbus.InputPorts, shellSnapshot c
 		RemoteOn:       ports.RemoteOnChan,
 		RemoteOff:      ports.RemoteOffChan,
 		RemoteAuthResp: ports.RemoteAuthRespChan,
+		SlashTrace:     ports.SlashTraceChan,
 		ShellSnapshot:  shellSnapshot,
 	})
 }

@@ -22,6 +22,8 @@ type Host interface {
 	RemoteLabel() string
 	SetOpenConfigLLMOnFirstLayout(v bool)
 	TakeOpenConfigLLMOnFirstLayout() bool
+	// TraceSlashEntered records a successfully dispatched slash line on the host bus (non-blocking; drops if full).
+	TraceSlashEntered(line string)
 }
 
 // nopHost is a safe no-op Host for tests and idle processes.
@@ -44,6 +46,7 @@ func (nopHost) RemoteActive() bool                              { return false }
 func (nopHost) RemoteLabel() string { return "" }
 func (nopHost) SetOpenConfigLLMOnFirstLayout(bool)              {}
 func (nopHost) TakeOpenConfigLLMOnFirstLayout() bool            { return false }
+func (nopHost) TraceSlashEntered(string)                        {}
 
 var (
 	nopSingleton Host = nopHost{}

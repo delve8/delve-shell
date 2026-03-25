@@ -224,6 +224,21 @@ func (r *Runtime) PublishRemoteAuthResponse(resp remoteauth.Response) bool {
 	}
 }
 
+// TraceSlashEntered records a dispatched slash line on the bus (drops if unwired or buffer full).
+func (r *Runtime) TraceSlashEntered(line string) {
+	if line == "" {
+		return
+	}
+	s := r.currentSend()
+	if s == nil || s.SlashTrace == nil {
+		return
+	}
+	select {
+	case s.SlashTrace <- line:
+	default:
+	}
+}
+
 // Reset clears runtime wiring and UI mirrors (for tests).
 func (r *Runtime) Reset() {
 	r.mu.Lock()

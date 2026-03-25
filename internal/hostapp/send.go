@@ -11,5 +11,7 @@ type Send struct {
 	RemoteOn       chan<- string
 	RemoteOff      chan<- struct{}
 	RemoteAuthResp chan<- remoteauth.Response
-	ShellSnapshot  chan<- []string
+	// SlashTrace receives slash lines after TUI dispatch (observability / future routing).
+	SlashTrace    chan<- string
+	ShellSnapshot chan<- []string
 }

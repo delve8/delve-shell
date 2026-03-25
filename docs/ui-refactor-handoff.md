@@ -154,6 +154,7 @@
 
 | 日期 | 说明 |
 |------|------|
+| 2026-03-25 | §10.8：阶段 2/4/5 部分落地（`KindSlashEntered`、`docs/host_bus_audit.md`、`ui/widget` overlay）；阶段 3（slash 主路径上收）仍待后续 |
 | 2026-03-25 | §10.8：五阶段计划中阶段 1 落地与 2–5 待做表；e2e 修复 + `wireHostStack` 抽取 |
 | 2026-03-25 | 交接文档 §10.7.1：`Model` 显式 `*Runtime` 与 Remote 总线合并命名的可选彻底层；§10.7 补充「已无 Install 全局」现状说明 |
 | 2026-03-25 | 交接文档 §10.7：总线目标 2 刻意未做项（Payload 分型、Kind 改名、Slash 上总线、默认观测、动态 handler）及后续演进建议 |
@@ -307,10 +308,10 @@
 | 阶段 | 目标 | 状态 |
 |------|------|------|
 | **1** | e2e 可验证、不因错误假设长时间无输出 | **已做**：`interactive` 补充 `_ "internal/run"`、`_ "internal/remote"`（与 `session` 并列），真实二进制具备 slash 注册；`cases` 期望与 `KeyConfigHint` 对齐；`ReadUntil`/`ReadUntilAny` 按墙钟截止收紧读片段时间并识别 `os.ErrDeadlineExceeded`；`internal/e2e/README.md` 写明 `-timeout` 与排障。 |
-| **2** | slash 上收试点 / 双路径 | **未做**：需单独设计（总线 `Kind` 或 Controller 内 registry），避免与现有 TUI `init()` 注册冲突。 |
-| **3** | slash 主路径迁入 Controller | **未做**：依赖阶段 2 边界与回归策略。 |
-| **4** | 审批/敏感/远程等待总线链审计 | **未做**：可做只读审计清单 + 小步补缺事件。 |
-| **5** | UI 控件化（dialog/dropdown） | **未做**；**部分相关**：`Run()` 已瘦身为 preflight + `wireHostStack` + `tuiRestartLoop`（`internal/cli/interactive/host_stack.go`），利于后续把「壳」与「栈」测试分离。 |
+| **2** | slash 与总线/中控衔接（试点） | **已做（观测路径）**：`KindSlashEntered` + `InputPorts.SlashTraceChan`；TUI 成功分发 slash 后 `Host.TraceSlashEntered` → Bridge → `PublishBlocking`；`hostcontroller` 占位 `handleSlashEntered`；语义标签与 `RedactedSummary` 已覆盖。解析与执行仍在 TUI/registry。 |
+| **3** | slash 主路径迁入 Controller | **未做**：当前仅事后 trace；真正「上收」需 registry/路由策略与回归，见 `docs/host_bus_audit.md`。 |
+| **4** | 审批/敏感/远程等待总线链审计 | **部分做**：`docs/host_bus_audit.md` 为只读路径表；审批/敏感/远程事件链此前已在目标 2 落地，此处为对照清单。 |
+| **5** | UI 控件化（dialog/dropdown） | **部分做**：居中 modal 的 lipgloss 布局抽至 `internal/ui/widget`（`RenderCenteredModal`），`view_overlay.go` 调用；dropdown/dialog 组件化仍待后续。 |
 
 **回归命令**：`go test ./internal/e2e/... -timeout=60s -count=1`（勿依赖默认 10m 超时判断健康）。
 
