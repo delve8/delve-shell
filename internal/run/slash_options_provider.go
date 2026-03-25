@@ -11,7 +11,6 @@ func registerSlashOptionsProviders() {
 	ui.RegisterSlashOptionsProvider(func(
 		inputVal string,
 		lang string,
-		localRunCommands []string,
 		remoteRunCommands []string,
 		remoteActive bool,
 	) ([]ui.SlashOption, bool) {
@@ -35,12 +34,11 @@ func registerSlashOptionsProviders() {
 			return []ui.SlashOption{}, true
 		}
 		prefix := strings.ToLower(rest)
-		cands := localRunCommands
-		if cands == nil {
-			cands = loadLocalRunCommands()
-		}
+		var cands []string
 		if remoteActive && len(remoteRunCommands) > 0 {
 			cands = remoteRunCommands
+		} else {
+			cands = loadLocalRunCommands()
 		}
 		const maxRunCands = 50
 		opts := make([]ui.SlashOption, 0, 12)

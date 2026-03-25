@@ -19,8 +19,8 @@ func getSlashOptions(lang string) []SlashOption {
 
 // getSlashOptionsForInput returns slash options to show.
 // Specialized domains (e.g. /sessions, /run, /config) are expected to be handled by providers.
-func getSlashOptionsForInput(inputVal string, lang string, localRunCommands []string, remoteRunCommands []string, remoteActive bool) []SlashOption {
-	return uiregistry.SlashOptionsForInput(inputVal, lang, localRunCommands, remoteRunCommands, remoteActive)
+func getSlashOptionsForInput(inputVal string, lang string, remoteRunCommands []string, remoteActive bool) []SlashOption {
+	return uiregistry.SlashOptionsForInput(inputVal, lang, remoteRunCommands, remoteActive)
 }
 
 // visibleSlashOptions filters options by input prefix and returns matching indices.

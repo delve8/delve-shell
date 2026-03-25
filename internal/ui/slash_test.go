@@ -24,7 +24,7 @@ func TestGetSlashOptionsForInput_sessions_returnsSessionCommands(t *testing.T) {
 		}
 	}
 
-	opts := getSlashOptionsForInput("/sessions", "en", nil, nil, false)
+	opts := getSlashOptionsForInput("/sessions", "en", nil, false)
 	if len(opts) < 1 {
 		t.Fatalf("expected at least 1 option, got %d", len(opts))
 	}
@@ -36,16 +36,18 @@ func TestGetSlashOptionsForInput_sessions_returnsSessionCommands(t *testing.T) {
 }
 
 func TestGetSlashOptionsForInput_runCompletion_filtersAndNoFallback(t *testing.T) {
-	local := []string{"bash", "base64", "cat"}
+	// Use remote-active + a fixed command list so results do not depend on PATH
+	// (local /run completion loads from disk inside internal/run, not from Model).
+	runCands := []string{"bash", "base64", "cat"}
 
 	// "/run" shows the usage row.
-	opts := getSlashOptionsForInput("/run", "en", local, nil, false)
+	opts := getSlashOptionsForInput("/run", "en", nil, false)
 	if len(opts) != 1 || opts[0].Cmd != SlashRunUsageOption {
 		t.Fatalf("expected usage option for /run, got %#v", opts)
 	}
 
-	// "/run b" filters local commands.
-	opts = getSlashOptionsForInput("/run b", "en", local, nil, false)
+	// "/run b" filters the active command list (same loop as remote cache in production).
+	opts = getSlashOptionsForInput("/run b", "en", runCands, true)
 	if len(opts) != 2 {
 		t.Fatalf("expected 2 options, got %d: %#v", len(opts), opts)
 	}
@@ -54,17 +56,16 @@ func TestGetSlashOptionsForInput_runCompletion_filtersAndNoFallback(t *testing.T
 	}
 
 	// No match: return empty (do not fall back to top-level slash commands).
-	opts = getSlashOptionsForInput("/run z", "en", local, nil, false)
+	opts = getSlashOptionsForInput("/run z", "en", runCands, true)
 	if len(opts) != 0 {
 		t.Fatalf("expected no options for unmatched /run prefix, got %#v", opts)
 	}
 }
 
 func TestGetSlashOptionsForInput_runCompletion_usesRemoteCacheWhenActive(t *testing.T) {
-	local := []string{"bash", "base64"}
 	remote := []string{"busybox", "bzip2"}
 
-	opts := getSlashOptionsForInput("/run b", "en", local, remote, true)
+	opts := getSlashOptionsForInput("/run b", "en", remote, true)
 	if len(opts) != 2 {
 		t.Fatalf("expected 2 options from remote cache, got %d: %#v", len(opts), opts)
 	}

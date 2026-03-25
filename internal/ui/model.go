@@ -34,11 +34,12 @@ type Model struct {
 	Host app.Host
 }
 
-// RunCompletionState stores local/remote completion caches for `/run`.
-// When remote is active, Host.RemoteLabel identifies which remote RemoteCommands belong to.
+// RunCompletionState holds best-effort `/run` completion data.
+// RemoteRunCommands is populated when remote execution is on (see RunCompletionCacheMsg);
+// Host.RemoteLabel identifies which remote the cache belongs to. Local /run completion does
+// not use this field—it scans PATH on demand inside the run slash options provider.
 type RunCompletionState struct {
-	LocalCommands  []string
-	RemoteCommands []string
+	RemoteRunCommands []string
 }
 
 // InteractionState stores transient keyboard/interaction state.

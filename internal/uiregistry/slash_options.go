@@ -8,10 +8,10 @@ import (
 
 // SlashOptionsProvider supplies slash dropdown rows for a given input buffer.
 // When handled==true, the returned options should override the default root list.
+// remoteRunCommands is the UI-cached remote command list for /run (empty when local-only or not yet loaded).
 type SlashOptionsProvider func(
 	inputVal string,
 	lang string,
-	localRunCommands []string,
 	remoteRunCommands []string,
 	remoteActive bool,
 ) (opts []uitypes.SlashOption, handled bool)
@@ -49,9 +49,9 @@ func RootSlashOptions(lang string) []uitypes.SlashOption {
 }
 
 // SlashOptionsForInput returns slash options for the current input buffer.
-func SlashOptionsForInput(inputVal, lang string, localRunCommands, remoteRunCommands []string, remoteActive bool) []uitypes.SlashOption {
+func SlashOptionsForInput(inputVal, lang string, remoteRunCommands []string, remoteActive bool) []uitypes.SlashOption {
 	for _, p := range slashOptionsProviderChain.List() {
-		if o, handled := p(inputVal, lang, localRunCommands, remoteRunCommands, remoteActive); handled {
+		if o, handled := p(inputVal, lang, remoteRunCommands, remoteActive); handled {
 			return o
 		}
 	}

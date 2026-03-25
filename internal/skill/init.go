@@ -85,7 +85,6 @@ func Register() {
 		inputVal string,
 		lang string,
 		_ []string,
-		_ []string,
 		_ bool,
 	) ([]ui.SlashOption, bool) {
 		normalized := strings.TrimPrefix(inputVal, "/")

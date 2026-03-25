@@ -26,7 +26,7 @@ func (s *keySession) slashSuggestIndex() int { return s.m.Interaction.slashSugge
 
 func (s *keySession) setSlashSuggestIndex(i int) { s.m.Interaction.slashSuggestIndex = i }
 
-func (s *keySession) waitingForAI() bool { return s.m.WaitingForAI() }
+func (s *keySession) waitingForAI() bool { return s.m.Interaction.WaitingForAI }
 
 func (s *keySession) updateViewportKey(msg tea.KeyMsg) tea.Cmd {
 	var cmd tea.Cmd

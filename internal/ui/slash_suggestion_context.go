@@ -11,7 +11,7 @@ func (m Model) slashSuggestionContext(inputVal string) (opts []SlashOption, vis 
 // slashSuggestionContextWithLang is the same as slashSuggestionContext but uses an explicit UI language
 // (e.g. slash dropdown in view_slash_dropdown.go).
 func (m Model) slashSuggestionContextWithLang(inputVal, lang string) (opts []SlashOption, vis []int, viewOpts []slashview.Option) {
-	opts = getSlashOptionsForInput(inputVal, lang, m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, m.Host.RemoteActive())
+	opts = getSlashOptionsForInput(inputVal, lang, m.RunCompletion.RemoteRunCommands, m.Host.RemoteActive())
 	vis = visibleSlashOptions(inputVal, opts)
 	viewOpts = toSlashViewOptions(opts)
 	return opts, vis, viewOpts

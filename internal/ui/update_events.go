@@ -21,7 +21,7 @@ func (m Model) handleConfigReloadedMsg() (Model, tea.Cmd) {
 }
 
 func (m Model) handleAgentReplyMsg(msg AgentReplyMsg) (Model, tea.Cmd) {
-	m = m.WithWaitingForAI(false)
+	m.Interaction.WaitingForAI = false
 	lang := m.getLang()
 	if msg.Err != nil {
 		if errors.Is(msg.Err, context.Canceled) {
