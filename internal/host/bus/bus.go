@@ -6,7 +6,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/hiltypes"
-	"delve-shell/internal/host/route"
 	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/remoteauth"
 )
@@ -158,7 +157,7 @@ func (b *Bus) EnqueueUIBlocking(msg tea.Msg) {
 // InputPorts are the external send-only channels wired to feature packages.
 // They are bridged into Bus events by BridgeInputs.
 type InputPorts struct {
-	SubmitChan         chan string
+	SubmissionChan     chan inputlifecycletype.InputSubmission
 	ConfigUpdatedChan  chan struct{}
 	CancelRequestChan  chan struct{}
 	ExecDirectChan     chan string
@@ -172,7 +171,7 @@ type InputPorts struct {
 
 func NewInputPorts() InputPorts {
 	return InputPorts{
-		SubmitChan:         make(chan string, 8),
+		SubmissionChan:     make(chan inputlifecycletype.InputSubmission, 8),
 		ConfigUpdatedChan:  make(chan struct{}, 8),
 		CancelRequestChan:  make(chan struct{}, 8),
 		ExecDirectChan:     make(chan string, 8),
@@ -192,16 +191,8 @@ func BridgeInputs(stop <-chan struct{}, b *Bus, in InputPorts) {
 			select {
 			case <-stop:
 				return
-			case text := <-in.SubmitChan:
-				classified := route.ClassifyUserSubmit(text)
-				switch classified.Kind {
-				case route.UserSubmitNewSession:
-					b.PublishBlocking(Event{Kind: KindSessionNewRequested})
-				case route.UserSubmitSwitchSession:
-					b.PublishBlocking(Event{Kind: KindSessionSwitchRequested, SessionID: classified.SessionID})
-				default:
-					b.PublishBlocking(Event{Kind: KindUserChatSubmitted, UserText: text})
-				}
+			case sub := <-in.SubmissionChan:
+				publishStructuredSubmission(b, sub)
 			case <-in.ConfigUpdatedChan:
 				b.PublishBlocking(Event{Kind: KindConfigUpdated})
 			case <-in.CancelRequestChan:
@@ -225,6 +216,20 @@ func BridgeInputs(stop <-chan struct{}, b *Bus, in InputPorts) {
 			}
 		}
 	}()
+}
+
+func publishStructuredSubmission(b *Bus, sub inputlifecycletype.InputSubmission) {
+	if b == nil || sub.RawText == "" {
+		return
+	}
+	switch sub.Kind {
+	case inputlifecycletype.SubmissionChat, inputlifecycletype.SubmissionSlash:
+		b.PublishBlocking(Event{
+			Kind:       KindUserChatSubmitted,
+			UserText:   sub.RawText,
+			Submission: sub,
+		})
+	}
 }
 
 // StartUIPump delivers UI messages from bus events to active tea program.

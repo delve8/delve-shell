@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/hiltypes"
+	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/remoteauth"
 	"delve-shell/internal/ui"
 )
@@ -115,7 +116,7 @@ func TestEnqueueUIBlocking_IgnoresNil(t *testing.T) {
 
 func TestInputPortsDefaults(t *testing.T) {
 	in := NewInputPorts()
-	if cap(in.SubmitChan) != 8 ||
+	if cap(in.SubmissionChan) != 8 ||
 		cap(in.ConfigUpdatedChan) != 8 ||
 		cap(in.CancelRequestChan) != 8 ||
 		cap(in.ExecDirectChan) != 8 ||
@@ -137,35 +138,13 @@ func TestBridgeInputs_Submit(t *testing.T) {
 	in := NewInputPorts()
 	BridgeInputs(stop, b, in)
 
-	in.SubmitChan <- "hello"
+	in.SubmissionChan <- inputlifecycletype.InputSubmission{
+		Kind:    inputlifecycletype.SubmissionChat,
+		Source:  inputlifecycletype.SourceProgrammatic,
+		RawText: "hello",
+	}
 	ev := mustRecvEvent(t, b.Events())
 	if ev.Kind != KindUserChatSubmitted || ev.UserText != "hello" {
-		t.Fatalf("unexpected event: %+v", ev)
-	}
-}
-
-func TestBridgeInputs_SubmitNewSession(t *testing.T) {
-	stop := make(chan struct{})
-	defer close(stop)
-	b := New(8)
-	in := NewInputPorts()
-	BridgeInputs(stop, b, in)
-	in.SubmitChan <- "/new"
-	ev := mustRecvEvent(t, b.Events())
-	if ev.Kind != KindSessionNewRequested {
-		t.Fatalf("unexpected event: %+v", ev)
-	}
-}
-
-func TestBridgeInputs_SubmitSwitchSession(t *testing.T) {
-	stop := make(chan struct{})
-	defer close(stop)
-	b := New(8)
-	in := NewInputPorts()
-	BridgeInputs(stop, b, in)
-	in.SubmitChan <- "/sessions  demo-id "
-	ev := mustRecvEvent(t, b.Events())
-	if ev.Kind != KindSessionSwitchRequested || ev.SessionID != "demo-id" {
 		t.Fatalf("unexpected event: %+v", ev)
 	}
 }
@@ -329,7 +308,11 @@ func TestBridgeInputs_Stop(t *testing.T) {
 
 	// Sending after stop should not panic and should not necessarily produce events.
 	select {
-	case in.SubmitChan <- "ignored":
+	case in.SubmissionChan <- inputlifecycletype.InputSubmission{
+		Kind:    inputlifecycletype.SubmissionChat,
+		Source:  inputlifecycletype.SourceProgrammatic,
+		RawText: "ignored",
+	}:
 	default:
 	}
 }

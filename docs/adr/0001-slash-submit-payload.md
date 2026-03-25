@@ -12,13 +12,13 @@
 
 ## 背景
 
-- `SubmitChan` 当前载荷为 **`string`**；`route.ClassifyUserSubmit` 仅区分 `/new`、`/sessions …` 与其余（后者映射为 **LLM 路径** 的 `KindUserChatSubmitted`）。
+- 历史上 host 侧主提交入口曾是字符串型 `SubmitChan`；slash 与普通输入若共用该路径，会丢失选中索引与输入态上下文。
 - 主 Enter 路径上，slash 依赖 **下拉选中索引**、`slashflow` / `maininput.PlanMainEnter` 等上下文；若仅提交 TrimSpace 字符串，**无法**无损重建「用户选中的候选行」与歧义消解结果。
 - §10.8.1 第 2 轮需要一种**不与此冲突**的扩展点，以便将来将「意图」送达 Controller 再回灌 TUI。
 
 ## 决策
 
-1. **不**将通用 slash 行塞入现有 `SubmitChan` 的「字符串-only」路径并指望 `ClassifyUserSubmit` 单独消化；**不**改变 `/new`、`/sessions …` 在 `ClassifyUserSubmit` 中的语义，除非单独里程碑与迁移说明。
+1. **不**将通用 slash 行塞入当时的字符串-only 提交路径并指望字符串分类器单独消化。
 2. 当时采用结构化载荷保留 `RawLine` / `SelectedIndex` / `InputLine`，避免 slash 上下文在字符串 submit 路径上丢失。
 3. 当前这一目标已由统一 `InputSubmission` 模型替代，不再依赖单独的 slash relay payload。
 

@@ -7,6 +7,7 @@ import (
 
 	"delve-shell/internal/host/app"
 	"delve-shell/internal/host/bus"
+	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/remoteauth"
 )
 
@@ -28,25 +29,30 @@ func installTestRuntime(t *testing.T) *app.Runtime {
 	return rt
 }
 
-func TestBindSendPorts_SubmitDelivered(t *testing.T) {
+func TestBindSendPorts_SubmissionDelivered(t *testing.T) {
 	ports := bus.NewInputPorts()
 	rt := bindTestPorts(t, ports, make(chan []string, 1))
 
-	done := make(chan string, 1)
+	done := make(chan inputlifecycletype.InputSubmission, 1)
 	go func() {
-		done <- <-ports.SubmitChan
+		done <- <-ports.SubmissionChan
 	}()
 
-	if !rt.Submit("ping") {
-		t.Fatal("Submit returned false")
+	sub := inputlifecycletype.InputSubmission{
+		Kind:    inputlifecycletype.SubmissionChat,
+		Source:  inputlifecycletype.SourceProgrammatic,
+		RawText: "ping",
+	}
+	if !rt.SubmitSubmission(sub) {
+		t.Fatal("SubmitSubmission returned false")
 	}
 	select {
 	case v := <-done:
-		if v != "ping" {
-			t.Fatalf("want ping, got %q", v)
+		if v != sub {
+			t.Fatalf("want %#v, got %#v", sub, v)
 		}
 	case <-time.After(2 * time.Second):
-		t.Fatal("timeout waiting for submit")
+		t.Fatal("timeout waiting for submission")
 	}
 }
 
@@ -156,12 +162,17 @@ func TestBindSendPorts_SubmitNonBlockingVsFullBuffer(t *testing.T) {
 	ports := bus.NewInputPorts()
 	rt := bindTestPorts(t, ports, make(chan []string, 1))
 
-	for i := 0; i < cap(ports.SubmitChan); i++ {
-		if !rt.TrySubmitNonBlocking("fill") {
+	sub := inputlifecycletype.InputSubmission{
+		Kind:    inputlifecycletype.SubmissionChat,
+		Source:  inputlifecycletype.SourceProgrammatic,
+		RawText: "fill",
+	}
+	for i := 0; i < cap(ports.SubmissionChan); i++ {
+		if !rt.TrySubmitSubmissionNonBlocking(sub) {
 			t.Fatalf("unexpected failure filling at %d", i)
 		}
 	}
-	if rt.TrySubmitNonBlocking("overflow") {
+	if rt.TrySubmitSubmissionNonBlocking(sub) {
 		t.Fatal("expected full buffer to reject non-blocking submit")
 	}
 }
@@ -199,13 +210,17 @@ func TestBindSendPorts_MultipleBindsLastWins(t *testing.T) {
 	BindSendPorts(r2, p2, shell)
 	t.Cleanup(func() { r1.Reset(); r2.Reset() })
 
-	go func() { <-p2.SubmitChan }()
-	if !r2.Submit("second") {
+	go func() { <-p2.SubmissionChan }()
+	if !r2.SubmitSubmission(inputlifecycletype.InputSubmission{
+		Kind:    inputlifecycletype.SubmissionChat,
+		Source:  inputlifecycletype.SourceProgrammatic,
+		RawText: "second",
+	}) {
 		t.Fatal("submit failed")
 	}
 
 	select {
-	case <-p1.SubmitChan:
+	case <-p1.SubmissionChan:
 		t.Fatal("first port should not receive after re-bind")
 	default:
 	}
@@ -219,7 +234,7 @@ func TestInputPortsCapacitiesDocumented(t *testing.T) {
 		got  int
 	}
 	specs := []spec{
-		{"SubmitChan", 8, cap(p.SubmitChan)},
+		{"SubmissionChan", 8, cap(p.SubmissionChan)},
 		{"ConfigUpdatedChan", 8, cap(p.ConfigUpdatedChan)},
 		{"CancelRequestChan", 8, cap(p.CancelRequestChan)},
 		{"ExecDirectChan", 8, cap(p.ExecDirectChan)},
@@ -309,12 +324,16 @@ func TestBindSendPorts_SubmitStressSequential(t *testing.T) {
 	const total = 200
 	go func() {
 		for i := range total {
-			_ = rt.Submit(strings.Repeat("a", i%5+1))
+			_ = rt.SubmitSubmission(inputlifecycletype.InputSubmission{
+				Kind:    inputlifecycletype.SubmissionChat,
+				Source:  inputlifecycletype.SourceProgrammatic,
+				RawText: strings.Repeat("a", i%5+1),
+			})
 		}
 	}()
 	for range total {
 		select {
-		case <-ports.SubmitChan:
+		case <-ports.SubmissionChan:
 		case <-time.After(3 * time.Second):
 			t.Fatal("timeout draining submit")
 		}
@@ -469,17 +488,22 @@ func TestBindSendPorts_SubmitPayloadTable(t *testing.T) {
 		"`",
 	}
 	for i, want := range payloads {
-		recv := make(chan string, 1)
+		recv := make(chan inputlifecycletype.InputSubmission, 1)
 		go func() {
-			recv <- <-ports.SubmitChan
+			recv <- <-ports.SubmissionChan
 		}()
-		if !rt.Submit(want) {
+		sub := inputlifecycletype.InputSubmission{
+			Kind:    inputlifecycletype.SubmissionChat,
+			Source:  inputlifecycletype.SourceProgrammatic,
+			RawText: want,
+		}
+		if !rt.SubmitSubmission(sub) {
 			t.Fatalf("case %d: submit failed for %q", i, want)
 		}
 		select {
 		case got := <-recv:
-			if got != want {
-				t.Fatalf("case %d: want %q got %q", i, want, got)
+			if got != sub {
+				t.Fatalf("case %d: want %#v got %#v", i, sub, got)
 			}
 		case <-time.After(2 * time.Second):
 			t.Fatalf("case %d: timeout", i)

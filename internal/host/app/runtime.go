@@ -3,6 +3,7 @@ package app
 import (
 	"sync"
 
+	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/remoteauth"
 )
 
@@ -106,24 +107,24 @@ func (r *Runtime) TakeOpenConfigLLMOnFirstLayout() bool {
 	return v
 }
 
-// Submit sends user text to the host controller (blocking). Returns false if unwired.
-func (r *Runtime) Submit(text string) bool {
+// SubmitSubmission sends a structured submission to the host controller (blocking). Returns false if unwired.
+func (r *Runtime) SubmitSubmission(sub inputlifecycletype.InputSubmission) bool {
 	s := r.currentSend()
-	if s == nil || s.Submit == nil {
+	if s == nil || s.Submission == nil {
 		return false
 	}
-	s.Submit <- text
+	s.Submission <- sub
 	return true
 }
 
-// TrySubmitNonBlocking sends without blocking; returns false if unwired or buffer full.
-func (r *Runtime) TrySubmitNonBlocking(text string) bool {
+// TrySubmitSubmissionNonBlocking sends a structured submission without blocking.
+func (r *Runtime) TrySubmitSubmissionNonBlocking(sub inputlifecycletype.InputSubmission) bool {
 	s := r.currentSend()
-	if s == nil || s.Submit == nil {
+	if s == nil || s.Submission == nil {
 		return false
 	}
 	select {
-	case s.Submit <- text:
+	case s.Submission <- sub:
 		return true
 	default:
 		return false

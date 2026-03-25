@@ -438,7 +438,11 @@ func TestNew_WiresBusAndPump(t *testing.T) {
 		t.Fatal("fsm not initialized")
 	}
 
-	ports.SubmitChan <- "abc"
+	ports.SubmissionChan <- inputlifecycletype.InputSubmission{
+		Kind:    inputlifecycletype.SubmissionChat,
+		Source:  inputlifecycletype.SourceProgrammatic,
+		RawText: "abc",
+	}
 	select {
 	case ev := <-b.Events():
 		if ev.Kind != bus.KindUserChatSubmitted || ev.UserText != "abc" {
