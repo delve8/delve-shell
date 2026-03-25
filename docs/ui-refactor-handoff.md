@@ -154,6 +154,7 @@
 
 | 日期 | 说明 |
 |------|------|
+| 2026-03-25 | §10.8.1 第 1 轮：`host_bus_audit` 扩写、`docs/adr/0001-slash-submit-payload.md`、`hostroute.SlashSubmitPayload` 契约类型 |
 | 2026-03-25 | §10.8.1：三轮收尾计划（阶段 4～5 与阶段 3 最小闭环的分批交付与验收） |
 | 2026-03-25 | §10.8：`KindSlashRequested`（handler 前）与 §10.4.1/§10.7 表述对齐；阶段 3 记为「观测加深、Submit 统一仍待」 |
 | 2026-03-25 | §10.8：阶段 2/4/5 部分落地（`KindSlashEntered`、`docs/host_bus_audit.md`、`ui/widget` overlay）；阶段 3（slash 主路径上收）仍待后续 |
@@ -314,7 +315,7 @@
 | **1** | e2e 可验证、不因错误假设长时间无输出 | **已做**：`interactive` 补充 `_ "internal/run"`、`_ "internal/remote"`（与 `session` 并列），真实二进制具备 slash 注册；`cases` 期望与 `KeyConfigHint` 对齐；`ReadUntil`/`ReadUntilAny` 按墙钟截止收紧读片段时间并识别 `os.ErrDeadlineExceeded`；`internal/e2e/README.md` 写明 `-timeout` 与排障。 |
 | **2** | slash 与总线/中控衔接（试点） | **已做（观测路径）**：`KindSlashRequested`（handler 前）+ `KindSlashEntered`（成功后）；`SlashRequestChan` / `SlashTraceChan`；`Host.RequestSlashDispatch` / `TraceSlashEntered`；`hostcontroller` 占位 handler；语义标签与 `RedactedSummary` 已覆盖。解析与执行仍在 TUI/registry。 |
 | **3** | slash 主路径迁入 Controller | **部分做（观测加深）**：总线已可见「尝试→成功」对；**未做**：经 `SubmitChan` 统一路由、Controller 驱动 `tea.Cmd`、结构化 payload（含下拉选中），见 `docs/host_bus_audit.md`。 |
-| **4** | 审批/敏感/远程等待总线链审计 | **部分做**：`docs/host_bus_audit.md` 为只读路径表；审批/敏感/远程事件链此前已在目标 2 落地，此处为对照清单。 |
+| **4** | 审批/敏感/远程等待总线链审计 | **已做（第 1 轮 §10.8.1）**：`docs/host_bus_audit.md` 含路径表、`events`/`uiMsgs` 职责、主对话 / HIL / 远程序列及 §10.6 对照；细部若仍随实现演进可再补。 |
 | **5** | UI 控件化（dialog/dropdown） | **部分做**：居中 modal 的 lipgloss 布局抽至 `internal/ui/widget`（`RenderCenteredModal`），`view_overlay.go` 调用；dropdown/dialog 组件化仍待后续。 |
 
 **回归命令**：`go test ./internal/e2e/... -timeout=60s -count=1`（勿依赖默认 10m 超时判断健康）。
@@ -325,7 +326,7 @@
 
 | 轮次 | 侧重点 | 交付物（建议） | 验收 |
 |------|--------|----------------|------|
-| **第 1 轮** | **阶段 4 收口** + **阶段 3 的设计与契约** | 更新 `docs/host_bus_audit.md`：审批 / 敏感 / 远程 / 主对话在 **Bridge → Bus → Controller → uipresenter → TUI** 上的顺序与责任边界（可表格 + 简短序列说明）；列出与 §10.6 完成判据的对照缺口（若有）。另起短节或 ADR：`SlashSubmitPayload`（或等价字段）的**形状**（含 `raw_line`、`selected_index` 等）、与 `hostroute.ClassifyUserSubmit` 的衔接、**禁止**与现有 `SubmitChan` 上 `/new`、`/sessions` 语义冲突的约定。代码侧可仅增加 **类型 + 注释**（无行为变更）或零改动。 | 文档可指导实现；`go test ./...` 通过。 |
+| **第 1 轮** | **阶段 4 收口** + **阶段 3 的设计与契约** | **已交付（2026-03-25）**：`docs/host_bus_audit.md` 扩充为双队列说明及主对话 LLM、Agent HIL、远程三条链；§10.6 对照表；`docs/adr/0001-slash-submit-payload.md`；`internal/hostroute/slash_submit_contract.go`（`SlashSubmitPayload` 类型 + 注释，无行为变更）。 | 文档可指导第 2 轮实现；`go test ./...` 通过。 |
 | **第 2 轮** | **阶段 3 最小闭环** | 在 **不破坏** HIL 与 registry 的前提下，实现 **一条** 可验证的「结构化 slash 意图 → 总线或专用 channel → Controller → `EnqueueUIBlocking` → TUI `Update` 执行既有 `dispatchSlash*`」路径（例如先覆盖 **主 Enter 的某一类** 或 **仅非下拉歧义命令**）；`RequestSlashDispatch` / `TraceSlashEntered` 与新区间的关系写清（避免重复事件或文档化双写策略）。 | 黑盒或 e2e 覆盖该路径；**既有** slash 路径与 `/new`、`/sessions`、LLM 提交**行为不变**；全量测试通过。 |
 | **第 3 轮** | **阶段 5 控件化** | 将 **slash 下拉**（`view_slash_dropdown.go` 与 `slashview` 的衔接处）中 **lipgloss 行/布局** 抽到 `internal/ui/widget`（或 `widget` 下子文件），`view` 仅组装数据；若篇幅允许，将 **审批/敏感底部数字选项行**（`view_choices.go` 一带）的重复样式迁入同一 widget 层。 | 视觉与行为与抽离前一致（`ui` 测试 + e2e）；`go test ./...` 通过。 |
 
