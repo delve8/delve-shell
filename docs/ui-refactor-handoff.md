@@ -154,6 +154,7 @@
 
 | 日期 | 说明 |
 |------|------|
+| 2026-03-25 | §10.8.1：三轮收尾计划（阶段 4～5 与阶段 3 最小闭环的分批交付与验收） |
 | 2026-03-25 | §10.8：`KindSlashRequested`（handler 前）与 §10.4.1/§10.7 表述对齐；阶段 3 记为「观测加深、Submit 统一仍待」 |
 | 2026-03-25 | §10.8：阶段 2/4/5 部分落地（`KindSlashEntered`、`docs/host_bus_audit.md`、`ui/widget` overlay）；阶段 3（slash 主路径上收）仍待后续 |
 | 2026-03-25 | §10.8：五阶段计划中阶段 1 落地与 2–5 待做表；e2e 修复 + `wireHostStack` 抽取 |
@@ -317,6 +318,18 @@
 | **5** | UI 控件化（dialog/dropdown） | **部分做**：居中 modal 的 lipgloss 布局抽至 `internal/ui/widget`（`RenderCenteredModal`），`view_overlay.go` 调用；dropdown/dialog 组件化仍待后续。 |
 
 **回归命令**：`go test ./internal/e2e/... -timeout=60s -count=1`（勿依赖默认 10m 超时判断健康）。
+
+#### 10.8.1 三轮收尾计划（余下阶段 3～5）
+
+以下将 **阶段 3**（slash 主路径与中控协作）、**阶段 4**（审计闭环）、**阶段 5**（可复用 UI 控件）拆成三轮；每轮可独立合并，**验收以本表与 `go test ./...`（含 e2e）为准**。
+
+| 轮次 | 侧重点 | 交付物（建议） | 验收 |
+|------|--------|----------------|------|
+| **第 1 轮** | **阶段 4 收口** + **阶段 3 的设计与契约** | 更新 `docs/host_bus_audit.md`：审批 / 敏感 / 远程 / 主对话在 **Bridge → Bus → Controller → uipresenter → TUI** 上的顺序与责任边界（可表格 + 简短序列说明）；列出与 §10.6 完成判据的对照缺口（若有）。另起短节或 ADR：`SlashSubmitPayload`（或等价字段）的**形状**（含 `raw_line`、`selected_index` 等）、与 `hostroute.ClassifyUserSubmit` 的衔接、**禁止**与现有 `SubmitChan` 上 `/new`、`/sessions` 语义冲突的约定。代码侧可仅增加 **类型 + 注释**（无行为变更）或零改动。 | 文档可指导实现；`go test ./...` 通过。 |
+| **第 2 轮** | **阶段 3 最小闭环** | 在 **不破坏** HIL 与 registry 的前提下，实现 **一条** 可验证的「结构化 slash 意图 → 总线或专用 channel → Controller → `EnqueueUIBlocking` → TUI `Update` 执行既有 `dispatchSlash*`」路径（例如先覆盖 **主 Enter 的某一类** 或 **仅非下拉歧义命令**）；`RequestSlashDispatch` / `TraceSlashEntered` 与新区间的关系写清（避免重复事件或文档化双写策略）。 | 黑盒或 e2e 覆盖该路径；**既有** slash 路径与 `/new`、`/sessions`、LLM 提交**行为不变**；全量测试通过。 |
+| **第 3 轮** | **阶段 5 控件化** | 将 **slash 下拉**（`view_slash_dropdown.go` 与 `slashview` 的衔接处）中 **lipgloss 行/布局** 抽到 `internal/ui/widget`（或 `widget` 下子文件），`view` 仅组装数据；若篇幅允许，将 **审批/敏感底部数字选项行**（`view_choices.go` 一带）的重复样式迁入同一 widget 层。 | 视觉与行为与抽离前一致（`ui` 测试 + e2e）；`go test ./...` 通过。 |
+
+**说明**：若第 2 轮结束后阶段 3 仍仅覆盖部分路径，应在 §10.8 主表中将阶段 3 标为 **「已做（范围：…）」** 并保留余量条目，避免与「全量 Enter 上收」混淆。
 
 ### 10.7 总线语义化（目标 2）：刻意未做项与后续计划
 
