@@ -1,6 +1,9 @@
 package ui
 
-import "delve-shell/internal/agent"
+import (
+	"delve-shell/internal/agent"
+	"delve-shell/internal/remoteauth"
+)
 
 // ApprovalRequestMsg is a command pending user approval (forwarded from agent on UIEvents).
 type ApprovalRequestMsg = *agent.ApprovalRequest
@@ -57,15 +60,8 @@ type RemoteAuthPromptMsg struct {
 	UseConfiguredIdentity bool // true when connecting immediately with a configured identity file; dialog shows "Connecting..." first
 }
 
-// RemoteAuthResponse carries user-provided credentials back to CLI.
-// Kind is "password" or "identity" (key file path).
-// Username is optional; when set, CLI uses it with host from Target for SSH (e.g. overlay default "root").
-type RemoteAuthResponse struct {
-	Target   string
-	Username string // optional; when set, used with host from Target for user@host
-	Kind     string // "password" or "identity"
-	Password string // password (when Kind == "password") or key file path (when Kind == "identity")
-}
+// RemoteAuthResponse is the credential payload from the remote auth overlay; defined in remoteauth for host/runtime use.
+type RemoteAuthResponse = remoteauth.Response
 
 // OverlayCloseMsg closes any active overlay.
 type OverlayCloseMsg struct{}

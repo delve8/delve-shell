@@ -3,7 +3,7 @@ package remote
 import (
 	"sync"
 
-	"delve-shell/internal/ui"
+	"delve-shell/internal/remoteauth"
 )
 
 // Send sides for signals consumed by the host controller via hostbus input ports.
@@ -16,7 +16,7 @@ var (
 	remoteOffC  chan<- struct{}
 
 	authRespMu sync.RWMutex
-	authRespC  chan<- ui.RemoteAuthResponse
+	authRespC  chan<- remoteauth.Response
 )
 
 // SetRemoteOnTargetChan wires the channel used when the user confirms a remote target
@@ -67,14 +67,14 @@ func trySendRemoteOff() bool {
 }
 
 // SetRemoteAuthRespChan wires SSH auth answers (password / identity path) to the host controller.
-func SetRemoteAuthRespChan(c chan<- ui.RemoteAuthResponse) {
+func SetRemoteAuthRespChan(c chan<- remoteauth.Response) {
 	authRespMu.Lock()
 	defer authRespMu.Unlock()
 	authRespC = c
 }
 
 // trySendRemoteAuthResp forwards credentials to the CLI multiplex.
-func trySendRemoteAuthResp(resp ui.RemoteAuthResponse) bool {
+func trySendRemoteAuthResp(resp remoteauth.Response) bool {
 	authRespMu.RLock()
 	ch := authRespC
 	authRespMu.RUnlock()
@@ -96,4 +96,4 @@ func PublishRemoteOnTarget(target string) bool { return trySendRemoteOnTarget(ta
 func PublishRemoteOff() bool { return trySendRemoteOff() }
 
 // PublishRemoteAuthResponse forwards SSH auth answers to the host controller. Returns false if unwired or buffer full.
-func PublishRemoteAuthResponse(resp ui.RemoteAuthResponse) bool { return trySendRemoteAuthResp(resp) }
+func PublishRemoteAuthResponse(resp remoteauth.Response) bool { return trySendRemoteAuthResp(resp) }

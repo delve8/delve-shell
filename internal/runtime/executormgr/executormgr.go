@@ -6,6 +6,7 @@ import (
 
 	"delve-shell/internal/config"
 	"delve-shell/internal/execenv"
+	"delve-shell/internal/remoteauth"
 	"delve-shell/internal/ui"
 )
 
@@ -114,7 +115,7 @@ func (m *Manager) SwitchToLocal() {
 
 // HandleRemoteAuthResponse tries to create an SSH executor using user-provided credentials.
 // On success it switches the current executor and caches the credential for the host.
-func (m *Manager) HandleRemoteAuthResponse(resp ui.RemoteAuthResponse) (label string, err error) {
+func (m *Manager) HandleRemoteAuthResponse(resp remoteauth.Response) (label string, err error) {
 	if resp.Password == "" || resp.Target == "" {
 		return "", fmt.Errorf("empty remote auth response")
 	}

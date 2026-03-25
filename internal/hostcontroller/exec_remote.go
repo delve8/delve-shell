@@ -9,6 +9,7 @@ import (
 
 	"delve-shell/internal/config"
 	"delve-shell/internal/execenv"
+	"delve-shell/internal/remoteauth"
 	"delve-shell/internal/ui"
 )
 
@@ -66,7 +67,7 @@ func (c *Controller) handleRemoteOff() {
 	c.ui.SystemNotify("Switched back to local executor.")
 }
 
-func (c *Controller) handleRemoteAuthResp(resp ui.RemoteAuthResponse) {
+func (c *Controller) handleRemoteAuthResp(resp remoteauth.Response) {
 	if resp.Password == "" {
 		return
 	}

@@ -5,7 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/ui"
+	"delve-shell/internal/remoteauth"
 )
 
 // Kind identifies one domain event category on host bus.
@@ -30,7 +30,7 @@ type Event struct {
 	UserText           string
 	Command            string
 	RemoteTarget       string
-	RemoteAuthResponse ui.RemoteAuthResponse
+	RemoteAuthResponse remoteauth.Response
 
 	AgentUI any
 
@@ -99,7 +99,7 @@ type InputPorts struct {
 	ExecDirectChan     chan string
 	RemoteOnChan       chan string
 	RemoteOffChan      chan struct{}
-	RemoteAuthRespChan chan ui.RemoteAuthResponse
+	RemoteAuthRespChan chan remoteauth.Response
 	AgentUIChan        chan any
 }
 
@@ -111,7 +111,7 @@ func NewInputPorts() InputPorts {
 		ExecDirectChan:     make(chan string, 8),
 		RemoteOnChan:       make(chan string, 4),
 		RemoteOffChan:      make(chan struct{}, 4),
-		RemoteAuthRespChan: make(chan ui.RemoteAuthResponse, 4),
+		RemoteAuthRespChan: make(chan remoteauth.Response, 4),
 		AgentUIChan:        make(chan any, 64),
 	}
 }

@@ -7,6 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/remoteauth"
 	"delve-shell/internal/ui"
 )
 
@@ -222,7 +223,7 @@ func TestBridgeInputs_RemoteAuthResponse(t *testing.T) {
 	in := NewInputPorts()
 	BridgeInputs(stop, b, in)
 
-	resp := ui.RemoteAuthResponse{
+	resp := remoteauth.Response{
 		Target:   "root@1.2.3.4",
 		Username: "root",
 		Kind:     "password",
