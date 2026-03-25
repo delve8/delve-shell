@@ -1,6 +1,7 @@
 package hostbus
 
 import (
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -357,4 +358,56 @@ func TestStartUIPump_Stop(t *testing.T) {
 
 	// Queue still accepts data; no receiver guarantee after stop.
 	_ = b.EnqueueUI(ui.SystemNotifyMsg{Text: "after-stop"})
+}
+
+func TestSemanticLabel_MapsDraftNames(t *testing.T) {
+	if g, w := KindUserChatSubmitted.SemanticLabel(), "AIRequested"; g != w {
+		t.Fatalf("KindUserChatSubmitted: got %q want %q", g, w)
+	}
+	if g, w := KindConfigUpdated.SemanticLabel(), "ConfigReloaded"; g != w {
+		t.Fatalf("KindConfigUpdated: got %q want %q", g, w)
+	}
+}
+
+func TestRedactedSummary_OmitsRemoteAuthSecret(t *testing.T) {
+	e := Event{
+		Kind: KindRemoteAuthResponseSubmitted,
+		RemoteAuthResponse: remoteauth.Response{
+			Target:   "u@h",
+			Kind:     "password",
+			Password: "supersecret",
+		},
+	}
+	s := e.RedactedSummary()
+	if strings.Contains(s, "supersecret") {
+		t.Fatalf("summary leaked password: %q", s)
+	}
+	if !strings.Contains(s, "u@h") || !strings.Contains(s, "password") {
+		t.Fatalf("expected target and kind in summary: %q", s)
+	}
+}
+
+func TestPublishHook_SuccessAndDrop(t *testing.T) {
+	var nAccepted, nDropped atomic.Int32
+	h := func(e Event, accepted bool) {
+		_ = e
+		if accepted {
+			nAccepted.Add(1)
+		} else {
+			nDropped.Add(1)
+		}
+	}
+	b := New(1, WithPublishHook(h))
+	if !b.Publish(Event{Kind: KindConfigUpdated}) {
+		t.Fatal("first publish")
+	}
+	if nAccepted.Load() != 1 || nDropped.Load() != 0 {
+		t.Fatalf("after first: accepted=%d dropped=%d", nAccepted.Load(), nDropped.Load())
+	}
+	if b.Publish(Event{Kind: KindCancelRequested}) {
+		t.Fatal("second publish should fail when queue full")
+	}
+	if nAccepted.Load() != 1 || nDropped.Load() != 1 {
+		t.Fatalf("after drop: accepted=%d dropped=%d", nAccepted.Load(), nDropped.Load())
+	}
 }

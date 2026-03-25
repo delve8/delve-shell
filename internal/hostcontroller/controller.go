@@ -31,6 +31,10 @@ type Options struct {
 	CurrentAllowlistAutoRun *atomic.Bool
 
 	SyncSessionPath func(path string)
+
+	// OnEventDispatch is optional; invoked at the start of each dequeued event before the handler runs.
+	// Use hostbus.Event.RedactedSummary for logs (no secrets).
+	OnEventDispatch func(e hostbus.Event)
 }
 
 // Controller is the single orchestration core for host-side flows.
@@ -57,6 +61,8 @@ type Controller struct {
 
 	llmRunning bool
 	llmCancel  context.CancelFunc
+
+	onEventDispatch func(hostbus.Event)
 }
 
 func New(opts Options) *Controller {
@@ -78,6 +84,8 @@ func New(opts Options) *Controller {
 		syncSessionPath:         opts.SyncSessionPath,
 
 		fsm: hostfsm.NewMachine(hostfsm.StateIdle),
+
+		onEventDispatch: opts.OnEventDispatch,
 	}
 	hostbus.BridgeInputs(opts.Stop, opts.Bus, opts.Inputs)
 	hostbus.StartUIPump(opts.Stop, opts.Bus, opts.CurrentP)
@@ -103,41 +111,14 @@ func (c *Controller) run() {
 }
 
 func (c *Controller) handleEvent(e hostbus.Event) {
-	switch e.Kind {
-	case hostbus.KindSessionNewRequested:
-		c.handleSubmitNewSession()
-	case hostbus.KindSessionSwitchRequested:
-		c.handleSubmitSwitchSession(e.SessionID)
-	case hostbus.KindUserChatSubmitted:
-		c.handleUserChat(e.UserText)
-	case hostbus.KindConfigUpdated:
-		c.handleConfigUpdated()
-	case hostbus.KindCancelRequested:
-		c.handleCancelRequest()
-	case hostbus.KindExecDirectRequested:
-		c.handleExecDirect(e.Command)
-	case hostbus.KindRemoteOnRequested:
-		c.handleRemoteOn(e.RemoteTarget)
-	case hostbus.KindRemoteOffRequested:
-		c.handleRemoteOff()
-	case hostbus.KindRemoteAuthResponseSubmitted:
-		c.handleRemoteAuthResp(e.RemoteAuthResponse)
-	case hostbus.KindApprovalRequested:
-		if e.Approval != nil {
-			c.ui.ShowApproval(e.Approval)
-		}
-	case hostbus.KindSensitiveConfirmationRequested:
-		if e.Sensitive != nil {
-			c.ui.ShowSensitiveConfirmation(e.Sensitive)
-		}
-	case hostbus.KindAgentExecEvent:
-		v := e.AgentExec
-		c.ui.CommandExecutedFromTool(v.Command, v.Allowed, v.Result, v.Sensitive, v.Suggested)
-	case hostbus.KindAgentUnknown:
-		c.handleAgentUI(e.AgentUI)
-	case hostbus.KindLLMRunCompleted:
-		c.handleLLMRunCompleted(e.Reply, e.Err)
+	if c.onEventDispatch != nil {
+		c.onEventDispatch(e)
 	}
+	h, ok := hostEventHandlers[e.Kind]
+	if !ok {
+		return
+	}
+	h(c, e)
 }
 
 func (c *Controller) SyncCurrentSessionPath() {

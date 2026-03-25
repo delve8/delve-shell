@@ -397,6 +397,32 @@ func TestSyncCurrentSessionPath_NoHook(t *testing.T) {
 	c.SyncCurrentSessionPath()
 }
 
+func TestHandleEvent_UnknownKindNoOp(t *testing.T) {
+	s := &recordSender{}
+	c := newTestControllerWithPresenter(s)
+	c.handleEvent(hostbus.Event{Kind: hostbus.Kind("nosuch_kind")})
+	if len(s.msgs) != 0 {
+		t.Fatalf("unknown kind should not dispatch, got %d msgs", len(s.msgs))
+	}
+}
+
+func TestHandleEvent_OnEventDispatchCalled(t *testing.T) {
+	s := &recordSender{}
+	c := newTestControllerWithPresenter(s)
+	var saw atomic.Bool
+	c.onEventDispatch = func(e hostbus.Event) {
+		if e.Kind == hostbus.KindCancelRequested {
+			saw.Store(true)
+		}
+	}
+	c.llmRunning = true
+	c.llmCancel = func() {}
+	c.handleEvent(hostbus.Event{Kind: hostbus.KindCancelRequested})
+	if !saw.Load() {
+		t.Fatal("onEventDispatch not invoked")
+	}
+}
+
 func TestNew_WiresBusAndPump(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)

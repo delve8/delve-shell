@@ -154,6 +154,7 @@
 
 | 日期 | 说明 |
 |------|------|
+| 2026-03-25 | 目标 2（总线语义可追踪）：`Kind.SemanticLabel` 与 §10.4 草稿对齐；`Event.RedactedSummary`；`hostbus.WithPublishHook`；`hostcontroller` 表驱动 `hostEventHandlers` + `Options.OnEventDispatch` |
 | 2026-03-25 | Host 主干切换：`internal/hostbus` + `internal/hostcontroller` 替代已删除的 `internal/cli/hostloop`；`internal/uipresenter` 作为 Host→Bubble Tea 消息的统一门面；`internal/run/host_wire.go` 替代 `hostloop_chans.go` |
 | 2025-03-24 | `registry core` 两阶段：`internal/slashreg` 承接 slash exact/prefix registry 与 provider chain 容器，`ui` 保持注册 API 但不再持有底层容器实现 |
 | 2025-03-24 | overlay close 业务复位下沉：`ApplyOverlayCloseFeatureResets` 从 `ui` 迁到 `internal/run` 注册层，`ui` 保留通用 hook 执行机制 |
@@ -243,6 +244,38 @@
 
 注：命名可调整，但事件职责应保持「业务语义优先，UI 表现后置」。
 
+#### 10.4.1 稳定 Kind 与 §10.4 语义标签（已落地）
+
+总线 **`hostbus.Kind`** 的字符串值保持稳定（测试与日志）；架构草稿里的英文名称由 **`Kind.SemanticLabel()`** 给出，便于对照与追踪：
+
+| `Kind` 常量 | `SemanticLabel()` |
+|-------------|-------------------|
+| `KindSessionNewRequested` | `SessionNewRequested` |
+| `KindSessionSwitchRequested` | `SessionSwitchRequested` |
+| `KindUserChatSubmitted` | `AIRequested`（非 slash 主对话进入 LLM 路径） |
+| `KindConfigUpdated` | `ConfigReloaded` |
+| `KindCancelRequested` | `CancelRequested` |
+| `KindExecDirectRequested` | `ExecDirectRequested` |
+| `KindRemoteOnRequested` | `RemoteConnectRequested` |
+| `KindRemoteOffRequested` | `RemoteDisconnectRequested` |
+| `KindRemoteAuthResponseSubmitted` | `RemoteAuthAnswerSubmitted` |
+| `KindApprovalRequested` | `ApprovalRequested` |
+| `KindSensitiveConfirmationRequested` | `SensitiveConfirmationRequested` |
+| `KindAgentExecEvent` | `CommandExecuted` |
+| `KindAgentUnknown` | `AgentUIPassthrough` |
+| `KindLLMRunCompleted` | `LLMRunCompleted` |
+
+**`SlashRequested`**：slash 在 TUI 内处理，不进入 submit→总线路径，因此**没有**对应 `Kind`。
+
+**可追踪摘要**：**`hostbus.Event.RedactedSummary()`** 生成单行脱敏描述（不含远程认证密码等），供日志 / 自定义 metrics 使用。
+
+**观测钩子**：
+
+- **`hostbus.New(cap, hostbus.WithPublishHook(fn))`**：`fn(e, accepted)`，`Publish` 队列满时 `accepted == false`。
+- **`hostcontroller.Options.OnEventDispatch`**：中控从总线取出事件后、执行 handler 表之前调用（可在此打结构化日志或 metrics）。
+
+**中控分发**：**`hostEventHandlers`**（`internal/hostcontroller/event_dispatch.go`）表驱动各 `Kind`，未知 `Kind` 忽略（与原先无 `default` 的 `switch` 一致）。
+
 ### 10.5 渐进迁移顺序（低风险）
 
 1. 定义 Bus 接口与事件类型，先接入适配层，不改现有主逻辑。
@@ -252,7 +285,7 @@
 
 ### 10.5.1 已落地（实现快照）
 
-- `cli.Run` 创建 `hostbus.Bus` 与 `hostbus.InputPorts`，`runnermgr` 的 `UIEvents` 接入 `ports.AgentUIChan`；`hostwiring.BindSendPorts` + `hostapp.Wire` 安装通道，`hostapp` 同时承载 allowlist getter、remote 镜像与 ConfigLLM 首次 layout 等进程内状态。
+- `cli.Run` 创建 `hostbus.Bus` 与 `hostbus.InputPorts`，`runnermgr` 的 `UIEvents` 接入 `ports.AgentUIChan`；`hostwiring.BindSendPorts` 将通道挂到 `hostapp.Runtime`，同一 `*Runtime` 作为 **`ui.Model.Host`** 注入 TUI（allowlist getter、remote 镜像、ConfigLLM 首次 layout 等仍在 `Runtime` 上）。
 - `hostcontroller.Controller` 单 goroutine 消费 Bus 事件；LLM 运行在独立 goroutine 中，完成时投递 `KindLLMRunCompleted`，避免阻塞导致 `/cancel` 失效。
 - `uipresenter.Presenter` 封装发往 TUI 的 `tea.Msg`，`hostcontroller` 不再散落 `ui.*` 结构体字面量（`DispatchAgentUI` 统一映射 Agent 侧 payload）。
 - `internal/cli/hostloop` 包已删除（原 multiplex / submit / agent_ui 等逻辑已迁入 controller + uipresenter）。

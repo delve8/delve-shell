@@ -15,6 +15,9 @@ import (
 // Coverage: submit routing (new session / switch session / chat to LLM), config reload, cancel and direct
 // exec, remote connect/off/auth, agent→UI HIL (approval / sensitive / exec result / unknown passthrough),
 // and LLM run completion.
+//
+// Architecture draft names (docs/ui-refactor-handoff.md §10.4) map to Kind via [Kind.SemanticLabel];
+// wire values (string constants below) remain the stable contract for tests and persistence.
 type Kind string
 
 const (
@@ -57,16 +60,25 @@ type Event struct {
 type Bus struct {
 	events chan Event
 	uiMsgs chan tea.Msg
+
+	publishHook PublishHook // optional; see WithPublishHook
 }
 
-func New(capacity int) *Bus {
+// New builds a bus. Options are applied in order (e.g. [WithPublishHook]).
+func New(capacity int, opts ...BusOption) *Bus {
 	if capacity <= 0 {
 		capacity = 128
 	}
-	return &Bus{
+	b := &Bus{
 		events: make(chan Event, capacity),
 		uiMsgs: make(chan tea.Msg, 256),
 	}
+	for _, o := range opts {
+		if o != nil {
+			o(b)
+		}
+	}
+	return b
 }
 
 func (b *Bus) Events() <-chan Event { return b.events }
@@ -75,8 +87,10 @@ func (b *Bus) Events() <-chan Event { return b.events }
 func (b *Bus) Publish(e Event) bool {
 	select {
 	case b.events <- e:
+		b.notifyPublish(e, true)
 		return true
 	default:
+		b.notifyPublish(e, false)
 		return false
 	}
 }
@@ -84,6 +98,13 @@ func (b *Bus) Publish(e Event) bool {
 // PublishBlocking sends an event and waits for queue space.
 func (b *Bus) PublishBlocking(e Event) {
 	b.events <- e
+	b.notifyPublish(e, true)
+}
+
+func (b *Bus) notifyPublish(e Event, accepted bool) {
+	if b.publishHook != nil {
+		b.publishHook(e, accepted)
+	}
 }
 
 func (b *Bus) EnqueueUI(msg tea.Msg) bool {
