@@ -70,7 +70,7 @@
 | `view.go` | `View()`、`appendSuggestedLine` |
 | `view_content.go` | `buildContent()`（消息流；审批块委托 `view_approval_card.go`） |
 | `view_approval_card.go` | `appendApprovalViewportContent`（敏感 / 标准审批卡文案与样式） |
-| `view_slash_dropdown.go` | slash 下拉、`choiceLinesBelowInput`、`waitingLineBelowInput` |
+| `view_slash_dropdown.go` | slash 下拉、`choiceLinesBelowInput`（行样式经 `internal/ui/widget` `RenderLinesBelowInput`）、`waitingLineBelowInput` |
 | `view_overlay.go` | `renderOverlay`、`overlayBoxMaxWidth` |
 | `view_title.go` | `titleLine`、`statusKey` |
 | `view_choices.go` | 审批/敏感数字选项、`syncInputPlaceholder` |
@@ -154,6 +154,7 @@
 
 | 日期 | 说明 |
 |------|------|
+| 2026-03-25 | §10.8.1 第 3 轮：`widget.RenderLinesBelowInput`（slash 下拉 + 审批/敏感选项行） |
 | 2026-03-25 | §10.8.1 第 2 轮：`KindSlashRelayToUI`、`SlashSubmitChan`、`TryRelaySlashSubmit`、`SlashSubmitRelayMsg`、主 Enter 中继 |
 | 2026-03-25 | §10.8.1 第 1 轮：`host_bus_audit` 扩写、`docs/adr/0001-slash-submit-payload.md`、`hostroute.SlashSubmitPayload` 契约类型 |
 | 2026-03-25 | §10.8.1：三轮收尾计划（阶段 4～5 与阶段 3 最小闭环的分批交付与验收） |
@@ -318,7 +319,7 @@
 | **2** | slash 与总线/中控衔接（试点） | **已做（观测路径）**：`KindSlashRequested`（handler 前）+ `KindSlashEntered`（成功后）；`SlashRequestChan` / `SlashTraceChan`；`Host.RequestSlashDispatch` / `TraceSlashEntered`；`hostcontroller` 占位 handler；语义标签与 `RedactedSummary` 已覆盖。解析与执行仍在 TUI/registry。 |
 | **3** | slash 主路径迁入 Controller | **部分做**：**主 Enter** 已走 `TryRelaySlashSubmit` → 总线 → 回灌（结构化 `SlashSubmitPayload`）；**未做**：`SubmitChan` 合并、全部 Enter 路径（含 `handleSlashEnterKey`）统一、Controller 内业务路由表。 |
 | **4** | 审批/敏感/远程等待总线链审计 | **已做（第 1 轮 §10.8.1）**：`docs/host_bus_audit.md` 含路径表、`events`/`uiMsgs` 职责、主对话 / HIL / 远程序列及 §10.6 对照；细部若仍随实现演进可再补。 |
-| **5** | UI 控件化（dialog/dropdown） | **部分做**：居中 modal 的 lipgloss 布局抽至 `internal/ui/widget`（`RenderCenteredModal`），`view_overlay.go` 调用；dropdown/dialog 组件化仍待后续。 |
+| **5** | UI 控件化（dialog/dropdown） | **部分做（第 3 轮 §10.8.1）**：`RenderCenteredModal`（overlay）；`RenderLinesBelowInput` + `ListRow`（slash 下拉与审批/敏感数字选项行，`view_slash_dropdown.go`）。通用 dialog 与其它 overlay 变体仍可按需再抽。 |
 
 **回归命令**：`go test ./internal/e2e/... -timeout=60s -count=1`（勿依赖默认 10m 超时判断健康）。
 
@@ -330,7 +331,7 @@
 |------|--------|----------------|------|
 | **第 1 轮** | **阶段 4 收口** + **阶段 3 的设计与契约** | **已交付（2026-03-25）**：`docs/host_bus_audit.md` 扩充为双队列说明及主对话 LLM、Agent HIL、远程三条链；§10.6 对照表；`docs/adr/0001-slash-submit-payload.md`；`internal/hostroute/slash_submit_contract.go`（`SlashSubmitPayload` 类型 + 注释，无行为变更）。 | 文档可指导第 2 轮实现；`go test ./...` 通过。 |
 | **第 2 轮** | **阶段 3 最小闭环** | **已交付（2026-03-25）**：`SlashSubmitChan` / `KindSlashRelayToUI` / `Host.TryRelaySlashSubmit`；主 Enter 上 `/…` 经中继后 `SlashSubmitRelayMsg` → `executeMainEnterCommandNoRelay`；`Nop` 与失败时同帧回退。未覆盖：`handleSlashEnterKey` 专线路径仍直接分发。 | `go test ./...` 通过；行为与黑盒/e2e 绿。 |
-| **第 3 轮** | **阶段 5 控件化** | 将 **slash 下拉**（`view_slash_dropdown.go` 与 `slashview` 的衔接处）中 **lipgloss 行/布局** 抽到 `internal/ui/widget`（或 `widget` 下子文件），`view` 仅组装数据；若篇幅允许，将 **审批/敏感底部数字选项行**（`view_choices.go` 一带）的重复样式迁入同一 widget 层。 | 视觉与行为与抽离前一致（`ui` 测试 + e2e）；`go test ./...` 通过。 |
+| **第 3 轮** | **阶段 5 控件化** | **已交付（2026-03-25）**：`internal/ui/widget/list_below_input.go`（`RenderLinesBelowInput`、`ListRow`）；`slashDropdownBelowInput` 与 `choiceLinesBelowInput` 共用；`widget` 包单测。 | `ui` + e2e 通过。 |
 
 **说明**：若第 2 轮结束后阶段 3 仍仅覆盖部分路径，应在 §10.8 主表中将阶段 3 标为 **「已做（范围：…）」** 并保留余量条目，避免与「全量 Enter 上收」混淆。
 

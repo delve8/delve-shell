@@ -6,6 +6,7 @@ import (
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/maininput"
 	"delve-shell/internal/slashview"
+	"delve-shell/internal/ui/widget"
 )
 
 // slashDropdownBelowInput returns extra lines to show under the input when in slash mode (not in approval/sensitive choice).
@@ -19,18 +20,13 @@ func (m Model) slashDropdownBelowInput(lang string) string {
 	if len(vis) == 0 {
 		return ""
 	}
-	var out strings.Builder
-	out.WriteString("\n")
 	const maxSlashVisible = 4
 	rows := slashview.BuildDropdownRows(toSlashViewOptions(opts), vis, m.Interaction.slashSuggestIndex, m.Layout.Width, maxSlashVisible)
-	for _, row := range rows {
-		if row.Highlight {
-			out.WriteString(suggestHi.Render("   "+row.Text) + "\n")
-		} else {
-			out.WriteString(suggestStyle.Render("   "+row.Text) + "\n")
-		}
+	list := make([]widget.ListRow, len(rows))
+	for i, row := range rows {
+		list[i] = widget.ListRow{Text: row.Text, Highlight: row.Highlight}
 	}
-	return out.String()
+	return widget.RenderLinesBelowInput("   ", list, suggestStyle, suggestHi)
 }
 
 // choiceLinesBelowInput returns extra lines for numeric choice menu under the input.
@@ -43,16 +39,12 @@ func (m Model) choiceLinesBelowInput(lang string) string {
 	for _, o := range opts {
 		adapted = append(adapted, maininput.ChoiceOption{Num: o.Num, Label: o.Label})
 	}
-	var out strings.Builder
-	out.WriteString("\n")
-	for _, line := range maininput.BuildChoiceLines(adapted, m.Interaction.ChoiceIndex) {
-		if line.Highlight {
-			out.WriteString(suggestHi.Render(" "+line.Text) + "\n")
-		} else {
-			out.WriteString(suggestStyle.Render(" "+line.Text) + "\n")
-		}
+	lines := maininput.BuildChoiceLines(adapted, m.Interaction.ChoiceIndex)
+	list := make([]widget.ListRow, len(lines))
+	for i, line := range lines {
+		list[i] = widget.ListRow{Text: line.Text, Highlight: line.Highlight}
 	}
-	return out.String()
+	return widget.RenderLinesBelowInput(" ", list, suggestStyle, suggestHi)
 }
 
 // waitingLineBelowInput returns the "wait or /cancel" hint when AI is running (empty if not applicable).
