@@ -155,8 +155,11 @@
 
 ## 9. 变更记录（可选维护）
 
+**注**：若同日多条与 **§10.8 五阶段计划执行状态** 冲突，以 **§10.8 主表** 为准（含 §10.8.2 第 5 轮范围收口）。
+
 | 日期 | 说明 |
 |------|------|
+| 2026-03-25 | §10.8 文档对齐：§10.8.1 第 2 轮与早路径中继一致；§9 注与过程性行；新增 §10.8.3 余量清单 |
 | 2026-03-25 | §10.8.2 第 5 轮：§10.8 主表阶段 3/5 范围收口文档、§9、与 §10.7 交叉引用 |
 | 2026-03-25 | §10.8.2 第 4 轮：`widget` 顶栏 `RenderTitleLine` |
 | 2026-03-25 | §10.8.2 第 3 轮：`widget` 审批卡 `RenderPendingApprovalLines` |
@@ -167,8 +170,8 @@
 | 2026-03-25 | §10.8.1 第 2 轮：`KindSlashRelayToUI`、`SlashSubmitChan`、`TryRelaySlashSubmit`、`SlashSubmitRelayMsg`、主 Enter 中继 |
 | 2026-03-25 | §10.8.1 第 1 轮：`host_bus_audit` 扩写、`docs/adr/0001-slash-submit-payload.md`、`hostroute.SlashSubmitPayload` 契约类型 |
 | 2026-03-25 | §10.8.1：三轮收尾计划（阶段 4～5 与阶段 3 最小闭环的分批交付与验收） |
-| 2026-03-25 | §10.8：`KindSlashRequested`（handler 前）与 §10.4.1/§10.7 表述对齐；阶段 3 记为「观测加深、Submit 统一仍待」 |
-| 2026-03-25 | §10.8：阶段 2/4/5 部分落地（`KindSlashEntered`、`docs/host_bus_audit.md`、`ui/widget` overlay）；阶段 3（slash 主路径上收）仍待后续 |
+| 2026-03-25 | §10.8：`KindSlashRequested`（handler 前）与 §10.4.1/§10.7 表述对齐（过程性记录；阶段 3 当前范围见 §10.8 主表） |
+| 2026-03-25 | §10.8：曾记阶段 2/4/5 部分落地、阶段 3 仍待——**已由 §10.8.2 第 5 轮主表与 §10.8.3 余量清单更新** |
 | 2026-03-25 | §10.8：五阶段计划中阶段 1 落地与 2–5 待做表；e2e 修复 + `wireHostStack` 抽取 |
 | 2026-03-25 | 交接文档 §10.7.1：`Model` 显式 `*Runtime` 与 Remote 总线合并命名的可选彻底层；§10.7 补充「已无 Install 全局」现状说明 |
 | 2026-03-25 | 交接文档 §10.7：总线目标 2 刻意未做项（Payload 分型、Kind 改名、Slash 上总线、默认观测、动态 handler）及后续演进建议 |
@@ -339,10 +342,10 @@
 | 轮次 | 侧重点 | 交付物（建议） | 验收 |
 |------|--------|----------------|------|
 | **第 1 轮** | **阶段 4 收口** + **阶段 3 的设计与契约** | **已交付（2026-03-25）**：`docs/host_bus_audit.md` 扩充为双队列说明及主对话 LLM、Agent HIL、远程三条链；§10.6 对照表；`docs/adr/0001-slash-submit-payload.md`；`internal/hostroute/slash_submit_contract.go`（`SlashSubmitPayload` 类型 + 注释，无行为变更）。 | 文档可指导第 2 轮实现；`go test ./...` 通过。 |
-| **第 2 轮** | **阶段 3 最小闭环** | **已交付（2026-03-25）**：`SlashSubmitChan` / `KindSlashRelayToUI` / `Host.TryRelaySlashSubmit`；主 Enter 上 `/…` 经中继后 `SlashSubmitRelayMsg` → `executeMainEnterCommandNoRelay`；`Nop` 与失败时同帧回退。未覆盖：`handleSlashEnterKey` 专线路径仍直接分发。 | `go test ./...` 通过；行为与黑盒/e2e 绿。 |
+| **第 2 轮** | **阶段 3 最小闭环** | **已交付（2026-03-25）**：`SlashSubmitChan` / `KindSlashRelayToUI` / `Host.TryRelaySlashSubmit`；主 Enter 上 `/…` 经中继后 `SlashSubmitRelayMsg` → `executeMainEnterCommandNoRelay`；`Nop` 与失败时同帧回退。 slash 早路径（`handleSlashEnterKey`）同样经 `TryRelaySlashSubmit`：**§10.8.2 第 1 轮**补全，与主 Enter 共用中继模型。 | `go test ./...` 通过；行为与黑盒/e2e 绿。 |
 | **第 3 轮** | **阶段 5 控件化** | **已交付（2026-03-25）**：`internal/ui/widget/list_below_input.go`（`RenderLinesBelowInput`、`ListRow`）；`slashDropdownBelowInput` 与 `choiceLinesBelowInput` 共用；`widget` 包单测。 | `ui` + e2e 通过。 |
 
-**说明**：若第 2 轮结束后阶段 3 仍仅覆盖部分路径，应在 §10.8 主表中将阶段 3 标为 **「已做（范围：…）」** 并保留余量条目，避免与「全量 Enter 上收」混淆。
+**说明**：§10.8.2 已补全早路径与 `slashSuggestionContext` 等；§10.8 主表阶段 3 已标 **「已做（范围：…）」** 与 **「不含：…」**，避免与「slash 全量进 Controller / `SubmitChan` 合并」混淆。
 
 #### 10.8.2 后续五轮（阶段 3 收口 + 阶段 5 深化）
 
@@ -357,6 +360,18 @@
 | **第 5 轮** | **3+5 文档收口** | **已交付（2026-03-25）**：§10.8 主表阶段 3 / 5 按可交付范围重写；表前说明与 §10.7 / 「与彻底边界」交叉引用；§9 变更记录。 | 文档自洽；`go test ./...`（含 e2e）绿。 |
 
 **与「彻底」的边界**：若产品后续要求 **slash 仅经 `SubmitChan`** 或 **Controller 持有可插拔路由表**，在 §10.8.2 之外 **另开里程碑** 并评估对 HIL / feature 注册的影响。
+
+#### 10.8.3 余量（§10.8 交付之外的后续选项）
+
+以下**不属于** §10.8 / §10.8.2 已交付范围；若要做，应**另开里程碑**，并与 **§10.7** 对照表逐项评估。
+
+| 类别 | 内容 |
+|------|------|
+| **阶段 3 余量** | `SubmitChan` 与 slash 路径统一；Controller 内可插拔 slash **业务**路由；registry 迁出 TUI（见 §10.8 主表阶段 3「不含」）。 |
+| **阶段 5 余量** | `update_approval.go` 决策后 `appendDecisionLines` widget 化；远程连接结果 / 远程认证 overlay 条块迁入 `widget`（见 §10.8 主表阶段 5「未纳入范围」）。 |
+| **总线与观测** | Payload 分型、Kind 字面统一、默认 slog/metrics/trace 等（§10.7 刻意未做表；§10.7 为技术细节与建议顺序的**单一事实来源**）。 |
+
+**§10.8 状态**：五阶段 + §10.8.1 三轮 + §10.8.2 五轮在**已承诺范围**内已闭环；上表为**可选后继**，不是 §10.8 未完项。
 
 ### 10.7 总线语义化（目标 2）：刻意未做项与后续计划
 
