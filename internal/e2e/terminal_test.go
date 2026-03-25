@@ -35,6 +35,9 @@ func writeMinimalConfig(t *testing.T, root string) {
 	t.Helper()
 	cfgPath := filepath.Join(root, "config.yaml")
 	body := "language: en\nllm:\n  model: gpt-4o-mini\n"
+	if os.Getenv("E2E_LLM") == "1" {
+		body = "language: en\nallowlist_auto_run: false\nllm:\n  base_url: ${LLM_BASE_URL}\n  api_key: ${LLM_API_KEY}\n  model: ${LLM_MODEL}\n"
+	}
 	if err := os.WriteFile(cfgPath, []byte(body), 0600); err != nil {
 		t.Fatalf("write minimal config: %v", err)
 	}

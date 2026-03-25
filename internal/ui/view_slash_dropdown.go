@@ -46,7 +46,7 @@ func (m Model) choiceLinesBelowInput(lang string) string {
 	return widget.RenderLinesBelowInput(" ", list, suggestStyle, suggestHi)
 }
 
-// waitingLineBelowInput returns the "wait or /cancel" hint when AI is running (empty if not applicable).
+// waitingLineBelowInput returns the "wait or press Esc to cancel" hint when AI is running.
 func (m Model) waitingLineBelowInput(lang string) string {
 	inChoice := m.hasPendingChoiceCard()
 	return maininput.WaitingHint(m.Interaction.WaitingForAI, inChoice, suggestStyle.Render(i18n.T(lang, i18n.KeyWaitOrCancel)))

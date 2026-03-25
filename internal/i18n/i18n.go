@@ -5,7 +5,6 @@ import "fmt"
 // Msg keys for user-facing strings. Code error messages stay in English in callers.
 const (
 	KeyHelpText              = "help_text"
-	KeyNoRequestInProgress   = "no_request_in_progress"
 	KeyUsageRun              = "usage_run"
 	KeyUnknownCmd            = "unknown_cmd"
 	KeyConfigReloaded        = "config_reloaded"
@@ -57,7 +56,6 @@ const (
 	KeyDescExit   = "desc_exit"
 	KeyDescRun    = "desc_run"
 	KeyDescSh     = "desc_sh"
-	KeyDescCancel = "desc_cancel"
 	KeyDescConfig = "desc_config"
 	KeyDescReload = "desc_reload"
 	KeyDescHelp   = "desc_help"
@@ -183,8 +181,6 @@ Slash commands (each line: command, next line: description):
 
   /help
     Show this help
-  /cancel
-    Cancel current AI request
   /config
     Set or show config
   /config add-remote
@@ -229,7 +225,6 @@ Slash commands (each line: command, next line: description):
     Quit (Ctrl+C also works)
 
 Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a suggestion, Enter fills then run.`,
-		KeyNoRequestInProgress:           "(No request in progress. /cancel only applies when waiting for AI.)",
 		KeyUsageRun:                      "Usage: /run <command> — e.g. /run ls -la",
 		KeyUnknownCmd:                    "Unknown command. Type /help for the full list, or try /q, /run <cmd>, /config.",
 		KeyDelveLabel:                    "Delve:",
@@ -239,7 +234,7 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyConfigPrefix:                  "Config: ",
 		KeyConfigUnknownField:            "unknown field ",
 		KeyConfigSaved:                   "Config saved (llm.%s).",
-		KeyWaitOrCancel:                  "(Please wait for the current response, or /cancel)",
+		KeyWaitOrCancel:                  "(Please wait for the current response, or press Esc to cancel)",
 		KeyPlaceholderInput:              "Type your question or task, or / for slash commands...",
 		KeyInputHintApprove:              "1 or 2",
 		KeyInputHintApproveThree:         "1, 2 or 3",
@@ -279,7 +274,6 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyDescExit:                      "Quit delve-shell",
 		KeyDescRun:                       "Run a command directly (no AI)",
 		KeyDescSh:                        "Spawn bash; return here when done",
-		KeyDescCancel:                    "Cancel current AI request",
 		KeyDescConfig:                    "Set or show config",
 		KeyDescReload:                    "Reload config and allowlist",
 		KeyDescHelp:                      "Show this help",

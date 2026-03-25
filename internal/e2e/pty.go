@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/creack/pty"
@@ -18,6 +19,11 @@ import (
 var ansiStrip = regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]|\x1b[\[?][0-9;]*[a-zA-Z]?`)
 
 func stripANSI(s string) string { return ansiStrip.ReplaceAllString(s, "") }
+
+var (
+	termQueryCursor = []byte("\x1b[6n")
+	termReplyCursor = []byte("\x1b[1;1R")
+)
 
 // Spawn starts the binary in a PTY; returns the PTY master and the process. Caller must Close and Kill.
 // Sets a non-zero terminal size so the TUI receives WindowSizeMsg and renders (Bubble Tea needs dimensions).
@@ -33,13 +39,17 @@ func Spawn(binaryPath string, env []string) (*os.File, *exec.Cmd, error) {
 		_ = cmd.Process.Kill()
 		return nil, nil, fmt.Errorf("pty setsize: %w", err)
 	}
+	if err := syscall.SetNonblock(int(ptmx.Fd()), true); err != nil {
+		_ = ptmx.Close()
+		_ = cmd.Process.Kill()
+		return nil, nil, fmt.Errorf("pty setnonblock: %w", err)
+	}
 	return ptmx, cmd, nil
 }
 
-// ReadUntil reads from r until output contains substr or timeout. Returns what was read.
-// If r implements SetReadDeadline (e.g. *os.File), it is used for timeout; otherwise polls until deadline.
-func ReadUntil(r io.Reader, substr string, timeout time.Duration) (string, error) {
-	type deadliner interface{ SetReadDeadline(t time.Time) error }
+// ReadUntil reads from rw until output contains substr or timeout. Returns what was read.
+// If rw implements SetReadDeadline (e.g. *os.File), it is used for timeout; otherwise polls until deadline.
+func ReadUntil(rw io.ReadWriter, substr string, timeout time.Duration) (string, error) {
 	var buf bytes.Buffer
 	deadline := time.Now().Add(timeout)
 	b := make([]byte, 256)
@@ -47,26 +57,22 @@ func ReadUntil(r io.Reader, substr string, timeout time.Duration) (string, error
 		if !time.Now().Before(deadline) {
 			return buf.String(), nil
 		}
-		slot := time.Until(deadline)
-		if slot > 400*time.Millisecond {
-			slot = 400 * time.Millisecond
-		}
-		if d, ok := r.(deadliner); ok {
-			_ = d.SetReadDeadline(time.Now().Add(slot))
-		}
-		n, err := r.Read(b)
+		n, err := rw.Read(b)
 		if n > 0 {
 			buf.Write(b[:n])
+			respondToTerminalQueries(rw, buf.Bytes())
 			if strings.Contains(stripANSI(buf.String()), substr) {
 				return buf.String(), nil
 			}
 		}
 		if err != nil {
-			if errors.Is(err, os.ErrDeadlineExceeded) || strings.Contains(err.Error(), "deadline") || strings.Contains(err.Error(), "timeout") {
+			if isRetryableRead(err) {
+				time.Sleep(20 * time.Millisecond)
 				continue
 			}
 			return buf.String(), err
 		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 
@@ -76,9 +82,8 @@ func WriteLine(w io.Writer, line string) error {
 	return err
 }
 
-// ReadUntilAny reads from r until output contains any of substrings or timeout. Returns content and matched index (-1 if timeout).
-func ReadUntilAny(r io.Reader, substrings []string, timeout time.Duration) (string, int, error) {
-	type deadliner interface{ SetReadDeadline(t time.Time) error }
+// ReadUntilAny reads from rw until output contains any of substrings or timeout. Returns content and matched index (-1 if timeout).
+func ReadUntilAny(rw io.ReadWriter, substrings []string, timeout time.Duration) (string, int, error) {
 	var buf bytes.Buffer
 	deadline := time.Now().Add(timeout)
 	b := make([]byte, 256)
@@ -86,16 +91,10 @@ func ReadUntilAny(r io.Reader, substrings []string, timeout time.Duration) (stri
 		if !time.Now().Before(deadline) {
 			return buf.String(), -1, nil
 		}
-		slot := time.Until(deadline)
-		if slot > 400*time.Millisecond {
-			slot = 400 * time.Millisecond
-		}
-		if d, ok := r.(deadliner); ok {
-			_ = d.SetReadDeadline(time.Now().Add(slot))
-		}
-		n, err := r.Read(b)
+		n, err := rw.Read(b)
 		if n > 0 {
 			buf.Write(b[:n])
+			respondToTerminalQueries(rw, buf.Bytes())
 			s := stripANSI(buf.String())
 			for i, sub := range substrings {
 				if strings.Contains(s, sub) {
@@ -104,10 +103,27 @@ func ReadUntilAny(r io.Reader, substrings []string, timeout time.Duration) (stri
 			}
 		}
 		if err != nil {
-			if errors.Is(err, os.ErrDeadlineExceeded) || strings.Contains(err.Error(), "deadline") || strings.Contains(err.Error(), "timeout") {
+			if isRetryableRead(err) {
+				time.Sleep(20 * time.Millisecond)
 				continue
 			}
 			return buf.String(), -1, err
 		}
+		time.Sleep(10 * time.Millisecond)
 	}
+}
+
+func respondToTerminalQueries(w io.Writer, buf []byte) {
+	if bytes.Contains(buf, termQueryCursor) {
+		_, _ = w.Write(termReplyCursor)
+	}
+}
+
+func isRetryableRead(err error) bool {
+	return errors.Is(err, os.ErrDeadlineExceeded) ||
+		errors.Is(err, syscall.EAGAIN) ||
+		errors.Is(err, syscall.EWOULDBLOCK) ||
+		strings.Contains(err.Error(), "deadline") ||
+		strings.Contains(err.Error(), "timeout") ||
+		strings.Contains(err.Error(), "resource temporarily unavailable")
 }

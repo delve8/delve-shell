@@ -141,13 +141,13 @@ func (m Model) handleChoiceCardShowMsg(msg ChoiceCardShowMsg) (Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) handleSlashSubmitRelayMsg(msg SlashSubmitRelayMsg) (Model, tea.Cmd) {
+func (m Model) handleLifecycleSlashExecuteMsg(msg LifecycleSlashExecuteMsg) (Model, tea.Cmd) {
 	if msg.InputLine != "" {
 		m2, cmd, handled := m.execSlashEnterKeyLocal(msg.InputLine)
 		if handled {
 			return m2, cmd
 		}
-		return m.executeMainEnterCommandNoRelay(strings.TrimSpace(msg.InputLine), msg.SlashSelectedIndex)
+		return m.executeMainEnterCommandNoRelay(strings.TrimSpace(msg.InputLine), msg.SelectedIndex)
 	}
-	return m.executeMainEnterCommandNoRelay(msg.RawLine, msg.SlashSelectedIndex)
+	return m.executeMainEnterCommandNoRelay(msg.RawText, msg.SelectedIndex)
 }

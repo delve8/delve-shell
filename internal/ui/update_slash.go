@@ -4,9 +4,9 @@ import (
 	"strings"
 
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/inputpreflight"
 	"delve-shell/internal/slashflow"
 	"delve-shell/internal/slashview"
-	"delve-shell/internal/uiflow/enterflow"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -66,13 +66,25 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 	if strings.TrimSpace(inputVal) == "" {
 		return m, nil, false
 	}
-	if enterflow.TryRelaySlashInputLine(strings.TrimSpace(inputVal), inputVal, m.Interaction.slashSuggestIndex, m.relaySlashSubmitAction) {
+	_, vis, viewOpts := m.slashSuggestionContext(inputVal)
+	selected, ok := slashview.SelectedByVisibleIndex(viewOpts, vis, m.Interaction.slashSuggestIndex)
+	plan := inputpreflight.PlanSlashEnter(inputVal, selected, ok, m.Interaction.slashSuggestIndex)
+	switch plan.Kind {
+	case inputpreflight.EnterPlanFillOnly:
+		m.Input.SetValue(plan.FillValue)
+		m.Input.CursorEnd()
+		m.Interaction.slashSuggestIndex = 0
 		return m, nil, true
+	case inputpreflight.EnterPlanSubmit:
+		if res, handled, err := m.lifecycleEngine().RouteSubmission(plan.Submission); handled && err == nil {
+			m, cmd := m.applyLifecycleResult(res)
+			return m, cmd, true
+		}
 	}
 	return m.execSlashEnterKeyLocal(inputVal)
 }
 
-// execSlashEnterKeyLocal runs slash-mode Enter without bus relay (after SlashSubmitRelayMsg with InputLine, or when relay is unwired).
+// execSlashEnterKeyLocal runs slash-mode Enter locally after lifecycle submission routing.
 func (m Model) execSlashEnterKeyLocal(inputVal string) (Model, tea.Cmd, bool) {
 	trimmed := strings.TrimSpace(inputVal)
 	if trimmed == "" {

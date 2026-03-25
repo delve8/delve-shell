@@ -110,9 +110,6 @@ func (s testActionSender) Send(a uivm.UIAction) bool {
 		default:
 			return false
 		}
-	case uivm.UIActionRelaySlashSubmit:
-		// Blackbox tests run model-only (no controller action consumer), so force local path.
-		return false
 	default:
 		return true
 	}
@@ -174,16 +171,14 @@ func TestBlackboxOverlayEscRunsFeatureResetHook(t *testing.T) {
 	}
 }
 
-func TestBlackboxSlashCancelSendsCancelRequest(t *testing.T) {
+func TestBlackboxEscSendsCancelRequest(t *testing.T) {
 	f := newBlackboxFixture(t)
 	f.model.Interaction.WaitingForAI = true
 
-	got := enterText(f.model, "/cancel")
+	next, _ := f.model.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	got := next.(ui.Model)
 	if got.Interaction.WaitingForAI {
-		t.Fatalf("expected waiting flag to be cleared after /cancel")
-	}
-	if strings.TrimSpace(got.Input.Value()) != "" {
-		t.Fatalf("expected input cleared after /cancel, got %q", got.Input.Value())
+		t.Fatalf("expected waiting flag to be cleared after Esc")
 	}
 	select {
 	case <-f.cancelRequest:
@@ -192,18 +187,17 @@ func TestBlackboxSlashCancelSendsCancelRequest(t *testing.T) {
 	}
 }
 
-func TestBlackboxSlashCancelWhenIdleShowsHint(t *testing.T) {
+func TestBlackboxEscWhenIdleDoesNothing(t *testing.T) {
 	f := newBlackboxFixture(t)
-	got := enterText(f.model, "/cancel")
-	if strings.TrimSpace(got.Input.Value()) != "" {
-		t.Fatalf("expected input cleared after idle /cancel, got %q", got.Input.Value())
+	next, _ := f.model.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	got := next.(ui.Model)
+	select {
+	case <-f.cancelRequest:
+		t.Fatalf("did not expect cancel request while idle")
+	default:
 	}
-	if len(got.TranscriptLines()) == 0 {
-		t.Fatalf("expected feedback message when /cancel has no in-flight request")
-	}
-	last := strings.Join(got.TranscriptLines(), "\n")
-	if !strings.Contains(strings.ToLower(last), "no request") {
-		t.Fatalf("expected no-request hint, got %q", last)
+	if got.Interaction.WaitingForAI {
+		t.Fatalf("expected waiting flag to remain false while idle")
 	}
 }
 
@@ -311,42 +305,37 @@ func TestBlackboxSlashDropdownUpDownAndEnterFill(t *testing.T) {
 	}
 }
 
-func TestBlackboxSlashDropdownCancelFillThenExecute(t *testing.T) {
+func TestBlackboxEscClearsSlashInputBeforeCancelling(t *testing.T) {
 	f := newBlackboxFixture(t)
 	f.model.Interaction.WaitingForAI = true
 
 	m := f.model
-	m.Input.SetValue("/c")
+	m.Input.SetValue("/remote")
 	m.Input.CursorEnd()
 
-	// First Enter should fill to /cancel (not execute yet).
-	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	m2 := next.(ui.Model)
-	if strings.TrimSpace(m2.Input.Value()) != "/cancel" {
-		t.Fatalf("expected first enter to fill /cancel, got %q", m2.Input.Value())
+	if strings.TrimSpace(m2.Input.Value()) != "" {
+		t.Fatalf("expected Esc to clear slash input first, got %q", m2.Input.Value())
 	}
 	if !m2.Interaction.WaitingForAI {
-		t.Fatalf("expected waiting flag to remain true after fill-only enter")
+		t.Fatalf("expected waiting flag to remain true after clearing slash input")
 	}
 	select {
 	case <-f.cancelRequest:
-		t.Fatalf("did not expect cancel signal on fill-only enter")
+		t.Fatalf("did not expect cancel signal while clearing slash input")
 	default:
 	}
 
-	// Second Enter executes /cancel.
-	next2, _ := m2.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	next2, _ := m2.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	m3 := next2.(ui.Model)
 	if m3.Interaction.WaitingForAI {
-		t.Fatalf("expected waiting flag false after executing /cancel")
-	}
-	if strings.TrimSpace(m3.Input.Value()) != "" {
-		t.Fatalf("expected input cleared after executing /cancel, got %q", m3.Input.Value())
+		t.Fatalf("expected waiting flag false after second Esc")
 	}
 	select {
 	case <-f.cancelRequest:
 	default:
-		t.Fatalf("expected cancel signal on second enter")
+		t.Fatalf("expected cancel signal on second Esc")
 	}
 }
 

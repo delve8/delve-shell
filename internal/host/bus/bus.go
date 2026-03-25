@@ -14,8 +14,7 @@ import (
 //
 // Coverage: submit routing (new session / switch session / chat to LLM), config reload, cancel and direct
 // exec, remote connect/off/auth, agent→UI HIL (approval / sensitive / exec result / unknown passthrough),
-// LLM run completion, slash dispatch trace ([KindSlashRequested] / [KindSlashEntered]), and
-// [KindSlashRelayToUI] for structured main-Enter slash relay (execution remains in TUI).
+// LLM run completion and slash dispatch trace ([KindSlashRequested] / [KindSlashEntered]).
 //
 // Architecture draft names (docs/ui-refactor-handoff.md §10.4) map to Kind via [Kind.SemanticLabel];
 // wire values (string constants below) remain the stable contract for tests and persistence.
@@ -41,8 +40,6 @@ const (
 	// Execution stays in the UI/registry; the controller observes these for tracing and future routing.
 	KindSlashRequested Kind = "slash_requested"
 	KindSlashEntered   Kind = "slash_entered"
-	// KindSlashRelayToUI carries structured slash intent from TUI → bus → controller → tea.Msg for re-entry (§10.8.1 round 2).
-	KindSlashRelayToUI Kind = "slash_relay_to_ui"
 )
 
 // AllKinds lists every defined [Kind] constant. Keep in sync when adding kinds; used to assert controller coverage.
@@ -64,7 +61,6 @@ func AllKinds() []Kind {
 		KindLLMRunCompleted,
 		KindSlashRequested,
 		KindSlashEntered,
-		KindSlashRelayToUI,
 	}
 }
 
@@ -85,9 +81,6 @@ type Event struct {
 
 	Reply string
 	Err   error
-
-	// SlashSubmit is set when Kind == KindSlashRelayToUI (structured main-Enter slash path).
-	SlashSubmit *route.SlashSubmitPayload
 }
 
 // Bus is a bounded event queue for host-side orchestration.
@@ -172,7 +165,6 @@ type InputPorts struct {
 	RemoteAuthRespChan chan remoteauth.Response
 	SlashRequestChan   chan string
 	SlashTraceChan     chan string
-	SlashSubmitChan    chan route.SlashSubmitPayload
 	AgentUIChan        chan any
 }
 
@@ -187,7 +179,6 @@ func NewInputPorts() InputPorts {
 		RemoteAuthRespChan: make(chan remoteauth.Response, 4),
 		SlashRequestChan:   make(chan string, 8),
 		SlashTraceChan:     make(chan string, 8),
-		SlashSubmitChan:    make(chan route.SlashSubmitPayload, 8),
 		AgentUIChan:        make(chan any, 64),
 	}
 }
@@ -225,9 +216,6 @@ func BridgeInputs(stop <-chan struct{}, b *Bus, in InputPorts) {
 				b.PublishBlocking(Event{Kind: KindSlashRequested, UserText: line})
 			case line := <-in.SlashTraceChan:
 				b.PublishBlocking(Event{Kind: KindSlashEntered, UserText: line})
-			case p := <-in.SlashSubmitChan:
-				p2 := p
-				b.PublishBlocking(Event{Kind: KindSlashRelayToUI, SlashSubmit: &p2})
 			case x := <-in.AgentUIChan:
 				if ev, ok := bridgeAgentUI(x); ok {
 					b.PublishBlocking(ev)

@@ -228,7 +228,6 @@ func TestInputPortsCapacitiesDocumented(t *testing.T) {
 		{"RemoteAuthRespChan", 4, cap(p.RemoteAuthRespChan)},
 		{"SlashRequestChan", 8, cap(p.SlashRequestChan)},
 		{"SlashTraceChan", 8, cap(p.SlashTraceChan)},
-		{"SlashSubmitChan", 8, cap(p.SlashSubmitChan)},
 		{"AgentUIChan", 64, cap(p.AgentUIChan)},
 	}
 	for _, s := range specs {

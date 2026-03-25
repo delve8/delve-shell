@@ -9,7 +9,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/hiltypes"
-	"delve-shell/internal/host/route"
 	"delve-shell/internal/remoteauth"
 	"delve-shell/internal/ui"
 )
@@ -125,7 +124,6 @@ func TestInputPortsDefaults(t *testing.T) {
 		cap(in.RemoteAuthRespChan) != 4 ||
 		cap(in.SlashRequestChan) != 8 ||
 		cap(in.SlashTraceChan) != 8 ||
-		cap(in.SlashSubmitChan) != 8 ||
 		cap(in.AgentUIChan) != 64 {
 		t.Fatalf("unexpected capacities: %+v", in)
 	}
@@ -319,25 +317,6 @@ func TestBridgeInputs_AgentUI_ExecEvent(t *testing.T) {
 	}
 }
 
-func TestBridgeInputs_SlashSubmitRelay(t *testing.T) {
-	stop := make(chan struct{})
-	defer close(stop)
-
-	b := New(8)
-	in := NewInputPorts()
-	BridgeInputs(stop, b, in)
-
-	p := route.SlashSubmitPayload{RawLine: "/help", SlashSelectedIndex: -1}
-	in.SlashSubmitChan <- p
-	ev := mustRecvEvent(t, b.Events())
-	if ev.Kind != KindSlashRelayToUI || ev.SlashSubmit == nil {
-		t.Fatalf("unexpected event: %+v", ev)
-	}
-	if ev.SlashSubmit.RawLine != "/help" || ev.SlashSubmit.SlashSelectedIndex != -1 {
-		t.Fatalf("unexpected payload: %+v", ev.SlashSubmit)
-	}
-}
-
 func TestBridgeInputs_Stop(t *testing.T) {
 	stop := make(chan struct{})
 	b := New(8)
@@ -395,9 +374,6 @@ func TestSemanticLabel_MapsDraftNames(t *testing.T) {
 	}
 	if g, w := KindSlashEntered.SemanticLabel(), "SlashEntered"; g != w {
 		t.Fatalf("KindSlashEntered: got %q want %q", g, w)
-	}
-	if g, w := KindSlashRelayToUI.SemanticLabel(), "SlashRelayToUI"; g != w {
-		t.Fatalf("KindSlashRelayToUI: got %q want %q", g, w)
 	}
 }
 

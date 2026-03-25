@@ -1,7 +1,6 @@
 package app
 
 import (
-	"delve-shell/internal/host/route"
 	"delve-shell/internal/remoteauth"
 )
 
@@ -18,7 +17,5 @@ type Send struct {
 	SlashRequest chan<- string
 	// SlashTrace receives slash lines after successful TUI dispatch (observability / future routing).
 	SlashTrace chan<- string
-	// SlashSubmit receives structured main-Enter slash intent for bus → controller → TUI relay (§10.8.1).
-	SlashSubmit   chan<- route.SlashSubmitPayload
 	ShellSnapshot chan<- []string
 }

@@ -56,29 +56,24 @@
 ### 3.2 `ui_test` 黑盒测试定位
 
 - **目的**：以真实注册链验证 UI 行为，直接覆盖 slash/overlay 主链路，降低测试结构对 `ui` 内部未导出实现与镜像脚手架的耦合。
-- **内容（现状）**：`internal/ui/model_blackbox_test.go` 使用 `package ui_test` + `TestMain` 调 `bootstrap.Install()`，已覆盖 `/help`、`/remote on`、`/cancel`、`/run`、`/new`、`/sessions`、startup overlay 等关键路径。
+- **内容（现状）**：`internal/ui/model_blackbox_test.go` 使用 `package ui_test` + `TestMain` 调 `bootstrap.Install()`，已覆盖 `/help`、`/remote on`、`Esc` 控制路径、`/run`、`/new`、`/sessions`、startup overlay 等关键路径。
 - **结果**：`feature_registry_*_test.go` 与 `main_test.go` 镜像装配层已删除。
 
 ---
 
-## 4. `view` 层拆分（最近完成）
+## 4. `view` 层拆分（当前实现）
 
 ### 4.1 文件职责（便于定位）
 
 | 文件 | 内容 |
 |------|------|
-| `view.go` | `View()`、`appendSuggestedLine` |
-| `view_content.go` | `buildContent()`（消息流；审批块委托 `view_approval_card.go`） |
-| `view_approval_card.go` | `appendApprovalViewportContent`（审批卡行样式经 `widget.RenderPendingApprovalLines`） |
-| `internal/ui/widget/approval_card.go` | `RenderPendingApprovalLines`、`PendingCardStyles`（样式由 `view_approval_card` 注入） |
+| `view.go` | `View()`、`appendSuggestedLine`、`titleLine`、`titleBarLeadingSegment`、`titleBarStatus`、`renderOverlay`、`buildContent`、`appendApprovalViewportContent`、choice 相关 helper |
+| `internal/ui/widget/approval_card.go` | `RenderPendingApprovalLines`、`PendingCardStyles`（样式由 `view.go` 注入） |
 | `view_slash_dropdown.go` | slash 下拉、`choiceLinesBelowInput`（行样式经 `internal/ui/widget` `RenderLinesBelowInput`）、`waitingLineBelowInput` |
 | `slash_suggestion_context.go` | `slashSuggestionContext`：统一 slash 候选 options / 可见索引 / `slashview` 行 |
-| `view_overlay.go` | `renderOverlay`、`overlayBoxMaxWidth` |
-| `view_title.go` | `titleLine`（行样式经 `widget.RenderTitleLine`）、`statusKey`、`titleBarStatus` |
-| `internal/ui/widget/title_bar.go` | `RenderTitleLine`、`TitleLineStyles`、`TitleBarStatus`（样式由 `view_title` 注入） |
-| `view_choices.go` | 审批/敏感数字选项、`syncInputPlaceholder` |
-| `view_history_lines.go` | `sessionEventsToMessages`、`maxSessionHistoryEvents` |
-| `view_wrap.go` | `wrapString` |
+| `internal/ui/widget/title_bar.go` | `RenderTitleLine`、`TitleLineStyles`、`TitleBarStatus`（样式由 `view.go` 注入） |
+| `internal/session/history_lines.go` | 会话历史事件到 UI 行的转换（已从 `ui` 下沉） |
+| `internal/textwrap/wrap.go` | `WrapString`（已从 `ui` 下沉） |
 
 ### 4.2 设计注意点
 
@@ -91,12 +86,12 @@
 
 ### P1 — 低风险、边界清晰
 
-1. **`view_title.go` 中 Remote 展示**（已落地）  
-   - `RegisterTitleBarFragmentProvider`：`internal/remote/registration.go` 注册；`feature_registry_test.go` 镜像（与 overlay hook 同理）。  
-   - `view_title.go` 通过 `titleBarLeadingSegment()` 聚合；无 provider 命中时默认 `"Local"`。
+1. **标题栏中的 Remote 展示**（已落地）  
+   - `RegisterTitleBarFragmentProvider`：`internal/remote/registration.go` 注册。  
+   - 当前由 `view.go` 中的 `titleBarLeadingSegment()` 聚合；无 provider 命中时默认 `"Local"`。
 
-2. **`buildContent` 中审批卡与 skill 行**（已落地 **B**）  
-   - `view_approval_card.go`：`appendApprovalViewportContent`；`view_approval_card_test.go` / `view_title_test.go` 覆盖片段行为。  
+2. **`buildContent` 中审批卡与 skill 行**（已落地）  
+   - 当前实现位于 `view.go` 中的 `appendApprovalViewportContent`；`view_approval_card_test.go` / `view_title_test.go` 覆盖片段行为。  
    - 后续若要将「行列表」上移到 `hiltypes`，可与现有函数并行演进。
 
 3. **slash 业务处理位置审计**（已核对）  
@@ -112,10 +107,10 @@
 5. **打破 `ui` 测试与 `run` 的循环（进行中）**  
    - 已做：slash exact/prefix 命令注册从 `ui` 下沉到 `internal/run`；`ui` 仅保留壳层分发与 registry API。  
    - 已做：删除 `ui` 内部 `registerSlashExact` 别名，只保留 `RegisterSlashExact`。  
-   - 已做：测试镜像按领域拆分，减轻“单点大文件”维护成本。  
    - 已做（阶段 1）：抽出 `internal/slashreg` 的 `ExactRegistry` / `PrefixRegistry`，`ui` 改为适配层。  
    - 已做（阶段 2）：provider 链（options/selected/message/overlay/title/close-hook）迁移到 `slashreg.ProviderChain` 容器。  
-   - 待做（结构性）：评估 `ui_test` 外部包迁移成本，逐步减少测试镜像覆盖面。
+   - 已做：`ui` 行为链路测试切到 `package ui_test` 黑盒，`feature_registry_*_test.go` / `main_test.go` 镜像装配层已删除。  
+   - 待做（结构性）：继续把可稳定抽象的行为压到契约级测试，避免黑盒文件继续膨胀。
 
 ### P3 — 产品/仓库卫生
 
@@ -141,6 +136,7 @@
 - CLI 接线：`internal/cli/interactive/run.go`（`bootstrap.Install()`）与 `internal/bootstrap/install.go`  
 - Host 总线与中控：`internal/host/bus/bus.go`、`internal/host/controller/controller.go`  
 - Host→TUI 消息门面：`internal/uipresenter/presenter.go`  
+- 统一输入生命周期设计：`docs/input-lifecycle-architecture.md`
 - 结构任务总表：`.cursor/code-structure-tasks.md`（若仓库跟踪该文件）
 
 ---
@@ -155,7 +151,7 @@
 
 ## 9. 变更记录（可选维护）
 
-**注**：若同日多条与 **§10.8 五阶段计划执行状态** 冲突，以 **§10.8 主表** 为准（含 §10.8.2 第 5 轮范围收口）。
+**注**：本节保留历史演进记录，可能包含中间阶段的过渡说法；如与“当前状态”冲突，以 §2、§4、§7、§10.5.1、§10.8 主表为准。2026-03-25 后续统一 lifecycle 重构已移除 `SlashSubmitChan` / `KindSlashRelayToUI` / `TryRelaySlashSubmit` / `SlashSubmitRelayMsg` 这条过渡回路。
 
 | 日期 | 说明 |
 |------|------|
@@ -311,7 +307,7 @@
 ### 10.5.1 已落地（实现快照）
 
 - `interactive.Run` 启动时调用 `bootstrap.Install()`，并创建 `bus.Bus` 与 `bus.InputPorts`；`runnermgr` 的 `UIEvents` 接入 `ports.AgentUIChan`；`wiring.BindSendPorts` 将通道挂到 `app.Runtime`，同一 `*Runtime` 作为 **`ui.Model.Host`** 注入 TUI（allowlist getter、remote 镜像、ConfigLLM 首次 layout 等仍在 `Runtime` 上）。
-- `controller.Controller` 单 goroutine 消费 Bus 事件；LLM 运行在独立 goroutine 中，完成时投递 `KindLLMRunCompleted`，避免阻塞导致 `/cancel` 失效。
+- `controller.Controller` 单 goroutine 消费 Bus 事件；LLM 运行在独立 goroutine 中，完成时投递 `KindLLMRunCompleted`，避免阻塞导致处理期控制信号失效。
 - `uipresenter.Presenter` 封装发往 TUI 的 `tea.Msg`，`controller` 不再散落 `ui.*` 结构体字面量（`DispatchAgentUI` 统一映射 Agent 侧 payload）。
 - `internal/cli/hostloop` 包已删除（原 multiplex / submit / agent_ui 等逻辑已迁入 controller + uipresenter）。
 
@@ -328,7 +324,7 @@
 
 | 阶段 | 目标 | 状态 |
 |------|------|------|
-| **1** | e2e 可验证、不因错误假设长时间无输出 | **已做**：`interactive` 补充 `_ "internal/run"`、`_ "internal/remote"`（与 `session` 并列），真实二进制具备 slash 注册；`cases` 期望与 `KeyConfigHint` 对齐；`ReadUntil`/`ReadUntilAny` 按墙钟截止收紧读片段时间并识别 `os.ErrDeadlineExceeded`；`internal/e2e/README.md` 写明 `-timeout` 与排障。 |
+| **1** | e2e 可验证、不因错误假设长时间无输出 | **已做**：`interactive.Run()` 启动时调用 `bootstrap.Install()`，真实二进制具备 slash/overlay 注册；`cases` 期望与 `KeyConfigHint` 对齐；`ReadUntil`/`ReadUntilAny` 按墙钟截止收紧读片段时间并识别 `os.ErrDeadlineExceeded`；`internal/e2e/README.md` 写明 `-timeout` 与排障。 |
 | **2** | slash 与总线/中控衔接（试点） | **已做（观测路径）**：`KindSlashRequested`（handler 前）+ `KindSlashEntered`（成功后）；`SlashRequestChan` / `SlashTraceChan`；`Host.RequestSlashDispatch` / `TraceSlashEntered`；`controller` 占位 handler；语义标签与 `RedactedSummary` 已覆盖。解析与执行仍在 TUI/registry。 |
 | **3** | slash 主路径迁入 Controller | **已做（范围：Enter 中继统一 + `SlashSubmitPayload` / `InputLine` 等结构化载荷；`TryRelaySlashSubmit` → `SlashSubmitRelayMsg`；`slashSuggestionContext` 共用）**。**不含**：`SubmitChan` 合并、Controller 内 slash **业务**路由表（registry 仍在 TUI）。余量与总线刻意未做项见 **§10.7**。 |
 | **4** | 审批/敏感/远程等待总线链审计 | **已做（第 1 轮 §10.8.1）**：`docs/host_bus_audit.md` 含路径表、`events`/`uiMsgs` 职责、主对话 / HIL / 远程序列及 §10.6 对照；细部若仍随实现演进可再补。 |
@@ -357,7 +353,7 @@
 | **第 1 轮** | **3** | **已交付（2026-03-25）**：`SlashSubmitPayload.InputLine`；`execSlashEnterKeyLocal`；`handleSlashEnterKey` 先 `TryRelaySlashSubmit`；`SlashSubmitRelayMsg` 按 `InputLine` 调 `execSlashEnterKeyLocal`，未处理则 `executeMainEnterCommandNoRelay`；`RedactedSummary` 含 `input=`。 | `go test ./...`（含 e2e）绿。 |
 | **第 2 轮** | **3** | **已交付（2026-03-25）**：`slashSuggestionContext` / `slashSuggestionContextWithLang`（`slash_suggestion_context.go`）；`update_slash`、`update_main_enter_command`、`update_keymsg`、`view_slash_dropdown` 共用；文档与 ADR 指针更新。 | 行为等价；`go test ./...` 绿。 |
 | **第 3 轮** | **5** | **已交付（2026-03-25）**：`widget/approval_card.go`（`RenderPendingApprovalLines`、`PendingCardStyles`）；`view_approval_card` 传入 `ui` 包样式；`appendDecisionLines` 未动（含决策后 LineSuggest 分支逻辑）。 | `view_approval_card_test` + e2e 绿。 |
-| **第 4 轮** | **5** | **已交付（2026-03-25）**：`widget/title_bar.go`（`RenderTitleLine`、`TitleBarStatus`、`TitleLineStyles`）；`view_title` 注入 `ui` 包样式。刻意未抽：远程连接结果文案、认证 overlay 条（仍可按需后续一轮）。 | `view_title_test` + `widget` 单测 + e2e 绿。 |
+| **第 4 轮** | **5** | **已交付（2026-03-25）**：`widget/title_bar.go`（`RenderTitleLine`、`TitleBarStatus`、`TitleLineStyles`）；由 `view.go` 注入 `ui` 包样式。刻意未抽：远程连接结果文案、认证 overlay 条（仍可按需后续一轮）。 | `view_title_test` + `widget` 单测 + e2e 绿。 |
 | **第 5 轮** | **3+5 文档收口** | **已交付（2026-03-25）**：§10.8 主表阶段 3 / 5 按可交付范围重写；表前说明与 §10.7 / 「与彻底边界」交叉引用；§9 变更记录。 | 文档自洽；`go test ./...`（含 e2e）绿。 |
 
 **与「彻底」的边界**：若产品后续要求 **slash 仅经 `SubmitChan`** 或 **Controller 持有可插拔路由表**，在 §10.8.2 之外 **另开里程碑** 并评估对 HIL / feature 注册的影响。

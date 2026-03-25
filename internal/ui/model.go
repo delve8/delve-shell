@@ -98,7 +98,7 @@ func (m Model) delveMsg(msg string) string {
 //   - messageProviderChain — feature-registered handlers (session, config-LLM, skills); see RegisterMessageProvider.
 //   - update_lifecycle.go — WindowSize, Blur, Focus, overlay open/close, mouse / viewport.
 //   - update_overlay_key.go then update_keymsg.go, update_slash.go, update_approval.go — keyboard when overlay vs main input.
-//   - update_approval.go, update_events.go — agent approval, transcript, SlashSubmitRelayMsg.
+//   - update_approval.go, update_events.go — agent approval and transcript events.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.syncInputPlaceholder()
 
@@ -133,8 +133,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case TranscriptReplaceMsg:
 		return m.handleTranscriptReplaceMsg(msg)
 
-	case SlashSubmitRelayMsg:
-		return m.handleSlashSubmitRelayMsg(msg)
+	case LifecycleSlashExecuteMsg:
+		return m.handleLifecycleSlashExecuteMsg(msg)
 	}
 
 	return m, nil

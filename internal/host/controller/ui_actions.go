@@ -36,12 +36,6 @@ func (c *Controller) handleUIAction(action uivm.UIAction) {
 		if c.runners != nil {
 			c.runners.SetAllowlistAutoRun(action.BoolValue)
 		}
-	case uivm.UIActionRelaySlashSubmit:
-		if action.SlashSubmit.RawLine == "" {
-			return
-		}
-		p := action.SlashSubmit
-		c.bus.PublishBlocking(bus.Event{Kind: bus.KindSlashRelayToUI, SlashSubmit: &p})
 	case uivm.UIActionRequestSlashTrace:
 		if action.Text == "" {
 			return

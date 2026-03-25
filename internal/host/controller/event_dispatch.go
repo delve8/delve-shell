@@ -58,7 +58,4 @@ var hostEventHandlers = map[bus.Kind]func(*Controller, bus.Event){
 	bus.KindSlashEntered: func(c *Controller, e bus.Event) {
 		c.handleSlashEntered(e)
 	},
-	bus.KindSlashRelayToUI: func(c *Controller, e bus.Event) {
-		c.handleSlashRelayToUI(e)
-	},
 }

@@ -44,8 +44,6 @@ func (k Kind) SemanticLabel() string {
 		return "SlashRequested"
 	case KindSlashEntered:
 		return "SlashEntered"
-	case KindSlashRelayToUI:
-		return "SlashRelayToUI"
 	default:
 		return "UnknownKind"
 	}
@@ -64,15 +62,6 @@ func (e Event) RedactedSummary() string {
 		return fmt.Sprintf("%s line=%q", label, clipOneLine(e.UserText, 200))
 	case KindSlashEntered:
 		return fmt.Sprintf("%s line=%q", label, clipOneLine(e.UserText, 200))
-	case KindSlashRelayToUI:
-		if e.SlashSubmit == nil {
-			return label + " payload=nil"
-		}
-		p := e.SlashSubmit
-		if p.InputLine != "" {
-			return fmt.Sprintf("%s line=%q idx=%d input=%q", label, clipOneLine(p.RawLine, 200), p.SlashSelectedIndex, clipOneLine(p.InputLine, 120))
-		}
-		return fmt.Sprintf("%s line=%q idx=%d", label, clipOneLine(p.RawLine, 200), p.SlashSelectedIndex)
 	case KindUserChatSubmitted:
 		return fmt.Sprintf("%s text=%q", label, clipOneLine(e.UserText, 80))
 	case KindExecDirectRequested:

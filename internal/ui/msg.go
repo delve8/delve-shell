@@ -28,11 +28,9 @@ type OverlayShowMsg struct {
 	Content string
 }
 
-// SlashSubmitRelayMsg carries structured slash intent from host controller back into Update (§10.8.1).
-// Handlers must call executeMainEnterCommandNoRelay, not handleMainEnterCommand, to avoid relay recursion.
-type SlashSubmitRelayMsg struct {
-	RawLine            string
-	SlashSelectedIndex int
-	// InputLine is set when relaying slash-mode Enter (preserve raw input buffer).
-	InputLine string
+// LifecycleSlashExecuteMsg asks the UI to execute a slash submission locally.
+type LifecycleSlashExecuteMsg struct {
+	RawText       string
+	InputLine     string
+	SelectedIndex int
 }

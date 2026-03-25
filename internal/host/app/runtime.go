@@ -1,10 +1,8 @@
 package app
 
 import (
-	"strings"
 	"sync"
 
-	"delve-shell/internal/host/route"
 	"delve-shell/internal/remoteauth"
 )
 
@@ -144,7 +142,7 @@ func (r *Runtime) NotifyConfigUpdated() {
 	}
 }
 
-// PublishCancelRequest forwards /cancel to the host controller.
+// PublishCancelRequest forwards a cancel-processing control signal to the host controller.
 func (r *Runtime) PublishCancelRequest() bool {
 	s := r.currentSend()
 	if s == nil || s.CancelRequest == nil {
@@ -220,23 +218,6 @@ func (r *Runtime) PublishRemoteAuthResponse(resp remoteauth.Response) bool {
 	}
 	select {
 	case s.RemoteAuthResp <- resp:
-		return true
-	default:
-		return false
-	}
-}
-
-// TryRelaySlashSubmit enqueues structured slash intent for Bridge → controller → TUI relay.
-func (r *Runtime) TryRelaySlashSubmit(p route.SlashSubmitPayload) bool {
-	if p.RawLine == "" || !strings.HasPrefix(p.RawLine, "/") {
-		return false
-	}
-	s := r.currentSend()
-	if s == nil || s.SlashSubmit == nil {
-		return false
-	}
-	select {
-	case s.SlashSubmit <- p:
 		return true
 	default:
 		return false

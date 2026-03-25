@@ -2,6 +2,11 @@
 
 供对照 §10「单一事件链」与观测扩展；非终端用户文档。
 
+注：
+
+- 下文中关于 `SlashSubmitChan` / `KindSlashRelayToUI` / `TryRelaySlashSubmit` / `SlashSubmitRelayMsg` 的描述属于 2026-03-25 的历史实现记录。
+- 当前代码已经移除该回路，slash 主提交改为统一 lifecycle 后在 `ui` 本地执行。
+
 ## 进入 `hostbus.Bus` 的来源
 
 | 来源 | 事件形态 |

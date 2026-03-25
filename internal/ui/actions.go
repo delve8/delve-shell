@@ -2,7 +2,6 @@ package ui
 
 import (
 	"delve-shell/internal/remoteauth"
-	"delve-shell/internal/uitypes"
 	"delve-shell/internal/uivm"
 )
 
@@ -30,23 +29,13 @@ func (s actionChannelSender) Send(action uivm.UIAction) bool {
 	}
 }
 
-func (m Model) submitAction(text string) bool {
+func (m Model) EmitSubmitIntent(text string) bool {
 	if m.ActionSender == nil {
 		return false
 	}
 	return m.ActionSender.Send(uivm.UIAction{
 		Kind: uivm.UIActionSubmit,
 		Text: text,
-	})
-}
-
-func (m Model) relaySlashSubmitAction(p uitypes.SlashSubmitPayload) bool {
-	if m.ActionSender == nil {
-		return false
-	}
-	return m.ActionSender.Send(uivm.UIAction{
-		Kind:        uivm.UIActionRelaySlashSubmit,
-		SlashSubmit: p,
 	})
 }
 
@@ -70,10 +59,6 @@ func (m Model) traceSlashEnteredAction(line string) {
 	})
 }
 
-func (m Model) EmitSubmitIntent(text string) bool {
-	return m.submitAction(text)
-}
-
 func (m Model) EmitConfigUpdatedIntent() {
 	if m.ActionSender == nil {
 		return
@@ -86,13 +71,6 @@ func (m Model) EmitExecDirectIntent(cmd string) {
 		return
 	}
 	_ = m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionExecDirect, Text: cmd})
-}
-
-func (m Model) EmitCancelRequestIntent() bool {
-	if m.ActionSender == nil {
-		return false
-	}
-	return m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionCancelRequested})
 }
 
 func (m Model) EmitShellSnapshotIntent(msgs []string) bool {

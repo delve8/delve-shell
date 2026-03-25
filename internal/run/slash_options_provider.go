@@ -55,7 +55,6 @@ func registerSlashOptionsProviders() {
 func rootSlashOptions(lang string) []ui.SlashOption {
 	return []ui.SlashOption{
 		{Cmd: "/help", Desc: i18n.T(lang, i18n.KeyDescHelp)},
-		{Cmd: "/cancel", Desc: i18n.T(lang, i18n.KeyDescCancel)},
 		{Cmd: "/config", Desc: i18n.T(lang, i18n.KeyDescConfig)},
 		{Cmd: "/remote", Desc: i18n.T(lang, i18n.KeyDescRemoteOn)},
 		{Cmd: "/new", Desc: i18n.T(lang, i18n.KeySessionNew)},

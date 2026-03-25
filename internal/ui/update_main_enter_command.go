@@ -6,18 +6,22 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/maininput"
 	"delve-shell/internal/uiflow/enterflow"
 )
 
 func (m Model) handleMainEnterCommand(text string, slashSelectedIndex int) (Model, tea.Cmd) {
-	if enterflow.TryRelayMainEnter(text, slashSelectedIndex, m.relaySlashSubmitAction) {
-		return m, nil
+	if strings.HasPrefix(strings.TrimSpace(text), "/") {
+		if res, handled, err := m.submitLifecycleSlash(text, text, slashSelectedIndex, inputlifecycletype.SourceMainEnter); handled && err == nil {
+			m, cmd := m.applyLifecycleResult(res)
+			return m, cmd
+		}
 	}
 	return m.executeMainEnterCommandNoRelay(text, slashSelectedIndex)
 }
 
-// executeMainEnterCommandNoRelay runs the main Enter path without the bus relay (used after SlashSubmitRelayMsg).
+// executeMainEnterCommandNoRelay runs the main Enter path without re-entering lifecycle routing.
 func (m Model) executeMainEnterCommandNoRelay(text string, slashSelectedIndex int) (Model, tea.Cmd) {
 	if strings.HasPrefix(text, "/") {
 		if m2, cmd, handled := m.dispatchSlashExact(text); handled {
@@ -61,7 +65,7 @@ func (m Model) executeMainEnterCommandNoRelay(text string, slashSelectedIndex in
 		}
 	}
 
-	if m.submitAction(text) {
+	if m.EmitSubmitIntent(text) {
 		m.Interaction.WaitingForAI = true
 	}
 	return m, nil

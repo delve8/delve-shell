@@ -24,7 +24,7 @@ func (c *Controller) handleUserChat(userMsg string) {
 		_ = s.AppendUserInput(userMsg)
 	}
 	if c.llmRunning {
-		c.ui.AgentReply("", fmt.Errorf("LLM request is already running; use /cancel first"))
+		c.ui.AgentReply("", fmt.Errorf("LLM request is already running; press Esc to cancel it first"))
 		return
 	}
 	r, err := c.runners.Get(context.Background())

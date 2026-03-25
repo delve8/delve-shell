@@ -53,16 +53,6 @@ var TerminalCases = []Case{
 		},
 	},
 	{
-		Name:    "TUI_cancel_no_request",
-		Skip:    "",
-		Timeout: DefaultStepTimeout,
-		Steps: []Step{
-			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
-			{Input: "/cancel", Expect: []string{"No request in progress", "当前无进行中的请求", "无进行中的请求"}, Timeout: 3 * time.Second},
-			{Input: "/q", Expect: []string{}, Timeout: 2 * time.Second},
-		},
-	},
-	{
 		Name:    "TUI_unknown_cmd",
 		Skip:    "",
 		Timeout: DefaultStepTimeout,
@@ -98,8 +88,8 @@ var TerminalCases = []Case{
 		Timeout: 20 * time.Second,
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
-			{Input: "list files in current directory", Expect: []string{"Command to run", "待执行的命令", "approval", "批准", "1=", "2="}, Timeout: 18 * time.Second},
-			{Input: "y", Expect: []string{"exit_code", "Run:"}, Timeout: 10 * time.Second},
+			{Input: "Use execute_command to run `pwd` and then tell me the result.", Expect: []string{"Command to run", "待执行的命令", "1=Run", "1=approve", "2=Copy", "2=reject", "3=Dismiss"}, Timeout: 18 * time.Second},
+			{Input: "1", Expect: []string{"exit_code", "Run:", "pwd"}, Timeout: 10 * time.Second},
 		},
 	},
 }

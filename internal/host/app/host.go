@@ -1,7 +1,6 @@
 package app
 
 import (
-	"delve-shell/internal/host/route"
 	"delve-shell/internal/remoteauth"
 )
 
@@ -25,8 +24,6 @@ type Host interface {
 	RemoteLabel() string
 	SetOpenConfigLLMOnFirstLayout(v bool)
 	TakeOpenConfigLLMOnFirstLayout() bool
-	// TryRelaySlashSubmit enqueues structured slash intent for controller → TUI relay; returns false if unwired or buffer full.
-	TryRelaySlashSubmit(p route.SlashSubmitPayload) bool
 	// RequestSlashDispatch records that the TUI is about to run a matched slash handler (non-blocking; drops if full).
 	RequestSlashDispatch(line string)
 	// TraceSlashEntered records a successfully dispatched slash line on the host bus (non-blocking; drops if full).
@@ -53,7 +50,6 @@ func (nopHost) RemoteActive() bool                                 { return fals
 func (nopHost) RemoteLabel() string                                { return "" }
 func (nopHost) SetOpenConfigLLMOnFirstLayout(bool)                 {}
 func (nopHost) TakeOpenConfigLLMOnFirstLayout() bool               { return false }
-func (nopHost) TryRelaySlashSubmit(route.SlashSubmitPayload) bool  { return false }
 func (nopHost) RequestSlashDispatch(string)                        {}
 func (nopHost) TraceSlashEntered(string)                           {}
 

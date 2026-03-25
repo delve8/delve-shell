@@ -5,7 +5,6 @@ package run
 func Register() {
 	registerSlashRunCore()
 	registerOverlayCloseHookRun()
-	registerSlashExactCancelCmd()
 	registerSlashExactConfigCmds()
 	registerSlashExactLifecycleCmds()
 	registerSlashOptionsProviders()

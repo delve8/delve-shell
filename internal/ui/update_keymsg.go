@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/maininput"
 	"delve-shell/internal/slashview"
 
@@ -29,6 +30,11 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 
 	// Always allow ctrl+c to quit, even during pending approvals or sensitive prompts.
 	if key == "ctrl+c" {
+		res, err := mm.lifecycleEngine().SubmitControl(inputlifecycletype.ControlSignalInterrupt, inputlifecycletype.SourceKeyboardSignal)
+		if err == nil {
+			mm, cmd := mm.applyLifecycleResult(res)
+			return mm, cmd
+		}
 		return mm, tea.Quit
 	}
 
@@ -52,6 +58,23 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 
 	if m2, cmd, handled := mm.handleOverlayKey(key, msg); handled {
 		return m2, cmd
+	}
+
+	if key == "esc" {
+		inputVal = ks.inputValue()
+		if strings.HasPrefix(inputVal, "/") && strings.TrimSpace(inputVal) != "" {
+			mm = mm.clearSlashInput()
+			return mm, nil
+		}
+		if ks.waitingForAI() {
+			res, err := mm.lifecycleEngine().SubmitControl(inputlifecycletype.ControlSignalEsc, inputlifecycletype.SourceKeyboardSignal)
+			if err == nil {
+				mm.Interaction.WaitingForAI = false
+				mm, cmd := mm.applyLifecycleResult(res)
+				return mm, cmd
+			}
+			return mm, nil
+		}
 	}
 
 	inputVal = ks.inputValue()
@@ -85,17 +108,15 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 			ks.setSlashSuggestIndex(0)
 			return mm, nil
 		}
-		if maininput.IsNewSessionCommand(text) {
-			mm = mm.appendUserSubmittedEcho(text)
-			_ = mm.submitAction(text)
-			ks.setInputValue("")
-			ks.setSlashSuggestIndex(0)
-			mm = mm.RefreshViewport()
-			return mm, nil
-		}
 		mm = mm.appendUserSubmittedEcho(text)
 		ks.setInputValue("")
 		ks.setSlashSuggestIndex(0)
+		if !strings.HasPrefix(text, "/") {
+			if res, handled, err := mm.lifecycleEngine().SubmitEnter(text, capture.SelectedIndex); handled && err == nil {
+				mm, cmd := mm.applyLifecycleResult(res)
+				return mm, cmd
+			}
+		}
 		return mm.handleMainEnterCommand(text, capture.SelectedIndex)
 	}
 

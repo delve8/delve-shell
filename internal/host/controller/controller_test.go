@@ -13,7 +13,6 @@ import (
 	"delve-shell/internal/cli/hostfsm"
 	"delve-shell/internal/execenv"
 	"delve-shell/internal/host/bus"
-	"delve-shell/internal/host/route"
 	"delve-shell/internal/hiltypes"
 	"delve-shell/internal/runtime/sessionmgr"
 	"delve-shell/internal/ui"
@@ -395,20 +394,6 @@ func TestHandleEvent_SlashRequestedNoOp(t *testing.T) {
 	c.handleEvent(bus.Event{Kind: bus.KindSlashRequested, UserText: "/help"})
 	if len(s.msgs) != 0 {
 		t.Fatalf("slash requested is observability-only, got %d msgs", len(s.msgs))
-	}
-}
-
-func TestHandleEvent_SlashRelayToUIEnqueuesRelayMsg(t *testing.T) {
-	s := &recordSender{}
-	c := newTestControllerWithPresenter(s)
-	p := route.SlashSubmitPayload{RawLine: "/help", SlashSelectedIndex: 0}
-	c.handleEvent(bus.Event{Kind: bus.KindSlashRelayToUI, SlashSubmit: &p})
-	if len(s.msgs) != 1 {
-		t.Fatalf("want 1 msg, got %d", len(s.msgs))
-	}
-	relay, ok := s.msgs[0].(ui.SlashSubmitRelayMsg)
-	if !ok || relay.RawLine != "/help" || relay.SlashSelectedIndex != 0 {
-		t.Fatalf("unexpected msg: %#v", s.msgs[0])
 	}
 }
 

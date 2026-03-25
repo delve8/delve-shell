@@ -14,7 +14,7 @@ Non-goals of this note:
 Accepted boundary outcomes:
 - `internal/ui` has no direct imports from `internal/host/*`, `internal/runtime/*`, or service packages.
 - UI write-side operations are emitted as `uivm.UIAction` intents and consumed in `internal/host/controller/ui_actions.go`.
-- Slash relay contract used by UI flow is `internal/uitypes.SlashSubmitPayload` (UI-owned contract path).
+- Slash submission now enters the unified input lifecycle and is executed locally in `internal/ui`, without a controller relay payload.
 - Remote execution display state (`Active`, `Label`) is stored in `ui.Model` and updated via remote UI messages, not host mirrors.
 - UI startup and allowlist read-side access is narrowed to `ui.ReadModel`.
 
@@ -34,10 +34,6 @@ This matches the targeted direction: UI acts as render + interaction + intent em
 - Risk: continued growth can create a command-router hotspot and reduce change isolation.
 - Root-cause pattern: fast consolidation of UI intent handling into one switch.
 
-4) Remaining alias path exists for slash submit payload (`internal/host/route` alias to `internal/uitypes`)
-- Risk: dual import paths may confuse future contributors during new feature work.
-- Root-cause pattern: staged migration strategy retained compatibility shim.
-
 ## Ordered Refactor Plan (Single-purpose, Verifiable)
 
 1. Rename UI action helper surface to intent-oriented names
@@ -52,17 +48,13 @@ This matches the targeted direction: UI acts as render + interaction + intent em
 - Candidate partitions: submit+lifecycle, remote, slash tracing/relay, config/allowlist.
 - Verification: each handler file has clear ownership and no behavior change (`go test ./internal/host/controller`).
 
-4. Remove slash payload alias shim after call-site cleanup
-- Replace `internal/host/route` payload references with `internal/uitypes` everywhere.
-- Verification: no remaining alias dependency by `rg "host/route\\.SlashSubmitPayload|type SlashSubmitPayload ="`.
-
 ## Regression Checklist
 
 - `go test ./...` passes.
 - Slash flows still work:
   - exact command dispatch
   - prefix dispatch
-  - relay-to-UI path with selected index and input line
+  - lifecycle-to-local execution path with selected index and input line
 - Session commands still work:
   - `/new`
   - `/sessions <id>`

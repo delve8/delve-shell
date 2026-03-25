@@ -61,12 +61,11 @@ Use **`/config update auto-run list`** in the app to merge the current built-in 
 
 ### Slash commands
 
-Type `/` to list and complete these commands (order: help → cancel → config → new → sessions → reload → run → sh → exit):
+Type `/` to list and complete these commands (order: help → config → new → sessions → reload → run → sh → exit):
 
 | Command        | Description |
 |----------------|-------------|
 | `/help`        | Show help and slash command list |
-| `/cancel`      | Cancel the current AI request |
 | `/config`      | Config (sub: add/remove-remote, auto-run list-only/disable, update auto-run list, llm) |
 | `/config add-remote`  | Add a remote (opens form) |
 | `/config remove-remote`  | Remove a remote target by name |
@@ -87,4 +86,5 @@ After typing `/`, use **Up/Down** to select a suggestion and **Enter** to fill t
 
 - **Up / Down / PgUp / PgDown**: Scroll the conversation; when input starts with `/`, Up/Down cycle slash suggestions.
 - **Enter**: Send input or confirm/reject a command.
+- **Esc**: Close the current overlay, clear slash input state, or cancel an in-flight AI response.
 - **ctrl+c**: Quit.

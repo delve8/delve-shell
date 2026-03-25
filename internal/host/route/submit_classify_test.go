@@ -98,7 +98,6 @@ func TestClassifyUserSubmit_LLMChat(t *testing.T) {
 		"run ls",
 		"/help",
 		"/config",
-		"/cancel",
 		"/run echo hi",
 		" /not-a-slash-command ",
 		"你好",
