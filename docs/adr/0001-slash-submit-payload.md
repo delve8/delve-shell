@@ -4,6 +4,8 @@
 
 已采纳；**第 2 轮已接线**：`SlashSubmitChan` → `KindSlashRelayToUI` → Controller → `SlashSubmitRelayMsg` → `executeMainEnterCommandNoRelay`。`hostapp.Nop()` 与未接线 Runtime 仍走同帧本地执行（`TryRelaySlashSubmit` 返回 false）。
 
+**`InputLine`（§10.8.2 第 1 轮）**：非空时中继回调走 `execSlashEnterKeyLocal`（slash 早路径 Enter）；空时仍走主 Enter 的 `executeMainEnterCommandNoRelay`。
+
 ## 背景
 
 - `SubmitChan` 当前载荷为 **`string`**；`hostroute.ClassifyUserSubmit` 仅区分 `/new`、`/sessions …` 与其余（后者映射为 **LLM 路径** 的 `KindUserChatSubmitted`）。

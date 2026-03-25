@@ -68,7 +68,11 @@ func (e Event) RedactedSummary() string {
 		if e.SlashSubmit == nil {
 			return label + " payload=nil"
 		}
-		return fmt.Sprintf("%s line=%q idx=%d", label, clipOneLine(e.SlashSubmit.RawLine, 200), e.SlashSubmit.SlashSelectedIndex)
+		p := e.SlashSubmit
+		if p.InputLine != "" {
+			return fmt.Sprintf("%s line=%q idx=%d input=%q", label, clipOneLine(p.RawLine, 200), p.SlashSelectedIndex, clipOneLine(p.InputLine, 120))
+		}
+		return fmt.Sprintf("%s line=%q idx=%d", label, clipOneLine(p.RawLine, 200), p.SlashSelectedIndex)
 	case KindUserChatSubmitted:
 		return fmt.Sprintf("%s text=%q", label, clipOneLine(e.UserText, 80))
 	case KindExecDirectRequested:

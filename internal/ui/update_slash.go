@@ -3,6 +3,7 @@ package ui
 import (
 	"strings"
 
+	"delve-shell/internal/hostroute"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/slashflow"
 	"delve-shell/internal/slashview"
@@ -61,6 +62,21 @@ func (m Model) dispatchSlashPrefix(text string) (Model, tea.Cmd, bool) {
 // so a row like "/config del-remote host" is not overridden by exact "/config del-remote".
 // Lists that mix a parent row with longer rows should put the parent first (see remote slash options).
 func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
+	if strings.TrimSpace(inputVal) == "" {
+		return m, nil, false
+	}
+	if m.Host.TryRelaySlashSubmit(hostroute.SlashSubmitPayload{
+		RawLine:            strings.TrimSpace(inputVal),
+		SlashSelectedIndex: m.Interaction.slashSuggestIndex,
+		InputLine:          inputVal,
+	}) {
+		return m, nil, true
+	}
+	return m.execSlashEnterKeyLocal(inputVal)
+}
+
+// execSlashEnterKeyLocal runs slash-mode Enter without bus relay (after SlashSubmitRelayMsg with InputLine, or when relay is unwired).
+func (m Model) execSlashEnterKeyLocal(inputVal string) (Model, tea.Cmd, bool) {
 	trimmed := strings.TrimSpace(inputVal)
 	if trimmed == "" {
 		return m, nil, false

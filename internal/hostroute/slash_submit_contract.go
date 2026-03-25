@@ -10,4 +10,7 @@ package hostroute
 type SlashSubmitPayload struct {
 	RawLine            string
 	SlashSelectedIndex int
+	// InputLine is the raw input buffer when Enter came from the slash early path (handleSlashEnterKey).
+	// Empty means the main Enter path (executeMainEnterCommandNoRelay). Required for slashflow.EvaluateSlashEnter.
+	InputLine string
 }

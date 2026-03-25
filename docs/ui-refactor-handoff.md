@@ -154,6 +154,8 @@
 
 | 日期 | 说明 |
 |------|------|
+| 2026-03-25 | §10.8.2 第 1 轮：`SlashSubmitPayload.InputLine`、`execSlashEnterKeyLocal`、slash 早路径中继 |
+| 2026-03-25 | §10.8.2：后续五轮规划（阶段 3 收口 + 阶段 5 深化，不含 registry 迁 Controller） |
 | 2026-03-25 | §10.8.1 第 3 轮：`widget.RenderLinesBelowInput`（slash 下拉 + 审批/敏感选项行） |
 | 2026-03-25 | §10.8.1 第 2 轮：`KindSlashRelayToUI`、`SlashSubmitChan`、`TryRelaySlashSubmit`、`SlashSubmitRelayMsg`、主 Enter 中继 |
 | 2026-03-25 | §10.8.1 第 1 轮：`host_bus_audit` 扩写、`docs/adr/0001-slash-submit-payload.md`、`hostroute.SlashSubmitPayload` 契约类型 |
@@ -317,7 +319,7 @@
 |------|------|------|
 | **1** | e2e 可验证、不因错误假设长时间无输出 | **已做**：`interactive` 补充 `_ "internal/run"`、`_ "internal/remote"`（与 `session` 并列），真实二进制具备 slash 注册；`cases` 期望与 `KeyConfigHint` 对齐；`ReadUntil`/`ReadUntilAny` 按墙钟截止收紧读片段时间并识别 `os.ErrDeadlineExceeded`；`internal/e2e/README.md` 写明 `-timeout` 与排障。 |
 | **2** | slash 与总线/中控衔接（试点） | **已做（观测路径）**：`KindSlashRequested`（handler 前）+ `KindSlashEntered`（成功后）；`SlashRequestChan` / `SlashTraceChan`；`Host.RequestSlashDispatch` / `TraceSlashEntered`；`hostcontroller` 占位 handler；语义标签与 `RedactedSummary` 已覆盖。解析与执行仍在 TUI/registry。 |
-| **3** | slash 主路径迁入 Controller | **部分做**：**主 Enter** 已走 `TryRelaySlashSubmit` → 总线 → 回灌（结构化 `SlashSubmitPayload`）；**未做**：`SubmitChan` 合并、全部 Enter 路径（含 `handleSlashEnterKey`）统一、Controller 内业务路由表。 |
+| **3** | slash 主路径迁入 Controller | **部分做（§10.8.2 推进中）**：**主 Enter** 与 **slash 早路径**（`handleSlashEnterKey`）均已走 `TryRelaySlashSubmit` → 总线 → `SlashSubmitRelayMsg`（`InputLine` 区分）；**未做**：`SubmitChan` 合并、Controller 内 slash **业务**路由表（registry 仍在 TUI）。 |
 | **4** | 审批/敏感/远程等待总线链审计 | **已做（第 1 轮 §10.8.1）**：`docs/host_bus_audit.md` 含路径表、`events`/`uiMsgs` 职责、主对话 / HIL / 远程序列及 §10.6 对照；细部若仍随实现演进可再补。 |
 | **5** | UI 控件化（dialog/dropdown） | **部分做（第 3 轮 §10.8.1）**：`RenderCenteredModal`（overlay）；`RenderLinesBelowInput` + `ListRow`（slash 下拉与审批/敏感数字选项行，`view_slash_dropdown.go`）。通用 dialog 与其它 overlay 变体仍可按需再抽。 |
 
@@ -334,6 +336,20 @@
 | **第 3 轮** | **阶段 5 控件化** | **已交付（2026-03-25）**：`internal/ui/widget/list_below_input.go`（`RenderLinesBelowInput`、`ListRow`）；`slashDropdownBelowInput` 与 `choiceLinesBelowInput` 共用；`widget` 包单测。 | `ui` + e2e 通过。 |
 
 **说明**：若第 2 轮结束后阶段 3 仍仅覆盖部分路径，应在 §10.8 主表中将阶段 3 标为 **「已做（范围：…）」** 并保留余量条目，避免与「全量 Enter 上收」混淆。
+
+#### 10.8.2 后续五轮（阶段 3 收口 + 阶段 5 深化）
+
+在 §10.8.1 三轮之后，按 **「阶段 3 可文档化收口」** 与 **「阶段 5 继续抽组件」** 再排五轮；**不包含**「slash registry 迁入 Controller、执行彻底离开 TUI」类架构重切（应单独立项）。每轮独立可合并，**验收：`go test ./...`（含 e2e）**。
+
+| 轮次 | 对准阶段 | 交付物（建议） | 验收要点 |
+|------|----------|----------------|----------|
+| **第 1 轮** | **3** | **已交付（2026-03-25）**：`SlashSubmitPayload.InputLine`；`execSlashEnterKeyLocal`；`handleSlashEnterKey` 先 `TryRelaySlashSubmit`；`SlashSubmitRelayMsg` 按 `InputLine` 调 `execSlashEnterKeyLocal`，未处理则 `executeMainEnterCommandNoRelay`；`RedactedSummary` 含 `input=`。 | `go test ./...`（含 e2e）绿。 |
+| **第 2 轮** | **3** | **减少重复**：从 `update_slash.go` / `update_main_enter_command.go` 抽出共用的 slash 行构建或意图说明（小步，避免与 registry 强耦合）；更新 `docs/host_bus_audit.md` / ADR 中「Enter 路径」表述。 | 无行为变化或可证明等价；测试绿。 |
+| **第 3 轮** | **5** | **审批卡**：将 `view_approval_card.go` 中可复用的 lipgloss 条（标题、风险标签、决策行等）迁入 `internal/ui/widget`，`view` 仅组装数据。 | 视觉快照或现有 `view_approval_card_test` 仍绿；e2e 审批路径绿。 |
+| **第 4 轮** | **5** | **远程/顶栏相关**：远程连接结果、认证提示条或 `view_title.go` 中与顶栏重复的样式块迁入 `widget`（择一为主，避免单 PR 过大）。 | 相关 ui 测试 + e2e remote 场景绿。 |
+| **第 5 轮** | **3+5 文档收口** | **更新 §10.8 主表**：阶段 3 标为 **「已做（范围：Enter 中继统一 + 结构化载荷；不含 SubmitChan 合并、不含 Controller 内 registry）」**；阶段 5 标为 **「已做（范围：modal + 列表行 + 第 3～4 轮 widget）」**；§9 变更记录；刻意未做项指向 §10.7。 | 文档自洽；全量测试绿。 |
+
+**与「彻底」的边界**：若产品后续要求 **slash 仅经 `SubmitChan`** 或 **Controller 持有可插拔路由表**，在 §10.8.2 之外 **另开里程碑** 并评估对 HIL / feature 注册的影响。
 
 ### 10.7 总线语义化（目标 2）：刻意未做项与后续计划
 

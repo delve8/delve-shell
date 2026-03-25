@@ -39,7 +39,9 @@
 
 若 `TryRelaySlashSubmit` 返回 false（`Nop()`、channel 满、未接线），**回退**为同帧 **`executeMainEnterCommandNoRelay`**，与旧行为一致。
 
-**未走此链的路径**：仅走 `handleSlashEnterKey` 的 slash Enter（例如 overlay 选中）、以及 `/new` / `/sessions` 经 `SubmitChan` 的会话命令。
+**`SlashSubmitPayload.InputLine`**：非空时表示 Enter 来自 **slash 早路径**（`handleSlashEnterKey`），`SlashSubmitRelayMsg` 优先 `execSlashEnterKeyLocal`；若未处理则回退为 `executeMainEnterCommandNoRelay`（对齐原先「slash 早路径未处理则落入主 Enter」的行为）。
+
+**未走此链的路径**：`/new` / `/sessions` 经 `SubmitChan` 的会话命令（不经 `SlashSubmitChan`）。
 
 ## 主对话 → LLM（典型顺序）
 
