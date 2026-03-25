@@ -3,6 +3,7 @@ package run
 import (
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/hostapp"
 	"delve-shell/internal/ui"
 )
 
@@ -21,7 +22,7 @@ func init() {
 		Handle: func(m ui.Model) (ui.Model, tea.Cmd) {
 			msgs := make([]string, len(m.Messages))
 			copy(msgs, m.Messages)
-			_ = trySendShellSnapshot(msgs)
+			_ = hostapp.PublishShellSnapshot(msgs)
 			return m, tea.Quit
 		},
 		ClearInput: true,

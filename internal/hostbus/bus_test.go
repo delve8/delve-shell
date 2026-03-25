@@ -7,6 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/agent/hiltypes"
 	"delve-shell/internal/remoteauth"
 	"delve-shell/internal/ui"
 )
@@ -37,12 +38,12 @@ func TestNew_DefaultCapacity(t *testing.T) {
 
 func TestPublishAndEvents(t *testing.T) {
 	b := New(4)
-	ok := b.Publish(Event{Kind: KindUserSubmitted, UserText: "hello"})
+	ok := b.Publish(Event{Kind: KindUserChatSubmitted, UserText: "hello"})
 	if !ok {
 		t.Fatal("publish failed unexpectedly")
 	}
 	ev := mustRecvEvent(t, b.Events())
-	if ev.Kind != KindUserSubmitted || ev.UserText != "hello" {
+	if ev.Kind != KindUserChatSubmitted || ev.UserText != "hello" {
 		t.Fatalf("unexpected event: %+v", ev)
 	}
 }
@@ -135,7 +136,33 @@ func TestBridgeInputs_Submit(t *testing.T) {
 
 	in.SubmitChan <- "hello"
 	ev := mustRecvEvent(t, b.Events())
-	if ev.Kind != KindUserSubmitted || ev.UserText != "hello" {
+	if ev.Kind != KindUserChatSubmitted || ev.UserText != "hello" {
+		t.Fatalf("unexpected event: %+v", ev)
+	}
+}
+
+func TestBridgeInputs_SubmitNewSession(t *testing.T) {
+	stop := make(chan struct{})
+	defer close(stop)
+	b := New(8)
+	in := NewInputPorts()
+	BridgeInputs(stop, b, in)
+	in.SubmitChan <- "/new"
+	ev := mustRecvEvent(t, b.Events())
+	if ev.Kind != KindSessionNewRequested {
+		t.Fatalf("unexpected event: %+v", ev)
+	}
+}
+
+func TestBridgeInputs_SubmitSwitchSession(t *testing.T) {
+	stop := make(chan struct{})
+	defer close(stop)
+	b := New(8)
+	in := NewInputPorts()
+	BridgeInputs(stop, b, in)
+	in.SubmitChan <- "/sessions  demo-id "
+	ev := mustRecvEvent(t, b.Events())
+	if ev.Kind != KindSessionSwitchRequested || ev.SessionID != "demo-id" {
 		t.Fatalf("unexpected event: %+v", ev)
 	}
 }
@@ -250,12 +277,40 @@ func TestBridgeInputs_AgentUI(t *testing.T) {
 	payload := map[string]string{"k": "v"}
 	in.AgentUIChan <- payload
 	ev := mustRecvEvent(t, b.Events())
-	if ev.Kind != KindAgentUIEmitted {
+	if ev.Kind != KindAgentUnknown {
 		t.Fatalf("unexpected event kind: %+v", ev)
 	}
 	m, ok := ev.AgentUI.(map[string]string)
 	if !ok || m["k"] != "v" {
 		t.Fatalf("unexpected agent payload: %#v", ev.AgentUI)
+	}
+}
+
+func TestBridgeInputs_AgentUI_Approval(t *testing.T) {
+	stop := make(chan struct{})
+	defer close(stop)
+	b := New(8)
+	in := NewInputPorts()
+	BridgeInputs(stop, b, in)
+	req := &hiltypes.ApprovalRequest{Command: "ls"}
+	in.AgentUIChan <- req
+	ev := mustRecvEvent(t, b.Events())
+	if ev.Kind != KindApprovalRequested || ev.Approval != req {
+		t.Fatalf("unexpected event: %+v", ev)
+	}
+}
+
+func TestBridgeInputs_AgentUI_ExecEvent(t *testing.T) {
+	stop := make(chan struct{})
+	defer close(stop)
+	b := New(8)
+	in := NewInputPorts()
+	BridgeInputs(stop, b, in)
+	ex := hiltypes.ExecEvent{Command: "echo", Allowed: true, Result: "hi"}
+	in.AgentUIChan <- ex
+	ev := mustRecvEvent(t, b.Events())
+	if ev.Kind != KindAgentExecEvent || ev.AgentExec.Command != "echo" {
+		t.Fatalf("unexpected event: %+v", ev)
 	}
 }
 

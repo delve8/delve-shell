@@ -14,21 +14,10 @@ import (
 	"delve-shell/internal/config"
 	"delve-shell/internal/history"
 	"delve-shell/internal/hostbus"
-	"delve-shell/internal/hostroute"
 	"delve-shell/internal/modelinfo"
 )
 
-func (c *Controller) handleSubmit(userMsg string) {
-	route := hostroute.ClassifyUserSubmit(userMsg)
-	switch route.Kind {
-	case hostroute.UserSubmitNewSession:
-		c.handleSubmitNewSession()
-		return
-	case hostroute.UserSubmitSwitchSession:
-		c.handleSubmitSwitchSession(route.SessionID)
-		return
-	}
-
+func (c *Controller) handleUserChat(userMsg string) {
 	if s := c.sessions.Current(); s != nil {
 		_ = s.AppendUserInput(userMsg)
 	}

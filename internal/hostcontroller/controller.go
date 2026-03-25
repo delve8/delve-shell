@@ -104,8 +104,12 @@ func (c *Controller) run() {
 
 func (c *Controller) handleEvent(e hostbus.Event) {
 	switch e.Kind {
-	case hostbus.KindUserSubmitted:
-		c.handleSubmit(e.UserText)
+	case hostbus.KindSessionNewRequested:
+		c.handleSubmitNewSession()
+	case hostbus.KindSessionSwitchRequested:
+		c.handleSubmitSwitchSession(e.SessionID)
+	case hostbus.KindUserChatSubmitted:
+		c.handleUserChat(e.UserText)
 	case hostbus.KindConfigUpdated:
 		c.handleConfigUpdated()
 	case hostbus.KindCancelRequested:
@@ -118,7 +122,18 @@ func (c *Controller) handleEvent(e hostbus.Event) {
 		c.handleRemoteOff()
 	case hostbus.KindRemoteAuthResponseSubmitted:
 		c.handleRemoteAuthResp(e.RemoteAuthResponse)
-	case hostbus.KindAgentUIEmitted:
+	case hostbus.KindApprovalRequested:
+		if e.Approval != nil {
+			c.ui.ShowApproval(e.Approval)
+		}
+	case hostbus.KindSensitiveConfirmationRequested:
+		if e.Sensitive != nil {
+			c.ui.ShowSensitiveConfirmation(e.Sensitive)
+		}
+	case hostbus.KindAgentExecEvent:
+		v := e.AgentExec
+		c.ui.CommandExecutedFromTool(v.Command, v.Allowed, v.Result, v.Sensitive, v.Suggested)
+	case hostbus.KindAgentUnknown:
 		c.handleAgentUI(e.AgentUI)
 	case hostbus.KindLLMRunCompleted:
 		c.handleLLMRunCompleted(e.Reply, e.Err)

@@ -8,9 +8,10 @@ import (
 
 	"delve-shell/internal/config"
 	"delve-shell/internal/configllm"
+	"delve-shell/internal/hostapp"
 	"delve-shell/internal/hostnotify"
-	"delve-shell/internal/remote"
-	"delve-shell/internal/run"
+	_ "delve-shell/internal/remote"
+	_ "delve-shell/internal/run"
 	_ "delve-shell/internal/session"
 	_ "delve-shell/internal/skill"
 	"delve-shell/internal/ui"
@@ -28,7 +29,8 @@ type blackboxFixture struct {
 	remoteAuthResp chan ui.RemoteAuthResponse
 }
 
-func newBlackboxFixture() blackboxFixture {
+func newBlackboxFixture(t *testing.T) blackboxFixture {
+	t.Helper()
 	f := blackboxFixture{
 		submitChan:     make(chan string, 2),
 		execDirectChan: make(chan string, 2),
@@ -39,14 +41,17 @@ func newBlackboxFixture() blackboxFixture {
 		remoteOff:      make(chan struct{}, 2),
 		remoteAuthResp: make(chan ui.RemoteAuthResponse, 2),
 	}
-	remote.SetRemoteOnTargetChan(f.remoteOn)
-	remote.SetRemoteOffChan(f.remoteOff)
-	remote.SetRemoteAuthRespChan(f.remoteAuthResp)
-	run.SetShellRequestedChan(f.shellRequested)
-	run.SetCancelRequestChan(f.cancelRequest)
-	run.SetExecDirectChan(f.execDirectChan)
-	hostnotify.SetConfigUpdatedChan(f.configUpdated)
-	hostnotify.SetSubmitChan(f.submitChan)
+	hostapp.Wire(&hostapp.Send{
+		Submit:         f.submitChan,
+		ConfigUpdated:  f.configUpdated,
+		CancelRequest:  f.cancelRequest,
+		ExecDirect:     f.execDirectChan,
+		RemoteOn:       f.remoteOn,
+		RemoteOff:      f.remoteOff,
+		RemoteAuthResp: f.remoteAuthResp,
+		ShellSnapshot:  f.shellRequested,
+	})
+	t.Cleanup(func() { hostapp.Wire(nil) })
 	hostnotify.SetAllowlistAutoRunGetter(func() bool { return true })
 	hostnotify.SetRemoteExecution(false, "")
 	hostnotify.SetOpenConfigLLMOnFirstLayout(false)
@@ -62,7 +67,7 @@ func enterText(m ui.Model, text string) ui.Model {
 }
 
 func TestBlackboxSlashHelpOpensOverlay(t *testing.T) {
-	f := newBlackboxFixture()
+	f := newBlackboxFixture(t)
 	got := enterText(f.model, "/help")
 	if !got.Overlay.Active {
 		t.Fatalf("expected /help to open overlay")
@@ -73,7 +78,7 @@ func TestBlackboxSlashHelpOpensOverlay(t *testing.T) {
 }
 
 func TestBlackboxSlashRemoteOnOpensOverlay(t *testing.T) {
-	f := newBlackboxFixture()
+	f := newBlackboxFixture(t)
 	got := enterText(f.model, "/remote on")
 	if !got.Overlay.Active {
 		t.Fatalf("expected /remote on to open add-remote overlay")
@@ -81,7 +86,7 @@ func TestBlackboxSlashRemoteOnOpensOverlay(t *testing.T) {
 }
 
 func TestBlackboxOverlayEscRunsFeatureResetHook(t *testing.T) {
-	f := newBlackboxFixture()
+	f := newBlackboxFixture(t)
 	m := enterText(f.model, "/remote on")
 	if !m.Overlay.Active {
 		t.Fatalf("precondition failed: add-remote overlay should be active")
@@ -94,7 +99,7 @@ func TestBlackboxOverlayEscRunsFeatureResetHook(t *testing.T) {
 }
 
 func TestBlackboxSlashCancelSendsCancelRequest(t *testing.T) {
-	f := newBlackboxFixture()
+	f := newBlackboxFixture(t)
 	f.model.Interaction.WaitingForAI = true
 
 	got := enterText(f.model, "/cancel")
@@ -112,7 +117,7 @@ func TestBlackboxSlashCancelSendsCancelRequest(t *testing.T) {
 }
 
 func TestBlackboxSlashCancelWhenIdleShowsHint(t *testing.T) {
-	f := newBlackboxFixture()
+	f := newBlackboxFixture(t)
 	got := enterText(f.model, "/cancel")
 	if strings.TrimSpace(got.Input.Value()) != "" {
 		t.Fatalf("expected input cleared after idle /cancel, got %q", got.Input.Value())
@@ -127,7 +132,7 @@ func TestBlackboxSlashCancelWhenIdleShowsHint(t *testing.T) {
 }
 
 func TestBlackboxSlashShSendsMessagesToShell(t *testing.T) {
-	f := newBlackboxFixture()
+	f := newBlackboxFixture(t)
 	f.model.Messages = []string{"a", "b"}
 
 	_ = enterText(f.model, "/sh")
@@ -146,7 +151,7 @@ func TestBlackboxSlashShSendsMessagesToShell(t *testing.T) {
 }
 
 func TestBlackboxSlashRunExecutesDirectCommand(t *testing.T) {
-	f := newBlackboxFixture()
+	f := newBlackboxFixture(t)
 	_ = enterText(f.model, "/run echo")
 	select {
 	case cmd := <-f.execDirectChan:
@@ -159,7 +164,7 @@ func TestBlackboxSlashRunExecutesDirectCommand(t *testing.T) {
 }
 
 func TestBlackboxSlashRunUsageFillsInput(t *testing.T) {
-	f := newBlackboxFixture()
+	f := newBlackboxFixture(t)
 	got := enterText(f.model, "/run")
 	if got.Input.Value() != "/run " {
 		t.Fatalf("expected /run to fill input to '/run ', got %q", got.Input.Value())
@@ -172,7 +177,7 @@ func TestBlackboxSlashConfigDelRemoteNoHostsShowsHint(t *testing.T) {
 	if err := config.EnsureRootDir(); err != nil {
 		t.Fatal(err)
 	}
-	f := newBlackboxFixture()
+	f := newBlackboxFixture(t)
 	got := enterText(f.model, "/config del-remote")
 	if strings.TrimSpace(got.Input.Value()) != "" {
 		t.Fatalf("expected input cleared after no-hosts del-remote, got %q", got.Input.Value())
@@ -184,7 +189,7 @@ func TestBlackboxSlashConfigDelRemoteNoHostsShowsHint(t *testing.T) {
 }
 
 func TestBlackboxSlashConfigFillsToFirstSubcommandOnEnter(t *testing.T) {
-	f := newBlackboxFixture()
+	f := newBlackboxFixture(t)
 	got := enterText(f.model, "/config")
 	if got.Input.Value() != "/config add-remote" {
 		t.Fatalf("expected /config to fill to first subcommand, got %q", got.Input.Value())
@@ -192,7 +197,7 @@ func TestBlackboxSlashConfigFillsToFirstSubcommandOnEnter(t *testing.T) {
 }
 
 func TestBlackboxSlashDropdownUpDownAndEnterFill(t *testing.T) {
-	f := newBlackboxFixture()
+	f := newBlackboxFixture(t)
 	m := f.model
 	m.Input.SetValue("/")
 	m.Input.CursorEnd()
@@ -214,7 +219,7 @@ func TestBlackboxSlashDropdownUpDownAndEnterFill(t *testing.T) {
 }
 
 func TestBlackboxSlashDropdownCancelFillThenExecute(t *testing.T) {
-	f := newBlackboxFixture()
+	f := newBlackboxFixture(t)
 	f.model.Interaction.WaitingForAI = true
 
 	m := f.model
@@ -253,7 +258,7 @@ func TestBlackboxSlashDropdownCancelFillThenExecute(t *testing.T) {
 }
 
 func TestBlackboxSlashUpdateSkillEnterDoesNotSilentlyDrop(t *testing.T) {
-	f := newBlackboxFixture()
+	f := newBlackboxFixture(t)
 	m := f.model
 	m.Input.SetValue("/config update-skill x")
 	m.Input.CursorEnd()
@@ -266,7 +271,7 @@ func TestBlackboxSlashUpdateSkillEnterDoesNotSilentlyDrop(t *testing.T) {
 }
 
 func TestBlackboxSlashNewSubmitsCommand(t *testing.T) {
-	f := newBlackboxFixture()
+	f := newBlackboxFixture(t)
 	got := enterText(f.model, "/new")
 	select {
 	case v := <-f.submitChan:
@@ -282,7 +287,7 @@ func TestBlackboxSlashNewSubmitsCommand(t *testing.T) {
 }
 
 func TestBlackboxSlashSessionsPrefixSubmitsCommand(t *testing.T) {
-	f := newBlackboxFixture()
+	f := newBlackboxFixture(t)
 	_ = enterText(f.model, "/sessions demo")
 	select {
 	case cmd := <-f.submitChan:

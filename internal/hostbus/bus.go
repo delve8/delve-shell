@@ -5,6 +5,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/agent/hiltypes"
+	"delve-shell/internal/hostroute"
 	"delve-shell/internal/remoteauth"
 )
 
@@ -12,15 +14,20 @@ import (
 type Kind string
 
 const (
-	KindUserSubmitted                 Kind = "user_submitted"
-	KindConfigUpdated                 Kind = "config_updated"
-	KindCancelRequested               Kind = "cancel_requested"
-	KindExecDirectRequested           Kind = "exec_direct_requested"
-	KindRemoteOnRequested             Kind = "remote_on_requested"
-	KindRemoteOffRequested            Kind = "remote_off_requested"
-	KindRemoteAuthResponseSubmitted   Kind = "remote_auth_response_submitted"
-	KindAgentUIEmitted                Kind = "agent_ui_emitted"
-	KindLLMRunCompleted               Kind = "llm_run_completed"
+	KindSessionNewRequested               Kind = "session_new_requested"
+	KindSessionSwitchRequested            Kind = "session_switch_requested"
+	KindUserChatSubmitted                 Kind = "user_chat_submitted"
+	KindConfigUpdated                     Kind = "config_updated"
+	KindCancelRequested                   Kind = "cancel_requested"
+	KindExecDirectRequested               Kind = "exec_direct_requested"
+	KindRemoteOnRequested                 Kind = "remote_on_requested"
+	KindRemoteOffRequested                Kind = "remote_off_requested"
+	KindRemoteAuthResponseSubmitted       Kind = "remote_auth_response_submitted"
+	KindApprovalRequested                 Kind = "approval_requested"
+	KindSensitiveConfirmationRequested    Kind = "sensitive_confirmation_requested"
+	KindAgentExecEvent                    Kind = "agent_exec_event"
+	KindAgentUnknown                      Kind = "agent_unknown"
+	KindLLMRunCompleted                   Kind = "llm_run_completed"
 )
 
 // Event carries one domain payload through the host bus.
@@ -28,11 +35,15 @@ type Event struct {
 	Kind Kind
 
 	UserText           string
+	SessionID          string
 	Command            string
 	RemoteTarget       string
 	RemoteAuthResponse remoteauth.Response
 
-	AgentUI any
+	Approval  *hiltypes.ApprovalRequest
+	Sensitive *hiltypes.SensitiveConfirmationRequest
+	AgentExec hiltypes.ExecEvent
+	AgentUI   any // fallback when Kind == KindAgentUnknown
 
 	Reply string
 	Err   error
@@ -124,7 +135,15 @@ func BridgeInputs(stop <-chan struct{}, b *Bus, in InputPorts) {
 			case <-stop:
 				return
 			case text := <-in.SubmitChan:
-				b.PublishBlocking(Event{Kind: KindUserSubmitted, UserText: text})
+				route := hostroute.ClassifyUserSubmit(text)
+				switch route.Kind {
+				case hostroute.UserSubmitNewSession:
+					b.PublishBlocking(Event{Kind: KindSessionNewRequested})
+				case hostroute.UserSubmitSwitchSession:
+					b.PublishBlocking(Event{Kind: KindSessionSwitchRequested, SessionID: route.SessionID})
+				default:
+					b.PublishBlocking(Event{Kind: KindUserChatSubmitted, UserText: text})
+				}
 			case <-in.ConfigUpdatedChan:
 				b.PublishBlocking(Event{Kind: KindConfigUpdated})
 			case <-in.CancelRequestChan:
@@ -138,7 +157,9 @@ func BridgeInputs(stop <-chan struct{}, b *Bus, in InputPorts) {
 			case resp := <-in.RemoteAuthRespChan:
 				b.PublishBlocking(Event{Kind: KindRemoteAuthResponseSubmitted, RemoteAuthResponse: resp})
 			case x := <-in.AgentUIChan:
-				b.PublishBlocking(Event{Kind: KindAgentUIEmitted, AgentUI: x})
+				if ev, ok := bridgeAgentUI(x); ok {
+					b.PublishBlocking(ev)
+				}
 			}
 		}
 	}()
@@ -158,4 +179,20 @@ func StartUIPump(stop <-chan struct{}, b *Bus, currentP *atomic.Pointer[tea.Prog
 			}
 		}
 	}()
+}
+
+func bridgeAgentUI(x any) (Event, bool) {
+	if x == nil {
+		return Event{}, false
+	}
+	switch v := x.(type) {
+	case *hiltypes.ApprovalRequest:
+		return Event{Kind: KindApprovalRequested, Approval: v}, true
+	case *hiltypes.SensitiveConfirmationRequest:
+		return Event{Kind: KindSensitiveConfirmationRequested, Sensitive: v}, true
+	case hiltypes.ExecEvent:
+		return Event{Kind: KindAgentExecEvent, AgentExec: v}, true
+	default:
+		return Event{Kind: KindAgentUnknown, AgentUI: x}, true
+	}
 }

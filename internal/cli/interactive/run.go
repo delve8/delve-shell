@@ -62,7 +62,7 @@ func Run() error {
 	})
 
 	shellRequestedChan := make(chan []string, 1)
-	hostwiring.BindLegacyFeatureChannels(ports, shellRequestedChan)
+	hostwiring.BindSendPorts(ports, shellRequestedChan)
 
 	var currentP atomic.Pointer[tea.Program]
 	controller := hostcontroller.New(hostcontroller.Options{

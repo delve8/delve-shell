@@ -12,11 +12,11 @@ import (
 	"delve-shell/internal/ui"
 )
 
-// BindLegacyFeatureChannels mutates package-level globals. Do not use t.Parallel().
+// BindSendPorts installs hostapp send endpoints. Do not use t.Parallel().
 
-func TestBindLegacyFeatureChannels_SubmitDelivered(t *testing.T) {
+func TestBindSendPorts_SubmitDelivered(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindLegacyFeatureChannels(ports, make(chan []string, 1))
+	BindSendPorts(ports, make(chan []string, 1))
 
 	done := make(chan string, 1)
 	go func() {
@@ -36,9 +36,9 @@ func TestBindLegacyFeatureChannels_SubmitDelivered(t *testing.T) {
 	}
 }
 
-func TestBindLegacyFeatureChannels_ConfigUpdated(t *testing.T) {
+func TestBindSendPorts_ConfigUpdated(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindLegacyFeatureChannels(ports, make(chan []string, 1))
+	BindSendPorts(ports, make(chan []string, 1))
 
 	go func() { hostnotify.NotifyConfigUpdated() }()
 	select {
@@ -48,9 +48,9 @@ func TestBindLegacyFeatureChannels_ConfigUpdated(t *testing.T) {
 	}
 }
 
-func TestBindLegacyFeatureChannels_ExecDirectPublish(t *testing.T) {
+func TestBindSendPorts_ExecDirectPublish(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindLegacyFeatureChannels(ports, make(chan []string, 1))
+	BindSendPorts(ports, make(chan []string, 1))
 
 	done := make(chan string, 1)
 	go func() {
@@ -69,9 +69,9 @@ func TestBindLegacyFeatureChannels_ExecDirectPublish(t *testing.T) {
 	}
 }
 
-func TestBindLegacyFeatureChannels_CancelPublish(t *testing.T) {
+func TestBindSendPorts_CancelPublish(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindLegacyFeatureChannels(ports, make(chan []string, 1))
+	BindSendPorts(ports, make(chan []string, 1))
 
 	go func() { <-ports.CancelRequestChan }()
 
@@ -80,9 +80,9 @@ func TestBindLegacyFeatureChannels_CancelPublish(t *testing.T) {
 	}
 }
 
-func TestBindLegacyFeatureChannels_RemoteOnOffAuth(t *testing.T) {
+func TestBindSendPorts_RemoteOnOffAuth(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindLegacyFeatureChannels(ports, make(chan []string, 1))
+	BindSendPorts(ports, make(chan []string, 1))
 
 	if !remote.PublishRemoteOnTarget("dev") {
 		t.Fatal("remote on publish failed")
@@ -119,10 +119,10 @@ func TestBindLegacyFeatureChannels_RemoteOnOffAuth(t *testing.T) {
 	}
 }
 
-func TestBindLegacyFeatureChannels_ShellSnapshotPublish(t *testing.T) {
+func TestBindSendPorts_ShellSnapshotPublish(t *testing.T) {
 	ports := hostbus.NewInputPorts()
 	shell := make(chan []string, 1)
-	BindLegacyFeatureChannels(ports, shell)
+	BindSendPorts(ports, shell)
 
 	msgs := []string{"a", "b"}
 	if !run.PublishShellSnapshot(msgs) {
@@ -138,9 +138,9 @@ func TestBindLegacyFeatureChannels_ShellSnapshotPublish(t *testing.T) {
 	}
 }
 
-func TestBindLegacyFeatureChannels_SubmitNonBlockingVsFullBuffer(t *testing.T) {
+func TestBindSendPorts_SubmitNonBlockingVsFullBuffer(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindLegacyFeatureChannels(ports, make(chan []string, 1))
+	BindSendPorts(ports, make(chan []string, 1))
 
 	for i := 0; i < cap(ports.SubmitChan); i++ {
 		if !hostnotify.TrySubmitNonBlocking("fill") {
@@ -152,9 +152,9 @@ func TestBindLegacyFeatureChannels_SubmitNonBlockingVsFullBuffer(t *testing.T) {
 	}
 }
 
-func TestBindLegacyFeatureChannels_ExecDirectEmptyNoBlock(t *testing.T) {
+func TestBindSendPorts_ExecDirectEmptyNoBlock(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindLegacyFeatureChannels(ports, make(chan []string, 1))
+	BindSendPorts(ports, make(chan []string, 1))
 
 	done := make(chan struct{})
 	go func() {
@@ -175,12 +175,12 @@ func TestBindLegacyFeatureChannels_ExecDirectEmptyNoBlock(t *testing.T) {
 	}
 }
 
-func TestBindLegacyFeatureChannels_MultipleBindsLastWins(t *testing.T) {
+func TestBindSendPorts_MultipleBindsLastWins(t *testing.T) {
 	p1 := hostbus.NewInputPorts()
 	p2 := hostbus.NewInputPorts()
 	shell := make(chan []string, 1)
-	BindLegacyFeatureChannels(p1, shell)
-	BindLegacyFeatureChannels(p2, shell)
+	BindSendPorts(p1, shell)
+	BindSendPorts(p2, shell)
 
 	go func() { <-p2.SubmitChan }()
 	if !hostnotify.Submit("second") {
@@ -218,9 +218,9 @@ func TestInputPortsCapacitiesDocumented(t *testing.T) {
 	}
 }
 
-func TestBindLegacyFeatureChannels_AgentUIChanUnwired(t *testing.T) {
+func TestBindSendPorts_AgentUIChanUnwired(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindLegacyFeatureChannels(ports, make(chan []string, 1))
+	BindSendPorts(ports, make(chan []string, 1))
 	// Agent UI events go to runnermgr / BridgeInputs only; legacy globals do not touch AgentUIChan.
 	if cap(ports.AgentUIChan) < 1 {
 		t.Fatal("agent chan missing capacity")
@@ -246,9 +246,9 @@ func TestBindAllowlistAutoRun_RebindOverrides(t *testing.T) {
 	}
 }
 
-func TestBindLegacyFeatureChannels_ConfigUpdatedNonBlockingDrop(t *testing.T) {
+func TestBindSendPorts_ConfigUpdatedNonBlockingDrop(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindLegacyFeatureChannels(ports, make(chan []string, 1))
+	BindSendPorts(ports, make(chan []string, 1))
 	n := cap(ports.ConfigUpdatedChan)
 	for i := 0; i < n+20; i++ {
 		hostnotify.NotifyConfigUpdated()
@@ -267,9 +267,9 @@ func TestBindLegacyFeatureChannels_ConfigUpdatedNonBlockingDrop(t *testing.T) {
 	}
 }
 
-func TestBindLegacyFeatureChannels_RemoteBuffersIndependent(t *testing.T) {
+func TestBindSendPorts_RemoteBuffersIndependent(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindLegacyFeatureChannels(ports, make(chan []string, 1))
+	BindSendPorts(ports, make(chan []string, 1))
 
 	for i := 0; i < cap(ports.RemoteOnChan); i++ {
 		if !remote.PublishRemoteOnTarget("x") {
@@ -281,9 +281,9 @@ func TestBindLegacyFeatureChannels_RemoteBuffersIndependent(t *testing.T) {
 	}
 }
 
-func TestBindLegacyFeatureChannels_SubmitStressSequential(t *testing.T) {
+func TestBindSendPorts_SubmitStressSequential(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindLegacyFeatureChannels(ports, make(chan []string, 1))
+	BindSendPorts(ports, make(chan []string, 1))
 
 	const total = 200
 	go func() {
@@ -300,10 +300,10 @@ func TestBindLegacyFeatureChannels_SubmitStressSequential(t *testing.T) {
 	}
 }
 
-func TestBindLegacyFeatureChannels_ShellSnapshotDelivered(t *testing.T) {
+func TestBindSendPorts_ShellSnapshotDelivered(t *testing.T) {
 	ports := hostbus.NewInputPorts()
 	shell := make(chan []string, 1)
-	BindLegacyFeatureChannels(ports, shell)
+	BindSendPorts(ports, shell)
 
 	msgs := []string{"line1", "line2"}
 	if !run.PublishShellSnapshot(msgs) {
@@ -315,9 +315,9 @@ func TestBindLegacyFeatureChannels_ShellSnapshotDelivered(t *testing.T) {
 	}
 }
 
-func TestBindLegacyFeatureChannels_RemoteOnSequential(t *testing.T) {
+func TestBindSendPorts_RemoteOnSequential(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindLegacyFeatureChannels(ports, make(chan []string, 1))
+	BindSendPorts(ports, make(chan []string, 1))
 
 	targets := []string{"a", "b", "c", "d", "e"}
 	for _, want := range targets {
@@ -331,9 +331,9 @@ func TestBindLegacyFeatureChannels_RemoteOnSequential(t *testing.T) {
 	}
 }
 
-func TestBindLegacyFeatureChannels_ExecDirectSequential(t *testing.T) {
+func TestBindSendPorts_ExecDirectSequential(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindLegacyFeatureChannels(ports, make(chan []string, 1))
+	BindSendPorts(ports, make(chan []string, 1))
 
 	cmds := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
 	for _, want := range cmds {
@@ -348,9 +348,9 @@ func TestBindLegacyFeatureChannels_ExecDirectSequential(t *testing.T) {
 	}
 }
 
-func TestBindLegacyFeatureChannels_CancelBurstWithinCapacity(t *testing.T) {
+func TestBindSendPorts_CancelBurstWithinCapacity(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindLegacyFeatureChannels(ports, make(chan []string, 1))
+	BindSendPorts(ports, make(chan []string, 1))
 	n := cap(ports.CancelRequestChan)
 	for i := 0; i < n; i++ {
 		if !run.PublishCancelRequest() {
@@ -365,9 +365,9 @@ func TestBindLegacyFeatureChannels_CancelBurstWithinCapacity(t *testing.T) {
 	}
 }
 
-func TestBindLegacyFeatureChannels_AuthResponseTable(t *testing.T) {
+func TestBindSendPorts_AuthResponseTable(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindLegacyFeatureChannels(ports, make(chan []string, 1))
+	BindSendPorts(ports, make(chan []string, 1))
 
 	variants := []ui.RemoteAuthResponse{
 		{Target: "root@10.0.0.1", Username: "root", Kind: "password", Password: "secret"},
@@ -410,9 +410,9 @@ func TestBindLegacyFeatureChannels_AuthResponseTable(t *testing.T) {
 	}
 }
 
-func TestBindLegacyFeatureChannels_SubmitPayloadTable(t *testing.T) {
+func TestBindSendPorts_SubmitPayloadTable(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindLegacyFeatureChannels(ports, make(chan []string, 1))
+	BindSendPorts(ports, make(chan []string, 1))
 
 	payloads := []string{
 		"hello",
@@ -466,9 +466,9 @@ func TestBindLegacyFeatureChannels_SubmitPayloadTable(t *testing.T) {
 	}
 }
 
-func TestBindLegacyFeatureChannels_ExecDirectPayloadTable(t *testing.T) {
+func TestBindSendPorts_ExecDirectPayloadTable(t *testing.T) {
 	ports := hostbus.NewInputPorts()
-	BindLegacyFeatureChannels(ports, make(chan []string, 1))
+	BindSendPorts(ports, make(chan []string, 1))
 
 	cmds := []string{
 		"true",

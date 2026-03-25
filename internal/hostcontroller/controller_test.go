@@ -287,7 +287,7 @@ func TestHandleEvent_DispatchConfigUpdated(t *testing.T) {
 	c.currentAllowlistAutoRun = new(atomic.Bool)
 	c.currentAllowlistAutoRun.Store(true)
 	// Keep this path isolated by not using KindConfigUpdated.
-	c.handleEvent(hostbus.Event{Kind: hostbus.KindAgentUIEmitted, AgentUI: agent.ExecEvent{Command: "x"}})
+	c.handleEvent(hostbus.Event{Kind: hostbus.KindAgentExecEvent, AgentExec: agent.ExecEvent{Command: "x"}})
 	if len(s.msgs) != 1 {
 		t.Fatalf("want 1 msg, got %d", len(s.msgs))
 	}
@@ -422,7 +422,7 @@ func TestNew_WiresBusAndPump(t *testing.T) {
 	ports.SubmitChan <- "abc"
 	select {
 	case ev := <-b.Events():
-		if ev.Kind != hostbus.KindUserSubmitted || ev.UserText != "abc" {
+		if ev.Kind != hostbus.KindUserChatSubmitted || ev.UserText != "abc" {
 			t.Fatalf("unexpected event: %+v", ev)
 		}
 	case <-time.After(2 * time.Second):
