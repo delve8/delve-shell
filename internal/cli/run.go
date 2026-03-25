@@ -89,6 +89,7 @@ func Run(cmd *cobra.Command, args []string) error {
 	})
 
 	submitChan := make(chan string, 4)
+	hostnotify.SetSubmitChan(submitChan)
 	execDirectChan := make(chan string, 4)
 	run.SetExecDirectChan(execDirectChan)
 	hostnotify.SetConfigUpdatedChan(configUpdatedChan)
@@ -138,6 +139,7 @@ func Run(cmd *cobra.Command, args []string) error {
 	hostloop.StartBackgroundLoops(stop, deps, uiMsgChan, submitChan, cancelRequestChan, fsm, &currentP)
 
 	getAllowlistAutoRun := func() bool { return currentAllowlistAutoRun.Load() }
+	hostnotify.SetAllowlistAutoRunGetter(getAllowlistAutoRun)
 	run.SetSyncAllowlistAutoRun(func(v bool) {
 		currentAllowlistAutoRun.Store(v)
 		runners.SetAllowlistAutoRun(v)
@@ -147,7 +149,7 @@ func Run(cmd *cobra.Command, args []string) error {
 		if s := sessions.Current(); s != nil {
 			syncSessionPath(s.Path())
 		}
-		model := ui.NewModel(submitChan, getAllowlistAutoRun, savedMessages, initialShowConfigLLM)
+		model := ui.NewModel(savedMessages, initialShowConfigLLM)
 		model.Context.ConfigPath = config.ConfigPath()
 		initialShowConfigLLM = false
 		p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithReportFocus())

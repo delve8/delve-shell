@@ -3,6 +3,7 @@ package ui
 import (
 	"strings"
 
+	"delve-shell/internal/hostnotify"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/maininput"
 	"delve-shell/internal/slashview"
@@ -96,9 +97,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 		}
 		if maininput.IsNewSessionCommand(text) {
 			m = m.appendUserSubmittedEcho(text)
-			if m.Ports.SubmitChan != nil {
-				m.Ports.SubmitChan <- text
-			}
+			_ = hostnotify.Submit(text)
 			m.Input.SetValue("")
 			m.Input.CursorEnd()
 			m.Interaction.SlashSuggestIndex = 0

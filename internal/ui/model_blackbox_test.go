@@ -46,12 +46,9 @@ func newBlackboxFixture() blackboxFixture {
 	run.SetCancelRequestChan(f.cancelRequest)
 	run.SetExecDirectChan(f.execDirectChan)
 	hostnotify.SetConfigUpdatedChan(f.configUpdated)
-	f.model = ui.NewModel(
-		f.submitChan,
-		func() bool { return true },
-		nil,
-		false,
-	)
+	hostnotify.SetSubmitChan(f.submitChan)
+	hostnotify.SetAllowlistAutoRunGetter(func() bool { return true })
+	f.model = ui.NewModel(nil, false)
 	return f
 }
 
@@ -296,12 +293,7 @@ func TestBlackboxSlashSessionsPrefixSubmitsCommand(t *testing.T) {
 }
 
 func TestBlackboxStartupOverlayProviderOpensConfigLLM(t *testing.T) {
-	m := ui.NewModel(
-		nil,
-		func() bool { return true },
-		nil,
-		true, // InitialShowConfigLLM
-	)
+	m := ui.NewModel(nil, true) // InitialShowConfigLLM
 	next, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	got := next.(ui.Model)
 	if !got.Overlay.Active || !got.ConfigLLM.Active {

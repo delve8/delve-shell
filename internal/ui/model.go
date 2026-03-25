@@ -20,7 +20,6 @@ type Model struct {
 	Viewport viewport.Model
 	Messages []string
 	Approval ApprovalState
-	Ports    UIPorts
 	Context  RuntimeContextState
 	// /run completion cache (best-effort).
 	RunCompletion RunCompletionState
@@ -97,12 +96,6 @@ type OverlayState struct {
 	Viewport viewport.Model
 }
 
-// UIPorts are side-effect channels/getters injected by CLI host loop.
-type UIPorts struct {
-	SubmitChan          chan<- string
-	GetAllowlistAutoRun func() bool // for header and Pending card 2 vs 3 options
-}
-
 // Init implements tea.Model.
 func (m Model) Init() tea.Cmd {
 	return tea.Batch(m.Input.Cursor.BlinkCmd(), tea.WindowSize())
@@ -171,8 +164,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // initialMessages if non-nil is used as existing conversation (e.g. after /sh return).
 // initialShowConfigLLM: when true, Config LLM overlay is opened on first WindowSizeMsg (used when no config or model empty at startup).
 func NewModel(
-	submitChan chan<- string,
-	getAllowlistAutoRun func() bool,
 	initialMessages []string,
 	initialShowConfigLLM bool,
 ) Model {
@@ -196,11 +187,7 @@ func NewModel(
 		Input:    ti,
 		Viewport: vp,
 		Messages: msgs,
-		Ports: UIPorts{
-			SubmitChan:          submitChan,
-			GetAllowlistAutoRun: getAllowlistAutoRun,
-		},
-		Context: RuntimeContextState{},
+		Context:  RuntimeContextState{},
 		Startup: StartupState{
 			InitialShowConfigLLM: initialShowConfigLLM,
 		},

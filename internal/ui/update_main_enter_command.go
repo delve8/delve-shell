@@ -5,6 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/hostnotify"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/maininput"
 )
@@ -60,8 +61,7 @@ func (m Model) handleMainEnterCommand(text string, slashSelectedIndex int) (Mode
 		}
 	}
 
-	if m.Ports.SubmitChan != nil {
-		m.Ports.SubmitChan <- text
+	if hostnotify.Submit(text) {
 		m.Interaction.WaitingForAI = true
 	}
 	return m, nil

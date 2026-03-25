@@ -15,8 +15,7 @@ import (
 // TestView_HeaderAlwaysShown asserts that View() always includes the header (mode + status) and that
 // total output lines never exceed Height so the header stays visible when the terminal shows one screen.
 func TestView_HeaderAlwaysShown(t *testing.T) {
-	getAutoRun := func() bool { return true }
-	m := NewModel(nil, getAutoRun, nil, false)
+	m := NewModel(nil, false)
 	m.Layout.Height = 24
 	m.Layout.Width = 80
 	view := m.View()
@@ -46,7 +45,7 @@ func TestView_HeaderAlwaysShown(t *testing.T) {
 
 	// Critical: with choice mode (max 3 options) and a small Height, total lines must not exceed Height,
 	// so the header (first 2 lines) stays on screen when terminal displays one full screen.
-	m2 := NewModel(nil, func() bool { return true }, nil, false)
+	m2 := NewModel(nil, false)
 	m2.Layout.Height = 12
 	m2.Layout.Width = 80
 	m2.Approval.PendingSensitive = &agent.SensitiveConfirmationRequest{Command: "cat /etc/shadow", ResponseCh: make(chan agent.SensitiveChoice, 1)}
