@@ -30,7 +30,7 @@ type Model struct {
 }
 
 // RunCompletionState stores local/remote completion caches for `/run`.
-// When remote is active, hostnotify.RemoteLabel identifies which remote RemoteCommands belong to.
+// When remote is active, hostapp.RemoteLabel identifies which remote RemoteCommands belong to.
 type RunCompletionState struct {
 	LocalCommands  []string
 	RemoteCommands []string

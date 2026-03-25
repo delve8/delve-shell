@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"delve-shell/internal/hostbus"
-	"delve-shell/internal/hostnotify"
+	"delve-shell/internal/hostapp"
 	"delve-shell/internal/remote"
 	"delve-shell/internal/run"
 	"delve-shell/internal/ui"
@@ -23,7 +23,7 @@ func TestBindSendPorts_SubmitDelivered(t *testing.T) {
 		done <- <-ports.SubmitChan
 	}()
 
-	if !hostnotify.Submit("ping") {
+	if !hostapp.Submit("ping") {
 		t.Fatal("Submit returned false")
 	}
 	select {
@@ -40,7 +40,7 @@ func TestBindSendPorts_ConfigUpdated(t *testing.T) {
 	ports := hostbus.NewInputPorts()
 	BindSendPorts(ports, make(chan []string, 1))
 
-	go func() { hostnotify.NotifyConfigUpdated() }()
+	go func() { hostapp.NotifyConfigUpdated() }()
 	select {
 	case <-ports.ConfigUpdatedChan:
 	case <-time.After(2 * time.Second):
@@ -143,11 +143,11 @@ func TestBindSendPorts_SubmitNonBlockingVsFullBuffer(t *testing.T) {
 	BindSendPorts(ports, make(chan []string, 1))
 
 	for i := 0; i < cap(ports.SubmitChan); i++ {
-		if !hostnotify.TrySubmitNonBlocking("fill") {
+		if !hostapp.TrySubmitNonBlocking("fill") {
 			t.Fatalf("unexpected failure filling at %d", i)
 		}
 	}
-	if hostnotify.TrySubmitNonBlocking("overflow") {
+	if hostapp.TrySubmitNonBlocking("overflow") {
 		t.Fatal("expected full buffer to reject non-blocking submit")
 	}
 }
@@ -183,7 +183,7 @@ func TestBindSendPorts_MultipleBindsLastWins(t *testing.T) {
 	BindSendPorts(p2, shell)
 
 	go func() { <-p2.SubmitChan }()
-	if !hostnotify.Submit("second") {
+	if !hostapp.Submit("second") {
 		t.Fatal("submit failed")
 	}
 
@@ -229,11 +229,11 @@ func TestBindSendPorts_AgentUIChanUnwired(t *testing.T) {
 
 func TestBindAllowlistAutoRun_GetterVisible(t *testing.T) {
 	BindAllowlistAutoRun(func() bool { return false }, func(bool) {})
-	if hostnotify.AllowlistAutoRunEnabled() {
+	if hostapp.AllowlistAutoRunEnabled() {
 		t.Fatal("getter should return false")
 	}
 	BindAllowlistAutoRun(func() bool { return true }, func(bool) {})
-	if !hostnotify.AllowlistAutoRunEnabled() {
+	if !hostapp.AllowlistAutoRunEnabled() {
 		t.Fatal("getter should return true")
 	}
 }
@@ -241,7 +241,7 @@ func TestBindAllowlistAutoRun_GetterVisible(t *testing.T) {
 func TestBindAllowlistAutoRun_RebindOverrides(t *testing.T) {
 	BindAllowlistAutoRun(func() bool { return false }, func(bool) {})
 	BindAllowlistAutoRun(func() bool { return true }, func(bool) {})
-	if !hostnotify.AllowlistAutoRunEnabled() {
+	if !hostapp.AllowlistAutoRunEnabled() {
 		t.Fatal("second bind should win")
 	}
 }
@@ -251,7 +251,7 @@ func TestBindSendPorts_ConfigUpdatedNonBlockingDrop(t *testing.T) {
 	BindSendPorts(ports, make(chan []string, 1))
 	n := cap(ports.ConfigUpdatedChan)
 	for i := 0; i < n+20; i++ {
-		hostnotify.NotifyConfigUpdated()
+		hostapp.NotifyConfigUpdated()
 	}
 	count := 0
 	for {
@@ -288,7 +288,7 @@ func TestBindSendPorts_SubmitStressSequential(t *testing.T) {
 	const total = 200
 	go func() {
 		for i := range total {
-			_ = hostnotify.Submit(strings.Repeat("a", i%5+1))
+			_ = hostapp.Submit(strings.Repeat("a", i%5+1))
 		}
 	}()
 	for range total {
@@ -452,7 +452,7 @@ func TestBindSendPorts_SubmitPayloadTable(t *testing.T) {
 		go func() {
 			recv <- <-ports.SubmitChan
 		}()
-		if !hostnotify.Submit(want) {
+		if !hostapp.Submit(want) {
 			t.Fatalf("case %d: submit failed for %q", i, want)
 		}
 		select {
@@ -499,7 +499,7 @@ func TestBindSendPorts_ExecDirectPayloadTable(t *testing.T) {
 
 func TestBindAllowlistAutoRun_NilGetterFallsBackToTrue(t *testing.T) {
 	BindAllowlistAutoRun(nil, func(bool) {})
-	if !hostnotify.AllowlistAutoRunEnabled() {
-		t.Fatal("nil getter should default to true in hostnotify")
+	if !hostapp.AllowlistAutoRunEnabled() {
+		t.Fatal("nil getter should default to true in hostapp.AllowlistAutoRunEnabled")
 	}
 }

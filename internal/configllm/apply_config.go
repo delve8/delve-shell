@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"delve-shell/internal/config"
-	"delve-shell/internal/hostnotify"
+	"delve-shell/internal/hostapp"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/service/configsvc"
 	"delve-shell/internal/ui"
@@ -66,6 +66,6 @@ func applyConfigLLMField(m ui.Model, field, value string) ui.Model {
 	m.Messages = append(m.Messages, ui.SuggestStyleRender(prefix+i18n.Tf(lang, i18n.KeyConfigSaved, field)))
 	m.Messages = append(m.Messages, "")
 	m = m.RefreshViewport()
-	hostnotify.NotifyConfigUpdated()
+	hostapp.NotifyConfigUpdated()
 	return m
 }

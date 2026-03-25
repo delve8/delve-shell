@@ -11,23 +11,27 @@ import (
 )
 
 // Kind identifies one domain event category on host bus.
+//
+// Coverage: submit routing (new session / switch session / chat to LLM), config reload, cancel and direct
+// exec, remote connect/off/auth, agent→UI HIL (approval / sensitive / exec result / unknown passthrough),
+// and LLM run completion.
 type Kind string
 
 const (
-	KindSessionNewRequested               Kind = "session_new_requested"
-	KindSessionSwitchRequested            Kind = "session_switch_requested"
-	KindUserChatSubmitted                 Kind = "user_chat_submitted"
-	KindConfigUpdated                     Kind = "config_updated"
-	KindCancelRequested                   Kind = "cancel_requested"
-	KindExecDirectRequested               Kind = "exec_direct_requested"
-	KindRemoteOnRequested                 Kind = "remote_on_requested"
-	KindRemoteOffRequested                Kind = "remote_off_requested"
-	KindRemoteAuthResponseSubmitted       Kind = "remote_auth_response_submitted"
-	KindApprovalRequested                 Kind = "approval_requested"
-	KindSensitiveConfirmationRequested    Kind = "sensitive_confirmation_requested"
-	KindAgentExecEvent                    Kind = "agent_exec_event"
-	KindAgentUnknown                      Kind = "agent_unknown"
-	KindLLMRunCompleted                   Kind = "llm_run_completed"
+	KindSessionNewRequested            Kind = "session_new_requested"
+	KindSessionSwitchRequested         Kind = "session_switch_requested"
+	KindUserChatSubmitted              Kind = "user_chat_submitted"
+	KindConfigUpdated                  Kind = "config_updated"
+	KindCancelRequested                Kind = "cancel_requested"
+	KindExecDirectRequested            Kind = "exec_direct_requested"
+	KindRemoteOnRequested              Kind = "remote_on_requested"
+	KindRemoteOffRequested             Kind = "remote_off_requested"
+	KindRemoteAuthResponseSubmitted    Kind = "remote_auth_response_submitted"
+	KindApprovalRequested              Kind = "approval_requested"
+	KindSensitiveConfirmationRequested Kind = "sensitive_confirmation_requested"
+	KindAgentExecEvent                 Kind = "agent_exec_event"
+	KindAgentUnknown                   Kind = "agent_unknown"
+	KindLLMRunCompleted                Kind = "llm_run_completed"
 )
 
 // Event carries one domain payload through the host bus.

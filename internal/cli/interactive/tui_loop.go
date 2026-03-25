@@ -8,7 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/hostcontroller"
-	"delve-shell/internal/hostnotify"
+	"delve-shell/internal/hostapp"
 	"delve-shell/internal/ui"
 )
 
@@ -66,7 +66,7 @@ func (l *tuiRestartLoop) run() error {
 
 func (l *tuiRestartLoop) runOneSession(saved *[]string, openConfigLLM bool) error {
 	l.controller.SyncCurrentSessionPath()
-	hostnotify.SetOpenConfigLLMOnFirstLayout(openConfigLLM)
+	hostapp.SetOpenConfigLLMOnFirstLayout(openConfigLLM)
 	model := ui.NewModel(*saved)
 	p := tea.NewProgram(model, defaultTUIProgramOptions...)
 	l.programPtr.Store(p)

@@ -3,7 +3,7 @@ package remote
 import (
 	"strings"
 
-	"delve-shell/internal/hostnotify"
+	"delve-shell/internal/hostapp"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/service/remotesvc"
 	"delve-shell/internal/ui"
@@ -37,7 +37,7 @@ func applyConfigAddRemote(m ui.Model, args string) ui.Model {
 	m.Messages = append(m.Messages, ui.SuggestStyleRender(prefix+i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display)))
 	m.Messages = append(m.Messages, "")
 	m = m.RefreshViewport()
-	hostnotify.NotifyConfigUpdated()
+	hostapp.NotifyConfigUpdated()
 	return m
 }
 

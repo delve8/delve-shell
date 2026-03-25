@@ -5,7 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/hostnotify"
+	"delve-shell/internal/hostapp"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/maininput"
 )
@@ -21,7 +21,7 @@ func (m Model) handleMainEnterCommand(text string, slashSelectedIndex int) (Mode
 	}
 
 	if strings.HasPrefix(text, "/") {
-		opts := getSlashOptionsForInput(text, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, hostnotify.RemoteActive())
+		opts := getSlashOptionsForInput(text, m.getLang(), m.RunCompletion.LocalCommands, m.RunCompletion.RemoteCommands, hostapp.RemoteActive())
 		vis := visibleSlashOptions(text, opts)
 		sessionNoneMsg := i18n.T(m.getLang(), i18n.KeySessionNone)
 		delRemoteNoneMsg := i18n.T(m.getLang(), i18n.KeyDelRemoteNoHosts)
@@ -61,7 +61,7 @@ func (m Model) handleMainEnterCommand(text string, slashSelectedIndex int) (Mode
 		}
 	}
 
-	if hostnotify.Submit(text) {
+	if hostapp.Submit(text) {
 		m.Interaction.WaitingForAI = true
 	}
 	return m, nil

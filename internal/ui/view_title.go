@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"delve-shell/internal/hostnotify"
+	"delve-shell/internal/hostapp"
 	"delve-shell/internal/i18n"
 )
 
@@ -30,7 +30,7 @@ func (m Model) titleLine() string {
 	lang := m.getLang()
 	remotePart := m.titleBarLeadingSegment()
 	autoRunStr := i18n.T(lang, i18n.KeyAutoRunListOnly)
-	if !hostnotify.AllowlistAutoRunEnabled() {
+	if !hostapp.AllowlistAutoRunEnabled() {
 		autoRunStr = i18n.T(lang, i18n.KeyAutoRunNone)
 	}
 	autoRunPart := remotePart + " | " + i18n.T(lang, i18n.KeyAutoRunLabel) + autoRunStr + " | "

@@ -9,7 +9,6 @@ import (
 	"delve-shell/internal/config"
 	"delve-shell/internal/configllm"
 	"delve-shell/internal/hostapp"
-	"delve-shell/internal/hostnotify"
 	_ "delve-shell/internal/remote"
 	_ "delve-shell/internal/run"
 	_ "delve-shell/internal/session"
@@ -51,10 +50,10 @@ func newBlackboxFixture(t *testing.T) blackboxFixture {
 		RemoteAuthResp: f.remoteAuthResp,
 		ShellSnapshot:  f.shellRequested,
 	})
-	t.Cleanup(func() { hostapp.Wire(nil) })
-	hostnotify.SetAllowlistAutoRunGetter(func() bool { return true })
-	hostnotify.SetRemoteExecution(false, "")
-	hostnotify.SetOpenConfigLLMOnFirstLayout(false)
+	t.Cleanup(hostapp.ResetTestState)
+	hostapp.BindAllowlistAutoRun(func() bool { return true }, func(bool) {})
+	hostapp.SetRemoteExecution(false, "")
+	hostapp.SetOpenConfigLLMOnFirstLayout(false)
 	f.model = ui.NewModel(nil)
 	return f
 }
@@ -300,8 +299,8 @@ func TestBlackboxSlashSessionsPrefixSubmitsCommand(t *testing.T) {
 }
 
 func TestBlackboxStartupOverlayProviderOpensConfigLLM(t *testing.T) {
-	t.Cleanup(func() { hostnotify.SetOpenConfigLLMOnFirstLayout(false) })
-	hostnotify.SetOpenConfigLLMOnFirstLayout(true)
+	t.Cleanup(func() { hostapp.SetOpenConfigLLMOnFirstLayout(false) })
+	hostapp.SetOpenConfigLLMOnFirstLayout(true)
 	m := ui.NewModel(nil)
 	next, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	got := next.(ui.Model)
