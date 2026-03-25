@@ -13,8 +13,8 @@ func (m Model) appendApprovalViewportContent(b *strings.Builder) bool {
 	lines, ok := approvalview.Build(
 		m.getLang(),
 		m.contentWidth(),
-		m.Approval.Pending,
-		m.Approval.PendingSensitive,
+		m.Approval.pending,
+		m.Approval.pendingSensitive,
 		textwrap.WrapString,
 	)
 	if !ok {

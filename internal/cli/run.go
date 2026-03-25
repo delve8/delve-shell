@@ -149,8 +149,9 @@ func Run(cmd *cobra.Command, args []string) error {
 		if s := sessions.Current(); s != nil {
 			syncSessionPath(s.Path())
 		}
-		model := ui.NewModel(savedMessages, initialShowConfigLLM)
+		hostnotify.SetOpenConfigLLMOnFirstLayout(initialShowConfigLLM)
 		initialShowConfigLLM = false
+		model := ui.NewModel(savedMessages)
 		p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithReportFocus())
 		currentP.Store(p)
 		_, err = p.Run()

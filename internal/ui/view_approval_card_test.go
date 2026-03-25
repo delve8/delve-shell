@@ -11,7 +11,7 @@ func TestAppendApprovalViewportContent_sensitive(t *testing.T) {
 	m := Model{
 		Layout: LayoutState{Width: 80},
 		Approval: ApprovalState{
-			PendingSensitive: &agent.SensitiveConfirmationRequest{
+			pendingSensitive: &agent.SensitiveConfirmationRequest{
 				Command: "rm -rf /",
 			},
 		},
@@ -30,7 +30,7 @@ func TestAppendApprovalViewportContent_pendingRisk(t *testing.T) {
 	m := Model{
 		Layout: LayoutState{Width: 80},
 		Approval: ApprovalState{
-			Pending: &agent.ApprovalRequest{
+			pending: &agent.ApprovalRequest{
 				Command:   "kubectl get pods",
 				RiskLevel: "read_only",
 				SkillName: "k8s",

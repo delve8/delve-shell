@@ -15,7 +15,7 @@ import (
 // TestView_HeaderAlwaysShown asserts that View() always includes the header (mode + status) and that
 // total output lines never exceed Height so the header stays visible when the terminal shows one screen.
 func TestView_HeaderAlwaysShown(t *testing.T) {
-	m := NewModel(nil, false)
+	m := NewModel(nil)
 	m.Layout.Height = 24
 	m.Layout.Width = 80
 	view := m.View()
@@ -36,7 +36,7 @@ func TestView_HeaderAlwaysShown(t *testing.T) {
 
 	// With Pending, header shows [NEED APPROVAL] or [待确认]
 	ch := make(chan agent.ApprovalResponse, 1)
-	m.Approval.Pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
+	m.Approval.pending = &agent.ApprovalRequest{Command: "ls", ResponseCh: ch}
 	m.Layout.Height = 24
 	viewPending := m.View()
 	if !strings.Contains(viewPending, "[NEED APPROVAL]") && !strings.Contains(viewPending, "[待确认]") {
@@ -45,10 +45,10 @@ func TestView_HeaderAlwaysShown(t *testing.T) {
 
 	// Critical: with choice mode (max 3 options) and a small Height, total lines must not exceed Height,
 	// so the header (first 2 lines) stays on screen when terminal displays one full screen.
-	m2 := NewModel(nil, false)
+	m2 := NewModel(nil)
 	m2.Layout.Height = 12
 	m2.Layout.Width = 80
-	m2.Approval.PendingSensitive = &agent.SensitiveConfirmationRequest{Command: "cat /etc/shadow", ResponseCh: make(chan agent.SensitiveChoice, 1)}
+	m2.Approval.pendingSensitive = &agent.SensitiveConfirmationRequest{Command: "cat /etc/shadow", ResponseCh: make(chan agent.SensitiveChoice, 1)}
 	viewChoice := m2.View()
 	lines := strings.Split(viewChoice, "\n")
 	if len(lines) > m2.Layout.Height {

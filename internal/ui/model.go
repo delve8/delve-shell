@@ -27,9 +27,6 @@ type Model struct {
 
 	// Overlay state: when Overlay.Active is true, a modal is rendered on top of the main UI.
 	Overlay OverlayState
-
-	// Startup stores one-time startup toggles consumed in lifecycle handlers.
-	Startup StartupState
 }
 
 // RunCompletionState stores local/remote completion caches for `/run`.
@@ -48,21 +45,14 @@ type InteractionState struct {
 
 // ApprovalState stores current pending approvals.
 type ApprovalState struct {
-	Pending          *agent.ApprovalRequest
-	PendingSensitive *agent.SensitiveConfirmationRequest
+	pending          *agent.ApprovalRequest
+	pendingSensitive *agent.SensitiveConfirmationRequest
 }
 
 // LayoutState stores terminal layout dimensions for rendering.
 type LayoutState struct {
 	Width  int
 	Height int
-}
-
-// StartupState stores one-shot startup flags.
-type StartupState struct {
-	// InitialShowConfigLLM: when true, open Config LLM overlay on first WindowSizeMsg
-	// (e.g. no config / model empty at startup).
-	InitialShowConfigLLM bool
 }
 
 // OverlayState stores generic modal overlay state shared across features.
@@ -137,11 +127,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // NewModel creates a Model with default input (slash commands and viewport scrolling).
 // initialMessages if non-nil is used as existing conversation (e.g. after /sh return).
-// initialShowConfigLLM: when true, Config LLM overlay is opened on first WindowSizeMsg (used when no config or model empty at startup).
-func NewModel(
-	initialMessages []string,
-	initialShowConfigLLM bool,
-) Model {
+func NewModel(initialMessages []string) Model {
 	ti := textinput.New()
 	ti.Placeholder = i18n.T("en", i18n.KeyPlaceholderInput)
 	ti.Prompt = "> "
@@ -162,9 +148,6 @@ func NewModel(
 		Input:    ti,
 		Viewport: vp,
 		Messages: msgs,
-		Startup: StartupState{
-			InitialShowConfigLLM: initialShowConfigLLM,
-		},
 		Layout: LayoutState{
 			Width:  defaultWidth,
 			Height: defaultHeight,

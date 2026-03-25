@@ -12,10 +12,10 @@ const (
 // currentUIState is a lightweight FSM view of current UI mode.
 // Priority follows interactive exclusivity: pending > overlay > main.
 func (m Model) currentUIState() uiState {
-	if m.Approval.PendingSensitive != nil {
+	if m.Approval.pendingSensitive != nil {
 		return uiStatePendingSensitive
 	}
-	if m.Approval.Pending != nil {
+	if m.Approval.pending != nil {
 		return uiStatePendingApproval
 	}
 	if m.Overlay.Active {

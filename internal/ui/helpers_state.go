@@ -3,17 +3,17 @@ package ui
 import "strings"
 
 const (
-	minInputLayoutWidth    = 4
-	minContentWidthFallback = 80
-	mainViewportPadding    = 10
-	minOverlayLayoutWidth  = 4
-	minOverlayLayoutHeight = 6
+	minInputLayoutWidth      = 4
+	minContentWidthFallback  = 80
+	mainViewportPadding      = 10
+	minOverlayLayoutWidth    = 4
+	minOverlayLayoutHeight   = 6
 	maxOverlayViewportHeight = 20
 )
 
 // hasPendingApproval reports whether the UI is in approval choice mode.
 func (m Model) hasPendingApproval() bool {
-	return m.Approval.Pending != nil || m.Approval.PendingSensitive != nil
+	return m.Approval.pending != nil || m.Approval.pendingSensitive != nil
 }
 
 // contentWidth returns a safe rendering width with fallback.

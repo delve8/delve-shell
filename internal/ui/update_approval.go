@@ -17,8 +17,8 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 	allowlistAutoRunEnabled := hostnotify.AllowlistAutoRunEnabled()
 	res := approvalflow.Evaluate(
 		key,
-		m.Approval.Pending != nil,
-		m.Approval.PendingSensitive != nil,
+		m.Approval.pending != nil,
+		m.Approval.pendingSensitive != nil,
 		allowlistAutoRunEnabled,
 		m.Interaction.ChoiceIndex,
 		choiceCount(m),
@@ -34,7 +34,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 }
 
 func (m *Model) appendDecisionLines(decision approvalview.DecisionKind, lang string) {
-	lines, ok := approvalview.BuildDecision(lang, m.contentWidth(), m.Approval.Pending, m.Approval.PendingSensitive, decision, textwrap.WrapString)
+	lines, ok := approvalview.BuildDecision(lang, m.contentWidth(), m.Approval.pending, m.Approval.pendingSensitive, decision, textwrap.WrapString)
 	if !ok {
 		return
 	}
@@ -87,48 +87,48 @@ func (m Model) applyApprovalDecision(d approvalflow.Decision) (Model, bool) {
 	case approvalflow.DecisionSensitiveRefuse:
 		m.appendDecisionLines(approvalview.DecisionSensitiveRefuse, lang)
 		m = m.RefreshViewport()
-		m.Approval.PendingSensitive.ResponseCh <- agent.SensitiveRefuse
-		m.Approval.PendingSensitive = nil
+		m.Approval.pendingSensitive.ResponseCh <- agent.SensitiveRefuse
+		m.Approval.pendingSensitive = nil
 		return m, true
 	case approvalflow.DecisionSensitiveRunStore:
 		m.appendDecisionLines(approvalview.DecisionSensitiveRunStore, lang)
 		m = m.RefreshViewport()
-		m.Approval.PendingSensitive.ResponseCh <- agent.SensitiveRunAndStore
-		m.Approval.PendingSensitive = nil
+		m.Approval.pendingSensitive.ResponseCh <- agent.SensitiveRunAndStore
+		m.Approval.pendingSensitive = nil
 		return m, true
 	case approvalflow.DecisionSensitiveRunNoStore:
 		m.appendDecisionLines(approvalview.DecisionSensitiveRunNoStore, lang)
 		m = m.RefreshViewport()
-		m.Approval.PendingSensitive.ResponseCh <- agent.SensitiveRunNoStore
-		m.Approval.PendingSensitive = nil
+		m.Approval.pendingSensitive.ResponseCh <- agent.SensitiveRunNoStore
+		m.Approval.pendingSensitive = nil
 		return m, true
 	case approvalflow.DecisionApprove:
 		m.appendDecisionLines(approvalview.DecisionApprove, lang)
 		m = m.RefreshViewport()
-		m.Approval.Pending.ResponseCh <- agent.ApprovalResponse{Approved: true, CopyRequested: false}
-		m.Approval.Pending = nil
+		m.Approval.pending.ResponseCh <- agent.ApprovalResponse{Approved: true, CopyRequested: false}
+		m.Approval.pending = nil
 		return m, true
 	case approvalflow.DecisionReject:
 		m.appendDecisionLines(approvalview.DecisionReject, lang)
 		m = m.RefreshViewport()
-		m.Approval.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
-		m.Approval.Pending = nil
+		m.Approval.pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
+		m.Approval.pending = nil
 		m.Interaction.WaitingForAI = false
 		return m, true
 	case approvalflow.DecisionCopy:
 		m.appendDecisionLines(approvalview.DecisionReject, lang)
 		m = m.RefreshViewport()
-		_ = clipboard.WriteAll(m.Approval.Pending.Command)
-		m.appendSuggestedLine(m.Approval.Pending.Command, lang)
+		_ = clipboard.WriteAll(m.Approval.pending.Command)
+		m.appendSuggestedLine(m.Approval.pending.Command, lang)
 		m.Messages = append(m.Messages, hintStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeySuggestedCopied))))
-		m.Approval.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: true}
-		m.Approval.Pending = nil
+		m.Approval.pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: true}
+		m.Approval.pending = nil
 		return m, true
 	case approvalflow.DecisionDismiss:
 		m.appendDecisionLines(approvalview.DecisionDismiss, lang)
 		m = m.RefreshViewport()
-		m.Approval.Pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
-		m.Approval.Pending = nil
+		m.Approval.pending.ResponseCh <- agent.ApprovalResponse{Approved: false, CopyRequested: false}
+		m.Approval.pending = nil
 		m.Interaction.WaitingForAI = false
 		return m, true
 	default:
