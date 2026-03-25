@@ -154,6 +154,7 @@
 
 | 日期 | 说明 |
 |------|------|
+| 2026-03-25 | §10.8：五阶段计划中阶段 1 落地与 2–5 待做表；e2e 修复 + `wireHostStack` 抽取 |
 | 2026-03-25 | 交接文档 §10.7.1：`Model` 显式 `*Runtime` 与 Remote 总线合并命名的可选彻底层；§10.7 补充「已无 Install 全局」现状说明 |
 | 2026-03-25 | 交接文档 §10.7：总线目标 2 刻意未做项（Payload 分型、Kind 改名、Slash 上总线、默认观测、动态 handler）及后续演进建议 |
 | 2026-03-25 | 目标 2（总线语义可追踪）：`Kind.SemanticLabel` 与 §10.4 草稿对齐；`Event.RedactedSummary`；`hostbus.WithPublishHook`；`hostcontroller` 表驱动 `hostEventHandlers` + `Options.OnEventDispatch` |
@@ -298,6 +299,20 @@
 - 从用户输入到执行回显的主路径可由单一事件链追踪（而非跨多处分支猜测）。
 - UI 层新增功能优先通过控件组合，不再在 `update_*` 中扩散重复绘制逻辑。
 - 现有 e2e/关键黑盒路径通过（slash、AI、审批、敏感确认、remote）。
+
+### 10.8 五阶段计划执行状态（2026-03-25）
+
+与「先 e2e 打底 → slash 上收 → 总线收口 → UI 控件化」对应的五轮中，本轮仓库内**已落地**与**仍待后续 PR**如下：
+
+| 阶段 | 目标 | 状态 |
+|------|------|------|
+| **1** | e2e 可验证、不因错误假设长时间无输出 | **已做**：`interactive` 补充 `_ "internal/run"`、`_ "internal/remote"`（与 `session` 并列），真实二进制具备 slash 注册；`cases` 期望与 `KeyConfigHint` 对齐；`ReadUntil`/`ReadUntilAny` 按墙钟截止收紧读片段时间并识别 `os.ErrDeadlineExceeded`；`internal/e2e/README.md` 写明 `-timeout` 与排障。 |
+| **2** | slash 上收试点 / 双路径 | **未做**：需单独设计（总线 `Kind` 或 Controller 内 registry），避免与现有 TUI `init()` 注册冲突。 |
+| **3** | slash 主路径迁入 Controller | **未做**：依赖阶段 2 边界与回归策略。 |
+| **4** | 审批/敏感/远程等待总线链审计 | **未做**：可做只读审计清单 + 小步补缺事件。 |
+| **5** | UI 控件化（dialog/dropdown） | **未做**；**部分相关**：`Run()` 已瘦身为 preflight + `wireHostStack` + `tuiRestartLoop`（`internal/cli/interactive/host_stack.go`），利于后续把「壳」与「栈」测试分离。 |
+
+**回归命令**：`go test ./internal/e2e/... -timeout=60s -count=1`（勿依赖默认 10m 超时判断健康）。
 
 ### 10.7 总线语义化（目标 2）：刻意未做项与后续计划
 

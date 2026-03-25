@@ -5,8 +5,10 @@ PTY-driven tests that run the real `delve-shell` process and assert on terminal 
 ## Run
 
 ```bash
-go test ./internal/e2e/... -v
+go test ./internal/e2e/... -v -timeout=60s
 ```
+
+Always set a **non-zero test timeout** (e.g. `-timeout=60s`); if a step stalls with **no new `step N: matched` log lines** for longer than the step’s `Expect` timeout, the binary or expectations are wrong—do not wait for the default `go test` timeout (10m).
 
 - **Short mode**: `go test ./... -short` skips e2e (PTY/TUI tests are slow and environment-sensitive). Use this in CI or quick local runs.
 - **Config**: The test writes a minimal `config.yaml` (with `llm.model: gpt-4o-mini`) under a temp root so the TUI starts without opening the Config LLM overlay.
@@ -48,3 +50,8 @@ go test ./internal/e2e/... -v
 | `Timeout` | Timeout for this step; 0 uses `Case.Timeout`. |
 
 Terminal output is stripped of ANSI escapes before matching for stable assertions.
+
+## Troubleshooting
+
+- **`/config show`, `/run`, `/help` behave like unknown command in e2e**: the real binary must **blank-import** feature packages that register slash handlers in `init()` (e.g. `internal/run`, `internal/remote`). The interactive entrypoint imports these alongside `internal/session`; if a new binary is added, mirror that import list or e2e will time out waiting for text that never appears.
+- **Hang until `go test` global timeout**: check PTY read loop and step `Expect` strings; `ReadUntilAny` respects the step deadline and returns failure with a tail of captured output when nothing matches.

@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -42,9 +43,16 @@ func ReadUntil(r io.Reader, substr string, timeout time.Duration) (string, error
 	var buf bytes.Buffer
 	deadline := time.Now().Add(timeout)
 	b := make([]byte, 256)
-	for time.Now().Before(deadline) {
+	for {
+		if !time.Now().Before(deadline) {
+			return buf.String(), nil
+		}
+		slot := time.Until(deadline)
+		if slot > 400*time.Millisecond {
+			slot = 400 * time.Millisecond
+		}
 		if d, ok := r.(deadliner); ok {
-			_ = d.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+			_ = d.SetReadDeadline(time.Now().Add(slot))
 		}
 		n, err := r.Read(b)
 		if n > 0 {
@@ -54,12 +62,12 @@ func ReadUntil(r io.Reader, substr string, timeout time.Duration) (string, error
 			}
 		}
 		if err != nil {
-			if !strings.Contains(err.Error(), "deadline") {
-				return buf.String(), err
+			if errors.Is(err, os.ErrDeadlineExceeded) || strings.Contains(err.Error(), "deadline") || strings.Contains(err.Error(), "timeout") {
+				continue
 			}
+			return buf.String(), err
 		}
 	}
-	return buf.String(), nil
 }
 
 // WriteLine writes one line to w (appends \r\n for TUI Enter).
@@ -74,9 +82,16 @@ func ReadUntilAny(r io.Reader, substrings []string, timeout time.Duration) (stri
 	var buf bytes.Buffer
 	deadline := time.Now().Add(timeout)
 	b := make([]byte, 256)
-	for time.Now().Before(deadline) {
+	for {
+		if !time.Now().Before(deadline) {
+			return buf.String(), -1, nil
+		}
+		slot := time.Until(deadline)
+		if slot > 400*time.Millisecond {
+			slot = 400 * time.Millisecond
+		}
 		if d, ok := r.(deadliner); ok {
-			_ = d.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+			_ = d.SetReadDeadline(time.Now().Add(slot))
 		}
 		n, err := r.Read(b)
 		if n > 0 {
@@ -88,9 +103,11 @@ func ReadUntilAny(r io.Reader, substrings []string, timeout time.Duration) (stri
 				}
 			}
 		}
-		if err != nil && !strings.Contains(err.Error(), "deadline") {
+		if err != nil {
+			if errors.Is(err, os.ErrDeadlineExceeded) || strings.Contains(err.Error(), "deadline") || strings.Contains(err.Error(), "timeout") {
+				continue
+			}
 			return buf.String(), -1, err
 		}
 	}
-	return buf.String(), -1, nil
 }

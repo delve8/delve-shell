@@ -47,7 +47,8 @@ var TerminalCases = []Case{
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
-			{Input: "/config show", Expect: []string{"/config llm", "header", "auto-run"}, Timeout: 5 * time.Second},
+			// KeyConfigHint EN: "Use /config llm for LLM; auto-run is in header." (header line also shows Auto-Run)
+			{Input: "/config show", Expect: []string{"/config llm", "LLM", "auto-run", "header"}, Timeout: 5 * time.Second},
 			{Input: "/q", Expect: []string{}, Timeout: 2 * time.Second},
 		},
 	},
