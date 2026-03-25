@@ -1,8 +1,10 @@
 package hostapp
 
 import (
+	"strings"
 	"sync"
 
+	"delve-shell/internal/hostroute"
 	"delve-shell/internal/remoteauth"
 )
 
@@ -218,6 +220,23 @@ func (r *Runtime) PublishRemoteAuthResponse(resp remoteauth.Response) bool {
 	}
 	select {
 	case s.RemoteAuthResp <- resp:
+		return true
+	default:
+		return false
+	}
+}
+
+// TryRelaySlashSubmit enqueues structured slash intent for Bridge → controller → TUI relay.
+func (r *Runtime) TryRelaySlashSubmit(p hostroute.SlashSubmitPayload) bool {
+	if p.RawLine == "" || !strings.HasPrefix(p.RawLine, "/") {
+		return false
+	}
+	s := r.currentSend()
+	if s == nil || s.SlashSubmit == nil {
+		return false
+	}
+	select {
+	case s.SlashSubmit <- p:
 		return true
 	default:
 		return false

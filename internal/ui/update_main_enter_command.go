@@ -5,11 +5,25 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/hostroute"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/maininput"
 )
 
 func (m Model) handleMainEnterCommand(text string, slashSelectedIndex int) (Model, tea.Cmd) {
+	if strings.HasPrefix(text, "/") {
+		if m.Host.TryRelaySlashSubmit(hostroute.SlashSubmitPayload{
+			RawLine:            text,
+			SlashSelectedIndex: slashSelectedIndex,
+		}) {
+			return m, nil
+		}
+	}
+	return m.executeMainEnterCommandNoRelay(text, slashSelectedIndex)
+}
+
+// executeMainEnterCommandNoRelay runs the main Enter path without the bus relay (used after SlashSubmitRelayMsg).
+func (m Model) executeMainEnterCommandNoRelay(text string, slashSelectedIndex int) (Model, tea.Cmd) {
 	if strings.HasPrefix(text, "/") {
 		if m2, cmd, handled := m.dispatchSlashExact(text); handled {
 			return m2, cmd

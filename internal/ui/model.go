@@ -125,6 +125,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case CommandExecutedMsg:
 		return m.handleCommandExecutedMsg(msg)
+
+	case SlashSubmitRelayMsg:
+		return m.handleSlashSubmitRelayMsg(msg)
 	}
 
 	return m, nil

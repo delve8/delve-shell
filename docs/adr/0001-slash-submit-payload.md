@@ -2,7 +2,7 @@
 
 ## 状态
 
-已采纳（**仅文档与类型契约**）；运行时仍走既有 TUI 内分发与 `SlashRequestChan` / `SlashTraceChan` 观测路径。
+已采纳；**第 2 轮已接线**：`SlashSubmitChan` → `KindSlashRelayToUI` → Controller → `SlashSubmitRelayMsg` → `executeMainEnterCommandNoRelay`。`hostapp.Nop()` 与未接线 Runtime 仍走同帧本地执行（`TryRelaySlashSubmit` 返回 false）。
 
 ## 背景
 

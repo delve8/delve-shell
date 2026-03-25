@@ -14,6 +14,7 @@ import (
 	"delve-shell/internal/cli/hostfsm"
 	"delve-shell/internal/execenv"
 	"delve-shell/internal/hostbus"
+	"delve-shell/internal/hostroute"
 	"delve-shell/internal/runtime/sessionmgr"
 	"delve-shell/internal/ui"
 	"delve-shell/internal/uipresenter"
@@ -47,10 +48,10 @@ func (f *fakeExec) Run(ctx context.Context, command string) (stdout, stderr stri
 func newTestControllerWithPresenter(sender *recordSender) *Controller {
 	stop := make(chan struct{})
 	c := &Controller{
-		stop: stop,
-		bus:  hostbus.New(64),
-		ui:   uipresenter.New(sender),
-		fsm:  hostfsm.NewMachine(hostfsm.StateIdle),
+		stop:     stop,
+		bus:      hostbus.New(64),
+		ui:       uipresenter.New(sender),
+		fsm:      hostfsm.NewMachine(hostfsm.StateIdle),
 		sessions: &sessionmgr.Manager{},
 	}
 	return c
@@ -421,6 +422,20 @@ func TestHandleEvent_SlashRequestedNoOp(t *testing.T) {
 	c.handleEvent(hostbus.Event{Kind: hostbus.KindSlashRequested, UserText: "/help"})
 	if len(s.msgs) != 0 {
 		t.Fatalf("slash requested is observability-only, got %d msgs", len(s.msgs))
+	}
+}
+
+func TestHandleEvent_SlashRelayToUIEnqueuesRelayMsg(t *testing.T) {
+	s := &recordSender{}
+	c := newTestControllerWithPresenter(s)
+	p := hostroute.SlashSubmitPayload{RawLine: "/help", SlashSelectedIndex: 0}
+	c.handleEvent(hostbus.Event{Kind: hostbus.KindSlashRelayToUI, SlashSubmit: &p})
+	if len(s.msgs) != 1 {
+		t.Fatalf("want 1 msg, got %d", len(s.msgs))
+	}
+	relay, ok := s.msgs[0].(ui.SlashSubmitRelayMsg)
+	if !ok || relay.Payload.RawLine != "/help" || relay.Payload.SlashSelectedIndex != 0 {
+		t.Fatalf("unexpected msg: %#v", s.msgs[0])
 	}
 }
 

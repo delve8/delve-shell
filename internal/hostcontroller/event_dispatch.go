@@ -58,4 +58,7 @@ var hostEventHandlers = map[hostbus.Kind]func(*Controller, hostbus.Event){
 	hostbus.KindSlashEntered: func(c *Controller, e hostbus.Event) {
 		c.handleSlashEntered(e)
 	},
+	hostbus.KindSlashRelayToUI: func(c *Controller, e hostbus.Event) {
+		c.handleSlashRelayToUI(e)
+	},
 }

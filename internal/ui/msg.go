@@ -2,6 +2,7 @@ package ui
 
 import (
 	"delve-shell/internal/agent"
+	"delve-shell/internal/hostroute"
 	"delve-shell/internal/remoteauth"
 )
 
@@ -94,4 +95,10 @@ type AddSkillPathsLoadedMsg struct {
 type RunCompletionCacheMsg struct {
 	RemoteLabel string
 	Commands    []string
+}
+
+// SlashSubmitRelayMsg carries structured slash intent from host controller back into Update (§10.8.1).
+// Handlers must call executeMainEnterCommandNoRelay, not handleMainEnterCommand, to avoid relay recursion.
+type SlashSubmitRelayMsg struct {
+	Payload hostroute.SlashSubmitPayload
 }

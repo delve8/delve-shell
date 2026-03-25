@@ -13,6 +13,7 @@
 | `BridgeInputs` ← `RemoteOnChan` / `RemoteOffChan` / `RemoteAuthRespChan` | 对应 Remote `Kind*` |
 | `BridgeInputs` ← `SlashRequestChan` | `KindSlashRequested`（TUI 在调用 registry handler **之前**由 `Host.RequestSlashDispatch` 写入） |
 | `BridgeInputs` ← `SlashTraceChan` | `KindSlashEntered`（TUI 已成功分发 slash 后由 `Host.TraceSlashEntered` 写入） |
+| `BridgeInputs` ← `SlashSubmitChan` | `KindSlashRelayToUI`（主 Enter 的 slash 经 `Host.TryRelaySlashSubmit` → 中控 → `SlashSubmitRelayMsg` 回灌 TUI） |
 | `BridgeInputs` ← `AgentUIChan` | `bridgeAgentUI` → approval / sensitive / exec / unknown |
 | `hostcontroller` / LLM 完成路径 | `KindLLMRunCompleted`（`PublishBlocking`） |
 
@@ -26,6 +27,19 @@
 | `uiMsgs` | `EnqueueUI` / `EnqueueUIBlocking` | `StartUIPump` → `tea.Program.Send` | 发往 Bubble Tea 的 **tea.Msg**（含 Presenter 封装的消息） |
 
 `uipresenter.BusSender` 将 Presenter 的出站消息写入 **`uiMsgs`（阻塞）**，与 **`events`** 解耦：中控先消费领域事件，再在 handler 内通过 Presenter 间接入队 UI 消息。
+
+## 主 Enter：slash 中继（§10.8.1 第 2 轮）
+
+当 `Host` 为已接线的 `*Runtime` 且 `SlashSubmitChan` 非 nil 时，**主 Enter** 路径上以 `/` 开头的行优先 **`TryRelaySlashSubmit`**：
+
+1. TUI：`handleMainEnterCommand` → `TryRelaySlashSubmit(hostroute.SlashSubmitPayload{…})`（成功则本帧直接返回，不在本帧内执行 registry）。
+2. `BridgeInputs` → `KindSlashRelayToUI`（`Event.SlashSubmit`）。
+3. `Controller`：`handleSlashRelayToUI` → `Presenter.Raw(SlashSubmitRelayMsg{…})` → **`EnqueueUIBlocking`**。
+4. 下一帧 TUI：`Update` 收到 `SlashSubmitRelayMsg` → **`executeMainEnterCommandNoRelay`**（与原先本地执行同逻辑，含 `RequestSlashDispatch` / `TraceSlashEntered`）。
+
+若 `TryRelaySlashSubmit` 返回 false（`Nop()`、channel 满、未接线），**回退**为同帧 **`executeMainEnterCommandNoRelay`**，与旧行为一致。
+
+**未走此链的路径**：仅走 `handleSlashEnterKey` 的 slash Enter（例如 overlay 选中）、以及 `/new` / `/sessions` 经 `SubmitChan` 的会话命令。
 
 ## 主对话 → LLM（典型顺序）
 
