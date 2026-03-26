@@ -1,4 +1,4 @@
-package configsvc
+package configllm
 
 import (
 	"context"

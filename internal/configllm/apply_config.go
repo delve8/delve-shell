@@ -7,7 +7,6 @@ import (
 	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/inputlifecycletype"
-	"delve-shell/internal/service/configsvc"
 	"delve-shell/internal/ui"
 )
 
@@ -19,7 +18,7 @@ func applyConfigLLMFromOverlayStart(m ui.Model, baseURL, apiKey, model, maxMessa
 	if model == "" {
 		return m
 	}
-	if err := configsvc.SaveLLMFromOverlay(configsvc.SaveLLMParams{
+	if err := SaveLLMFromOverlay(SaveLLMParams{
 		BaseURL:     baseURL,
 		APIKey:      apiKey,
 		Model:       model,
