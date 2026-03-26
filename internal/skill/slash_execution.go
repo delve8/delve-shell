@@ -29,7 +29,7 @@ func registerSlashExecutionProvider() {
 			return messageResult(OpenUpdateSkillOverlayMsg{Name: name}), true, nil
 		case strings.HasPrefix(text, "/config del-skill "):
 			name := strings.TrimSpace(strings.TrimPrefix(text, "/config del-skill "))
-			return messageResult(ApplyDelSkillMsg{Name: name}), true, nil
+			return handleSlashConfigDelSkillPrefix(name), true, nil
 		case strings.HasPrefix(text, "/skill "):
 			return executeSkillInvocation(req, strings.TrimSpace(strings.TrimPrefix(text, "/skill "))), true, nil
 		default:

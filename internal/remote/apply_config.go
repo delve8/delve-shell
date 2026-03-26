@@ -4,16 +4,17 @@ import (
 	"strings"
 
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/service/remotesvc"
 	"delve-shell/internal/ui"
+	"delve-shell/internal/uivm"
 )
 
-func applyConfigAddRemote(m ui.Model, args string) ui.Model {
+func applyConfigAddRemote(args string, sender ui.ActionSender) inputlifecycletype.ProcessResult {
 	lang := "en"
 	parts := strings.Fields(args)
 	if len(parts) < 1 {
-		m = m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T(lang, i18n.KeyConfigPrefix) + "Usage: /config add-remote <user@host> [name] [identity_file]"))
-		return m.RefreshViewport()
+		return remoteTranscriptErrorResult(i18n.T(lang, i18n.KeyConfigPrefix) + "Usage: /config add-remote <user@host> [name] [identity_file]")
 	}
 	target := parts[0]
 	name := ""
@@ -25,39 +26,50 @@ func applyConfigAddRemote(m ui.Model, args string) ui.Model {
 		identityFile = parts[2]
 	}
 	if err := remotesvc.Add(target, name, identityFile); err != nil {
-		m = m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T(lang, i18n.KeyConfigPrefix) + err.Error()))
-		return m.RefreshViewport()
+		return remoteTranscriptErrorResult(i18n.T(lang, i18n.KeyConfigPrefix) + err.Error())
 	}
 	display := target
 	if name != "" {
 		display = name + " (" + target + ")"
 	}
-	prefix := i18n.T(lang, i18n.KeyDelveLabel) + " "
-	m = m.AppendTranscriptLines(
-		ui.SuggestStyleRender(prefix+i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display)),
-		"",
-	)
-	m = m.RefreshViewport()
-	m.EmitConfigUpdatedIntent()
-	return m
+	if sender != nil {
+		_ = sender.Send(uivm.UIAction{Kind: uivm.UIActionConfigUpdated})
+	}
+	return remoteTranscriptSuggestResult(i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display), true)
 }
 
-func applyConfigRemoveRemote(m ui.Model, nameOrTarget string) ui.Model {
+func applyConfigRemoveRemote(nameOrTarget string) inputlifecycletype.ProcessResult {
 	lang := "en"
 	nameOrTarget = strings.TrimSpace(nameOrTarget)
 	if nameOrTarget == "" {
-		m = m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T(lang, i18n.KeyConfigPrefix) + "Usage: select a remote from /config del-remote list"))
-		return m.RefreshViewport()
+		return remoteTranscriptErrorResult(i18n.T(lang, i18n.KeyConfigPrefix) + "Usage: select a remote from /config del-remote list")
 	}
 	if err := remotesvc.Remove(nameOrTarget); err != nil {
-		m = m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T(lang, i18n.KeyConfigPrefix) + err.Error()))
-		return m.RefreshViewport()
+		return remoteTranscriptErrorResult(i18n.T(lang, i18n.KeyConfigPrefix) + err.Error())
 	}
-	prefix := i18n.T(lang, i18n.KeyDelveLabel) + " "
-	m = m.AppendTranscriptLines(
-		ui.SuggestStyleRender(prefix+i18n.Tf(lang, i18n.KeyConfigRemoteRemoved, nameOrTarget)),
-		"",
-	)
-	m = m.RefreshViewport()
-	return m
+	return remoteTranscriptSuggestResult(i18n.Tf(lang, i18n.KeyConfigRemoteRemoved, nameOrTarget), true)
+}
+
+func remoteTranscriptSuggestResult(text string, trailingBlank bool) inputlifecycletype.ProcessResult {
+	lines := []uivm.Line{{Kind: uivm.LineSystemSuggest, Text: text}}
+	if trailingBlank {
+		lines = append(lines, uivm.Line{Kind: uivm.LineBlank})
+	}
+	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+		Kind: inputlifecycletype.OutputMessage,
+		Message: &inputlifecycletype.MessagePayload{
+			Value: ui.TranscriptAppendMsg{Lines: lines},
+		},
+	})
+}
+
+func remoteTranscriptErrorResult(text string) inputlifecycletype.ProcessResult {
+	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+		Kind: inputlifecycletype.OutputMessage,
+		Message: &inputlifecycletype.MessagePayload{
+			Value: ui.TranscriptAppendMsg{Lines: []uivm.Line{
+				{Kind: uivm.LineSystemError, Text: text},
+			}},
+		},
+	})
 }

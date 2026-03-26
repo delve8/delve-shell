@@ -34,13 +34,3 @@ type OpenAddRemoteOverlayMsg struct {
 	Save    bool
 	Connect bool
 }
-
-// ApplyConfigAddRemoteMsg applies `/config add-remote ...` from lifecycle slash execution.
-type ApplyConfigAddRemoteMsg struct {
-	Args string
-}
-
-// ApplyConfigRemoveRemoteMsg applies `/config del-remote ...` from lifecycle slash execution.
-type ApplyConfigRemoveRemoteMsg struct {
-	NameOrTarget string
-}

@@ -15,10 +15,6 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 	switch t := msg.(type) {
 	case OpenAddRemoteOverlayMsg:
 		return openAddRemoteOverlay(m, t.Save, t.Connect), nil, true
-	case ApplyConfigAddRemoteMsg:
-		return applyConfigAddRemote(m, t.Args), nil, true
-	case ApplyConfigRemoveRemoteMsg:
-		return applyConfigRemoveRemote(m, t.NameOrTarget), nil, true
 	case ExecutionChangedMsg:
 		m.Remote.Active = t.Active
 		m.Remote.Label = t.Label

@@ -4,25 +4,44 @@ import (
 	"strings"
 
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/service/skillsvc"
 	"delve-shell/internal/ui"
+	"delve-shell/internal/uivm"
 )
 
-func handleSlashConfigDelSkillPrefix(m ui.Model, rest string) ui.Model {
+func handleSlashConfigDelSkillPrefix(rest string) inputlifecycletype.ProcessResult {
 	lang := "en"
 	name := strings.TrimSpace(rest)
 	if name == "" {
-		m = m.AppendTranscriptLines(errStyle.Render(delveMsg(lang, i18n.T(lang, i18n.KeyUsageSkillRemove))))
-		return m.RefreshViewport()
+		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+			Kind: inputlifecycletype.OutputMessage,
+			Message: &inputlifecycletype.MessagePayload{
+				Value: ui.TranscriptAppendMsg{Lines: []uivm.Line{
+					{Kind: uivm.LineSystemError, Text: i18n.T(lang, i18n.KeyUsageSkillRemove)},
+				}},
+			},
+		})
 	}
 
 	if err := skillsvc.Remove(name); err != nil {
-		m = m.AppendTranscriptLines(errStyle.Render(delveMsg(lang, i18n.Tf(lang, i18n.KeySkillRemoveFailed, err))))
-	} else {
-		m = m.AppendTranscriptLines(suggestStyle.Render(delveMsg(lang, i18n.Tf(lang, i18n.KeySkillRemoved, name))))
+		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+			Kind: inputlifecycletype.OutputMessage,
+			Message: &inputlifecycletype.MessagePayload{
+				Value: ui.TranscriptAppendMsg{Lines: []uivm.Line{
+					{Kind: uivm.LineSystemError, Text: i18n.Tf(lang, i18n.KeySkillRemoveFailed, err)},
+				}},
+			},
+		})
 	}
-	m = m.ClearSlashInput()
-	return m.RefreshViewport()
+	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+		Kind: inputlifecycletype.OutputMessage,
+		Message: &inputlifecycletype.MessagePayload{
+			Value: ui.TranscriptAppendMsg{Lines: []uivm.Line{
+				{Kind: uivm.LineSystemSuggest, Text: i18n.Tf(lang, i18n.KeySkillRemoved, name)},
+			}},
+		},
+	})
 }
 
 func skillInvocationPrompt(skillName, skillContent, naturalLanguage string) string {

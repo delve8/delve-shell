@@ -22,20 +22,10 @@ func registerSlashExecutionProvider() {
 			}), true, nil
 		case strings.HasPrefix(text, "/config add-remote "):
 			args := strings.TrimSpace(strings.TrimPrefix(text, "/config add-remote "))
-			return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-				Kind: inputlifecycletype.OutputMessage,
-				Message: &inputlifecycletype.MessagePayload{Value: ApplyConfigAddRemoteMsg{
-					Args: args,
-				}},
-			}), true, nil
+			return applyConfigAddRemote(args, req.ActionSender), true, nil
 		case strings.HasPrefix(text, "/config del-remote "):
 			nameOrTarget := strings.TrimSpace(strings.TrimPrefix(text, "/config del-remote "))
-			return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-				Kind: inputlifecycletype.OutputMessage,
-				Message: &inputlifecycletype.MessagePayload{Value: ApplyConfigRemoveRemoteMsg{
-					NameOrTarget: nameOrTarget,
-				}},
-			}), true, nil
+			return applyConfigRemoveRemote(nameOrTarget), true, nil
 		case text == "/remote on":
 			return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 				Kind: inputlifecycletype.OutputMessage,

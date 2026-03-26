@@ -5,10 +5,12 @@ import (
 
 	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/ui"
+	"delve-shell/internal/uivm"
 )
 
-func applyConfigAllowlistAutoRun(m ui.Model, value string) ui.Model {
+func applyConfigAllowlistAutoRun(value string, sender ui.ActionSender) inputlifecycletype.ProcessResult {
 	value = strings.TrimSpace(strings.ToLower(value))
 	var on bool
 	switch value {
@@ -17,14 +19,12 @@ func applyConfigAllowlistAutoRun(m ui.Model, value string) ui.Model {
 	case "disable":
 		on = false
 	default:
-		m = m.AppendTranscriptLines(errStyle.Render(i18n.T("en", i18n.KeyConfigPrefix) + i18n.T("en", i18n.KeyConfigAutoRunRequired)))
-		return m.RefreshViewport()
+		return transcriptErrorResult(i18n.T("en", i18n.KeyConfigPrefix) + i18n.T("en", i18n.KeyConfigAutoRunRequired))
 	}
 
 	cfg, err := config.Load()
 	if err != nil {
-		m = m.AppendTranscriptLines(errStyle.Render(i18n.T("en", i18n.KeyConfigPrefix) + err.Error()))
-		return m.RefreshViewport()
+		return transcriptErrorResult(i18n.T("en", i18n.KeyConfigPrefix) + err.Error())
 	}
 	cfg.AllowlistAutoRun = &on
 	if on {
@@ -33,33 +33,31 @@ func applyConfigAllowlistAutoRun(m ui.Model, value string) ui.Model {
 		cfg.Mode = "suggest"
 	}
 	if err := config.Write(cfg); err != nil {
-		m = m.AppendTranscriptLines(errStyle.Render(i18n.T("en", i18n.KeyConfigPrefix) + err.Error()))
-		return m.RefreshViewport()
+		return transcriptErrorResult(i18n.T("en", i18n.KeyConfigPrefix) + err.Error())
 	}
 	display := i18n.T("en", i18n.KeyAutoRunListOnly)
 	if !on {
 		display = i18n.T("en", i18n.KeyAutoRunNone)
 	}
-	m = m.AppendTranscriptLines(
-		delveMsg("en", i18n.Tf("en", i18n.KeyConfigSavedAllowlistAutoRun, display)),
-		"",
+	if sender != nil {
+		_ = sender.Send(uivm.UIAction{Kind: uivm.UIActionAllowlistAutoRun, BoolValue: on})
+	}
+	return transcriptSuggestResult(
+		i18n.Tf("en", i18n.KeyConfigSavedAllowlistAutoRun, display),
+		true,
 	)
-	m = m.RefreshViewport()
-	m.EmitAllowlistAutoRunSyncIntent(on)
-	return m
 }
 
-func applyConfigAllowlistUpdate(m ui.Model) ui.Model {
+func applyConfigAllowlistUpdate(sender ui.ActionSender) inputlifecycletype.ProcessResult {
 	added, err := config.AllowlistUpdateWithDefaults()
 	if err != nil {
-		m = m.AppendTranscriptLines(errStyle.Render(i18n.T("en", i18n.KeyConfigPrefix) + err.Error()))
-		return m.RefreshViewport()
+		return transcriptErrorResult(i18n.T("en", i18n.KeyConfigPrefix) + err.Error())
 	}
-	m = m.AppendTranscriptLines(
-		delveMsg("en", i18n.Tf("en", i18n.KeyAllowlistUpdateDone, added)),
-		"",
+	if sender != nil {
+		_ = sender.Send(uivm.UIAction{Kind: uivm.UIActionConfigUpdated})
+	}
+	return transcriptSuggestResult(
+		i18n.Tf("en", i18n.KeyAllowlistUpdateDone, added),
+		true,
 	)
-	m = m.RefreshViewport()
-	m.EmitConfigUpdatedIntent()
-	return m
 }

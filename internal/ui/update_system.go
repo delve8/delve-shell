@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"strings"
-
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/i18n"
@@ -134,13 +132,13 @@ func (m Model) handleChoiceCardShowMsg(msg ChoiceCardShowMsg) (Model, tea.Cmd) {
 
 func (m Model) handleLifecycleSlashExecuteMsg(msg LifecycleSlashExecuteMsg) (Model, tea.Cmd) {
 	if msg.InputLine != "" {
-		m2, cmd, handled := m.execSlashEnterKeyLocal(msg.InputLine)
+		m2, cmd, handled := m.executeSlashEarlySubmission(msg.InputLine)
 		if handled {
 			return m2, cmd
 		}
-		return m.executeMainEnterCommandNoRelay(strings.TrimSpace(msg.InputLine), msg.SelectedIndex)
+		return m.executeSlashSubmission(msg.InputLine, msg.SelectedIndex)
 	}
-	return m.executeMainEnterCommandNoRelay(msg.RawText, msg.SelectedIndex)
+	return m.executeSlashSubmission(msg.RawText, msg.SelectedIndex)
 }
 
 func (m Model) renderTranscriptLines(lines []uivm.Line) []string {

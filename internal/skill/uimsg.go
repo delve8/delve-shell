@@ -21,8 +21,3 @@ type OpenAddSkillOverlayMsg struct {
 type OpenUpdateSkillOverlayMsg struct {
 	Name string
 }
-
-// ApplyDelSkillMsg applies `/config del-skill ...`.
-type ApplyDelSkillMsg struct {
-	Name string
-}
