@@ -21,6 +21,7 @@
 - **`internal/ui` 偏「壳」**：`Model`、`View`、`Update` 主循环、通用 overlay 框架、slash 分发表、样式。
 - **业务按域下沉**：`internal/skill`、`internal/remote`、`internal/session`、`internal/configllm`、`internal/run` 等通过 **`Register()` + `ui.Register*`** 注册，避免 `ui` 直接 `import` 所有业务（除测试替身外）。
 - **单一注册入口**：`internal/bootstrap/install.go` 提供 `bootstrap.Install()`（`sync.Once`），由 `interactive.Run` 启动时显式调用。
+- **2026-03-26 当前状态**：slash 的 registry 与执行编排已从 `ui` 包抽到独立的 `internal/slashdispatch` runtime，`ui` 保留输入适配、渲染与 host trace 发射。
 
 ### 2.2 已存在的注册点（`internal/ui/feature_providers.go` 及邻域）
 

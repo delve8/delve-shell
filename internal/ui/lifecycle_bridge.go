@@ -36,11 +36,11 @@ func hasSlashPreInputState(m Model) bool {
 	return inputVal != "" && inputVal[0] == '/'
 }
 
-type localSlashExecutor struct {
+type slashRuntimeExecutor struct {
 	sender ActionSender
 }
 
-func (e localSlashExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inputlifecycletype.ProcessResult, error) {
+func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inputlifecycletype.ProcessResult, error) {
 	trimmed := strings.TrimSpace(req.RawText)
 	for _, p := range slashExecutionProviderChain.List() {
 		if res, handled, err := p(SlashExecutionRequest{
@@ -162,7 +162,7 @@ func (e uiControlActionExecutor) ExecuteControl(action inputlifecycletype.Contro
 func (m Model) lifecycleEngine() inputlifecycle.Engine {
 	router := inputlifecycle.NewRouter(
 		controlproc.New(uiControlContexts{m: m}, uiControlActionExecutor{sender: m.ActionSender}),
-		slashproc.New(localSlashExecutor{sender: m.ActionSender}),
+		slashproc.New(slashRuntimeExecutor{sender: m.ActionSender}),
 		chatproc.New(uiChatSubmissionExecutor{sender: m.ActionSender}),
 	)
 	return inputlifecycle.NewEngine(inputpreflight.Engine{}, router)

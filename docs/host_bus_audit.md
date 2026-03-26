@@ -5,7 +5,7 @@
 注：
 
 - 下文中关于 `SlashSubmitChan` / `KindSlashRelayToUI` / `TryRelaySlashSubmit` / `SlashSubmitRelayMsg` 的描述属于 2026-03-25 的历史实现记录。
-- 当前代码已经移除该回路，slash 主提交改为统一 lifecycle 后在 `ui` 本地执行。
+- 当前代码已经移除该回路，slash 主提交改为统一 lifecycle 后进入独立的 `internal/slashdispatch` runtime；UI 仅保留适配层与渲染职责。
 - 2026-03-26 起，`UIActionSubmission` 不再在 `controller` 中二次做字符串 submit 分类；普通 chat submission 直接发布为 `KindUserChatSubmitted`，`/new` 与 `/sessions` 由 UI 发出显式 session intent。
 - 2026-03-26 后续收口中，`host/bus.InputPorts.SubmitChan` 与 `host/route/submit_classify.go` 已移除；bus 主入口改为结构化 `SubmissionChan`。
 
@@ -20,8 +20,8 @@
 | `BridgeInputs` ← `CancelRequestChan` | `KindCancelRequested` |
 | `BridgeInputs` ← `ExecDirectChan` | `KindExecDirectRequested` |
 | `BridgeInputs` ← `RemoteOnChan` / `RemoteOffChan` / `RemoteAuthRespChan` | 对应 Remote `Kind*` |
-| `BridgeInputs` ← `SlashRequestChan` | `KindSlashRequested`（TUI 在调用 registry handler **之前**由 `Host.RequestSlashDispatch` 写入） |
-| `BridgeInputs` ← `SlashTraceChan` | `KindSlashEntered`（TUI 已成功分发 slash 后由 `Host.TraceSlashEntered` 写入） |
+| `BridgeInputs` ← `SlashRequestChan` | `KindSlashRequested`（TUI 在调用 slash runtime handler **之前**由 `Host.RequestSlashDispatch` 写入） |
+| `BridgeInputs` ← `SlashTraceChan` | `KindSlashEntered`（TUI 已成功分发 slash runtime handler 后由 `Host.TraceSlashEntered` 写入） |
 | `BridgeInputs` ← `SlashSubmitChan` | `KindSlashRelayToUI`（主 Enter 的 slash 经 `Host.TryRelaySlashSubmit` → 中控 → `SlashSubmitRelayMsg` 回灌 TUI） |
 | `BridgeInputs` ← `AgentUIChan` | `bridgeAgentUI` → approval / sensitive / exec / unknown |
 | `hostcontroller` / LLM 完成路径 | `KindLLMRunCompleted`（`PublishBlocking`） |
@@ -88,7 +88,7 @@
 
 ## 仍仅在 TUI 内、不经「Submit→总线→LLM」主链的部分
 
-- **Slash 解析与执行**：`ui` registry；slash 提交先经 lifecycle，再由 `slashproc` 适配到本地 registry。总线侧另有 **`KindSlashRequested` / `KindSlashEntered`**（专用 channel，仅观测）。
+- **Slash 解析与执行**：slash 提交先经 lifecycle，再由 `slashproc` 适配到本地 `slashdispatch` runtime。总线侧另有 **`KindSlashRequested` / `KindSlashEntered`**（专用 channel，仅观测）。
 - **样式与 overlay 绘制**：不经过 Bus。
 
 ## 与 §10.6 完成判据的对照

@@ -4,6 +4,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/inputlifecycletype"
+	"delve-shell/internal/slashdispatch"
 	"delve-shell/internal/slashreg"
 	"delve-shell/internal/uiregistry"
 )
@@ -53,15 +54,13 @@ func RegisterRootSlashOptionProvider(p func(lang string) []SlashOption) {
 // command is not executed via exact/prefix dispatch (e.g. fill-only hints).
 type SlashSelectedProvider func(m Model, chosen string) (Model, tea.Cmd, bool)
 
-var slashSelectedProviderChain = slashreg.NewProviderChain[SlashSelectedProvider]()
-
 // RegisterSlashSelectedProvider registers a slash-selected handler.
 // Providers run in registration order; the first that returns handled=true wins.
 func RegisterSlashSelectedProvider(p SlashSelectedProvider) {
 	if p == nil {
 		return
 	}
-	slashSelectedProviderChain.Add(p, func(x SlashSelectedProvider) bool { return x == nil })
+	slashRuntime.RegisterSelected(slashdispatch.SelectedProvider[Model, tea.Cmd](p))
 }
 
 // OverlayKeyProvider can handle key input when an overlay is active.

@@ -87,7 +87,7 @@ slash：
   - slash 早路径经 `inputpreflight.PlanSlashEnter -> slashproc`
   - `Esc` / `Ctrl-C` / `/q` 经 `controlproc`
 - `Esc` 的优先级（overlay -> pre-input -> cancel processing）现在由 `controlproc` 统一解析，UI 不再在按键分支里分别判断。
-- 仍未完全收敛的点：slash 业务执行本身短期仍通过 `slashproc` 适配到 UI 本地 registry/handler。
+- 仍未完全收敛的点：slash 业务执行本身短期仍通过 `slashproc` 适配到本地 slash runtime；当前 registry/dispatch 已从 `ui` 包抽到独立的 `internal/slashdispatch`，但执行归属仍未迁入 host/controller。
 
 ### 3.2 slash 的执行权短期仍可留在专用处理器
 
@@ -164,7 +164,7 @@ slash：
   - 输入期状态维护
   - slash 候选与 fill-only
   - lifecycle 结果应用
-  - 现有 slash registry 的本地执行适配
+  - 现有 slash runtime 的本地执行适配
 
 尚未完成的部分：
 
@@ -578,7 +578,7 @@ type PreInputEngine interface {
 | `internal/uiflow/enterflow` | 优先并入 `inputpreflight` 或成为其纯计算依赖 |
 | `internal/host/controller/ui_actions.go` 中输入类动作翻译 | `inputbridge`，后续再收敛 |
 | `SubmitChan` / `Slash*Chan` 的输入主链角色 | 过渡期由 `inputbridge` 承接，最终被统一 submission 入口替代 |
-| 现有 slash registry 执行 | 过渡期由 `slashproc` 通过适配器调用 |
+| 现有 slash runtime 执行 | 过渡期由 `slashproc` 通过适配器调用 |
 
 说明：
 
