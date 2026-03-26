@@ -76,6 +76,7 @@ This means chat, slash, and control now share one submission model and one outpu
 - `internal/run`: direct `/run`, `/sh`, allowlist config helpers, local command completion.
 - `internal/remote`: remote config, connect/disconnect, auth, and remote-specific UI state/events.
 - `internal/skill`: skill install/update/remove, skill invocation, skill overlays.
+- `internal/skillstore`: skill discovery, manifest parsing, install/update/remove, and source management.
 - `internal/configllm`: LLM config overlay and config slash handling.
 - `internal/session`: session switching and session-derived UI lines.
 - `internal/bootstrap`: single explicit registration entrypoint for feature modules.
@@ -87,7 +88,6 @@ This means chat, slash, and control now share one submission model and one outpu
 - `internal/execenv`: local and SSH executors.
 - `internal/history`: session history storage and replay.
 - `internal/config`: config loading, writing, defaults, and path resolution.
-- `internal/service/*`: thin service wrappers around config, remote, and skill operations.
 
 ## Slash And Overlay Design
 
