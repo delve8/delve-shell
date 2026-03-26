@@ -127,7 +127,3 @@ Main files:
 2. Enter a natural-language task or a slash command.
 3. Approve non-allowlisted commands when prompted.
 4. Review transcript, tool output, and session history in the same TUI.
-
-## Open Work
-
-Long-lived architecture notes and remaining cleanup items are tracked in `.cursor/architecture-open-items.md`.
