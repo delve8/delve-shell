@@ -8,9 +8,9 @@ import (
 	"delve-shell/internal/ui"
 )
 
-const maxSessionHistoryEvents = 500
+const maxSessionsInSlash = 20
 
-// Register wires session slash commands and the session-switched message provider. Call from [bootstrap.Install].
+// Register wires the session slash provider. Call from [bootstrap.Install].
 func Register() {
 	ui.RegisterSlashOptionsProvider(func(
 		inputVal string,
@@ -29,8 +29,6 @@ func Register() {
 		return nil, false
 	})
 }
-
-const maxSessionsInSlash = 20
 
 func getSessionSlashOptions(filter string) []ui.SlashOption {
 	summaries, err := history.ListSessionsWithSummary(maxSessionsInSlash)

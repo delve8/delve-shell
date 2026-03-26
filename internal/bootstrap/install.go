@@ -1,4 +1,4 @@
-// Package bootstrap wires feature packages that register TUI slash handlers, overlays, and message providers.
+// Package bootstrap wires feature packages that register TUI slash handlers and overlays.
 // Call [Install] once at process startup before constructing models that depend on those registries.
 package bootstrap
 
