@@ -62,26 +62,6 @@ func (m Model) EmitSessionSwitchIntent(sessionID string) bool {
 	return m.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionSessionSwitch, Text: sessionID})
 }
 
-func (m Model) requestSlashDispatchAction(line string) {
-	if m.ActionSender == nil {
-		return
-	}
-	_ = m.ActionSender.Send(uivm.UIAction{
-		Kind: uivm.UIActionRequestSlashTrace,
-		Text: line,
-	})
-}
-
-func (m Model) traceSlashEnteredAction(line string) {
-	if m.ActionSender == nil {
-		return
-	}
-	_ = m.ActionSender.Send(uivm.UIAction{
-		Kind: uivm.UIActionEnterSlashTrace,
-		Text: line,
-	})
-}
-
 func (m Model) EmitConfigUpdatedIntent() {
 	if m.ActionSender == nil {
 		return

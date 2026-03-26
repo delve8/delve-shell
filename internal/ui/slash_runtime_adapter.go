@@ -14,9 +14,7 @@ import (
 func (m Model) slashRuntimeDeps() slashdispatch.ExecDeps[Model, tea.Cmd] {
 	return slashdispatch.ExecDeps[Model, tea.Cmd]{
 		Hooks: slashdispatch.Hooks[Model, tea.Cmd]{
-			BeforeDispatch: func(line string) { m.requestSlashDispatchAction(line) },
-			AfterDispatch:  func(line string) { m.traceSlashEnteredAction(line) },
-			ClearInput:     func(mm Model) Model { return mm.clearSlashInput() },
+			ClearInput: func(mm Model) Model { return mm.clearSlashInput() },
 		},
 		SuggestionContext: func(input string) ([]int, []slashview.Option) {
 			_, vis, viewOpts := m.slashSuggestionContext(input)

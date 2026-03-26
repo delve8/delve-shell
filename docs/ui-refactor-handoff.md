@@ -171,7 +171,7 @@
 | 2026-03-25 | §10.8.1 第 2 轮：`KindSlashRelayToUI`、`SlashSubmitChan`、`TryRelaySlashSubmit`、`SlashSubmitRelayMsg`、主 Enter 中继 |
 | 2026-03-25 | §10.8.1 第 1 轮：`host_bus_audit` 扩写、`docs/adr/0001-slash-submit-payload.md`、`route.SlashSubmitPayload` 契约类型 |
 | 2026-03-25 | §10.8.1：三轮收尾计划（阶段 4～5 与阶段 3 最小闭环的分批交付与验收） |
-| 2026-03-25 | §10.8：`KindSlashRequested`（handler 前）与 §10.4.1/§10.7 表述对齐（过程性记录；阶段 3 当前范围见 §10.8 主表） |
+| 2026-03-25 | §10.8：曾为对齐早期草稿引入过 slash 观测事件；该观测路径后续已移除（过程性记录；阶段 3 当前范围见 §10.8 主表） |
 | 2026-03-25 | §10.8：曾记阶段 2/4/5 部分落地、阶段 3 仍待——**已由 §10.8.2 第 5 轮主表与 §10.8.3 余量清单更新** |
 | 2026-03-25 | §10.8：五阶段计划中阶段 1 落地与 2–5 待做表；e2e 修复 + `wireHostStack` 抽取 |
 | 2026-03-25 | 交接文档 §10.7.1：`Model` 显式 `*Runtime` 与 Remote 总线合并命名的可选彻底层；§10.7 补充「已无 Install 全局」现状说明 |
@@ -252,10 +252,9 @@
 - 保持 HIL 语义不变：命令执行前审批与敏感确认流程不可绕过。
 - 迁移期间优先适配层方案，避免大面积目录重排导致行为回归。
 
-### 10.4 建议的最小事件集合（初稿）
+### 10.4 建议的最小事件集合（历史草稿）
 
 - `UserSubmitted{text}`
-- `SlashRequested{text}`
 - `AIRequested{text}`
 - `ApprovalRequested{command,...}`
 - `ApprovalResolved{choice}`
@@ -287,11 +286,7 @@
 | `KindAgentExecEvent` | `CommandExecuted` |
 | `KindAgentUnknown` | `AgentUIPassthrough` |
 | `KindLLMRunCompleted` | `LLMRunCompleted` |
-| `KindSlashRequested` | `SlashRequested`（TUI 调用 registry handler **之前**，不经 `SubmitChan`） |
-| `KindSlashEntered` | `SlashEntered`（handler 已成功返回后） |
 | `KindSlashRelayToUI` | `SlashRelayToUI`（结构化 slash 经总线回灌 TUI，见 §10.8.1 第 2 轮） |
-
-**`SlashRequested` 与 submit 路径**：主对话 `SubmitChan` 仍只承载 `/new`、`/sessions …` 与普通 LLM 文本；其余 slash 不经 `SubmitChan`，但在执行前后分别产生 `KindSlashRequested` / `KindSlashEntered`（见 `InputPorts.SlashRequestChan` / `SlashTraceChan`）。
 
 **可追踪摘要**：**`bus.Event.RedactedSummary()`** 生成单行脱敏描述（不含远程认证密码等），供日志 / 自定义 metrics 使用。
 
@@ -330,7 +325,7 @@
 | 阶段 | 目标 | 状态 |
 |------|------|------|
 | **1** | e2e 可验证、不因错误假设长时间无输出 | **已做**：`interactive.Run()` 启动时调用 `bootstrap.Install()`，真实二进制具备 slash/overlay 注册；`cases` 期望与 `KeyConfigHint` 对齐；`ReadUntil`/`ReadUntilAny` 按墙钟截止收紧读片段时间并识别 `os.ErrDeadlineExceeded`；`internal/e2e/README.md` 写明 `-timeout` 与排障。 |
-| **2** | slash 与总线/中控衔接（试点） | **已做（观测路径）**：`KindSlashRequested`（handler 前）+ `KindSlashEntered`（成功后）；`SlashRequestChan` / `SlashTraceChan`；`Host.RequestSlashDispatch` / `TraceSlashEntered`；`controller` 占位 handler；语义标签与 `RedactedSummary` 已覆盖。解析与执行仍在 TUI/registry。 |
+| **2** | slash 与总线/中控衔接（试点） | 该观测专用路径已移除；slash 当前经统一 lifecycle 进入本地 `slashdispatch` runtime，不再在 host bus 上保留单独的 trace-only 通道。 |
 | **3** | slash 主路径迁入 Controller | **已做（范围：Enter 中继统一 + `SlashSubmitPayload` / `InputLine` 等结构化载荷；`TryRelaySlashSubmit` → `SlashSubmitRelayMsg`；`slashSuggestionContext` 共用）**。**不含**：`SubmitChan` 合并、Controller 内 slash **业务**路由表（registry 仍在 TUI）。余量与总线刻意未做项见 **§10.7**。 |
 | **4** | 审批/敏感/远程等待总线链审计 | **已做（第 1 轮 §10.8.1）**：`docs/host_bus_audit.md` 含路径表、`events`/`uiMsgs` 职责、主对话 / HIL / 远程序列及 §10.6 对照；细部若仍随实现演进可再补。 |
 | **5** | UI 控件化（dialog/dropdown） | **已做（范围：`RenderCenteredModal`；`RenderLinesBelowInput`；§10.8.2 第 3～4 轮：`RenderPendingApprovalLines`、`RenderTitleLine`；样式由 `ui` 注入 `widget`）**。**未纳入范围**：`update_approval.go` 中决策后 `appendDecisionLines`；远程连接结果/认证条单独 widget 化。 |
@@ -385,7 +380,7 @@
 |----|----------|-------------------|
 | **统一 `Payload` / 按 Kind 拆独立事件结构** | 属于数据模型重塑，需改动所有 `Publish`、`BridgeInputs`、controller 消费点，回归面大；当前扁平 `Event` + `RedactedSummary` 已满足可追踪与日志安全。 | 单独立项（例如 `refactor(bus): typed event payloads`）：先定义 `EventV2` 或 `Payload` 接口与适配函数；按 Kind 分批迁移（先只读路径或测试双写），最后一刀切换 `Bus` 泛型/联合类型并删旧字段。 |
 | **将 `Kind` 的字符串常量改为与 §10.4 草稿字面一致** | 现有字符串可能已被外部日志、监控或约定依赖；改名是破坏性变更。 | 保持 wire 值不变；若强需求对齐，仅增加**文档别名表**或监控侧映射；若必须改字符串，应版本化总线或长期保留旧值 `const` 作为兼容别名。 |
-| **`Slash` 经主对话 `SubmitChan` 与 LLM 同级分类** | 当前除 `/new`、`/sessions …` 外，slash 不经 `SubmitChan`（避免丢失下拉选中索引等上下文）。`KindSlashRequested` / `KindSlashEntered` 仅经专用 channel 观测。 | 若统一 Enter→Submit：在 `route` 引入结构化提交（或独立 `SlashSubmit` channel），`BridgeInputs` 映射到 `KindSlashRequested` 并由 Controller 回灌 TUI 执行 `tea.Cmd`。 |
+| **`Slash` 经主对话 `SubmitChan` 与 LLM 同级分类** | 当前除 `/new`、`/sessions …` 外，slash 不经 host submit 总线执行（避免丢失下拉选中索引等上下文），而是经统一 lifecycle 后进入本地 `slashdispatch` runtime。 | 若统一 Enter→host submission：需要把 slash 结构化上下文与业务路由一起迁入 host/controller，而不是只恢复 trace channel。 |
 | **生产路径默认接入 slog / metrics / trace** | 观测后端与采样策略属运维与产品决策；库内写死易产生噪音、性能与隐私风险（即便有脱敏摘要，字段策略仍需谨慎）。 | 在 `interactive.Run`（或配置层）按 **flag / 环境变量** 装配 `bus.WithPublishHook` 与 `Options.OnEventDispatch`；日志字段统一走 **`Event.RedactedSummary()`**，敏感路径禁止直接打印整 struct。 |
 | **运行时动态注册 controller handler（插件式）** | 当前 handler 均在 `controller` 包内，`hostEventHandlers` 静态表已满足可读性与单测；动态注册引入顺序、重复注册与测试隔离成本。 | 若出现「第三方扩展命令」或「测试注入 mock handler」等硬需求：再抽象 `RegisterKind(Kind, Handler)`（需 mutex + 启动期冻结或只读 map），并文档化优先级规则。 |
 

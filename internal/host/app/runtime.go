@@ -225,34 +225,6 @@ func (r *Runtime) PublishRemoteAuthResponse(resp remoteauth.Response) bool {
 	}
 }
 
-// RequestSlashDispatch records a pre-handler slash attempt on the bus (drops if unwired or buffer full).
-func (r *Runtime) RequestSlashDispatch(line string) {
-	r.trySendSlashLine(line, func(s *Send) chan<- string { return s.SlashRequest })
-}
-
-// TraceSlashEntered records a dispatched slash line on the bus (drops if unwired or buffer full).
-func (r *Runtime) TraceSlashEntered(line string) {
-	r.trySendSlashLine(line, func(s *Send) chan<- string { return s.SlashTrace })
-}
-
-func (r *Runtime) trySendSlashLine(line string, pickCh func(*Send) chan<- string) {
-	if line == "" {
-		return
-	}
-	s := r.currentSend()
-	if s == nil {
-		return
-	}
-	ch := pickCh(s)
-	if ch == nil {
-		return
-	}
-	select {
-	case ch <- line:
-	default:
-	}
-}
-
 // Reset clears runtime wiring and UI mirrors (for tests).
 func (r *Runtime) Reset() {
 	r.mu.Lock()

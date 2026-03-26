@@ -20,8 +20,6 @@
 | `BridgeInputs` ← `CancelRequestChan` | `KindCancelRequested` |
 | `BridgeInputs` ← `ExecDirectChan` | `KindExecDirectRequested` |
 | `BridgeInputs` ← `RemoteOnChan` / `RemoteOffChan` / `RemoteAuthRespChan` | 对应 Remote `Kind*` |
-| `BridgeInputs` ← `SlashRequestChan` | `KindSlashRequested`（TUI 在调用 slash runtime handler **之前**由 `Host.RequestSlashDispatch` 写入） |
-| `BridgeInputs` ← `SlashTraceChan` | `KindSlashEntered`（TUI 已成功分发 slash runtime handler 后由 `Host.TraceSlashEntered` 写入） |
 | `BridgeInputs` ← `SlashSubmitChan` | `KindSlashRelayToUI`（主 Enter 的 slash 经 `Host.TryRelaySlashSubmit` → 中控 → `SlashSubmitRelayMsg` 回灌 TUI） |
 | `BridgeInputs` ← `AgentUIChan` | `bridgeAgentUI` → approval / sensitive / exec / unknown |
 | `hostcontroller` / LLM 完成路径 | `KindLLMRunCompleted`（`PublishBlocking`） |
@@ -44,7 +42,7 @@
 1. TUI：`handleMainEnterCommand` → `TryRelaySlashSubmit(route.SlashSubmitPayload{…})`（成功则本帧直接返回，不在本帧内执行 registry）。
 2. `BridgeInputs` → `KindSlashRelayToUI`（`Event.SlashSubmit`）。
 3. `Controller`：`handleSlashRelayToUI` → `Presenter.Raw(SlashSubmitRelayMsg{…})` → **`EnqueueUIBlocking`**。
-4. 下一帧 TUI：`Update` 收到 `SlashSubmitRelayMsg` → **`executeMainEnterCommandNoRelay`**（与原先本地执行同逻辑，含 `RequestSlashDispatch` / `TraceSlashEntered`）。
+4. 下一帧 TUI：`Update` 收到 `SlashSubmitRelayMsg` → **`executeMainEnterCommandNoRelay`**（与原先本地执行同逻辑）。
 
 若 `TryRelaySlashSubmit` 返回 false（`Nop()`、channel 满、未接线），**回退**为同帧 **`executeMainEnterCommandNoRelay`**，与旧行为一致。
 
@@ -88,7 +86,7 @@
 
 ## 仍仅在 TUI 内、不经「Submit→总线→LLM」主链的部分
 
-- **Slash 解析与执行**：slash 提交先经 lifecycle，再由 `slashproc` 适配到本地 `slashdispatch` runtime。总线侧另有 **`KindSlashRequested` / `KindSlashEntered`**（专用 channel，仅观测）。
+- **Slash 解析与执行**：slash 提交先经 lifecycle，再由 `slashproc` 适配到本地 `slashdispatch` runtime。
 - **样式与 overlay 绘制**：不经过 Bus。
 
 ## 与 §10.6 完成判据的对照
@@ -102,5 +100,4 @@
 
 ## 后续可收紧点
 
-- 将 `KindSlashRequested` / `KindSlashEntered` 与 metrics / 结构化日志在 `Options.OnEventDispatch` 中关联（可度量 handler 失败：有 Request 无 Entered）。
 - 若 slash 编排迁入 Controller，再引入显式路由表并保持 UI 仅提交 `tea.Cmd`；结构化载荷见 `docs/adr/0001-slash-submit-payload.md` 与 `internal/host/route/slash_submit_contract.go`。

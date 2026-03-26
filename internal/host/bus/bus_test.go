@@ -123,8 +123,6 @@ func TestInputPortsDefaults(t *testing.T) {
 		cap(in.RemoteOnChan) != 4 ||
 		cap(in.RemoteOffChan) != 4 ||
 		cap(in.RemoteAuthRespChan) != 4 ||
-		cap(in.SlashRequestChan) != 8 ||
-		cap(in.SlashTraceChan) != 8 ||
 		cap(in.AgentUIChan) != 64 {
 		t.Fatalf("unexpected capacities: %+v", in)
 	}
@@ -351,12 +349,6 @@ func TestSemanticLabel_MapsDraftNames(t *testing.T) {
 	}
 	if g, w := KindConfigUpdated.SemanticLabel(), "ConfigReloaded"; g != w {
 		t.Fatalf("KindConfigUpdated: got %q want %q", g, w)
-	}
-	if g, w := KindSlashRequested.SemanticLabel(), "SlashRequested"; g != w {
-		t.Fatalf("KindSlashRequested: got %q want %q", g, w)
-	}
-	if g, w := KindSlashEntered.SemanticLabel(), "SlashEntered"; g != w {
-		t.Fatalf("KindSlashEntered: got %q want %q", g, w)
 	}
 }
 

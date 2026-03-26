@@ -43,15 +43,5 @@ func (c *Controller) handleUIAction(action uivm.UIAction) {
 		if c.runners != nil {
 			c.runners.SetAllowlistAutoRun(action.BoolValue)
 		}
-	case uivm.UIActionRequestSlashTrace:
-		if action.Text == "" {
-			return
-		}
-		c.bus.PublishBlocking(bus.Event{Kind: bus.KindSlashRequested, UserText: action.Text})
-	case uivm.UIActionEnterSlashTrace:
-		if action.Text == "" {
-			return
-		}
-		c.bus.PublishBlocking(bus.Event{Kind: bus.KindSlashEntered, UserText: action.Text})
 	}
 }

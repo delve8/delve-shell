@@ -52,10 +52,4 @@ var hostEventHandlers = map[bus.Kind]func(*Controller, bus.Event){
 	bus.KindLLMRunCompleted: func(c *Controller, e bus.Event) {
 		c.handleLLMRunCompleted(e.Reply, e.Err)
 	},
-	bus.KindSlashRequested: func(c *Controller, e bus.Event) {
-		c.handleSlashRequested(e)
-	},
-	bus.KindSlashEntered: func(c *Controller, e bus.Event) {
-		c.handleSlashEntered(e)
-	},
 }

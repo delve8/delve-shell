@@ -74,8 +74,6 @@ slash：
 因此下一阶段不建议继续扩展：
 
 - `SubmitChan`
-- `SlashRequestChan`
-- `SlashTraceChan`
 
 而应建立新的统一提交模型，由新模型承担输入主链路。
 
@@ -169,7 +167,7 @@ slash：
 尚未完成的部分：
 
 - `controller` 已不再对 `UIActionSubmission` 基于 `RawText` 再做 submit 分类；普通 chat submission 直接进入 `KindUserChatSubmitted`，`/new` 与 `/sessions` 改为显式 UI intent。
-- `host/bus.InputPorts` 中旧的 `SubmitChan` 已移除；bus 当前只保留结构化 `SubmissionChan` 以及 slash 观测通道 `Slash*Chan`。
+- `host/bus.InputPorts` 中旧的 `SubmitChan` 已移除；bus 当前只保留结构化 `SubmissionChan`。
 - slash 处理器的长期执行归属（继续留在 UI 适配层，还是迁往 controller/service）还未最终收口。
 
 补充：

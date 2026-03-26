@@ -14,7 +14,7 @@ import (
 //
 // Coverage: submit routing (new session / switch session / chat to LLM), config reload, cancel and direct
 // exec, remote connect/off/auth, agent→UI HIL (approval / sensitive / exec result / unknown passthrough),
-// LLM run completion and slash dispatch trace ([KindSlashRequested] / [KindSlashEntered]).
+// and LLM run completion.
 //
 // Architecture draft names (docs/ui-refactor-handoff.md §10.4) map to Kind via [Kind.SemanticLabel];
 // wire values (string constants below) remain the stable contract for tests and persistence.
@@ -35,11 +35,6 @@ const (
 	KindAgentExecEvent                 Kind = "agent_exec_event"
 	KindAgentUnknown                   Kind = "agent_unknown"
 	KindLLMRunCompleted                Kind = "llm_run_completed"
-	// KindSlashRequested is emitted immediately before the TUI runs a matched slash handler (exact, prefix, or selected fallback).
-	// KindSlashEntered is emitted after the handler returns successfully (prefix and fallback only when handled).
-	// Execution stays in the UI/registry; the controller observes these for tracing and future routing.
-	KindSlashRequested Kind = "slash_requested"
-	KindSlashEntered   Kind = "slash_entered"
 )
 
 // AllKinds lists every defined [Kind] constant. Keep in sync when adding kinds; used to assert controller coverage.
@@ -59,8 +54,6 @@ func AllKinds() []Kind {
 		KindAgentExecEvent,
 		KindAgentUnknown,
 		KindLLMRunCompleted,
-		KindSlashRequested,
-		KindSlashEntered,
 	}
 }
 
@@ -164,8 +157,6 @@ type InputPorts struct {
 	RemoteOnChan       chan string
 	RemoteOffChan      chan struct{}
 	RemoteAuthRespChan chan remoteauth.Response
-	SlashRequestChan   chan string
-	SlashTraceChan     chan string
 	AgentUIChan        chan any
 }
 
@@ -178,8 +169,6 @@ func NewInputPorts() InputPorts {
 		RemoteOnChan:       make(chan string, 4),
 		RemoteOffChan:      make(chan struct{}, 4),
 		RemoteAuthRespChan: make(chan remoteauth.Response, 4),
-		SlashRequestChan:   make(chan string, 8),
-		SlashTraceChan:     make(chan string, 8),
 		AgentUIChan:        make(chan any, 64),
 	}
 }
@@ -205,10 +194,6 @@ func BridgeInputs(stop <-chan struct{}, b *Bus, in InputPorts) {
 				b.PublishBlocking(Event{Kind: KindRemoteOffRequested})
 			case resp := <-in.RemoteAuthRespChan:
 				b.PublishBlocking(Event{Kind: KindRemoteAuthResponseSubmitted, RemoteAuthResponse: resp})
-			case line := <-in.SlashRequestChan:
-				b.PublishBlocking(Event{Kind: KindSlashRequested, UserText: line})
-			case line := <-in.SlashTraceChan:
-				b.PublishBlocking(Event{Kind: KindSlashEntered, UserText: line})
 			case x := <-in.AgentUIChan:
 				if ev, ok := bridgeAgentUI(x); ok {
 					b.PublishBlocking(ev)
