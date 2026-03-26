@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
@@ -132,41 +131,6 @@ func (c *Config) AllowlistAutoRunResolved() bool {
 // ExpandEnv replaces $VAR and ${VAR} in s with env values (shell-compatible).
 func ExpandEnv(s string) string {
 	return os.Expand(s, func(key string) string { return os.Getenv(key) })
-}
-
-// LLMSummary returns a read-only summary of current LLM config (api_key masked) for /config show.
-func (c *Config) LLMSummary() string {
-	baseURL := c.LLM.BaseURL
-	model := c.LLM.Model
-	key := c.LLM.APIKey
-	if key != "" {
-		if len(key) > 8 {
-			key = key[:4] + "***" + key[len(key)-4:]
-		} else {
-			key = "***"
-		}
-	} else {
-		key = "(not set)"
-	}
-	if baseURL == "" {
-		baseURL = "(default)"
-	}
-	sp := c.LLM.SystemPrompt
-	if sp == "" {
-		sp = "(default)"
-	} else {
-		sp = "(custom, " + fmt.Sprintf("%d", len(sp)) + " chars)"
-	}
-	autoRun := "List Only"
-	if !c.AllowlistAutoRunResolved() {
-		autoRun = "Disabled"
-	}
-	ctxMsg := fmt.Sprintf("%d", c.LLM.MaxContextMessages)
-	ctxChars := "no limit"
-	if c.LLM.MaxContextChars > 0 {
-		ctxChars = fmt.Sprintf("%d", c.LLM.MaxContextChars)
-	}
-	return "language: " + c.languageResolved() + "\nallowlist_auto_run: " + autoRun + "\nllm.base_url: " + baseURL + "\nllm.api_key: " + key + "\nllm.model: " + model + "\nllm.system_prompt: " + sp + "\nllm.max_context_messages: " + ctxMsg + "\nllm.max_context_chars: " + ctxChars
 }
 
 func (c *Config) languageResolved() string {
