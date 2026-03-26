@@ -36,7 +36,7 @@
 | `RegisterOverlayKeyProvider` | overlay 激活时的按键 |
 | `RegisterOverlayContentProvider` | overlay 正文渲染 |
 | `RegisterOverlayCloseHook` | overlay 关闭后的 feature reset hook；当前会携带 active overlay key，再由 feature 精确复位自己的状态 |
-| `RegisterMessageProvider` | `tea.Msg` 的优先处理（在 `ui` 默认 switch 之前） |
+| `RegisterStateEventProvider` | 非 overlay 的全局 UI 状态同步事件（如 host 侧 remote 状态镜像） |
 
 ### 2.3 与 `update_slash_*` 的关系
 
@@ -83,7 +83,7 @@
 
 - **`renderOverlay` 内 lipgloss 局部样式** 曾用名 `titleStyle`，与包级 **`titleStyle`（顶栏）** 冲突；已改为 `overlayTitleBarStyle`。后续新增样式禁止复用包级同名。
 - **overlay 正文** 已由 `RegisterOverlayContentProvider` 聚合；`renderOverlay` 保持「画框 + 居中」即可。
-- **2026-03-26 当前状态**：`remote`、`configllm`、`skill` 的 overlay-heavy 路径已统一为 `RegisterOverlayFeature(...)` + `OutputOverlayOpen` + active overlay key 路由，`ConnectDone/AuthPrompt`、`CheckDone`、`AddRefsLoaded/AddPathsLoaded` 不再走全局消息广播主路径。
+- **2026-03-26 当前状态**：`remote`、`configllm`、`skill` 的 overlay-heavy 路径已统一为 `RegisterOverlayFeature(...)` + `OutputOverlayOpen` + active overlay key 路由，`ConnectDone/AuthPrompt`、`CheckDone`、`AddRefsLoaded/AddPathsLoaded` 不再走全局消息广播主路径。旧的全局 message provider 也已收口为更窄的 `RegisterStateEventProvider`。
 
 ---
 

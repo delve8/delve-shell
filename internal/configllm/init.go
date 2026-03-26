@@ -16,13 +16,6 @@ func Register() {
 			}
 			return openOverlay(m), nil, true
 		},
-		Message: func(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
-			t, ok := msg.(ApplyFieldMsg)
-			if !ok {
-				return m, nil, false
-			}
-			return applyConfigLLMField(m, t.Field, t.Value), nil, true
-		},
 		Event: handleConfigLLMCheckDoneMessage,
 		Content: func(m ui.Model) (string, bool) {
 			return buildConfigLLMOverlayContent()

@@ -9,6 +9,7 @@ import (
 
 func registerProviders() {
 	ui.RegisterSlashOptionsProvider(remoteSlashOptionsProvider)
+	ui.RegisterStateEventProvider(remoteStateEventProvider)
 
 	ui.RegisterTitleBarFragmentProvider(func(m ui.Model) (string, bool) {
 		if !m.Remote.Active {
@@ -30,8 +31,7 @@ func registerProviders() {
 		Key: func(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
 			return handleRemoteOverlayKey(m, key, msg)
 		},
-		Message: remoteMessageProvider,
-		Event:   remoteOverlayEventProvider,
+		Event: remoteOverlayEventProvider,
 		Content: func(m ui.Model) (string, bool) {
 			return buildRemoteOverlayContent(m)
 		},

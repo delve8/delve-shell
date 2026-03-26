@@ -55,11 +55,11 @@ func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inpu
 	switch {
 	case trimmed == "/help":
 		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-			Kind: inputlifecycletype.OutputMessage,
-			Message: &inputlifecycletype.MessagePayload{Value: OverlayShowMsg{
+			Kind: inputlifecycletype.OutputOverlayOpen,
+			Overlay: &inputlifecycletype.OverlayPayload{
 				Title:   i18n.T("en", i18n.KeyHelpTitle),
 				Content: i18n.T("en", i18n.KeyHelpText),
-			}},
+			},
 		}), nil
 	case trimmed == "/new":
 		if e.sender == nil || !e.sender.Send(uivm.UIAction{Kind: uivm.UIActionSessionNew}) {
@@ -76,12 +76,12 @@ func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inpu
 		cmd := strings.TrimSpace(strings.TrimPrefix(trimmed, "/run "))
 		if cmd == "" {
 			return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-				Kind: inputlifecycletype.OutputMessage,
-				Message: &inputlifecycletype.MessagePayload{Value: TranscriptAppendMsg{
-					Lines: []uivm.Line{
-						{Kind: uivm.LineSystemError, Text: i18n.T("en", i18n.KeyUsageRun)},
+				Kind: inputlifecycletype.OutputTranscriptAppend,
+				Transcript: &inputlifecycletype.TranscriptPayload{
+					Lines: []inputlifecycletype.TranscriptLine{
+						{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.T("en", i18n.KeyUsageRun)},
 					},
-				}},
+				},
 			}), nil
 		}
 		if e.sender == nil || !e.sender.Send(uivm.UIAction{Kind: uivm.UIActionExecDirect, Text: cmd}) {
@@ -90,12 +90,12 @@ func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inpu
 		return inputlifecycletype.ConsumedResult(), nil
 	}
 	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-		Kind: inputlifecycletype.OutputMessage,
-		Message: &inputlifecycletype.MessagePayload{Value: LifecycleSlashExecuteMsg{
+		Kind: inputlifecycletype.OutputSlashExecute,
+		Slash: &inputlifecycletype.SlashExecutionPayload{
 			RawText:       req.RawText,
 			InputLine:     req.InputLine,
 			SelectedIndex: req.SelectedIndex,
-		}},
+		},
 	}), nil
 }
 
@@ -140,15 +140,12 @@ func (e uiControlActionExecutor) ExecuteControl(action inputlifecycletype.Contro
 		}), nil
 	case inputlifecycletype.ControlCloseOverlay,
 		inputlifecycletype.ControlClearPreInput:
-		var msg any = OverlayCloseMsg{}
+		kind := inputlifecycletype.OutputOverlayClose
 		if action == inputlifecycletype.ControlClearPreInput {
-			msg = PreInputClearMsg{}
+			kind = inputlifecycletype.OutputPreInputClear
 		}
 		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-			Kind: inputlifecycletype.OutputMessage,
-			Message: &inputlifecycletype.MessagePayload{
-				Value: msg,
-			},
+			Kind: kind,
 		}), nil
 	case inputlifecycletype.ControlQuit, inputlifecycletype.ControlInterrupt:
 		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
@@ -185,6 +182,22 @@ func (m Model) submitLifecycleSlash(rawText, inputLine string, selectedIndex int
 func (m Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (Model, tea.Cmd) {
 	for _, out := range res.Outputs {
 		switch out.Kind {
+		case inputlifecycletype.OutputTranscriptAppend:
+			if out.Transcript != nil {
+				lines := make([]uivm.Line, 0, len(out.Transcript.Lines))
+				for _, line := range out.Transcript.Lines {
+					lines = append(lines, uivm.Line{Kind: uivm.LineKind(line.Kind), Text: line.Text})
+				}
+				return m.handleTranscriptAppendMsg(TranscriptAppendMsg{Lines: lines})
+			}
+		case inputlifecycletype.OutputSlashExecute:
+			if out.Slash != nil {
+				return m.handleLifecycleSlashExecuteMsg(LifecycleSlashExecuteMsg{
+					RawText:       out.Slash.RawText,
+					InputLine:     out.Slash.InputLine,
+					SelectedIndex: out.Slash.SelectedIndex,
+				})
+			}
 		case inputlifecycletype.OutputOverlayOpen:
 			if out.Overlay != nil {
 				return m.handleOverlayOpenIntentMsg(OverlayOpenIntentMsg{
@@ -196,31 +209,8 @@ func (m Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (Model
 			}
 		case inputlifecycletype.OutputOverlayClose:
 			return m.handleOverlayCloseMsg()
-		case inputlifecycletype.OutputMessage:
-			if out.Message == nil {
-				continue
-			}
-			msg := out.Message.Value
-			switch typed := msg.(type) {
-			case LifecycleSlashExecuteMsg:
-				return m.handleLifecycleSlashExecuteMsg(typed)
-			case OverlayOpenIntentMsg:
-				return m.handleOverlayOpenIntentMsg(typed)
-			case OverlayShowMsg:
-				return m.handleOverlayShowMsg(typed)
-			case OverlayCloseMsg:
-				return m.handleOverlayCloseMsg()
-			case PreInputClearMsg:
-				return m.clearSlashInput(), nil
-			case TranscriptAppendMsg:
-				return m.handleTranscriptAppendMsg(typed)
-			default:
-				for _, p := range messageProviderChain.List() {
-					if m2, cmd, handled := p(m, msg); handled {
-						return m2, cmd
-					}
-				}
-			}
+		case inputlifecycletype.OutputPreInputClear:
+			return m.clearSlashInput(), nil
 		}
 	}
 	patch, cmd := inputoutput.ApplyResult(res)

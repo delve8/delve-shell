@@ -6,9 +6,3 @@ type CheckDoneMsg struct {
 	ErrText          string
 	CorrectedBaseURL string
 }
-
-// ApplyFieldMsg applies a single `/config llm <field> ...` slash command.
-type ApplyFieldMsg struct {
-	Field string
-	Value string
-}

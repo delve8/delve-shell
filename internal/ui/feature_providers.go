@@ -78,19 +78,18 @@ func RegisterOverlayKeyProvider(p OverlayKeyProvider) {
 	overlayKeyProviderChain.Add(p, func(x OverlayKeyProvider) bool { return x == nil })
 }
 
-// MessageProvider can handle any tea.Msg before ui's default type switch.
-// When handled==true, the returned model/cmd should be used.
-type MessageProvider func(m Model, msg tea.Msg) (Model, tea.Cmd, bool)
+// StateEventProvider handles non-overlay UI state synchronization events before the default update switch.
+// This is intended for global state mirroring, not arbitrary feature business logic.
+type StateEventProvider func(m Model, msg tea.Msg) (Model, tea.Cmd, bool)
 
-var messageProviderChain = slashreg.NewProviderChain[MessageProvider]()
+var stateEventProviderChain = slashreg.NewProviderChain[StateEventProvider]()
 
-// RegisterMessageProvider registers a message provider.
-// Providers are executed in registration order; the first one that returns handled=true wins.
-func RegisterMessageProvider(p MessageProvider) {
+// RegisterStateEventProvider registers a state event provider.
+func RegisterStateEventProvider(p StateEventProvider) {
 	if p == nil {
 		return
 	}
-	messageProviderChain.Add(p, func(x MessageProvider) bool { return x == nil })
+	stateEventProviderChain.Add(p, func(x StateEventProvider) bool { return x == nil })
 }
 
 // OverlayEventProvider handles asynchronous overlay events for the active overlay feature.
@@ -148,7 +147,6 @@ func RegisterOverlayOpenProvider(p OverlayOpenProvider) {
 type OverlayFeature struct {
 	Open    OverlayOpenProvider
 	Key     OverlayKeyProvider
-	Message MessageProvider
 	Content OverlayContentProvider
 	Event   OverlayEventProvider
 	Close   OverlayCloseHook
@@ -162,9 +160,6 @@ func RegisterOverlayFeature(f OverlayFeature) {
 	}
 	if f.Key != nil {
 		RegisterOverlayKeyProvider(f.Key)
-	}
-	if f.Message != nil {
-		RegisterMessageProvider(f.Message)
 	}
 	if f.Event != nil {
 		RegisterOverlayEventProvider(f.Event)

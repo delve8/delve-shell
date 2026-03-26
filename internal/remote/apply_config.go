@@ -51,25 +51,21 @@ func applyConfigRemoveRemote(nameOrTarget string) inputlifecycletype.ProcessResu
 }
 
 func remoteTranscriptSuggestResult(text string, trailingBlank bool) inputlifecycletype.ProcessResult {
-	lines := []uivm.Line{{Kind: uivm.LineSystemSuggest, Text: text}}
+	lines := []inputlifecycletype.TranscriptLine{{Kind: inputlifecycletype.TranscriptLineSystemSuggest, Text: text}}
 	if trailingBlank {
-		lines = append(lines, uivm.Line{Kind: uivm.LineBlank})
+		lines = append(lines, inputlifecycletype.TranscriptLine{Kind: inputlifecycletype.TranscriptLineBlank})
 	}
 	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-		Kind: inputlifecycletype.OutputMessage,
-		Message: &inputlifecycletype.MessagePayload{
-			Value: ui.TranscriptAppendMsg{Lines: lines},
-		},
+		Kind:       inputlifecycletype.OutputTranscriptAppend,
+		Transcript: &inputlifecycletype.TranscriptPayload{Lines: lines},
 	})
 }
 
 func remoteTranscriptErrorResult(text string) inputlifecycletype.ProcessResult {
 	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-		Kind: inputlifecycletype.OutputMessage,
-		Message: &inputlifecycletype.MessagePayload{
-			Value: ui.TranscriptAppendMsg{Lines: []uivm.Line{
-				{Kind: uivm.LineSystemError, Text: text},
-			}},
-		},
+		Kind: inputlifecycletype.OutputTranscriptAppend,
+		Transcript: &inputlifecycletype.TranscriptPayload{Lines: []inputlifecycletype.TranscriptLine{
+			{Kind: inputlifecycletype.TranscriptLineSystemError, Text: text},
+		}},
 	})
 }

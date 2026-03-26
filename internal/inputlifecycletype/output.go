@@ -5,18 +5,47 @@ type OutputEventKind string
 
 const (
 	OutputTranscriptAppend OutputEventKind = "transcript_append"
+	OutputSlashExecute     OutputEventKind = "slash_execute"
 	OutputOverlayOpen      OutputEventKind = "overlay_open"
 	OutputOverlayClose     OutputEventKind = "overlay_close"
+	OutputPreInputClear    OutputEventKind = "pre_input_clear"
 	OutputStatusChange     OutputEventKind = "status_change"
 	OutputApprovalOpen     OutputEventKind = "approval_open"
 	OutputErrorNotice      OutputEventKind = "error_notice"
-	OutputMessage          OutputEventKind = "message"
 	OutputQuit             OutputEventKind = "quit"
 )
 
-// TranscriptPayload appends one line or block into the conversation transcript.
+// TranscriptPayload appends semantic transcript lines.
 type TranscriptPayload struct {
+	Lines []TranscriptLine
+}
+
+// TranscriptLineKind is the lifecycle-level semantic kind of a transcript line.
+type TranscriptLineKind int
+
+const (
+	TranscriptLinePlain TranscriptLineKind = iota
+	TranscriptLineBlank
+	TranscriptLineSeparator
+	TranscriptLineUser
+	TranscriptLineAI
+	TranscriptLineSystemSuggest
+	TranscriptLineSystemError
+	TranscriptLineExec
+	TranscriptLineResult
+)
+
+// TranscriptLine is one semantic transcript line.
+type TranscriptLine struct {
+	Kind TranscriptLineKind
 	Text string
+}
+
+// SlashExecutionPayload describes a normalized slash execution request for the local runtime.
+type SlashExecutionPayload struct {
+	RawText       string
+	InputLine     string
+	SelectedIndex int
 }
 
 // OverlayPayload describes an overlay open/close effect.
@@ -44,11 +73,6 @@ type ErrorPayload struct {
 	Message string
 }
 
-// MessagePayload carries a deferred tea message without coupling lifecycle types to Bubble Tea.
-type MessagePayload struct {
-	Value any
-}
-
 // OutputEvent is the unified result emitted from processing before UI adaptation.
 type OutputEvent struct {
 	Kind OutputEventKind
@@ -56,9 +80,9 @@ type OutputEvent struct {
 	Text string
 
 	Transcript *TranscriptPayload
+	Slash      *SlashExecutionPayload
 	Overlay    *OverlayPayload
 	Status     *StatusPayload
 	Approval   *ApprovalPayload
 	Error      *ErrorPayload
-	Message    *MessagePayload
 }

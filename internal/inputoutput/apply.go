@@ -34,11 +34,6 @@ func ApplyResult(res inputlifecycletype.ProcessResult) (StatePatch, tea.Cmd) {
 					patch.WaitingForAI = &v
 				}
 			}
-		case inputlifecycletype.OutputMessage:
-			if out.Message != nil && out.Message.Value != nil {
-				msg := out.Message.Value
-				cmds = append(cmds, func() tea.Msg { return msg })
-			}
 		case inputlifecycletype.OutputQuit:
 			patch.Quit = true
 			cmds = append(cmds, tea.Quit)

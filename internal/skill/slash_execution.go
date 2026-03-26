@@ -101,15 +101,6 @@ func executeSkillInvocation(req ui.SlashExecutionRequest, rest string) inputlife
 	return res
 }
 
-func messageResult(msg any) inputlifecycletype.ProcessResult {
-	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-		Kind: inputlifecycletype.OutputMessage,
-		Message: &inputlifecycletype.MessagePayload{
-			Value: msg,
-		},
-	})
-}
-
 func overlayOpenResult(key string, params map[string]string) inputlifecycletype.ProcessResult {
 	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 		Kind: inputlifecycletype.OutputOverlayOpen,
@@ -122,11 +113,9 @@ func overlayOpenResult(key string, params map[string]string) inputlifecycletype.
 
 func transcriptErrorResult(text string) inputlifecycletype.ProcessResult {
 	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-		Kind: inputlifecycletype.OutputMessage,
-		Message: &inputlifecycletype.MessagePayload{
-			Value: ui.TranscriptAppendMsg{Lines: []uivm.Line{
-				{Kind: uivm.LineSystemError, Text: text},
-			}},
-		},
+		Kind: inputlifecycletype.OutputTranscriptAppend,
+		Transcript: &inputlifecycletype.TranscriptPayload{Lines: []inputlifecycletype.TranscriptLine{
+			{Kind: inputlifecycletype.TranscriptLineSystemError, Text: text},
+		}},
 	})
 }

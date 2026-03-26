@@ -5,8 +5,10 @@ import (
 
 	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/service/configsvc"
 	"delve-shell/internal/ui"
+	"delve-shell/internal/uivm"
 )
 
 func applyConfigLLMFromOverlayStart(m ui.Model, baseURL, apiKey, model, maxMessagesStr, maxCharsStr string) ui.Model {
@@ -35,14 +37,17 @@ func applyConfigLLMFromOverlayStart(m ui.Model, baseURL, apiKey, model, maxMessa
 	return m
 }
 
-func applyConfigLLMField(m ui.Model, field, value string) ui.Model {
+func applyConfigLLMFieldResult(field, value string, sender ui.ActionSender) inputlifecycletype.ProcessResult {
 	value = strings.TrimSpace(value)
 	lang := "en"
 	cfg, err := config.Load()
 	if err != nil {
-		m = m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T(lang, i18n.KeyConfigPrefix) + err.Error()))
-		m = m.RefreshViewport()
-		return m
+		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+			Kind: inputlifecycletype.OutputTranscriptAppend,
+			Transcript: &inputlifecycletype.TranscriptPayload{
+				Lines: []inputlifecycletype.TranscriptLine{{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.T(lang, i18n.KeyConfigPrefix) + err.Error()}},
+			},
+		})
 	}
 	switch field {
 	case "base_url":
@@ -52,21 +57,31 @@ func applyConfigLLMField(m ui.Model, field, value string) ui.Model {
 	case "model":
 		cfg.LLM.Model = value
 	default:
-		m = m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T(lang, i18n.KeyConfigPrefix) + i18n.T(lang, i18n.KeyConfigUnknownField) + field))
-		m = m.RefreshViewport()
-		return m
+		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+			Kind: inputlifecycletype.OutputTranscriptAppend,
+			Transcript: &inputlifecycletype.TranscriptPayload{
+				Lines: []inputlifecycletype.TranscriptLine{{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.T(lang, i18n.KeyConfigPrefix) + i18n.T(lang, i18n.KeyConfigUnknownField) + field}},
+			},
+		})
 	}
 	if err := config.Write(cfg); err != nil {
-		m = m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T(lang, i18n.KeyConfigPrefix) + err.Error()))
-		m = m.RefreshViewport()
-		return m
+		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+			Kind: inputlifecycletype.OutputTranscriptAppend,
+			Transcript: &inputlifecycletype.TranscriptPayload{
+				Lines: []inputlifecycletype.TranscriptLine{{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.T(lang, i18n.KeyConfigPrefix) + err.Error()}},
+			},
+		})
 	}
-	prefix := i18n.T(lang, i18n.KeyDelveLabel) + " "
-	m = m.AppendTranscriptLines(
-		ui.SuggestStyleRender(prefix+i18n.Tf(lang, i18n.KeyConfigSaved, field)),
-		"",
-	)
-	m = m.RefreshViewport()
-	m.EmitConfigUpdatedIntent()
-	return m
+	if sender != nil {
+		_ = sender.Send(uivm.UIAction{Kind: uivm.UIActionConfigUpdated})
+	}
+	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+		Kind: inputlifecycletype.OutputTranscriptAppend,
+		Transcript: &inputlifecycletype.TranscriptPayload{
+			Lines: []inputlifecycletype.TranscriptLine{
+				{Kind: inputlifecycletype.TranscriptLineSystemSuggest, Text: i18n.Tf(lang, i18n.KeyConfigSaved, field)},
+				{Kind: inputlifecycletype.TranscriptLineBlank},
+			},
+		},
+	})
 }

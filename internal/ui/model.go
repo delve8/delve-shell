@@ -96,7 +96,7 @@ func (m Model) delveMsg(msg string) string {
 // Update implements tea.Model.
 //
 // Routing (first match wins):
-//   - messageProviderChain — feature-registered handlers (session, config-LLM, skills); see RegisterMessageProvider.
+//   - stateEventProviderChain — feature-registered global state sync handlers.
 //   - update_lifecycle.go — WindowSize, Blur, Focus, overlay open/close, mouse / viewport.
 //   - update_overlay_key.go then update_keymsg.go, update_slash.go, update_approval.go — keyboard when overlay vs main input.
 //   - update_approval.go, update_events.go — agent approval and transcript events.
@@ -111,7 +111,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	for _, p := range messageProviderChain.List() {
+	for _, p := range stateEventProviderChain.List() {
 		if m2, cmd, handled := p(m, msg); handled {
 			return m2, cmd
 		}

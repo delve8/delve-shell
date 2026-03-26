@@ -6,8 +6,6 @@ import (
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/service/skillsvc"
-	"delve-shell/internal/ui"
-	"delve-shell/internal/uivm"
 )
 
 func handleSlashConfigDelSkillPrefix(rest string) inputlifecycletype.ProcessResult {
@@ -15,32 +13,26 @@ func handleSlashConfigDelSkillPrefix(rest string) inputlifecycletype.ProcessResu
 	name := strings.TrimSpace(rest)
 	if name == "" {
 		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-			Kind: inputlifecycletype.OutputMessage,
-			Message: &inputlifecycletype.MessagePayload{
-				Value: ui.TranscriptAppendMsg{Lines: []uivm.Line{
-					{Kind: uivm.LineSystemError, Text: i18n.T(lang, i18n.KeyUsageSkillRemove)},
-				}},
-			},
+			Kind: inputlifecycletype.OutputTranscriptAppend,
+			Transcript: &inputlifecycletype.TranscriptPayload{Lines: []inputlifecycletype.TranscriptLine{
+				{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.T(lang, i18n.KeyUsageSkillRemove)},
+			}},
 		})
 	}
 
 	if err := skillsvc.Remove(name); err != nil {
 		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-			Kind: inputlifecycletype.OutputMessage,
-			Message: &inputlifecycletype.MessagePayload{
-				Value: ui.TranscriptAppendMsg{Lines: []uivm.Line{
-					{Kind: uivm.LineSystemError, Text: i18n.Tf(lang, i18n.KeySkillRemoveFailed, err)},
-				}},
-			},
+			Kind: inputlifecycletype.OutputTranscriptAppend,
+			Transcript: &inputlifecycletype.TranscriptPayload{Lines: []inputlifecycletype.TranscriptLine{
+				{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.Tf(lang, i18n.KeySkillRemoveFailed, err)},
+			}},
 		})
 	}
 	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-		Kind: inputlifecycletype.OutputMessage,
-		Message: &inputlifecycletype.MessagePayload{
-			Value: ui.TranscriptAppendMsg{Lines: []uivm.Line{
-				{Kind: uivm.LineSystemSuggest, Text: i18n.Tf(lang, i18n.KeySkillRemoved, name)},
-			}},
-		},
+		Kind: inputlifecycletype.OutputTranscriptAppend,
+		Transcript: &inputlifecycletype.TranscriptPayload{Lines: []inputlifecycletype.TranscriptLine{
+			{Kind: inputlifecycletype.TranscriptLineSystemSuggest, Text: i18n.Tf(lang, i18n.KeySkillRemoved, name)},
+		}},
 	})
 }
 

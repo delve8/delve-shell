@@ -40,7 +40,15 @@ func cloneOutputEvent(event OutputEvent) OutputEvent {
 	cloned := event
 	if event.Transcript != nil {
 		payload := *event.Transcript
+		if len(event.Transcript.Lines) > 0 {
+			payload.Lines = make([]TranscriptLine, len(event.Transcript.Lines))
+			copy(payload.Lines, event.Transcript.Lines)
+		}
 		cloned.Transcript = &payload
+	}
+	if event.Slash != nil {
+		payload := *event.Slash
+		cloned.Slash = &payload
 	}
 	if event.Overlay != nil {
 		payload := *event.Overlay
@@ -63,10 +71,6 @@ func cloneOutputEvent(event OutputEvent) OutputEvent {
 	if event.Error != nil {
 		payload := *event.Error
 		cloned.Error = &payload
-	}
-	if event.Message != nil {
-		payload := *event.Message
-		cloned.Message = &payload
 	}
 	return cloned
 }

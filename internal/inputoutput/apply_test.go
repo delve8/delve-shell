@@ -31,21 +31,4 @@ func TestApplyResultQuit(t *testing.T) {
 	}
 }
 
-func TestApplyResultMessage(t *testing.T) {
-	msg := struct{ Value string }{Value: "slash"}
-	_, cmd := ApplyResult(inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-		Kind:    inputlifecycletype.OutputMessage,
-		Message: &inputlifecycletype.MessagePayload{Value: msg},
-	}))
-	if cmd == nil {
-		t.Fatal("expected deferred message command")
-	}
-	got := cmd()
-	if got == nil {
-		t.Fatal("expected deferred message")
-	}
-	if typed, ok := got.(struct{ Value string }); !ok || typed.Value != "slash" {
-		t.Fatalf("unexpected deferred message: %#v", got)
-	}
-	_ = tea.Quit
-}
+var _ = tea.Quit

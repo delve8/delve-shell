@@ -10,7 +10,7 @@ import (
 	"delve-shell/internal/ui"
 )
 
-func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
+func remoteStateEventProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 	switch t := msg.(type) {
 	case ExecutionChangedMsg:
 		m.Remote.Active = t.Active
