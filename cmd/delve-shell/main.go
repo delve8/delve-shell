@@ -1,7 +1,7 @@
 package main
 
 import (
-	"delve-shell/internal/cli"
+	"delve-shell/internal/cli/interactive"
 	"log/slog"
 	"os"
 
@@ -12,7 +12,11 @@ func main() {
 	root := &cobra.Command{
 		Use:          "delve-shell",
 		Short:        "AI-assisted shell: run commands after your approval",
-		RunE:         cli.Run,
+		RunE:         func(cmd *cobra.Command, args []string) error {
+			_ = cmd
+			_ = args
+			return interactive.Run()
+		},
 		SilenceUsage: true,
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
