@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"delve-shell/internal/agent"
 	"delve-shell/internal/cli/hostfsm"
 	"delve-shell/internal/execenv"
 	"delve-shell/internal/host/bus"
+	"delve-shell/internal/hiltypes"
 	"delve-shell/internal/ui"
 	"delve-shell/internal/uipresenter"
 )
@@ -76,7 +76,7 @@ func TestHandleEvent_DispatchConfigUpdated(t *testing.T) {
 	c := newTestControllerWithPresenter(s)
 	c.currentAllowlistAutoRun = new(atomic.Bool)
 	c.currentAllowlistAutoRun.Store(true)
-	c.handleEvent(bus.Event{Kind: bus.KindAgentExecEvent, AgentExec: agent.ExecEvent{Command: "x"}})
+	c.handleEvent(bus.Event{Kind: bus.KindAgentExecEvent, AgentExec: hiltypes.ExecEvent{Command: "x"}})
 	if len(s.msgs) != 1 {
 		t.Fatalf("want 1 msg, got %d", len(s.msgs))
 	}

@@ -19,6 +19,7 @@ import (
 	"delve-shell/internal/execenv"
 	"delve-shell/internal/hil"
 	"delve-shell/internal/history"
+	"delve-shell/internal/hiltypes"
 )
 
 // RunnerHILInput is allowlist and sensitive matching for tools and approval flow.
@@ -70,20 +71,20 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 	}
 
 	uiEvents := opts.UILoop.UIEvents
-	requestApproval := func(cmd, summary, reason, riskLevel, skillName string) ApprovalResponse {
+	requestApproval := func(cmd, summary, reason, riskLevel, skillName string) hiltypes.ApprovalResponse {
 		if uiEvents == nil {
-			return ApprovalResponse{}
+			return hiltypes.ApprovalResponse{}
 		}
-		ch := make(chan ApprovalResponse, 1)
-		uiEvents <- &ApprovalRequest{Command: cmd, Summary: summary, Reason: reason, RiskLevel: riskLevel, SkillName: strings.TrimSpace(skillName), ResponseCh: ch}
+		ch := make(chan hiltypes.ApprovalResponse, 1)
+		uiEvents <- &hiltypes.ApprovalRequest{Command: cmd, Summary: summary, Reason: reason, RiskLevel: riskLevel, SkillName: strings.TrimSpace(skillName), ResponseCh: ch}
 		return <-ch
 	}
-	requestSensitiveConfirmation := func(cmd string) SensitiveChoice {
+	requestSensitiveConfirmation := func(cmd string) hiltypes.SensitiveChoice {
 		if uiEvents == nil {
-			return SensitiveRunAndStore
+			return hiltypes.SensitiveRunAndStore
 		}
-		ch := make(chan SensitiveChoice)
-		uiEvents <- &SensitiveConfirmationRequest{Command: cmd, ResponseCh: ch}
+		ch := make(chan hiltypes.SensitiveChoice)
+		uiEvents <- &hiltypes.SensitiveConfirmationRequest{Command: cmd, ResponseCh: ch}
 		return <-ch
 	}
 
@@ -100,7 +101,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		Session:                      opts.Session.Session,
 		OnExec: func(cmd string, allowed bool, result string, sensitive bool, suggested bool) {
 			if uiEvents != nil {
-				uiEvents <- ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested}
+				uiEvents <- hiltypes.ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested}
 			}
 		},
 		ExecutorProvider: opts.UILoop.ExecutorProvider,
@@ -121,7 +122,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		Session:                      opts.Session.Session,
 		OnExec: func(cmd string, allowed bool, result string, sensitive bool, suggested bool) {
 			if uiEvents != nil {
-				uiEvents <- ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested}
+				uiEvents <- hiltypes.ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested}
 			}
 		},
 		ExecutorProvider: opts.UILoop.ExecutorProvider,
