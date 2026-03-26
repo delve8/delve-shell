@@ -6,7 +6,7 @@ import (
 	"unicode/utf8"
 )
 
-// SemanticLabel names the event shape in architecture terms (docs/ui-refactor-handoff.md §10.4 draft).
+// SemanticLabel names the event shape in architecture terms for human-readable tracing.
 // Wire Kind string values stay stable for logs and tests; this label is for human traceability only.
 func (k Kind) SemanticLabel() string {
 	switch k {

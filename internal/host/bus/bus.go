@@ -16,8 +16,8 @@ import (
 // exec, remote connect/off/auth, agent→UI HIL (approval / sensitive / exec result / unknown passthrough),
 // and LLM run completion.
 //
-// Architecture draft names (docs/ui-refactor-handoff.md §10.4) map to Kind via [Kind.SemanticLabel];
-// wire values (string constants below) remain the stable contract for tests and persistence.
+// Human-readable architecture labels map to Kind via [Kind.SemanticLabel]; wire values
+// (string constants below) remain the stable contract for tests and persistence.
 type Kind string
 
 const (
