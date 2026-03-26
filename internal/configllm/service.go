@@ -7,16 +7,18 @@ import (
 	"strings"
 	"time"
 
+	openaimodel "github.com/cloudwego/eino-ext/components/model/openai"
+	"github.com/cloudwego/eino/schema"
+
 	"delve-shell/internal/config"
-	"delve-shell/internal/llmtest"
 )
 
 // LLMTester is used to check LLM connectivity.
-// It is injected in tests; production uses llmtest.TestConnection.
+// It is injected in tests; production uses TestConnection.
 type LLMTester func(ctx context.Context, baseURL, apiKey, model string) error
 
 func defaultLLMTester(ctx context.Context, baseURL, apiKey, model string) error {
-	return llmtest.TestConnection(ctx, baseURL, apiKey, model)
+	return TestConnection(ctx, baseURL, apiKey, model)
 }
 
 // LoadOrDefault loads config.yaml; if not found/invalid, returns config.Default().
@@ -114,4 +116,43 @@ func CheckLLMAndMaybeAutoCorrect(ctx context.Context, tester LLMTester) (correct
 		return "", checkErr
 	}
 	return tryURL, nil
+}
+
+// TestConnection sends a minimal "hello" request to the LLM and returns nil if the response is received.
+// baseURL, apiKey, model are used as-is after env expansion and trim; empty baseURL is left empty (client default).
+func TestConnection(ctx context.Context, baseURL, apiKey, model string) error {
+	baseURL = strings.TrimSpace(config.ExpandEnv(baseURL))
+	baseURL = strings.TrimRight(baseURL, "/")
+	apiKey = strings.TrimSpace(config.ExpandEnv(apiKey))
+	model = strings.TrimSpace(config.ExpandEnv(model))
+	if model == "" {
+		model = "gpt-4o-mini"
+	}
+	if baseURL == "" && apiKey != "" {
+		baseURL = "https://api.openai.com/v1"
+	}
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	timeout := 15 * time.Second
+	if d, ok := ctx.Deadline(); ok {
+		timeout = time.Until(d)
+		if timeout <= 0 {
+			return context.DeadlineExceeded
+		}
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	chatModel, err := openaimodel.NewChatModel(ctx, &openaimodel.ChatModelConfig{
+		APIKey:  apiKey,
+		BaseURL: baseURL,
+		Model:   model,
+	})
+	if err != nil {
+		return err
+	}
+	_, err = chatModel.Generate(ctx, []*schema.Message{
+		schema.UserMessage("hello"),
+	})
+	return err
 }
