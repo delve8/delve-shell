@@ -153,37 +153,6 @@ func ScriptPath(skillDir, scriptName string) (string, error) {
 	return full, nil
 }
 
-// BuildCommand builds the shell command to run scriptName from skillDir with args: cd scripts && bash scriptName args...
-// Uses bash so scripts do not need execute permission. skillDir is the skill root (e.g. ~/.delve-shell/skills/foo).
-func BuildCommand(skillDir, scriptName string, args []string) (string, error) {
-	return BuildCommandInDir(ScriptsDir(skillDir), scriptName, args)
-}
-
-// BuildCommandInDir builds the shell command to run scriptName from baseDir with args: cd baseDir && bash scriptName args...
-// baseDir should be the scripts directory (local or remote). Uses bash so scripts do not need execute permission.
-func BuildCommandInDir(baseDir, scriptName string, args []string) (string, error) {
-	abs, err := filepath.Abs(baseDir)
-	if err != nil {
-		return "", err
-	}
-	cdPart := "cd " + quoteForSh(abs) + " && bash " + quoteForSh(scriptName)
-	if len(args) == 0 {
-		return cdPart, nil
-	}
-	var b strings.Builder
-	b.WriteString(cdPart)
-	for _, a := range args {
-		b.WriteString(" ")
-		b.WriteString(quoteForSh(a))
-	}
-	return b.String(), nil
-}
-
-// quoteForSh wraps s in single quotes and escapes single quotes as '\”.
-func quoteForSh(s string) string {
-	return "'" + strings.ReplaceAll(s, "'", "'\"'\"'") + "'"
-}
-
 // skillDiscoveryDirs are conventional locations to look for SKILL.md (relative to repo root).
 // Order matters: root first, then skills/, then common agent-style dirs.
 var skillDiscoveryDirs = []string{

@@ -48,7 +48,7 @@ func (c *Controller) handleUserChat(userMsg string) {
 			if cfg, err := config.LoadEnsured(); err == nil && cfg != nil {
 				maxMsg := cfg.LLM.MaxContextMessages
 				if maxMsg <= 0 {
-					maxMsg = config.DefaultMaxContextMessages
+					maxMsg = 50
 				}
 				maxChars := cfg.LLM.MaxContextChars
 				if maxChars == 0 {

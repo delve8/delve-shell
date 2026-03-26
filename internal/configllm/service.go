@@ -17,20 +17,12 @@ import (
 // It is injected in tests; production uses TestConnection.
 type LLMTester func(ctx context.Context, baseURL, apiKey, model string) error
 
-type SaveLLMParams struct {
-	BaseURL     string
-	APIKey      string
-	Model       string
-	MaxMessages string // empty means 0
-	MaxChars    string // empty means 0
-}
-
 // SaveLLMFromOverlay validates and writes the LLM config fields.
 // It does not run connectivity checks; caller should call CheckLLMAndMaybeAutoCorrect.
-func SaveLLMFromOverlay(p SaveLLMParams) error {
-	baseURL := strings.TrimSpace(p.BaseURL)
-	apiKey := strings.TrimSpace(p.APIKey)
-	model := strings.TrimSpace(p.Model)
+func SaveLLMFromOverlay(baseURL, apiKey, model, maxMessages, maxChars string) error {
+	baseURL = strings.TrimSpace(baseURL)
+	apiKey = strings.TrimSpace(apiKey)
+	model = strings.TrimSpace(model)
 	if model == "" {
 		return fmt.Errorf("llm.model is required")
 	}
@@ -47,14 +39,14 @@ func SaveLLMFromOverlay(p SaveLLMParams) error {
 	cfg.LLM.APIKey = apiKey
 	cfg.LLM.Model = model
 
-	if s := strings.TrimSpace(p.MaxMessages); s != "" {
+	if s := strings.TrimSpace(maxMessages); s != "" {
 		if n, err := strconv.Atoi(s); err == nil && n >= 0 {
 			cfg.LLM.MaxContextMessages = n
 		}
 	} else {
 		cfg.LLM.MaxContextMessages = 0
 	}
-	if s := strings.TrimSpace(p.MaxChars); s != "" {
+	if s := strings.TrimSpace(maxChars); s != "" {
 		if n, err := strconv.Atoi(s); err == nil && n >= 0 {
 			cfg.LLM.MaxContextChars = n
 		}

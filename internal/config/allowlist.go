@@ -44,11 +44,6 @@ func WriteAllowlist(entries []AllowlistEntry) error {
 	return os.WriteFile(AllowlistPath(), data, 0600)
 }
 
-// DefaultAllowlist returns the built-in default allowlist (read-only commands); used by /config update auto-run list etc.
-func DefaultAllowlist() []AllowlistEntry {
-	return defaultAllowlist()
-}
-
 // oldAllowlistWords are single-command names that used to use \bword\b or (^|\s)word\b; migration removes those so (^|\s)word(\s|$) are the only ones.
 var oldAllowlistWords = []string{
 	"pwd", "ls", "dir", "whoami", "id", "env", "printenv", "uname", "hostname", "date", "which", "whereis", "type",

@@ -18,13 +18,7 @@ func applyConfigLLMFromOverlayStart(m ui.Model, baseURL, apiKey, model, maxMessa
 	if model == "" {
 		return m
 	}
-	if err := SaveLLMFromOverlay(SaveLLMParams{
-		BaseURL:     baseURL,
-		APIKey:      apiKey,
-		Model:       model,
-		MaxMessages: maxMessagesStr,
-		MaxChars:    maxCharsStr,
-	}); err != nil {
+	if err := SaveLLMFromOverlay(baseURL, apiKey, model, maxMessagesStr, maxCharsStr); err != nil {
 		m = m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T(lang, i18n.KeyConfigPrefix) + err.Error()))
 		m = m.RefreshViewport()
 		return m

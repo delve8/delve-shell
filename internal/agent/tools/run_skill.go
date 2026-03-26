@@ -144,12 +144,23 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 		}
 	}
 	if isRemote {
-		cmd, err = skillstore.BuildCommandInDir(remoteScriptsDir, scriptName, input.Args)
+		abs, absErr := filepath.Abs(remoteScriptsDir)
+		if absErr != nil {
+			return "Failed to build skill command: " + absErr.Error(), nil
+		}
+		cmd = "cd " + quoteForSh(abs) + " && bash " + quoteForSh(scriptName)
+		for _, a := range input.Args {
+			cmd += " " + quoteForSh(a)
+		}
 	} else {
-		cmd, err = skillstore.BuildCommand(skillDir, scriptName, input.Args)
-	}
-	if err != nil {
-		return "Failed to build skill command: " + err.Error(), nil
+		abs, absErr := filepath.Abs(skillstore.ScriptsDir(skillDir))
+		if absErr != nil {
+			return "Failed to build skill command: " + absErr.Error(), nil
+		}
+		cmd = "cd " + quoteForSh(abs) + " && bash " + quoteForSh(scriptName)
+		for _, a := range input.Args {
+			cmd += " " + quoteForSh(a)
+		}
 	}
 
 	reason := strings.TrimSpace(input.Reason)

@@ -153,9 +153,6 @@ func (c *Config) LLMResolved() (baseURL, apiKey, model string) {
 	return baseURL, apiKey, model
 }
 
-// DefaultMaxContextMessages is used when llm.max_context_messages is 0 or unset.
-const DefaultMaxContextMessages = 50
-
 // EnsureRootDir creates root and subdirs if missing (including skills dir for user-installed skills).
 func EnsureRootDir() error {
 	for _, dir := range []string{RootDir(), RulesDir(), HistoryDir(), SkillsDir()} {
