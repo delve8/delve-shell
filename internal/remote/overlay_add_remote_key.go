@@ -5,9 +5,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/pathcomplete"
-	"delve-shell/internal/service/remotesvc"
 	"delve-shell/internal/ui"
 )
 
@@ -111,7 +111,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 				return ret(m, nil, true)
 			}
 			target := user + "@" + host
-			if err := remotesvc.Update(target, name, keyPath); err != nil {
+			if err := config.UpdateRemote(target, name, keyPath); err != nil {
 				state.AddRemote.Error = err.Error()
 				state.AddRemote.OfferOverwrite = false
 				return ret(m, nil, true)
@@ -181,7 +181,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 
 		target := user + "@" + host
 		if state.AddRemote.Save {
-			if err := remotesvc.Add(target, name, keyPath); err != nil {
+			if err := config.AddRemote(target, name, keyPath); err != nil {
 				state.AddRemote.Error = err.Error()
 				state.AddRemote.OfferOverwrite = strings.Contains(err.Error(), "already exists")
 				return ret(m, nil, true)

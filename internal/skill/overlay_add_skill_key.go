@@ -11,7 +11,7 @@ import (
 
 	"delve-shell/internal/git"
 	"delve-shell/internal/i18n"
-	"delve-shell/internal/service/skillsvc"
+	"delve-shell/internal/skills"
 	"delve-shell/internal/ui"
 )
 
@@ -184,7 +184,7 @@ func handleAddSkillOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model,
 			return ret(m, nil, true)
 		}
 		state.AddSkill.Error = ""
-		name, err := skillsvc.InstallFromGit(url, ref, nameInput, path)
+		name, err := skills.InstallFromGit(url, ref, nameInput, path)
 		if err != nil {
 			if errors.Is(err, os.ErrExist) {
 				state.AddSkill.Error = i18n.T(lang, i18n.KeySkillAlreadyExists)

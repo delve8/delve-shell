@@ -6,7 +6,7 @@ import (
 	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/inputlifecycletype"
-	"delve-shell/internal/service/remotesvc"
+	"delve-shell/internal/config"
 	"delve-shell/internal/ui"
 )
 
@@ -25,7 +25,7 @@ func applyConfigAddRemote(args string, sender ui.CommandSender) inputlifecyclety
 	if len(parts) >= 3 {
 		identityFile = parts[2]
 	}
-	if err := remotesvc.Add(target, name, identityFile); err != nil {
+	if err := config.AddRemote(target, name, identityFile); err != nil {
 		return remoteTranscriptErrorResult(i18n.T(lang, i18n.KeyConfigPrefix) + err.Error())
 	}
 	display := target
@@ -44,7 +44,7 @@ func applyConfigRemoveRemote(nameOrTarget string) inputlifecycletype.ProcessResu
 	if nameOrTarget == "" {
 		return remoteTranscriptErrorResult(i18n.T(lang, i18n.KeyConfigPrefix) + "Usage: select a remote from /config del-remote list")
 	}
-	if err := remotesvc.Remove(nameOrTarget); err != nil {
+	if err := config.RemoveRemoteByName(nameOrTarget); err != nil {
 		return remoteTranscriptErrorResult(i18n.T(lang, i18n.KeyConfigPrefix) + err.Error())
 	}
 	return remoteTranscriptSuggestResult(i18n.Tf(lang, i18n.KeyConfigRemoteRemoved, nameOrTarget), true)
