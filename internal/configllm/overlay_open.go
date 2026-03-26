@@ -5,13 +5,17 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 
+	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/ui"
 )
 
 // openOverlay opens Config LLM dialog with current config values pre-filled.
 func openOverlay(m ui.Model) ui.Model {
-	cfg := LoadOrDefault()
+	cfg, err := config.Load()
+	if err != nil || cfg == nil {
+		cfg = config.Default()
+	}
 	var st overlayState
 	st.Active = true
 	st.Checking = false

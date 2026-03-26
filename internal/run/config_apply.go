@@ -27,11 +27,6 @@ func applyConfigAllowlistAutoRun(value string, sender ui.CommandSender) inputlif
 		return transcriptErrorResult(i18n.T("en", i18n.KeyConfigPrefix) + err.Error())
 	}
 	cfg.AllowlistAutoRun = &on
-	if on {
-		cfg.Mode = "run"
-	} else {
-		cfg.Mode = "suggest"
-	}
 	if err := config.Write(cfg); err != nil {
 		return transcriptErrorResult(i18n.T("en", i18n.KeyConfigPrefix) + err.Error())
 	}

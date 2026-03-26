@@ -46,8 +46,11 @@ func (c *Controller) handleUserChat(userMsg string) {
 			events, _ := history.ReadRecent(s.Path(), agent.MaxConversationEvents)
 			historyMsgs = agent.BuildConversationMessages(events)
 			if cfg, err := config.LoadEnsured(); err == nil && cfg != nil {
-				maxMsg := cfg.MaxContextMessagesResolved()
-				maxChars := cfg.MaxContextCharsResolved()
+				maxMsg := cfg.LLM.MaxContextMessages
+				if maxMsg <= 0 {
+					maxMsg = config.DefaultMaxContextMessages
+				}
+				maxChars := cfg.LLM.MaxContextChars
 				if maxChars == 0 {
 					// Best-effort context budget: model context length * 4 chars/token * 0.5 safety.
 					baseURL, apiKey, modelName := cfg.LLMResolved()

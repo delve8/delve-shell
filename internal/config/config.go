@@ -18,8 +18,6 @@ type Config struct {
 	History HistoryConfig `yaml:"history"`
 	// AllowlistAutoRun: when true, allowlisted commands run without confirmation; when false, every command shows approval card (Run/Copy/Dismiss). Default true.
 	AllowlistAutoRun *bool `yaml:"allowlist_auto_run,omitempty"`
-	// Mode: deprecated, use AllowlistAutoRun. suggest -> false, run -> true. Kept for reading old config.
-	Mode string `yaml:"mode,omitempty"`
 }
 
 // LLMConfig is the LLM API config.
@@ -78,7 +76,6 @@ func Load() (*Config, error) {
 		LLM              LLMConfig      `yaml:"llm"`
 		History          HistoryConfig  `yaml:"history"`
 		AllowlistAutoRun *bool          `yaml:"allowlist_auto_run,omitempty"`
-		Mode             string         `yaml:"mode,omitempty"`
 	}
 	if err := yaml.Unmarshal(data, &file); err != nil {
 		return nil, err
@@ -100,7 +97,6 @@ func Load() (*Config, error) {
 		LLM:              file.LLM,
 		History:          file.History,
 		AllowlistAutoRun: file.AllowlistAutoRun,
-		Mode:             file.Mode,
 	}
 	return c, nil
 }
@@ -122,18 +118,15 @@ func Default() *Config {
 			MaxDays:    30,
 			MaxEntries: 0,
 		},
-		Mode: "run",
 	}
 }
 
 // AllowlistAutoRunResolved returns whether allowlisted commands run without confirmation. Default true.
-// When AllowlistAutoRun is unset, migrates from Mode (run->true, suggest->false).
 func (c *Config) AllowlistAutoRunResolved() bool {
 	if c.AllowlistAutoRun != nil {
 		return *c.AllowlistAutoRun
 	}
-	s := strings.TrimSpace(strings.ToLower(c.Mode))
-	return s != "suggest"
+	return true
 }
 
 // ExpandEnv replaces $VAR and ${VAR} in s with env values (shell-compatible).
@@ -168,20 +161,12 @@ func (c *Config) LLMSummary() string {
 	if !c.AllowlistAutoRunResolved() {
 		autoRun = "Disabled"
 	}
-	ctxMsg := fmt.Sprintf("%d", c.MaxContextMessagesResolved())
+	ctxMsg := fmt.Sprintf("%d", c.LLM.MaxContextMessages)
 	ctxChars := "no limit"
 	if c.LLM.MaxContextChars > 0 {
 		ctxChars = fmt.Sprintf("%d", c.LLM.MaxContextChars)
 	}
 	return "language: " + c.languageResolved() + "\nallowlist_auto_run: " + autoRun + "\nllm.base_url: " + baseURL + "\nllm.api_key: " + key + "\nllm.model: " + model + "\nllm.system_prompt: " + sp + "\nllm.max_context_messages: " + ctxMsg + "\nllm.max_context_chars: " + ctxChars
-}
-
-// ModeResolved returns "suggest" or "run" for backward compatibility (e.g. migration). Prefer AllowlistAutoRunResolved().
-func (c *Config) ModeResolved() string {
-	if c.AllowlistAutoRunResolved() {
-		return "run"
-	}
-	return "suggest"
 }
 
 func (c *Config) languageResolved() string {
@@ -206,19 +191,6 @@ func (c *Config) LLMResolved() (baseURL, apiKey, model string) {
 
 // DefaultMaxContextMessages is used when llm.max_context_messages is 0 or unset.
 const DefaultMaxContextMessages = 50
-
-// MaxContextMessagesResolved returns the max number of user+assistant messages to send; 0 or unset => DefaultMaxContextMessages.
-func (c *Config) MaxContextMessagesResolved() int {
-	if c.LLM.MaxContextMessages > 0 {
-		return c.LLM.MaxContextMessages
-	}
-	return DefaultMaxContextMessages
-}
-
-// MaxContextCharsResolved returns the approximate max characters for conversation history; 0 means no limit.
-func (c *Config) MaxContextCharsResolved() int {
-	return c.LLM.MaxContextChars
-}
 
 // EnsureRootDir creates root and subdirs if missing (including skills dir for user-installed skills).
 func EnsureRootDir() error {

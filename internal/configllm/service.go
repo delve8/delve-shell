@@ -17,19 +17,6 @@ import (
 // It is injected in tests; production uses TestConnection.
 type LLMTester func(ctx context.Context, baseURL, apiKey, model string) error
 
-func defaultLLMTester(ctx context.Context, baseURL, apiKey, model string) error {
-	return TestConnection(ctx, baseURL, apiKey, model)
-}
-
-// LoadOrDefault loads config.yaml; if not found/invalid, returns config.Default().
-func LoadOrDefault() *config.Config {
-	cfg, err := config.Load()
-	if err != nil || cfg == nil {
-		return config.Default()
-	}
-	return cfg
-}
-
 type SaveLLMParams struct {
 	BaseURL     string
 	APIKey      string
@@ -83,7 +70,7 @@ func SaveLLMFromOverlay(p SaveLLMParams) error {
 // Returns correctedBaseURL when auto-correction happened.
 func CheckLLMAndMaybeAutoCorrect(ctx context.Context, tester LLMTester) (correctedBaseURL string, err error) {
 	if tester == nil {
-		tester = defaultLLMTester
+		tester = TestConnection
 	}
 	cfg, err := config.Load()
 	if err != nil || cfg == nil {
