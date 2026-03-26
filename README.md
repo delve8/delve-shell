@@ -50,8 +50,8 @@ This means chat, slash, and control now share one submission model and one outpu
 
 ### UI and interaction
 
-- `internal/ui`: Bubble Tea model, view, update routing, overlays, title bar, transcript rendering.
-- `internal/uipresenter`: host-to-UI message adapter.
+- `internal/ui`: Bubble Tea model, view, update routing, overlays, title bar, transcript rendering, and lifecycle result application.
+- `internal/uipresenter`: host-to-UI presenter boundary.
 - `internal/uiflow/*`: small interaction helpers for approval and enter-flow behavior.
 - `internal/uiregistry`: slash option providers that do not depend on `ui.Model`.
 
@@ -71,7 +71,7 @@ This means chat, slash, and control now share one submission model and one outpu
 - `internal/inputlifecycletype`: shared lifecycle types, outputs, and payloads.
 - `internal/inputoutput`: applies lifecycle results back into UI-facing state.
 
-### Feature modules
+### Feature Modules
 
 - `internal/run`: direct `/run`, `/sh`, allowlist config helpers, local command completion.
 - `internal/remote`: remote config, connect/disconnect, auth, and remote-specific UI state/events.
@@ -81,7 +81,7 @@ This means chat, slash, and control now share one submission model and one outpu
 - `internal/session`: session switching and session-derived UI lines.
 - `internal/bootstrap`: single explicit registration entrypoint for feature modules.
 
-### Execution, safety, and persistence
+### Execution, Safety, and Persistence
 
 - `internal/agent`: LLM runner and tools.
 - `internal/hil` and `internal/hiltypes`: approval, allowlist, sensitive command checks, and related UI payloads.
