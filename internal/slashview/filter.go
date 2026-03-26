@@ -3,8 +3,9 @@ package slashview
 import "strings"
 
 type Option struct {
-	Cmd  string
-	Desc string
+	Cmd       string
+	Desc      string
+	FillValue string
 }
 
 // VisibleIndices filters options by input prefix and returns matching indices.
@@ -32,11 +33,14 @@ func VisibleIndices(input string, opts []Option) []int {
 }
 
 // ChosenToInputValue converts chosen slash command to input value.
-func ChosenToInputValue(chosen string) string {
-	if strings.Contains(chosen, " <") {
-		if i := strings.Index(chosen, " <"); i > 0 {
-			return chosen[:i] + " "
+func ChosenToInputValue(chosen Option) string {
+	if chosen.FillValue != "" {
+		return chosen.FillValue
+	}
+	if strings.Contains(chosen.Cmd, " <") {
+		if i := strings.Index(chosen.Cmd, " <"); i > 0 {
+			return chosen.Cmd[:i] + " "
 		}
 	}
-	return chosen
+	return chosen.Cmd
 }

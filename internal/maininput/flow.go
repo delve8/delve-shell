@@ -26,9 +26,9 @@ func CaptureSlashSelection(in CaptureInput) CaptureResult {
 	if !strings.HasPrefix(in.InputVal, "/") || !in.HasSelected {
 		return res
 	}
-	if slashview.ShouldFillOnly(in.Selected.Cmd, in.Text) {
+	if slashview.ShouldFillOnly(in.Selected, in.Text) {
 		res.FillOnly = true
-		res.FillValue = slashview.ChosenToInputValue(in.Selected.Cmd)
+		res.FillValue = slashview.ChosenToInputValue(in.Selected)
 		return res
 	}
 	res.SelectedIndex = in.SuggestIndex

@@ -4,7 +4,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/inputlifecycletype"
-	"delve-shell/internal/slashdispatch"
 	"delve-shell/internal/slashreg"
 	"delve-shell/internal/uiregistry"
 )
@@ -28,7 +27,7 @@ func RegisterSlashOptionsProvider(p SlashOptionsProvider) {
 		}
 		out := make([]uiregistry.SlashOption, 0, len(opts))
 		for _, o := range opts {
-			out = append(out, uiregistry.SlashOption{Cmd: o.Cmd, Desc: o.Desc})
+			out = append(out, uiregistry.SlashOption{Cmd: o.Cmd, Desc: o.Desc, FillValue: o.FillValue})
 		}
 		return out, true
 	})
@@ -44,23 +43,10 @@ func RegisterRootSlashOptionProvider(p func(lang string) []SlashOption) {
 		raw := p(lang)
 		out := make([]uiregistry.SlashOption, 0, len(raw))
 		for _, o := range raw {
-			out = append(out, uiregistry.SlashOption{Cmd: o.Cmd, Desc: o.Desc})
+			out = append(out, uiregistry.SlashOption{Cmd: o.Cmd, Desc: o.Desc, FillValue: o.FillValue})
 		}
 		return out
 	})
-}
-
-// SlashSelectedProvider handles Enter on a chosen slash suggestion when the
-// command is not executed via exact/prefix dispatch (e.g. fill-only hints).
-type SlashSelectedProvider func(m Model, chosen string) (Model, tea.Cmd, bool)
-
-// RegisterSlashSelectedProvider registers a slash-selected handler.
-// Providers run in registration order; the first that returns handled=true wins.
-func RegisterSlashSelectedProvider(p SlashSelectedProvider) {
-	if p == nil {
-		return
-	}
-	slashRuntime.RegisterSelected(slashdispatch.SelectedProvider[Model, tea.Cmd](p))
 }
 
 // OverlayKeyProvider can handle key input when an overlay is active.

@@ -61,6 +61,11 @@ func (m Model) executeSlashSubmission(rawText string, selectedIndex int) (Model,
 	if text == "" {
 		return m, nil
 	}
+	if text == "/sh" {
+		m = m.appendUserSubmittedEcho(text)
+		_ = m.EmitShellSnapshotIntent(m.TranscriptLines())
+		return m.clearSlashInput(), tea.Quit
+	}
 	return slashRuntime.ExecuteSubmission(m, text, selectedIndex, m.slashRuntimeDeps())
 }
 

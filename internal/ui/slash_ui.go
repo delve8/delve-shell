@@ -16,56 +16,19 @@ import (
 // SlashOption is one row in the slash command list (command + description).
 // It is a UI view-model; provider registries may use their own internal types.
 type SlashOption struct {
-	Cmd  string
-	Desc string
-}
-
-// SlashExactDispatchEntry defines an exact slash command handler.
-// The registry is populated from feature packages via explicit Register() (see bootstrap.Install).
-type SlashExactDispatchEntry struct {
-	Handle     func(Model) (Model, tea.Cmd)
-	ClearInput bool
-}
-
-// SlashPrefixDispatchEntry routes slash commands with arguments by prefix match.
-// Registry is populated by feature packages' Register() (wired through bootstrap.Install).
-type SlashPrefixDispatchEntry struct {
-	Prefix string
-	Handle func(Model, string) (Model, tea.Cmd, bool) // rest after prefix
+	Cmd       string
+	Desc      string
+	FillValue string
 }
 
 var slashRuntime = slashdispatch.NewRuntime[Model, tea.Cmd]()
-
-// RegisterSlashExact registers an exact slash command handler.
-// Intended to be called from feature packages' Register() functions.
-func RegisterSlashExact(cmd string, entry SlashExactDispatchEntry) {
-	if cmd == "" {
-		return
-	}
-	slashRuntime.RegisterExact(cmd, slashdispatch.ExactEntry[Model, tea.Cmd]{
-		Handle:     entry.Handle,
-		ClearInput: entry.ClearInput,
-	})
-}
-
-// RegisterSlashPrefix registers a prefix-based slash command handler.
-// Intended to be called from feature packages' Register() functions.
-func RegisterSlashPrefix(prefix string, entry SlashPrefixDispatchEntry) {
-	if prefix == "" {
-		return
-	}
-	slashRuntime.RegisterPrefix(prefix, slashdispatch.PrefixEntry[Model, tea.Cmd]{
-		Prefix: entry.Prefix,
-		Handle: entry.Handle,
-	})
-}
 
 // getSlashOptions returns top-level slash commands from registered providers.
 func getSlashOptions(lang string) []SlashOption {
 	raw := uiregistry.RootSlashOptions(lang)
 	out := make([]SlashOption, 0, len(raw))
 	for _, o := range raw {
-		out = append(out, SlashOption{Cmd: o.Cmd, Desc: o.Desc})
+		out = append(out, SlashOption{Cmd: o.Cmd, Desc: o.Desc, FillValue: o.FillValue})
 	}
 	return out
 }
@@ -76,7 +39,7 @@ func getSlashOptionsForInput(inputVal string, lang string) []SlashOption {
 	raw := uiregistry.SlashOptionsForInput(inputVal, lang)
 	out := make([]SlashOption, 0, len(raw))
 	for _, o := range raw {
-		out = append(out, SlashOption{Cmd: o.Cmd, Desc: o.Desc})
+		out = append(out, SlashOption{Cmd: o.Cmd, Desc: o.Desc, FillValue: o.FillValue})
 	}
 	return out
 }
@@ -86,15 +49,10 @@ func visibleSlashOptions(input string, opts []SlashOption) []int {
 	return slashview.VisibleIndices(input, toSlashViewOptions(opts))
 }
 
-// slashChosenToInputValue converts the chosen slash command to the string to put in the input (strips <placeholder> and adds space).
-func slashChosenToInputValue(chosen string) string {
-	return slashview.ChosenToInputValue(chosen)
-}
-
 func toSlashViewOptions(opts []SlashOption) []slashview.Option {
 	adapted := make([]slashview.Option, 0, len(opts))
 	for _, opt := range opts {
-		adapted = append(adapted, slashview.Option{Cmd: opt.Cmd, Desc: opt.Desc})
+		adapted = append(adapted, slashview.Option{Cmd: opt.Cmd, Desc: opt.Desc, FillValue: opt.FillValue})
 	}
 	return adapted
 }

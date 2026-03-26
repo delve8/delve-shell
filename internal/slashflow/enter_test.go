@@ -1,6 +1,10 @@
 package slashflow
 
-import "testing"
+import (
+	"testing"
+
+	"delve-shell/internal/slashview"
+)
 
 func TestEvaluateMainEnter_NoSlash(t *testing.T) {
 	got := EvaluateMainEnter("hello", EnterInput{})
@@ -12,7 +16,7 @@ func TestEvaluateMainEnter_NoSlash(t *testing.T) {
 func TestEvaluateMainEnter_SessionNone(t *testing.T) {
 	got := EvaluateMainEnter("/sessions", EnterInput{
 		HasSlashPrefix:      true,
-		SelectedCmd:         "No sessions available.",
+		Selected:            slashview.Option{Cmd: "No sessions available."},
 		VisibleOptionCount:  1,
 		IsSessionNoneOption: true,
 	})
@@ -24,7 +28,7 @@ func TestEvaluateMainEnter_SessionNone(t *testing.T) {
 func TestEvaluateMainEnter_ResolveSelected(t *testing.T) {
 	got := EvaluateMainEnter("/he", EnterInput{
 		HasSlashPrefix:     true,
-		SelectedCmd:        "/help",
+		Selected:           slashview.Option{Cmd: "/help"},
 		VisibleOptionCount: 1,
 	})
 	if got != OutcomeResolveSelected {
@@ -35,7 +39,7 @@ func TestEvaluateMainEnter_ResolveSelected(t *testing.T) {
 func TestEvaluateMainEnter_Unknown(t *testing.T) {
 	got := EvaluateMainEnter("/zzz", EnterInput{
 		HasSlashPrefix: true,
-		SelectedCmd:    "/help",
+		Selected:       slashview.Option{Cmd: "/help"},
 	})
 	if got != OutcomeUnknownSlash {
 		t.Fatalf("unexpected outcome: %v", got)
@@ -45,7 +49,7 @@ func TestEvaluateMainEnter_Unknown(t *testing.T) {
 func TestEvaluateMainEnter_DelRemoteNone(t *testing.T) {
 	got := EvaluateMainEnter("/config del-remote", EnterInput{
 		HasSlashPrefix:        true,
-		SelectedCmd:           "No hosts.",
+		Selected:              slashview.Option{Cmd: "No hosts."},
 		VisibleOptionCount:    1,
 		IsDelRemoteNoneOption: true,
 	})

@@ -7,5 +7,5 @@
 //   - [delve-shell/internal/uitypes]: small shared value types (e.g. slash option rows).
 //
 // This package should avoid growing new business rules; prefer extending the packages above or feature modules
-// that register via [RegisterSlashExact] / [RegisterOverlayFeature] / [RegisterStateEventProvider] etc.
+// that register via [RegisterSlashExecutionProvider] / [RegisterOverlayFeature] / [RegisterStateEventProvider] etc.
 package ui

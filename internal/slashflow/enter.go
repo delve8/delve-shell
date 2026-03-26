@@ -18,7 +18,7 @@ const (
 
 type EnterInput struct {
 	HasSlashPrefix        bool
-	SelectedCmd           string
+	Selected              slashview.Option
 	VisibleOptionCount    int
 	IsSessionNoneOption   bool
 	IsDelRemoteNoneOption bool
@@ -29,7 +29,7 @@ func EvaluateMainEnter(input string, in EnterInput) Outcome {
 	if !in.HasSlashPrefix {
 		return OutcomeNone
 	}
-	if in.SelectedCmd == "" {
+	if in.Selected.Cmd == "" {
 		return OutcomeUnknownSlash
 	}
 	if in.VisibleOptionCount == 1 && in.IsSessionNoneOption {
@@ -39,7 +39,7 @@ func EvaluateMainEnter(input string, in EnterInput) Outcome {
 		strings.HasPrefix(strings.TrimSpace(input), "/config del-remote") {
 		return OutcomeShowDelRemoteNone
 	}
-	if slashview.ShouldResolveSelected(in.SelectedCmd, input) {
+	if slashview.ShouldResolveSelected(in.Selected, input) {
 		return OutcomeResolveSelected
 	}
 	return OutcomeUnknownSlash

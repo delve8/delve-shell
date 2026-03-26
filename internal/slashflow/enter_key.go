@@ -23,14 +23,14 @@ func EvaluateSlashEnter(input string, trimmed string, selected slashview.Option,
 	if selected.Cmd == "" || !hasSelected {
 		return EnterKeyResult{Action: EnterKeyNoop}
 	}
-	if selected.Cmd == trimmed {
-		return EnterKeyResult{Action: EnterKeyDispatchExactChosen}
-	}
-	if slashview.ShouldFillOnly(selected.Cmd, input) {
+	if slashview.ShouldFillOnly(selected, input) {
 		return EnterKeyResult{
 			Action: EnterKeyFillOnly,
-			Fill:   slashview.ChosenToInputValue(selected.Cmd),
+			Fill:   slashview.ChosenToInputValue(selected),
 		}
+	}
+	if selected.Cmd == trimmed {
+		return EnterKeyResult{Action: EnterKeyDispatchExactChosen}
 	}
 	return EnterKeyResult{Action: EnterKeyNoop}
 }

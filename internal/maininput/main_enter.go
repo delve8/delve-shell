@@ -18,8 +18,9 @@ const (
 )
 
 type MainEnterPlan struct {
-	Kind   MainEnterPlanKind
-	Chosen string
+	Kind     MainEnterPlanKind
+	Chosen   string
+	Selected slashview.Option
 }
 
 type MainEnterInput struct {
@@ -41,7 +42,7 @@ func PlanMainEnter(in MainEnterInput) MainEnterPlan {
 	}
 	outcome := slashflow.EvaluateMainEnter(in.Text, slashflow.EnterInput{
 		HasSlashPrefix:        true,
-		SelectedCmd:           selected.Cmd,
+		Selected:              selected,
 		VisibleOptionCount:    len(in.Visible),
 		IsSessionNoneOption:   strings.HasPrefix(in.Text, "/sessions") && selected.Cmd == in.SessionNoneMsg,
 		IsDelRemoteNoneOption: selected.Cmd == in.DelRemoteNoneMsg,
@@ -52,7 +53,7 @@ func PlanMainEnter(in MainEnterInput) MainEnterPlan {
 	case slashflow.OutcomeShowDelRemoteNone:
 		return MainEnterPlan{Kind: MainEnterShowDelRemoteNone}
 	case slashflow.OutcomeResolveSelected:
-		return MainEnterPlan{Kind: MainEnterResolveSelected, Chosen: selected.Cmd}
+		return MainEnterPlan{Kind: MainEnterResolveSelected, Chosen: selected.Cmd, Selected: selected}
 	case slashflow.OutcomeUnknownSlash:
 		return MainEnterPlan{Kind: MainEnterUnknownSlash}
 	default:

@@ -7,8 +7,9 @@ import (
 
 // SlashOption is one row in the slash command list (command + description).
 type SlashOption struct {
-	Cmd  string
-	Desc string
+	Cmd       string
+	Desc      string
+	FillValue string
 }
 
 // SlashOptionsProvider supplies slash dropdown rows for a given input buffer.

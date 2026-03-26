@@ -3,7 +3,6 @@ package skill
 import (
 	"context"
 	"fmt"
-	tea "github.com/charmbracelet/bubbletea"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,16 +17,6 @@ import (
 func Register() {
 	registerSlashExecutionProvider()
 	registerOverlayFeature()
-
-	ui.RegisterSlashSelectedProvider(func(m ui.Model, chosen string) (ui.Model, tea.Cmd, bool) {
-		if !strings.HasPrefix(chosen, "/skill ") {
-			return m, nil, false
-		}
-		m.Input.SetValue(chosen + " ")
-		m.Input.CursorEnd()
-		m = m.ResetSlashSuggestIndex()
-		return m, nil, true
-	})
 
 	ui.RegisterSlashOptionsProvider(func(
 		inputVal string,
@@ -160,7 +149,7 @@ func getSkillSlashOptions(lang string, filter string) []ui.SlashOption {
 			if cmdName == "" {
 				cmdName = s.Name
 			}
-			opts = append(opts, ui.SlashOption{Cmd: "/skill " + cmdName, Desc: s.Description})
+			opts = append(opts, ui.SlashOption{Cmd: "/skill " + cmdName, Desc: s.Description, FillValue: "/skill " + cmdName + " "})
 		}
 		return opts
 	}
@@ -177,7 +166,7 @@ func getSkillSlashOptions(lang string, filter string) []ui.SlashOption {
 				if cmdName == "" {
 					cmdName = s.Name
 				}
-				opts = append(opts, ui.SlashOption{Cmd: "/skill " + cmdName, Desc: s.Description})
+				opts = append(opts, ui.SlashOption{Cmd: "/skill " + cmdName, Desc: s.Description, FillValue: "/skill " + cmdName + " "})
 			}
 		}
 		if len(opts) == 0 && len(list) > 0 {

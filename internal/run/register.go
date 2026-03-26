@@ -4,7 +4,5 @@ package run
 // Order matches historical package init order (lexicographic file names). Call from [bootstrap.Install].
 func Register() {
 	registerSlashExecutionProvider()
-	registerSlashRunCore()
-	registerSlashExactLifecycleCmds()
 	registerSlashOptionsProviders()
 }

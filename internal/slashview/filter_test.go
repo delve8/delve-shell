@@ -37,7 +37,7 @@ func TestVisibleIndices_SessionsByPrefix(t *testing.T) {
 }
 
 func TestChosenToInputValue_StripsPlaceholder(t *testing.T) {
-	got := ChosenToInputValue("/run <cmd>")
+	got := ChosenToInputValue(Option{Cmd: "/run <cmd>"})
 	if got != "/run " {
 		t.Fatalf("unexpected value: %q", got)
 	}
