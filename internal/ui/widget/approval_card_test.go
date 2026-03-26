@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
-	"delve-shell/internal/uiflow/choicecard"
+	"delve-shell/internal/approvalview"
 )
 
 func TestRenderPendingApprovalLines_empty(t *testing.T) {
@@ -28,9 +28,9 @@ func TestRenderPendingApprovalLines_joinsKinds(t *testing.T) {
 		RiskLow:      plain,
 		RiskHigh:     plain,
 	}
-	lines := []choicecard.Line{
-		{Kind: choicecard.LineHeader, Text: "H"},
-		{Kind: choicecard.LineExec, Text: "cmd"},
+	lines := []approvalview.Line{
+		{Kind: approvalview.LineHeader, Text: "H"},
+		{Kind: approvalview.LineExec, Text: "cmd"},
 	}
 	out := RenderPendingApprovalLines(lines, s)
 	if !strings.Contains(out, "H") || !strings.Contains(out, "cmd") || !strings.Contains(out, "\n") {

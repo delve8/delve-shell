@@ -5,15 +5,16 @@ import (
 
 	"github.com/atotto/clipboard"
 
+	"delve-shell/internal/approvalflow"
+	"delve-shell/internal/approvalview"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/textwrap"
-	"delve-shell/internal/uiflow/choicecard"
 	"delve-shell/internal/uivm"
 )
 
 func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 	allowlistAutoRunEnabled := m.allowlistAutoRunEnabled()
-	res := choicecard.EvaluateKey(
+	res := approvalflow.Evaluate(
 		key,
 		m.ChoiceCard.pending != nil,
 		m.ChoiceCard.pendingSensitive != nil,
@@ -31,33 +32,33 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 	return m.applyApprovalDecision(res.Decision)
 }
 
-func (m *Model) appendDecisionLines(decision choicecard.DecisionKind, lang string) {
-	lines, ok := choicecard.BuildDecisionLines(lang, m.contentWidth(), m.ChoiceCard.pending, m.ChoiceCard.pendingSensitive, decision, textwrap.WrapString)
+func (m *Model) appendDecisionLines(decision approvalview.DecisionKind, lang string) {
+	lines, ok := approvalview.BuildDecision(lang, m.contentWidth(), m.ChoiceCard.pending, m.ChoiceCard.pendingSensitive, decision, textwrap.WrapString)
 	if !ok {
 		return
 	}
 	for _, line := range lines {
 		rendered := line.Text
 		switch line.Kind {
-		case choicecard.LineHeader:
+		case approvalview.LineHeader:
 			rendered = approvalHeaderStyle.Render(line.Text)
-		case choicecard.LineExec:
+		case approvalview.LineExec:
 			rendered = execStyle.Render(line.Text)
-		case choicecard.LineSuggest:
+		case approvalview.LineSuggest:
 			switch decision {
-			case choicecard.DecisionKindApprove:
+			case approvalview.DecisionApprove:
 				if line.Text == i18n.T(lang, i18n.KeyApprovalDecisionApproved) {
 					rendered = approvalDecisionApprovedStyle.Render(line.Text)
 				} else {
 					rendered = suggestStyle.Render(line.Text)
 				}
-			case choicecard.DecisionKindReject:
+			case approvalview.DecisionReject:
 				if line.Text == i18n.T(lang, i18n.KeyApprovalDecisionRejected) {
 					rendered = approvalDecisionRejectedStyle.Render(line.Text)
 				} else {
 					rendered = suggestStyle.Render(line.Text)
 				}
-			case choicecard.DecisionKindSensitiveRefuse, choicecard.DecisionKindSensitiveRunStore, choicecard.DecisionKindSensitiveRunNoStore:
+			case approvalview.DecisionSensitiveRefuse, approvalview.DecisionSensitiveRunStore, approvalview.DecisionSensitiveRunNoStore:
 				if strings.HasPrefix(line.Text, i18n.T(lang, i18n.KeySensitiveChoice1)) ||
 					strings.HasPrefix(line.Text, i18n.T(lang, i18n.KeySensitiveChoice2)) ||
 					strings.HasPrefix(line.Text, i18n.T(lang, i18n.KeySensitiveChoice3)) {
@@ -68,35 +69,35 @@ func (m *Model) appendDecisionLines(decision choicecard.DecisionKind, lang strin
 			default:
 				rendered = suggestStyle.Render(line.Text)
 			}
-		case choicecard.LineRiskReadOnly:
+		case approvalview.LineRiskReadOnly:
 			rendered = riskReadOnlyStyle.Render(line.Text)
-		case choicecard.LineRiskLow:
+		case approvalview.LineRiskLow:
 			rendered = riskLowStyle.Render(line.Text)
-		case choicecard.LineRiskHigh:
+		case approvalview.LineRiskHigh:
 			rendered = riskHighStyle.Render(line.Text)
 		}
 		m.messages = append(m.messages, rendered)
 	}
 }
 
-func (m Model) applyApprovalDecision(d choicecard.Decision) (Model, bool) {
+func (m Model) applyApprovalDecision(d approvalflow.Decision) (Model, bool) {
 	lang := m.getLang()
 	switch d {
-	case choicecard.DecisionSensitiveRefuse, choicecard.DecisionSensitiveRunStore, choicecard.DecisionSensitiveRunNoStore:
+	case approvalflow.DecisionSensitiveRefuse, approvalflow.DecisionSensitiveRunStore, approvalflow.DecisionSensitiveRunNoStore:
 		if m.ChoiceCard.pendingSensitive == nil {
 			return m, true
 		}
-		var kind choicecard.DecisionKind
+		var kind approvalview.DecisionKind
 		var choice uivm.SensitiveChoice
 		switch d {
-		case choicecard.DecisionSensitiveRunStore:
-			kind = choicecard.DecisionKindSensitiveRunStore
+		case approvalflow.DecisionSensitiveRunStore:
+			kind = approvalview.DecisionSensitiveRunStore
 			choice = uivm.SensitiveRunAndStore
-		case choicecard.DecisionSensitiveRunNoStore:
-			kind = choicecard.DecisionKindSensitiveRunNoStore
+		case approvalflow.DecisionSensitiveRunNoStore:
+			kind = approvalview.DecisionSensitiveRunNoStore
 			choice = uivm.SensitiveRunNoStore
 		default:
-			kind = choicecard.DecisionKindSensitiveRefuse
+			kind = approvalview.DecisionSensitiveRefuse
 			choice = uivm.SensitiveRefuse
 		}
 		m.appendDecisionLines(kind, lang)
@@ -107,26 +108,26 @@ func (m Model) applyApprovalDecision(d choicecard.Decision) (Model, bool) {
 		m.ChoiceCard.pendingSensitive = nil
 		return m, true
 
-	case choicecard.DecisionApprove, choicecard.DecisionReject, choicecard.DecisionDismiss, choicecard.DecisionCopy:
+	case approvalflow.DecisionApprove, approvalflow.DecisionReject, approvalflow.DecisionDismiss, approvalflow.DecisionCopy:
 		if m.ChoiceCard.pending == nil {
 			return m, true
 		}
-		var kind choicecard.DecisionKind
+		var kind approvalview.DecisionKind
 		resp := uivm.ApprovalResponse{Approved: false, CopyRequested: false}
 		waitingClear := false
 		doCopy := false
 		switch d {
-		case choicecard.DecisionApprove:
-			kind = choicecard.DecisionKindApprove
+		case approvalflow.DecisionApprove:
+			kind = approvalview.DecisionApprove
 			resp.Approved = true
-		case choicecard.DecisionReject:
-			kind = choicecard.DecisionKindReject
+		case approvalflow.DecisionReject:
+			kind = approvalview.DecisionReject
 			waitingClear = true
-		case choicecard.DecisionDismiss:
-			kind = choicecard.DecisionKindDismiss
+		case approvalflow.DecisionDismiss:
+			kind = approvalview.DecisionDismiss
 			waitingClear = true
-		case choicecard.DecisionCopy:
-			kind = choicecard.DecisionKindReject
+		case approvalflow.DecisionCopy:
+			kind = approvalview.DecisionReject
 			resp.CopyRequested = true
 			doCopy = true
 		}
