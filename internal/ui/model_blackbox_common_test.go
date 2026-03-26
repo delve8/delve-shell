@@ -1,0 +1,155 @@
+package ui_test
+
+import (
+	"os"
+	"testing"
+
+	tea "github.com/charmbracelet/bubbletea"
+
+	"delve-shell/internal/bootstrap"
+	"delve-shell/internal/hostcmd"
+	"delve-shell/internal/inputlifecycletype"
+	"delve-shell/internal/remoteauth"
+	"delve-shell/internal/ui"
+)
+
+func TestMain(m *testing.M) {
+	bootstrap.Install()
+	os.Exit(m.Run())
+}
+
+type blackboxFixture struct {
+	model          ui.Model
+	submissions    chan inputlifecycletype.InputSubmission
+	sessionNew     chan struct{}
+	sessionSwitch  chan string
+	execDirectChan chan string
+	shellRequested chan []string
+	cancelRequest  chan struct{}
+	configUpdated  chan struct{}
+	remoteOn       chan string
+	remoteOff      chan struct{}
+	remoteAuthResp chan remoteauth.Response
+	openConfigLLM  bool
+}
+
+type testReadModel struct {
+	openConfigLLM *bool
+}
+
+func (r testReadModel) AllowlistAutoRunEnabled() bool { return true }
+func (r testReadModel) TakeOpenConfigLLMOnFirstLayout() bool {
+	if r.openConfigLLM == nil {
+		return false
+	}
+	v := *r.openConfigLLM
+	*r.openConfigLLM = false
+	return v
+}
+
+type testCommandSender struct {
+	f *blackboxFixture
+}
+
+func (s testCommandSender) Send(cmd hostcmd.Command) bool {
+	switch c := cmd.(type) {
+	case hostcmd.Submission:
+		select {
+		case s.f.submissions <- c.Submission:
+			return true
+		default:
+			return false
+		}
+	case hostcmd.SessionNew:
+		select {
+		case s.f.sessionNew <- struct{}{}:
+			return true
+		default:
+			return false
+		}
+	case hostcmd.SessionSwitch:
+		select {
+		case s.f.sessionSwitch <- c.SessionID:
+			return true
+		default:
+			return false
+		}
+	case hostcmd.ConfigUpdated:
+		select {
+		case s.f.configUpdated <- struct{}{}:
+			return true
+		default:
+			return false
+		}
+	case hostcmd.ExecDirect:
+		select {
+		case s.f.execDirectChan <- c.Command:
+			return true
+		default:
+			return false
+		}
+	case hostcmd.CancelRequested:
+		select {
+		case s.f.cancelRequest <- struct{}{}:
+			return true
+		default:
+			return false
+		}
+	case hostcmd.ShellSnapshot:
+		select {
+		case s.f.shellRequested <- c.Messages:
+			return true
+		default:
+			return false
+		}
+	case hostcmd.RemoteOnTarget:
+		select {
+		case s.f.remoteOn <- c.Target:
+			return true
+		default:
+			return false
+		}
+	case hostcmd.RemoteOff:
+		select {
+		case s.f.remoteOff <- struct{}{}:
+			return true
+		default:
+			return false
+		}
+	case hostcmd.RemoteAuthReply:
+		select {
+		case s.f.remoteAuthResp <- c.Response:
+			return true
+		default:
+			return false
+		}
+	default:
+		return true
+	}
+}
+
+func newBlackboxFixture(t *testing.T) blackboxFixture {
+	t.Helper()
+	f := blackboxFixture{
+		submissions:    make(chan inputlifecycletype.InputSubmission, 2),
+		sessionNew:     make(chan struct{}, 2),
+		sessionSwitch:  make(chan string, 2),
+		execDirectChan: make(chan string, 2),
+		shellRequested: make(chan []string, 2),
+		cancelRequest:  make(chan struct{}, 2),
+		configUpdated:  make(chan struct{}, 2),
+		remoteOn:       make(chan string, 2),
+		remoteOff:      make(chan struct{}, 2),
+		remoteAuthResp: make(chan remoteauth.Response, 2),
+	}
+	f.model = ui.NewModel(nil, testReadModel{openConfigLLM: &f.openConfigLLM})
+	f.model.CommandSender = testCommandSender{f: &f}
+	return f
+}
+
+func enterText(m ui.Model, text string) ui.Model {
+	m.Input.SetValue(text)
+	m.Input.CursorEnd()
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	return next.(ui.Model)
+}
