@@ -17,7 +17,7 @@ AI-assisted ops CLI with human-in-the-loop execution and auditable session histo
 - HIL first: command execution is gated by this tool, not by the model's wording.
 - Auditable by default: session and execution flows are recorded as structured history.
 - Clear boundaries: UI handles interaction and rendering; host-side orchestration owns execution and state transitions.
-- Small feature modules: remote, run, skill, session, and config features register into shared contracts instead of hard-wiring into one giant entrypoint.
+- Feature packages register into shared contracts instead of hard-wiring into one giant entrypoint.
 
 ## Runtime Architecture
 
@@ -96,7 +96,7 @@ This means chat, slash, and control now share one submission model and one outpu
 - Overlay-heavy features use a unified overlay feature contract for open, event, key, content, close, and startup hooks.
 - Fill-only slash rows such as `/run <cmd>` are encoded as option metadata instead of separate legacy selected-handler registries.
 
-This is intentionally plugin-like. The project currently does not assume a very large slash surface or a large number of feature modules.
+The project favors a small plugin surface. It currently does not assume a very large slash surface or a large number of feature modules.
 
 ## Config Paths
 
@@ -119,7 +119,7 @@ Main files:
 - Config: `<root>/config.yaml`
 - Allowlist: `<root>/allowlist.yaml`
 - Sessions: `<root>/sessions`
-- Skills: `<root>/skills`
+- Skill store: `<root>/skills`
 
 ## Usage
 
