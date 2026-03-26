@@ -1,10 +1,14 @@
 package configllm
 
 import (
+	"context"
+	"strconv"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/ui"
 )
@@ -57,12 +61,55 @@ func handleOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd
 			setOverlayState(st)
 			return m, nil, true
 		}
-		m = applyConfigLLMFromOverlayStart(m, baseURL, apiKey, model, maxMessagesStr, maxCharsStr)
+		cfg, err := config.Load()
+		if err != nil || cfg == nil {
+			cfg = config.Default()
+			if err := config.EnsureRootDir(); err != nil {
+				m = m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T("en", i18n.KeyConfigPrefix) + err.Error()))
+				m = m.RefreshViewport()
+				return m, nil, true
+			}
+		}
+
+		cfg.LLM.BaseURL = baseURL
+		cfg.LLM.APIKey = apiKey
+		cfg.LLM.Model = model
+
+		if s := strings.TrimSpace(maxMessagesStr); s != "" {
+			if n, err := strconv.Atoi(s); err == nil && n >= 0 {
+				cfg.LLM.MaxContextMessages = n
+			}
+		} else {
+			cfg.LLM.MaxContextMessages = 0
+		}
+		if s := strings.TrimSpace(maxCharsStr); s != "" {
+			if n, err := strconv.Atoi(s); err == nil && n >= 0 {
+				cfg.LLM.MaxContextChars = n
+			}
+		} else {
+			cfg.LLM.MaxContextChars = 0
+		}
+		if err := config.Write(cfg); err != nil {
+			m = m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T("en", i18n.KeyConfigPrefix) + err.Error()))
+			m = m.RefreshViewport()
+			return m, nil, true
+		}
 		st = getOverlayState()
 		if !st.Checking {
 			return m, nil, true
 		}
-		return m, runConfigLLMCheckCmd(), true
+		return m, func() tea.Msg {
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancel()
+			corrected, err := CheckLLMAndMaybeAutoCorrect(ctx)
+			if err != nil {
+				return CheckDoneMsg{ErrText: err.Error()}
+			}
+			if corrected != "" {
+				return CheckDoneMsg{CorrectedBaseURL: corrected}
+			}
+			return CheckDoneMsg{}
+		}, true
 	}
 
 	var cmd tea.Cmd

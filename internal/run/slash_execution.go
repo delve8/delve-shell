@@ -14,7 +14,14 @@ func registerSlashExecutionProvider() {
 		text := strings.TrimSpace(req.RawText)
 		switch {
 		case text == "/config show":
-			return transcriptSuggestResult(i18n.T("en", i18n.KeyConfigHint), false), true, nil
+			return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+				Kind: inputlifecycletype.OutputTranscriptAppend,
+				Transcript: &inputlifecycletype.TranscriptPayload{
+					Lines: []inputlifecycletype.TranscriptLine{
+						{Kind: inputlifecycletype.TranscriptLineSystemSuggest, Text: i18n.T("en", i18n.KeyConfigHint)},
+					},
+				},
+			}), true, nil
 		case text == "/config update auto-run list":
 			return applyConfigAllowlistUpdate(req.CommandSender), true, nil
 		case text == "/config reload", text == "/reload":

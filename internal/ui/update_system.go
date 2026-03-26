@@ -20,37 +20,6 @@ func (m Model) closeOverlayCommon(refocusInput bool) (Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) handleOverlayShowMsg(msg OverlayShowMsg) (Model, tea.Cmd) {
-	m = m.OpenOverlay(msg.Title, msg.Content)
-	m = m.InitOverlayViewport()
-	return m, nil
-}
-
-func (m Model) handleOverlayOpenIntentMsg(msg OverlayOpenIntentMsg) (Model, tea.Cmd) {
-	req := OverlayOpenRequest{
-		Key:     msg.Key,
-		Params:  msg.Params,
-		Title:   msg.Title,
-		Content: msg.Content,
-	}
-	for _, entry := range overlayFeatures() {
-		if entry.feature.Open == nil {
-			continue
-		}
-		if m2, cmd, handled := entry.feature.Open(m, req); handled {
-			return m2, cmd
-		}
-	}
-	if req.Title != "" || req.Content != "" {
-		return m.handleOverlayShowMsg(OverlayShowMsg{Title: req.Title, Content: req.Content})
-	}
-	return m, nil
-}
-
-func (m Model) handleOverlayCloseMsg() (Model, tea.Cmd) {
-	return m.closeOverlayCommon(false)
-}
-
 // handleOverlayKey routes key input when overlay is active.
 func (m Model) handleOverlayKey(key string, msg tea.KeyMsg) (Model, tea.Cmd, bool) {
 	if m.currentUIState() != uiStateOverlay {
@@ -152,17 +121,6 @@ func (m Model) handleChoiceCardShowMsg(msg ChoiceCardShowMsg) (Model, tea.Cmd) {
 	m.syncInputPlaceholder()
 	m = m.RefreshViewport()
 	return m, nil
-}
-
-func (m Model) handleLifecycleSlashExecuteMsg(msg LifecycleSlashExecuteMsg) (Model, tea.Cmd) {
-	if msg.InputLine != "" {
-		m2, cmd, handled := m.executeSlashEarlySubmission(msg.InputLine)
-		if handled {
-			return m2, cmd
-		}
-		return m.executeSlashSubmission(msg.InputLine, msg.SelectedIndex)
-	}
-	return m.executeSlashSubmission(msg.RawText, msg.SelectedIndex)
 }
 
 func (m Model) renderTranscriptLines(lines []uivm.Line) []string {

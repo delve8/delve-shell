@@ -8,10 +8,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/configllm"
 	"delve-shell/internal/hiltypes"
 	"delve-shell/internal/remote"
-	"delve-shell/internal/skill"
 	"delve-shell/internal/ui"
 	"delve-shell/internal/uivm"
 )
@@ -67,11 +65,6 @@ func (p *Presenter) ConfigReloaded() {
 		{Kind: uivm.LineSystemSuggest, Text: "Config reloaded."},
 		{Kind: uivm.LineBlank},
 	}})
-}
-
-func (p *Presenter) SessionSwitched() {
-	// Deprecated: use TranscriptReplace with session replay content.
-	p.Raw(ui.TranscriptAppendMsg{Lines: []uivm.Line{{Kind: uivm.LineSystemSuggest, Text: "Session switched."}, {Kind: uivm.LineBlank}}})
 }
 
 // --- Agent reply (transcript) ---
@@ -207,30 +200,4 @@ func (p *Presenter) RemoteAuthPrompt(target, errText string, useConfiguredIdenti
 
 func (p *Presenter) RunCompletionCache(remoteLabel string, commands []string) {
 	p.Raw(remote.RunCompletionCacheMsg{RemoteLabel: remoteLabel, Commands: commands})
-}
-
-// --- Overlays & async config checks (used by feature packages via tea.Msg today) ---
-
-func (p *Presenter) OverlayClose() {
-	p.Raw(ui.NewOverlayCloseMsg())
-}
-
-func (p *Presenter) OverlayShow(title, content string) {
-	p.Raw(ui.NewOverlayShowMsg(title, content))
-}
-
-func (p *Presenter) ConfigLLMCheckDone(err error, correctedBaseURL string) {
-	if err != nil {
-		p.Raw(configllm.CheckDoneMsg{ErrText: err.Error(), CorrectedBaseURL: correctedBaseURL})
-		return
-	}
-	p.Raw(configllm.CheckDoneMsg{CorrectedBaseURL: correctedBaseURL})
-}
-
-func (p *Presenter) AddSkillRefsLoaded(refs []string) {
-	p.Raw(skill.AddRefsLoadedMsg{Refs: refs})
-}
-
-func (p *Presenter) AddSkillPathsLoaded(paths []string) {
-	p.Raw(skill.AddPathsLoadedMsg{Paths: paths})
 }

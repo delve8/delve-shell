@@ -190,23 +190,40 @@ func (m Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (Model
 			}
 		case inputlifecycletype.OutputSlashExecute:
 			if out.Slash != nil {
-				return m.handleLifecycleSlashExecuteMsg(LifecycleSlashExecuteMsg{
-					RawText:       out.Slash.RawText,
-					InputLine:     out.Slash.InputLine,
-					SelectedIndex: out.Slash.SelectedIndex,
-				})
+				if out.Slash.InputLine != "" {
+					m2, cmd, handled := m.executeSlashEarlySubmission(out.Slash.InputLine)
+					if handled {
+						return m2, cmd
+					}
+					return m.executeSlashSubmission(out.Slash.InputLine, out.Slash.SelectedIndex)
+				}
+				return m.executeSlashSubmission(out.Slash.RawText, out.Slash.SelectedIndex)
 			}
 		case inputlifecycletype.OutputOverlayOpen:
 			if out.Overlay != nil {
-				return m.handleOverlayOpenIntentMsg(OverlayOpenIntentMsg{
+				req := OverlayOpenRequest{
 					Key:     out.Overlay.Key,
 					Params:  out.Overlay.Params,
 					Title:   out.Overlay.Title,
 					Content: out.Overlay.Content,
-				})
+				}
+				for _, entry := range overlayFeatures() {
+					if entry.feature.Open == nil {
+						continue
+					}
+					if m2, cmd, handled := entry.feature.Open(m, req); handled {
+						return m2, cmd
+					}
+				}
+				if req.Title != "" || req.Content != "" {
+					m = m.OpenOverlayFeature("", req.Title, req.Content)
+					m = m.InitOverlayViewport()
+					return m, nil
+				}
+				return m, nil
 			}
 		case inputlifecycletype.OutputOverlayClose:
-			return m.handleOverlayCloseMsg()
+			return m.closeOverlayCommon(false)
 		case inputlifecycletype.OutputPreInputClear:
 			return m.clearSlashInput(), nil
 		}

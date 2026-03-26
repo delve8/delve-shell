@@ -44,24 +44,6 @@ func WriteAllowlist(entries []AllowlistEntry) error {
 	return os.WriteFile(AllowlistPath(), data, 0600)
 }
 
-// oldAllowlistWords are single-command names that used to use \bword\b or (^|\s)word\b; migration removes those so (^|\s)word(\s|$) are the only ones.
-var oldAllowlistWords = []string{
-	"pwd", "ls", "dir", "whoami", "id", "env", "printenv", "uname", "hostname", "date", "which", "whereis", "type",
-	"cat", "head", "tail", "less", "more", "file", "stat", "wc", "md5sum", "sha256sum", "sha1sum", "shasum", "base64", "cksum",
-	"grep", "egrep", "fgrep", "echo", "printf", "diff", "cmp", "cut", "tr", "uniq", "nl", "column", "od", "xxd", "hexdump",
-	"zcat", "bzcat", "xzcat", "ps", "uptime", "df", "du", "free", "lsblk", "groups", "getent", "locale",
-	"ping", "nslookup", "dig", "host", "true", "false", "seq", "sleep", "--help",
-}
-
-func buildOldLoosePatternsMap() map[string]bool {
-	m := make(map[string]bool, len(oldAllowlistWords)*2)
-	for _, w := range oldAllowlistWords {
-		m[`\b`+w+`\b`] = true
-		m[`(^|\s)`+w+`\b`] = true
-	}
-	return m
-}
-
 // AllowlistUpdateWithDefaults merges current allowlist with built-in default: keep existing, add missing patterns. Returns number added.
 func AllowlistUpdateWithDefaults() (added int, err error) {
 	path := AllowlistPath()
@@ -88,14 +70,6 @@ func AllowlistUpdateWithDefaults() (added int, err error) {
 		have[e.Pattern] = true
 	}
 	out := f.Allowlist
-	oldLoosePatterns := buildOldLoosePatternsMap()
-	outFiltered := out[:0]
-	for _, e := range out {
-		if !oldLoosePatterns[e.Pattern] {
-			outFiltered = append(outFiltered, e)
-		}
-	}
-	out = outFiltered
 	for _, e := range defaultAllowlist() {
 		if !have[e.Pattern] {
 			out = append(out, e)
@@ -103,8 +77,7 @@ func AllowlistUpdateWithDefaults() (added int, err error) {
 			added++
 		}
 	}
-	needWrite := added > 0 || len(out) < len(f.Allowlist)
-	if !needWrite {
+	if added == 0 {
 		return 0, nil
 	}
 	if err := WriteAllowlist(out); err != nil {

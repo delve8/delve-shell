@@ -22,19 +22,15 @@ func (r *recordSender) Send(msg tea.Msg) {
 	r.msgs = append(r.msgs, msg)
 }
 
-func TestPresenter_ConfigAndSession(t *testing.T) {
+func TestPresenter_Config(t *testing.T) {
 	var r recordSender
 	p := New(&r)
 	p.ConfigReloaded()
-	p.SessionSwitched()
-	if len(r.msgs) != 2 {
-		t.Fatalf("want 2 msgs, got %d", len(r.msgs))
+	if len(r.msgs) != 1 {
+		t.Fatalf("want 1 msg, got %d", len(r.msgs))
 	}
 	if _, ok := r.msgs[0].(ui.TranscriptAppendMsg); !ok {
-		t.Fatalf("first msg type %T", r.msgs[0])
-	}
-	if _, ok := r.msgs[1].(ui.TranscriptAppendMsg); !ok {
-		t.Fatalf("second msg type %T", r.msgs[1])
+		t.Fatalf("msg type %T", r.msgs[0])
 	}
 }
 
@@ -76,16 +72,14 @@ func TestPresenter_DispatchAgentUI(t *testing.T) {
 	}
 }
 
-func TestPresenter_RemoteAndOverlays(t *testing.T) {
+func TestPresenter_Remote(t *testing.T) {
 	var r recordSender
 	p := New(&r)
 	p.RemoteStatus(true, "dev")
 	p.RemoteConnectDone(false, "", "nope")
 	p.RemoteAuthPrompt("h", "e", false)
-	p.OverlayShow("t", "c")
-	p.OverlayClose()
-	if len(r.msgs) != 5 {
-		t.Fatalf("want 5 msgs, got %d", len(r.msgs))
+	if len(r.msgs) != 3 {
+		t.Fatalf("want 3 msgs, got %d", len(r.msgs))
 	}
 	if _, ok := r.msgs[0].(remote.ExecutionChangedMsg); !ok {
 		t.Fatalf("msg0 type %T", r.msgs[0])

@@ -21,24 +21,18 @@ type ReadModel interface {
 	TakeOpenConfigLLMOnFirstLayout() bool
 }
 
-type nopReadModel struct{}
-
-func (nopReadModel) AllowlistAutoRunEnabled() bool        { return true }
-func (nopReadModel) TakeOpenConfigLLMOnFirstLayout() bool { return false }
-
-func defaultReadModel(r ReadModel) ReadModel {
-	if r == nil {
-		return nopReadModel{}
-	}
-	return r
-}
-
 func (m Model) allowlistAutoRunEnabled() bool {
-	return defaultReadModel(m.ReadModel).AllowlistAutoRunEnabled()
+	if m.ReadModel == nil {
+		return true
+	}
+	return m.ReadModel.AllowlistAutoRunEnabled()
 }
 
 func (m Model) takeOpenConfigLLMOnFirstLayout() bool {
-	return defaultReadModel(m.ReadModel).TakeOpenConfigLLMOnFirstLayout()
+	if m.ReadModel == nil {
+		return false
+	}
+	return m.ReadModel.TakeOpenConfigLLMOnFirstLayout()
 }
 
 type uiState string
@@ -96,19 +90,6 @@ func (m Model) AppendTranscriptLines(lines ...string) Model {
 	return m
 }
 
-// ClearSlashInput resets slash input-related UI state.
-// It is exported so feature packages can implement exact slash handlers
-// without depending on unexported ui internals.
-func (m Model) ClearSlashInput() Model {
-	return m.clearSlashInput()
-}
-
-// ResetSlashSuggestIndex sets the slash dropdown highlight to the first visible option.
-func (m Model) ResetSlashSuggestIndex() Model {
-	m.Interaction.slashSuggestIndex = 0
-	return m
-}
-
 // RefreshViewport rebuilds the view content and scrolls to bottom.
 // This is used by exact slash handlers that need immediate UI feedback.
 func (m Model) RefreshViewport() Model {
@@ -121,11 +102,6 @@ func (m Model) RefreshViewport() Model {
 func (m Model) SetMainViewportContent() Model {
 	m.Viewport.SetContent(m.buildContent())
 	return m
-}
-
-// OpenOverlay opens a generic overlay and sets title/content.
-func (m Model) OpenOverlay(title, content string) Model {
-	return m.OpenOverlayFeature("", title, content)
 }
 
 // OpenOverlayFeature opens a feature-owned overlay and records its active key.
@@ -152,11 +128,6 @@ func (m Model) InitOverlayViewport() Model {
 	m.Overlay.Viewport = viewport.New(m.layout.Width-minOverlayLayoutWidth, min(m.layout.Height-minOverlayLayoutHeight, maxOverlayViewportHeight))
 	m.Overlay.Viewport.SetContent(m.Overlay.Content)
 	return m
-}
-
-// OpenHelpOverlay opens the built-in help overlay.
-func (m Model) OpenHelpOverlay() Model {
-	return m.openHelpOverlay()
 }
 
 // hasPendingApproval reports whether the UI is in approval choice mode.

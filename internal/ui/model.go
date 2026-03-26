@@ -124,12 +124,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleBlurMsg()
 	case tea.FocusMsg:
 		return m.handleFocusMsg()
-	case OverlayOpenIntentMsg:
-		return m.handleOverlayOpenIntentMsg(msg)
-	case OverlayShowMsg:
-		return m.handleOverlayShowMsg(msg)
-	case OverlayCloseMsg:
-		return m.handleOverlayCloseMsg()
 	case tea.KeyMsg:
 		return m.handleKeyMsg(msg)
 
@@ -144,8 +138,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case TranscriptReplaceMsg:
 		return m.handleTranscriptReplaceMsg(msg)
 
-	case LifecycleSlashExecuteMsg:
-		return m.handleLifecycleSlashExecuteMsg(msg)
 	}
 
 	return m, nil
@@ -174,7 +166,7 @@ func NewModel(initialMessages []string, readModel ReadModel) Model {
 		Input:     ti,
 		Viewport:  vp,
 		messages:  msgs,
-		ReadModel: defaultReadModel(readModel),
+		ReadModel: readModel,
 		layout: LayoutState{
 			Width:  defaultWidth,
 			Height: defaultHeight,

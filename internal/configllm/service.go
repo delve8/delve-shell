@@ -2,8 +2,6 @@ package configllm
 
 import (
 	"context"
-	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -13,57 +11,10 @@ import (
 	"delve-shell/internal/config"
 )
 
-// LLMTester is used to check LLM connectivity.
-// It is injected in tests; production uses TestConnection.
-type LLMTester func(ctx context.Context, baseURL, apiKey, model string) error
-
-// SaveLLMFromOverlay validates and writes the LLM config fields.
-// It does not run connectivity checks; caller should call CheckLLMAndMaybeAutoCorrect.
-func SaveLLMFromOverlay(baseURL, apiKey, model, maxMessages, maxChars string) error {
-	baseURL = strings.TrimSpace(baseURL)
-	apiKey = strings.TrimSpace(apiKey)
-	model = strings.TrimSpace(model)
-	if model == "" {
-		return fmt.Errorf("llm.model is required")
-	}
-
-	cfg, err := config.Load()
-	if err != nil || cfg == nil {
-		cfg = config.Default()
-		if err := config.EnsureRootDir(); err != nil {
-			return err
-		}
-	}
-
-	cfg.LLM.BaseURL = baseURL
-	cfg.LLM.APIKey = apiKey
-	cfg.LLM.Model = model
-
-	if s := strings.TrimSpace(maxMessages); s != "" {
-		if n, err := strconv.Atoi(s); err == nil && n >= 0 {
-			cfg.LLM.MaxContextMessages = n
-		}
-	} else {
-		cfg.LLM.MaxContextMessages = 0
-	}
-	if s := strings.TrimSpace(maxChars); s != "" {
-		if n, err := strconv.Atoi(s); err == nil && n >= 0 {
-			cfg.LLM.MaxContextChars = n
-		}
-	} else {
-		cfg.LLM.MaxContextChars = 0
-	}
-
-	return config.Write(cfg)
-}
-
 // CheckLLMAndMaybeAutoCorrect checks LLM connectivity using resolved config.
 // If it fails and base_url does not end with /v1, it retries with /v1 and writes back on success.
 // Returns correctedBaseURL when auto-correction happened.
-func CheckLLMAndMaybeAutoCorrect(ctx context.Context, tester LLMTester) (correctedBaseURL string, err error) {
-	if tester == nil {
-		tester = TestConnection
-	}
+func CheckLLMAndMaybeAutoCorrect(ctx context.Context) (correctedBaseURL string, err error) {
 	cfg, err := config.Load()
 	if err != nil || cfg == nil {
 		return "", err
@@ -74,7 +25,7 @@ func CheckLLMAndMaybeAutoCorrect(ctx context.Context, tester LLMTester) (correct
 	}
 	ctx1, cancel1 := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel1()
-	checkErr := tester(ctx1, resolvedBaseURL, resolvedAPIKey, resolvedModel)
+	checkErr := TestConnection(ctx1, resolvedBaseURL, resolvedAPIKey, resolvedModel)
 	if checkErr == nil {
 		return "", nil
 	}
@@ -85,7 +36,7 @@ func CheckLLMAndMaybeAutoCorrect(ctx context.Context, tester LLMTester) (correct
 	tryURL := resolvedBaseURL + "/v1"
 	ctx2, cancel2 := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel2()
-	retryErr := tester(ctx2, tryURL, resolvedAPIKey, resolvedModel)
+	retryErr := TestConnection(ctx2, tryURL, resolvedAPIKey, resolvedModel)
 	if retryErr != nil {
 		return "", checkErr
 	}
