@@ -10,18 +10,15 @@ import (
 	"delve-shell/internal/ui"
 )
 
-func remoteStateEventProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
+func remoteStateProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 	switch t := msg.(type) {
 	case ExecutionChangedMsg:
 		m.Remote.Active = t.Active
 		m.Remote.Label = t.Label
-		// Remote execution state changed: clear any previously cached /run suggestions.
 		clearCachedRunSuggestions()
 		m = m.RefreshViewport()
 		return m, nil, true
 	case RunCompletionCacheMsg:
-		// Remote cache update (sent by CLI on successful /remote on).
-		// Ignore stale results from previous remotes.
 		if t.RemoteLabel == "" || t.RemoteLabel != m.Remote.Label {
 			return m, nil, true
 		}
@@ -66,6 +63,7 @@ func remoteOverlayEventProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, boo
 		}
 		setRemoteOverlayState(state)
 		return m, nil, true
+
 	case AuthPromptMsg:
 		state.AddRemote.Connecting = false
 		state.AddRemote.Active = false
@@ -91,6 +89,7 @@ func remoteOverlayEventProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, boo
 		state.RemoteAuth.UsernameInput.Focus()
 		setRemoteOverlayState(state)
 		return m, nil, true
+
 	default:
 		return m, nil, false
 	}

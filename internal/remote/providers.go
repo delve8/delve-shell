@@ -9,7 +9,7 @@ import (
 
 func registerProviders() {
 	ui.RegisterSlashOptionsProvider(remoteSlashOptionsProvider)
-	ui.RegisterStateEventProvider(remoteStateEventProvider)
+	ui.RegisterStateEventProvider(remoteStateProvider)
 
 	ui.RegisterTitleBarFragmentProvider(func(m ui.Model) (string, bool) {
 		if !m.Remote.Active {
