@@ -68,7 +68,7 @@ func (m *Manager) Invalidate() {
 	m.r = nil
 }
 
-// SetAllowlistAutoRun updates the runtime value (used for UI header + approval options) and invalidates the runner.
+// SetAllowlistAutoRun updates the runtime value (used for UI footer/status bar + approval options) and invalidates the runner.
 func (m *Manager) SetAllowlistAutoRun(v bool) {
 	m.allowlistAutoRun.Store(v)
 	m.Invalidate()

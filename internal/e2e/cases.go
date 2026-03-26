@@ -26,7 +26,7 @@ type Step struct {
 // DefaultStepTimeout is used when Case.Timeout is zero.
 const DefaultStepTimeout = 8 * time.Second
 
-// tuiReadyExpect: substrings that appear on the initial TUI (title line + placeholder). Main view uses titleLine() and KeyPlaceholderInput, not "delve-shell" or "Enter".
+// tuiReadyExpect: substrings that appear on the initial TUI (footer line + placeholder). Main view uses footerLine() and KeyPlaceholderInput, not "delve-shell" or "Enter".
 var tuiReadyExpect = []string{"Local", "IDLE", "Auto-Run", "Type", "slash"}
 
 // TerminalCases is the registered list of terminal e2e cases; append to add cases.
@@ -47,8 +47,8 @@ var TerminalCases = []Case{
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
-			// KeyConfigHint EN: "Use /config llm for LLM; auto-run is in header." (header line also shows Auto-Run)
-			{Input: "/config show", Expect: []string{"/config llm", "LLM", "auto-run", "header"}, Timeout: 5 * time.Second},
+			// KeyConfigHint EN: "Use /config llm for LLM; auto-run is in footer." (footer line also shows Auto-Run)
+			{Input: "/config show", Expect: []string{"/config llm", "LLM", "auto-run", "footer"}, Timeout: 5 * time.Second},
 			{Input: "/q", Expect: []string{}, Timeout: 2 * time.Second},
 		},
 	},

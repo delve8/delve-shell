@@ -12,54 +12,70 @@ import (
 // - Call model.Update(tea.Msg) and assert on returned model state or model.View() / model.buildContent().
 // - Config-dependent logic (e.g. getLang) falls back to defaults in tests; use inclusive asserts (e.g. accept both en and zh).
 
-// TestView_HeaderAlwaysShown asserts that View() always includes the header (mode + status) and that
-// total output lines never exceed Height so the header stays visible when the terminal shows one screen.
-func TestView_HeaderAlwaysShown(t *testing.T) {
+// TestView_FooterAlwaysShown asserts that View() always includes the footer status line (mode + status)
+// and that total output lines never exceed Height so the footer stays visible when the terminal shows one screen.
+func TestView_FooterAlwaysShown(t *testing.T) {
 	m := NewModel(nil, nil)
 	m.layout.Height = 24
 	m.layout.Width = 80
+	m = m.WithTranscriptLines([]string{"hello"}).RefreshViewport()
 	view := m.View()
-	// Header contains Auto-run label and a status in brackets
-	if !strings.Contains(view, "[IDLE]") && !strings.Contains(view, "[空闲]") && !strings.Contains(view, "[PROCESSING]") && !strings.Contains(view, "[处理中]") {
-		t.Error("View() should show status in header (e.g. [IDLE] or [空闲])")
+	lines := strings.Split(view, "\n")
+	if len(lines) > m.layout.Height {
+		t.Fatalf("View() must not exceed Height: got %d lines, Height=%d", len(lines), m.layout.Height)
 	}
-	if !strings.Contains(view, "Auto-Run") && !strings.Contains(view, "自动执行") {
-		t.Error("View() should show Auto-Run label in header")
+	if strings.Contains(lines[0], "Auto-Run") || strings.Contains(lines[0], "自动执行") {
+		t.Error("View() should not render the status line at the top anymore")
+	}
+	tailStart := len(lines) - 5
+	if tailStart < 0 {
+		tailStart = 0
+	}
+	footer := strings.Join(lines[tailStart:], "\n")
+	if !strings.Contains(footer, "[IDLE]") && !strings.Contains(footer, "[空闲]") && !strings.Contains(footer, "[PROCESSING]") && !strings.Contains(footer, "[处理中]") {
+		t.Error("View() should show status in the footer (e.g. [IDLE] or [空闲])")
+	}
+	if !strings.Contains(footer, "Auto-Run") && !strings.Contains(footer, "自动执行") {
+		t.Error("View() should show Auto-Run label in the footer")
 	}
 
-	// Small height path: header must still appear first
+	// Small height path: footer must still appear.
 	m.layout.Height = 4
 	viewSmall := m.View()
 	if !strings.Contains(viewSmall, "Auto-Run") && !strings.Contains(viewSmall, "自动执行") {
-		t.Error("View() at small height should still show header with Auto-Run label")
+		t.Error("View() at small height should still show the footer with Auto-Run label")
 	}
 
-	// With Pending, header shows [NEED APPROVAL] or [待确认]
+	// With Pending, footer shows [NEED APPROVAL] or [待确认]
 	m.ChoiceCard.pending = &uivm.PendingApproval{Command: "ls"}
 	m.layout.Height = 24
+	m = m.RefreshViewport()
 	viewPending := m.View()
 	if !strings.Contains(viewPending, "[NEED APPROVAL]") && !strings.Contains(viewPending, "[待确认]") {
-		t.Error("View() with Pending should show pending status in header")
+		t.Error("View() with Pending should show pending status in the footer")
 	}
 
 	// Critical: with choice mode (max 3 options) and a small Height, total lines must not exceed Height,
-	// so the header (first 2 lines) stays on screen when terminal displays one full screen.
+	// so the footer stays on screen when terminal displays one full screen.
 	m2 := NewModel(nil, nil)
 	m2.layout.Height = 12
 	m2.layout.Width = 80
 	m2.ChoiceCard.pendingSensitive = &uivm.PendingSensitive{Command: "cat /etc/shadow"}
 	viewChoice := m2.View()
-	lines := strings.Split(viewChoice, "\n")
-	if len(lines) > m2.layout.Height {
-		t.Errorf("View() in choice mode (3 options) must not exceed Height: got %d lines, Height=%d (header would scroll off)", len(lines), m2.layout.Height)
+	choiceLines := strings.Split(viewChoice, "\n")
+	if len(choiceLines) > m2.layout.Height {
+		t.Errorf("View() in choice mode (3 options) must not exceed Height: got %d lines, Height=%d (footer would scroll off)", len(choiceLines), m2.layout.Height)
 	}
-	// First line must be the header title (Auto-Run + status)
-	visible := strings.Join(lines[:min(len(lines), m2.layout.Height)], "\n")
+	// Footer title must be in the visible area near the bottom, not at the top.
+	visible := strings.Join(choiceLines[:min(len(choiceLines), m2.layout.Height)], "\n")
+	if strings.Contains(choiceLines[0], "Auto-Run") || strings.Contains(choiceLines[0], "自动执行") {
+		t.Error("footer should not appear in the first visible line")
+	}
 	if !strings.Contains(visible, "Auto-Run") && !strings.Contains(visible, "自动执行") {
-		t.Error("header (Auto-Run label) must appear in visible area")
+		t.Error("footer (Auto-Run label) must appear in visible area")
 	}
 	if !strings.Contains(visible, "[NEED APPROVAL]") && !strings.Contains(visible, "[待确认]") {
-		t.Error("header (pending status) must appear in visible area")
+		t.Error("footer (pending status) must appear in visible area")
 	}
 }
 

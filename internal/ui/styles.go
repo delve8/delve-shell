@@ -5,11 +5,11 @@ import "github.com/charmbracelet/lipgloss"
 // TUI styles. All use lipgloss; colors are ANSI 256 (e.g. 1=red, 2=green, 8=dim gray).
 
 var (
-	// Header and layout
-	titleStyle         = lipgloss.NewStyle().Bold(true)                                  // title line: mode
-	separatorStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))             // horizontal rule between header/content/input
-	statusIdleStyle    = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("10")) // [IDLE] / [空闲] — green, stands out
-	statusRunningStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("11")) // [PROCESSING] / [处理中] — yellow, stands out
+	// Footer/status and layout
+	titleStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("246")) // footer line: mode
+	separatorStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))   // horizontal rule between viewport/footer/input
+	statusIdleStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("246")) // [IDLE] / [空闲] — same tone as footer text
+	statusRunningStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("11"))  // [PROCESSING] / [处理中] — softer yellow
 )
 
 var (
@@ -27,8 +27,8 @@ var (
 )
 
 var (
-	// Pending/choice: header status + operation hint (e.g. [待确认] 1 or 2)
-	pendingActionStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Bold(true)
+	// Pending/choice: footer status + operation hint (e.g. [待确认] 1 or 2)
+	pendingActionStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
 )
 
 var (

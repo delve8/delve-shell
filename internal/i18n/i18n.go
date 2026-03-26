@@ -26,7 +26,6 @@ const (
 	KeyChoiceRunNoStore         = "choice_run_no_store"
 	KeyChoiceCopy               = "choice_copy"
 	KeyChoiceDismiss            = "choice_dismiss"
-	KeyTitleHeader              = "title_header"
 	KeyApprovalPrompt           = "approval_prompt"
 	KeyApprovalSummary          = "approval_summary"
 	KeyApprovalWhy              = "approval_why"
@@ -138,7 +137,7 @@ const (
 	KeyConfigLLMCheckFailed          = "config_llm_check_failed"            // format: "LLM check failed: %v"
 	KeyConfigLLMBaseURLAutoCorrected = "config_llm_base_url_auto_corrected" // format: "Base URL updated to %s (added /v1)."
 	KeyDescConfigLLM                 = "desc_config_llm"
-	KeyConfigHint                    = "config_hint" // when /config or /config show is used: point to /config llm and header
+	KeyConfigHint                    = "config_hint" // when /config or /config show is used: point to /config llm and footer
 	// Skill
 	KeyDescSkill             = "desc_skill"
 	KeyUsageSkill            = "usage_skill"
@@ -246,7 +245,6 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyChoiceRunNoStore:              "Run, return to AI, do not store",
 		KeyChoiceCopy:                    "Copy",
 		KeyChoiceDismiss:                 "Dismiss",
-		KeyTitleHeader:                   "delve-shell — Enter to send, ctrl+c to quit | Up/Down/PgUp/PgDown scroll",
 		KeyApprovalPrompt:                "Command to run (approval required):",
 		KeyApprovalSummary:               "Summary:",
 		KeyApprovalWhy:                   "Why:",
@@ -346,7 +344,7 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyConfigLLMCheckFailed:          "LLM check failed: %v",
 		KeyConfigLLMBaseURLAutoCorrected: "Base URL updated to %s (added /v1).",
 		KeyDescConfigLLM:                 "Set LLM",
-		KeyConfigHint:                    "Use /config llm for LLM; auto-run is in header.",
+		KeyConfigHint:                    "Use /config llm for LLM; auto-run is in footer.",
 		KeyDescSkill:                     "Ask AI to use an installed skill for this task",
 		KeyUsageSkill:                    "Usage: /skill <skill-name> [detail] — describe what you want after the name",
 		KeySkillNotFound:                 "Skill not found.",

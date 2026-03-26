@@ -5,7 +5,7 @@ import (
 	"delve-shell/internal/remoteauth"
 )
 
-// Host is the injectable façade for host-side operations (bus sends, allowlist mirror, remote header mirror, config-LLM startup).
+// Host is the injectable façade for host-side operations (bus sends, allowlist mirror, remote footer/status mirror, config-LLM startup).
 // *Runtime implements Host.
 type Host interface {
 	SubmitSubmission(sub inputlifecycletype.InputSubmission) bool

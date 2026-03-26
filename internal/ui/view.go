@@ -6,6 +6,8 @@ import (
 	"delve-shell/internal/textwrap"
 	"delve-shell/internal/ui/widget"
 	"strings"
+
+	"github.com/mattn/go-runewidth"
 )
 
 // View implements tea.Model.
@@ -16,28 +18,23 @@ func (m Model) View() string {
 		sepW = 40
 	}
 	sepLine := renderSeparator(sepW)
-	header := m.titleLine() + "\n" + sepLine + "\n"
+	footer := m.footerLine()
 
 	inChoice := m.hasPendingChoiceCard()
 	if m.layout.Height <= minInputLayoutWidth {
-		out := header + m.buildContent() + "\n" + m.Input.View()
-		out += m.waitingLineBelowInput(lang)
+		out := m.buildContent() + "\n" + sepLine + "\n" + m.Input.View()
+		out += m.inputBelowBlock(lang, inChoice)
+		out += footer
 		return out
 	}
-	// Base viewport height: leave room for header, separator, input line, and slash/choice dropdown (the two lines at bottom are for input + suggestions).
+	// Base viewport height: leave room for the separator, input line, slash/choice dropdown, and footer below.
 	vh := m.mainViewportHeight()
 	m.Viewport.Width = m.layout.Width
 	m.Viewport.Height = vh
-	out := header
-	out += m.Viewport.View()
-	out += "\n" + sepLine + "\n"
-	out += m.Input.View()
-	if inChoice {
-		out += m.choiceLinesBelowInput(lang)
-	} else {
-		out += m.slashDropdownBelowInput(lang)
-	}
-	out += m.waitingLineBelowInput(lang)
+	out := m.Viewport.View()
+	out += "\n" + sepLine + "\n" + m.Input.View()
+	out += m.inputBelowBlock(lang, inChoice)
+	out += footer
 
 	// Render overlay on top if active.
 	if m.Overlay.Active {
@@ -93,23 +90,61 @@ func (m Model) titleBarLeadingSegment() string {
 	return "Local"
 }
 
-// titleLine returns the fixed title (Remote + Auto-run + status) for display above the viewport; does not scroll.
-func (m Model) titleLine() string {
+// footerLine returns the fixed status line (status + auto-run + remote) for display below the input; does not scroll.
+func (m Model) footerLine() string {
 	lang := m.getLang()
 	remotePart := m.titleBarLeadingSegment()
-	autoRunStr := i18n.T(lang, i18n.KeyAutoRunListOnly)
+	autoRunFull := i18n.T(lang, i18n.KeyAutoRunLabel) + i18n.T(lang, i18n.KeyAutoRunListOnly)
+	autoRunShort := "AR:list"
 	if !m.allowlistAutoRunEnabled() {
-		autoRunStr = i18n.T(lang, i18n.KeyAutoRunNone)
+		autoRunFull = i18n.T(lang, i18n.KeyAutoRunLabel) + i18n.T(lang, i18n.KeyAutoRunNone)
+		autoRunShort = "AR:off"
 	}
-	autoRunPart := remotePart + " | " + i18n.T(lang, i18n.KeyAutoRunLabel) + autoRunStr + " | "
 	statusStr := i18n.T(lang, m.statusKey())
-	return widget.RenderTitleLine(autoRunPart, statusStr, m.titleBarStatus(), widget.TitleLineStyles{
+	return widget.RenderFooterBar(m.layout.Width, widget.FooterBarParts{
+		Remote:              remotePart,
+		AutoRunFull:         autoRunFull,
+		AutoRunShort:        autoRunShort,
+		AutoRunReserveWidth: footerAutoRunReserveWidth(lang),
+		Status:              statusStr,
+		StatusReserveWidth:  footerStatusReserveWidth(lang),
+	}, m.titleBarStatus(), widget.TitleLineStyles{
 		Base:          titleStyle,
 		StatusIdle:    statusIdleStyle,
 		StatusRunning: statusRunningStyle,
 		StatusPending: pendingActionStyle,
 		StatusSuggest: suggestStyle,
 	})
+}
+
+func footerStatusReserveWidth(lang string) int {
+	statuses := []string{
+		i18n.T(lang, i18n.KeyStatusIdle),
+		i18n.T(lang, i18n.KeyStatusRunning),
+		i18n.T(lang, i18n.KeyStatusPendingApproval),
+		i18n.T(lang, i18n.KeyStatusSuggest),
+	}
+	maxW := 0
+	for _, s := range statuses {
+		if w := runewidth.StringWidth(s); w > maxW {
+			maxW = w
+		}
+	}
+	return maxW
+}
+
+func footerAutoRunReserveWidth(lang string) int {
+	autoRunTexts := []string{
+		i18n.T(lang, i18n.KeyAutoRunLabel) + i18n.T(lang, i18n.KeyAutoRunListOnly),
+		i18n.T(lang, i18n.KeyAutoRunLabel) + i18n.T(lang, i18n.KeyAutoRunNone),
+	}
+	maxW := 0
+	for _, s := range autoRunTexts {
+		if w := runewidth.StringWidth(s); w > maxW {
+			maxW = w
+		}
+	}
+	return maxW
 }
 
 // overlayBoxMaxWidth is the max width of the overlay box so hint lines (e.g. "Up/Down to move... Esc to cancel.") do not wrap.

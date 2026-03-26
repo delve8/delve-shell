@@ -12,7 +12,7 @@ type Runtime struct {
 	mu sync.RWMutex
 	// send is the channel bundle installed by WireSend (nil when unwired).
 	send *Send
-	// allowlistFn returns current allowlist auto-run for UI header and approval choice count; nil means "default on".
+	// allowlistFn returns current allowlist auto-run for the UI footer/status bar and approval choice count; nil means "default on".
 	allowlistFn func() bool
 	// syncAllowlist persists allowlist_auto_run changes and invalidates runner.
 	syncAllowlist func(bool)
@@ -69,7 +69,7 @@ func (r *Runtime) InvokeSyncAllowlistAutoRun(v bool) {
 	}
 }
 
-// SetRemoteExecution updates remote execution mirror for the UI header.
+// SetRemoteExecution updates remote execution mirror for the UI footer/status bar.
 func (r *Runtime) SetRemoteExecution(active bool, label string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

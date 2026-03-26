@@ -30,3 +30,17 @@ func RenderLinesBelowInput(prefix string, rows []ListRow, normal, hi lipgloss.St
 	}
 	return b.String()
 }
+
+// RenderFixedLinesBelowInput renders exactly reserveRows lines below the input.
+// Missing rows are padded as blanks so the footer position stays stable.
+func RenderFixedLinesBelowInput(prefix string, rows []ListRow, reserveRows int, normal, hi lipgloss.Style) string {
+	if reserveRows <= 0 {
+		return ""
+	}
+	if len(rows) > reserveRows {
+		rows = rows[:reserveRows]
+	}
+	padded := make([]ListRow, reserveRows)
+	copy(padded, rows)
+	return RenderLinesBelowInput(prefix, padded, normal, hi)
+}

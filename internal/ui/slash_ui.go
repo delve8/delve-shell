@@ -24,6 +24,9 @@ type SlashOption struct {
 
 var slashRuntime = slashdispatch.NewRuntime[Model, tea.Cmd]()
 
+const inputBelowReserveRows = 4
+const inputBelowReserveTailRows = 1
+
 // visibleSlashOptions filters options by input prefix and returns matching indices.
 func visibleSlashOptions(input string, opts []SlashOption) []int {
 	return slashview.VisibleIndices(input, toSlashViewOptions(opts))
@@ -71,7 +74,7 @@ func (m Model) slashDropdownBelowInput(lang string) string {
 	for i, row := range rows {
 		list[i] = widget.ListRow{Text: row.Text, Highlight: row.Highlight}
 	}
-	return widget.RenderLinesBelowInput("   ", list, suggestStyle, suggestHi)
+	return widget.RenderFixedLinesBelowInput("   ", list, maxSlashVisible, suggestStyle, suggestHi)
 }
 
 // choiceLinesBelowInput returns extra lines for numeric choice menu under the input.
@@ -90,11 +93,62 @@ func (m Model) choiceLinesBelowInput(lang string) string {
 	for i, line := range lines {
 		list[i] = widget.ListRow{Text: line.Text, Highlight: line.Highlight}
 	}
-	return widget.RenderLinesBelowInput(" ", list, suggestStyle, suggestHi)
+	return widget.RenderFixedLinesBelowInput(" ", list, 3, suggestStyle, suggestHi)
 }
 
 // waitingLineBelowInput returns the "wait or press Esc to cancel" hint when AI is running.
 func (m Model) waitingLineBelowInput(lang string) string {
 	inChoice := m.hasPendingChoiceCard()
 	return maininput.WaitingHint(m.Interaction.WaitingForAI, inChoice, suggestStyle.Render(i18n.T(lang, i18n.KeyWaitOrCancel)))
+}
+
+// waitingLineText returns the waiting hint text without layout padding.
+func (m Model) waitingLineText(lang string) string {
+	inChoice := m.hasPendingChoiceCard()
+	if m.Interaction.WaitingForAI && !inChoice {
+		return suggestStyle.Render(i18n.T(lang, i18n.KeyWaitOrCancel))
+	}
+	return ""
+}
+
+// waitingLineBelowInputFixed returns one reserved line so the footer position stays stable.
+func (m Model) waitingLineBelowInputFixed(lang string) string {
+	text := m.waitingLineText(lang)
+	if text == "" {
+		return "\n"
+	}
+	return text + "\n"
+}
+
+// inputBelowBlock reserves the fixed-height block below the input so the footer position stays stable.
+func (m Model) inputBelowBlock(lang string, inChoice bool) string {
+	rows := make([]widget.ListRow, 0, inputBelowReserveRows)
+	if inChoice {
+		allowlistAutoRunEnabled := m.allowlistAutoRunEnabled()
+		opts := approvalview.ChoiceOptions(lang, m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil, allowlistAutoRunEnabled)
+		adapted := make([]maininput.ChoiceOption, 0, len(opts))
+		for _, o := range opts {
+			adapted = append(adapted, maininput.ChoiceOption{Num: o.Num, Label: o.Label})
+		}
+		lines := maininput.BuildChoiceLines(adapted, m.Interaction.ChoiceIndex)
+		rows = make([]widget.ListRow, len(lines))
+		for i, line := range lines {
+			rows[i] = widget.ListRow{Text: line.Text, Highlight: line.Highlight}
+		}
+	} else if strings.HasPrefix(m.Input.Value(), "/") {
+		_, vis, viewOpts := m.slashSuggestionContextWithLang(m.Input.Value(), lang)
+		if len(vis) > 0 {
+			const maxSlashVisible = inputBelowReserveRows
+			rowsRaw := slashview.BuildDropdownRows(viewOpts, vis, m.Interaction.slashSuggestIndex, m.layout.Width, maxSlashVisible)
+			rows = make([]widget.ListRow, len(rowsRaw))
+			for i, row := range rowsRaw {
+				rows[i] = widget.ListRow{Text: row.Text, Highlight: row.Highlight}
+			}
+		}
+	}
+	block := widget.RenderFixedLinesBelowInput("   ", rows, inputBelowReserveRows, suggestStyle, suggestHi)
+	for i := 0; i < inputBelowReserveTailRows; i++ {
+		block += m.waitingLineBelowInputFixed(lang)
+	}
+	return block
 }

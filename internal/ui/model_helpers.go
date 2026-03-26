@@ -9,7 +9,7 @@ import (
 const (
 	minInputLayoutWidth      = 4
 	minContentWidthFallback  = 80
-	mainViewportPadding      = 10
+	mainViewportPadding      = 8
 	minOverlayLayoutWidth    = 4
 	minOverlayLayoutHeight   = 6
 	maxOverlayViewportHeight = 20
