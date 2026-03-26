@@ -11,24 +11,6 @@ import (
 	"delve-shell/internal/remoteauth"
 )
 
-// bindTestPorts wires hostapp send endpoints. Do not use t.Parallel().
-
-func bindTestPorts(t *testing.T, ports bus.InputPorts, shell chan<- []string) *app.Runtime {
-	t.Helper()
-	rt := app.NewRuntime()
-	t.Cleanup(func() { rt.Reset() })
-	BindSendPorts(rt, ports, shell)
-	return rt
-}
-
-// installTestRuntime returns an empty *Runtime for allowlist-only tests. Resets on cleanup.
-func installTestRuntime(t *testing.T) *app.Runtime {
-	t.Helper()
-	rt := app.NewRuntime()
-	t.Cleanup(func() { rt.Reset() })
-	return rt
-}
-
 func TestBindSendPorts_SubmissionDelivered(t *testing.T) {
 	ports := bus.NewInputPorts()
 	rt := bindTestPorts(t, ports, make(chan []string, 1))
@@ -253,30 +235,8 @@ func TestInputPortsCapacitiesDocumented(t *testing.T) {
 func TestBindSendPorts_AgentUIChanUnwired(t *testing.T) {
 	ports := bus.NewInputPorts()
 	bindTestPorts(t, ports, make(chan []string, 1))
-	// Agent UI events go to runnermgr / BridgeInputs only; legacy globals do not touch AgentUIChan.
 	if cap(ports.AgentUIChan) < 1 {
 		t.Fatal("agent chan missing capacity")
-	}
-}
-
-func TestBindAllowlistAutoRun_GetterVisible(t *testing.T) {
-	rt := installTestRuntime(t)
-	BindAllowlistAutoRun(rt, func() bool { return false }, func(bool) {})
-	if rt.AllowlistAutoRunEnabled() {
-		t.Fatal("getter should return false")
-	}
-	BindAllowlistAutoRun(rt, func() bool { return true }, func(bool) {})
-	if !rt.AllowlistAutoRunEnabled() {
-		t.Fatal("getter should return true")
-	}
-}
-
-func TestBindAllowlistAutoRun_RebindOverrides(t *testing.T) {
-	rt := installTestRuntime(t)
-	BindAllowlistAutoRun(rt, func() bool { return false }, func(bool) {})
-	BindAllowlistAutoRun(rt, func() bool { return true }, func(bool) {})
-	if !rt.AllowlistAutoRunEnabled() {
-		t.Fatal("second bind should win")
 	}
 }
 
@@ -537,13 +497,5 @@ func TestBindSendPorts_ExecDirectPayloadTable(t *testing.T) {
 		case <-time.After(2 * time.Second):
 			t.Fatalf("case %d: timeout", i)
 		}
-	}
-}
-
-func TestBindAllowlistAutoRun_NilGetterFallsBackToTrue(t *testing.T) {
-	rt := installTestRuntime(t)
-	BindAllowlistAutoRun(rt, nil, func(bool) {})
-	if !rt.AllowlistAutoRunEnabled() {
-		t.Fatal("nil getter should default to true in AllowlistAutoRunEnabled")
 	}
 }
