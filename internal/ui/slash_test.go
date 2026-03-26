@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"delve-shell/internal/uiregistry"
 )
 
 // TestGetSlashOptionsForInput_sessions_returnsSessionCommands asserts that
@@ -24,7 +26,11 @@ func TestGetSlashOptionsForInput_sessions_returnsSessionCommands(t *testing.T) {
 		}
 	}
 
-	opts := getSlashOptionsForInput("/sessions", "en")
+	raw := uiregistry.SlashOptionsForInput("/sessions", "en")
+	opts := make([]SlashOption, 0, len(raw))
+	for _, o := range raw {
+		opts = append(opts, SlashOption{Cmd: o.Cmd, Desc: o.Desc, FillValue: o.FillValue})
+	}
 	if len(opts) < 1 {
 		t.Fatalf("expected at least 1 option, got %d", len(opts))
 	}

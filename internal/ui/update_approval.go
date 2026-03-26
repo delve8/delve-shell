@@ -20,7 +20,7 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 		m.ChoiceCard.pendingSensitive != nil,
 		allowlistAutoRunEnabled,
 		m.Interaction.ChoiceIndex,
-		choiceCount(m),
+		approvalview.ChoiceCount(m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil, allowlistAutoRunEnabled),
 	)
 	if !res.Handled {
 		return m, false

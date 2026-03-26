@@ -5,6 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/approvalview"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/maininput"
 	"delve-shell/internal/slashdispatch"
@@ -22,17 +23,6 @@ type SlashOption struct {
 }
 
 var slashRuntime = slashdispatch.NewRuntime[Model, tea.Cmd]()
-
-// getSlashOptionsForInput returns slash options to show.
-// Specialized domains (e.g. /sessions, /run, /config) are expected to be handled by providers.
-func getSlashOptionsForInput(inputVal string, lang string) []SlashOption {
-	raw := uiregistry.SlashOptionsForInput(inputVal, lang)
-	out := make([]SlashOption, 0, len(raw))
-	for _, o := range raw {
-		out = append(out, SlashOption{Cmd: o.Cmd, Desc: o.Desc, FillValue: o.FillValue})
-	}
-	return out
-}
 
 // visibleSlashOptions filters options by input prefix and returns matching indices.
 func visibleSlashOptions(input string, opts []SlashOption) []int {
@@ -55,7 +45,11 @@ func (m Model) slashSuggestionContext(inputVal string) (opts []SlashOption, vis 
 
 // slashSuggestionContextWithLang is the same as slashSuggestionContext but uses an explicit UI language.
 func (m Model) slashSuggestionContextWithLang(inputVal, lang string) (opts []SlashOption, vis []int, viewOpts []slashview.Option) {
-	opts = getSlashOptionsForInput(inputVal, lang)
+	raw := uiregistry.SlashOptionsForInput(inputVal, lang)
+	opts = make([]SlashOption, 0, len(raw))
+	for _, o := range raw {
+		opts = append(opts, SlashOption{Cmd: o.Cmd, Desc: o.Desc, FillValue: o.FillValue})
+	}
 	vis = visibleSlashOptions(inputVal, opts)
 	viewOpts = toSlashViewOptions(opts)
 	return opts, vis, viewOpts
@@ -82,7 +76,8 @@ func (m Model) slashDropdownBelowInput(lang string) string {
 
 // choiceLinesBelowInput returns extra lines for numeric choice menu under the input.
 func (m Model) choiceLinesBelowInput(lang string) string {
-	opts := getChoiceOptions(m, lang)
+	allowlistAutoRunEnabled := m.allowlistAutoRunEnabled()
+	opts := approvalview.ChoiceOptions(lang, m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil, allowlistAutoRunEnabled)
 	if len(opts) == 0 {
 		return ""
 	}
