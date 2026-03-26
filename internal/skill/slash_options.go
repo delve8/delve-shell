@@ -9,7 +9,7 @@ import (
 
 	"delve-shell/internal/git"
 	"delve-shell/internal/i18n"
-	"delve-shell/internal/skills"
+	"delve-shell/internal/skillstore"
 	"delve-shell/internal/ui"
 )
 
@@ -44,7 +44,7 @@ func registerSlashOptionsProvider() {
 }
 
 func getDelSkillSlashOptions(lang string, filter string) []ui.SlashOption {
-	list, err := skills.List()
+	list, err := skillstore.List()
 	if err != nil || len(list) == 0 {
 		return []ui.SlashOption{{Cmd: "/config del-skill", Desc: i18n.T(lang, i18n.KeySkillNone)}}
 	}
@@ -71,7 +71,7 @@ func getDelSkillSlashOptions(lang string, filter string) []ui.SlashOption {
 }
 
 func getUpdateSkillSlashOptions(lang string, filter string) []ui.SlashOption {
-	sources, err := skills.ListSources()
+	sources, err := skillstore.ListSources()
 	if err != nil || len(sources) == 0 {
 		return []ui.SlashOption{{Cmd: "/config update-skill", Desc: i18n.T(lang, i18n.KeySkillNone)}}
 	}
@@ -131,7 +131,7 @@ func getUpdateSkillSlashOptions(lang string, filter string) []ui.SlashOption {
 }
 
 func getSkillSlashOptions(lang string, filter string) []ui.SlashOption {
-	list, _ := skills.List()
+	list, _ := skillstore.List()
 	parts := strings.Fields(filter)
 	if len(parts) == 0 {
 		if len(list) == 0 {
@@ -149,7 +149,7 @@ func getSkillSlashOptions(lang string, filter string) []ui.SlashOption {
 	}
 
 	skillName := parts[0]
-	skillDir := skills.SkillDir(skillName)
+	skillDir := skillstore.SkillDir(skillName)
 	if _, err := os.Stat(filepath.Join(skillDir, "SKILL.md")); err != nil {
 		filterLower := strings.ToLower(skillName)
 		opts := make([]ui.SlashOption, 0)

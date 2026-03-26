@@ -12,10 +12,10 @@ import (
 	"github.com/cloudwego/eino/schema"
 
 	"delve-shell/internal/execenv"
-	"delve-shell/internal/hiltypes"
 	"delve-shell/internal/hil"
+	"delve-shell/internal/hiltypes"
 	"delve-shell/internal/history"
-	"delve-shell/internal/skills"
+	"delve-shell/internal/skillstore"
 )
 
 // RunSkillTool runs a skill script via HIL approval; same approval/execution flow as execute_command.
@@ -90,15 +90,15 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 		input.Args = nil
 	}
 
-	skillDir := skills.SkillDir(skillName)
+	skillDir := skillstore.SkillDir(skillName)
 	if _, err := os.Stat(filepath.Join(skillDir, "SKILL.md")); err != nil {
 		return "Skill not found: " + skillName + ". Use list_skills to see available skills, then get_skill(skill_name) to read its SKILL.md.", nil
 	}
-	if _, err := skills.ScriptPath(skillDir, scriptName); err != nil {
+	if _, err := skillstore.ScriptPath(skillDir, scriptName); err != nil {
 		return "Script not found in skill: " + scriptName + ". Use get_skill(skill_name=\"" + skillName + "\") to see scripts and SKILL.md.", nil
 	}
 	// Load metadata once for risk level, summary, scope, and potential remote upload directory.
-	meta, _ := skills.LoadSKILL(skillDir)
+	meta, _ := skillstore.LoadSKILL(skillDir)
 
 	// Determine executor up front so we know whether commands will run locally or on a remote host.
 	executor := execenv.CommandExecutor(execenv.LocalExecutor{})
@@ -111,7 +111,7 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 	_, isRemote := executor.(*execenv.SSHExecutor)
 
 	// Decide working directory and shell command string used for approval and execution.
-	localScriptsDir := skills.ScriptsDir(skillDir)
+	localScriptsDir := skillstore.ScriptsDir(skillDir)
 	var remoteScriptsDir string
 	if isRemote {
 		base := ""
@@ -144,9 +144,9 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 		}
 	}
 	if isRemote {
-		cmd, err = skills.BuildCommandInDir(remoteScriptsDir, scriptName, input.Args)
+		cmd, err = skillstore.BuildCommandInDir(remoteScriptsDir, scriptName, input.Args)
 	} else {
-		cmd, err = skills.BuildCommand(skillDir, scriptName, input.Args)
+		cmd, err = skillstore.BuildCommand(skillDir, scriptName, input.Args)
 	}
 	if err != nil {
 		return "Failed to build skill command: " + err.Error(), nil

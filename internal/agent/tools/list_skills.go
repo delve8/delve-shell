@@ -7,7 +7,7 @@ import (
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
 
-	"delve-shell/internal/skills"
+	"delve-shell/internal/skillstore"
 )
 
 // ListSkillsTool lists all installed skills (name, description only). Use get_skill to read one skill's full SKILL.md.
@@ -24,7 +24,7 @@ func (t *ListSkillsTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 }
 
 func (t *ListSkillsTool) InvokableRun(ctx context.Context, argumentsInJSON string, _ ...tool.Option) (string, error) {
-	list, err := skills.List()
+	list, err := skillstore.List()
 	if err != nil {
 		return "list_skills failed: " + err.Error(), nil
 	}

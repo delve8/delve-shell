@@ -8,7 +8,7 @@ import (
 	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/inputlifecycletype"
-	"delve-shell/internal/skills"
+	"delve-shell/internal/skillstore"
 	"delve-shell/internal/ui"
 )
 
@@ -74,11 +74,11 @@ func executeSkillInvocation(req ui.SlashExecutionRequest, rest string) inputlife
 	if naturalLanguage == "" {
 		return transcriptErrorResult(i18n.T("en", i18n.KeyUsageSkill))
 	}
-	skillDir := skills.SkillDir(skillName)
+	skillDir := skillstore.SkillDir(skillName)
 	if _, err := os.Stat(filepath.Join(skillDir, "SKILL.md")); err != nil {
 		return transcriptErrorResult(i18n.T("en", i18n.KeySkillNotFound))
 	}
-	skillContent, err := skills.ReadSKILLContent(skillDir)
+	skillContent, err := skillstore.ReadSKILLContent(skillDir)
 	if err != nil {
 		return transcriptErrorResult(i18n.Tf("en", i18n.KeySkillInstallFailed, err))
 	}

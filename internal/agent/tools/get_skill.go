@@ -10,7 +10,7 @@ import (
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
 
-	"delve-shell/internal/skills"
+	"delve-shell/internal/skillstore"
 )
 
 // GetSkillTool returns one skill's full detail and SKILL.md content so the AI can learn how to call run_skill.
@@ -44,15 +44,15 @@ func (t *GetSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 		return "get_skill requires skill_name. Use list_skills to see available skills.", nil
 	}
 
-	skillDir := skills.SkillDir(skillName)
+	skillDir := skillstore.SkillDir(skillName)
 	if _, err := os.Stat(filepath.Join(skillDir, "SKILL.md")); err != nil {
 		return "Skill not found: " + skillName + ". Use list_skills to see available skills, then get_skill(skill_name) to read its SKILL.md.", nil
 	}
-	meta, err := skills.LoadSKILL(skillDir)
+	meta, err := skillstore.LoadSKILL(skillDir)
 	if err != nil {
 		return "Failed to load skill: " + err.Error(), nil
 	}
-	scriptNames, err := skills.ListScripts(skillDir)
+	scriptNames, err := skillstore.ListScripts(skillDir)
 	if err != nil {
 		scriptNames = nil
 	}
@@ -68,7 +68,7 @@ func (t *GetSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 		b.WriteString(strings.Join(scriptNames, ", "))
 	}
 	b.WriteString("\nUsage: run_skill(skill_name=\"" + meta.Name + "\", script_name=\"<script>\", args=[...])")
-	content, err := skills.ReadSKILLContent(skillDir)
+	content, err := skillstore.ReadSKILLContent(skillDir)
 	if err == nil && content != "" {
 		b.WriteString("\n\n--- SKILL.md (full) ---\n")
 		b.WriteString(content)

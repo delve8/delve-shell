@@ -6,14 +6,14 @@ import (
 
 	"delve-shell/internal/git"
 	"delve-shell/internal/i18n"
-	"delve-shell/internal/skills"
+	"delve-shell/internal/skillstore"
 	"delve-shell/internal/ui"
 )
 
 // openUpdateSkillOverlay initializes update-skill overlay state.
 func openUpdateSkillOverlay(m ui.Model, name string) ui.Model {
 	lang := "en"
-	url, ref, commitID, path, _, ok := skills.GetSkillSource(name)
+	url, ref, commitID, path, _, ok := skillstore.GetSkillSource(name)
 	state := getSkillOverlayState()
 	if !ok || strings.TrimSpace(url) == "" {
 		m = m.OpenOverlayFeature("skill", "Update skill", "")

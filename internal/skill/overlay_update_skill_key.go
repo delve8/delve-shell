@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"delve-shell/internal/git"
-	"delve-shell/internal/skills"
+	"delve-shell/internal/skillstore"
 	"delve-shell/internal/ui"
 )
 
@@ -50,7 +50,7 @@ func handleUpdateSkillOverlayKey(m ui.Model, key string) (ui.Model, tea.Cmd, boo
 			return ret(m, nil, true)
 		}
 		selectedRef := strings.TrimSpace(state.UpdateSkill.Refs[state.UpdateSkill.RefIndex])
-		if err := skills.Update(state.UpdateSkill.Name, selectedRef); err != nil {
+		if err := skillstore.Update(state.UpdateSkill.Name, selectedRef); err != nil {
 			state.UpdateSkill.Error = err.Error()
 			return ret(m, nil, true)
 		}

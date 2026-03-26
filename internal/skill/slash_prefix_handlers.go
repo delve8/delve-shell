@@ -5,7 +5,7 @@ import (
 
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/inputlifecycletype"
-	"delve-shell/internal/skills"
+	"delve-shell/internal/skillstore"
 )
 
 func handleSlashConfigDelSkillPrefix(rest string) inputlifecycletype.ProcessResult {
@@ -20,7 +20,7 @@ func handleSlashConfigDelSkillPrefix(rest string) inputlifecycletype.ProcessResu
 		})
 	}
 
-	if err := skills.Remove(name); err != nil {
+	if err := skillstore.Remove(name); err != nil {
 		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 			Kind: inputlifecycletype.OutputTranscriptAppend,
 			Transcript: &inputlifecycletype.TranscriptPayload{Lines: []inputlifecycletype.TranscriptLine{
