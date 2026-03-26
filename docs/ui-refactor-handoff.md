@@ -29,9 +29,12 @@
 | `RegisterSlashExact` / `RegisterSlashPrefix` | Enter 路径上的精确 / 前缀命令 |
 | `RegisterSlashOptionsProvider` | 输入 `/...` 时的下拉候选 |
 | `RegisterSlashSelectedProvider` | 选中某行后 Enter、且不走 exact/prefix 时的行为（如 fill-only） |
+| `RegisterOverlayFeature` | overlay feature 的主注册入口（`open / key / event / content / close / startup`） |
+| `RegisterOverlayOpenProvider` | 结构化 overlay open intent（`key + params`）到具体 feature overlay 的适配 |
+| `RegisterOverlayEventProvider` | 仅对当前 active overlay key 分发异步事件 |
 | `RegisterOverlayKeyProvider` | overlay 激活时的按键 |
 | `RegisterOverlayContentProvider` | overlay 正文渲染 |
-| `RegisterOverlayCloseHook` | **任意** overlay 关闭时复位业务字段（Esc / 程序化 close）；生产侧由 feature 注册层统一挂载 |
+| `RegisterOverlayCloseHook` | overlay 关闭后的 feature reset hook；当前会携带 active overlay key，再由 feature 精确复位自己的状态 |
 | `RegisterMessageProvider` | `tea.Msg` 的优先处理（在 `ui` 默认 switch 之前） |
 
 ### 2.3 与 `update_slash_*` 的关系
@@ -79,6 +82,7 @@
 
 - **`renderOverlay` 内 lipgloss 局部样式** 曾用名 `titleStyle`，与包级 **`titleStyle`（顶栏）** 冲突；已改为 `overlayTitleBarStyle`。后续新增样式禁止复用包级同名。
 - **overlay 正文** 已由 `RegisterOverlayContentProvider` 聚合；`renderOverlay` 保持「画框 + 居中」即可。
+- **2026-03-26 当前状态**：`remote`、`configllm`、`skill` 的 overlay-heavy 路径已统一为 `RegisterOverlayFeature(...)` + `OutputOverlayOpen` + active overlay key 路由，`ConnectDone/AuthPrompt`、`CheckDone`、`AddRefsLoaded/AddPathsLoaded` 不再走全局消息广播主路径。
 
 ---
 
@@ -131,7 +135,7 @@
 ## 7. 关键文件速查
 
 - Registry 定义：`internal/ui/feature_providers.go`、`internal/ui/slash_registry.go`（含 exact/prefix 分发表）  
-- Overlay 关闭：`internal/ui/update_overlay_key.go` + `internal/run/overlay_close_hook.go`  
+- Overlay 关闭与 active key 路由：`internal/ui/update_system.go`、`internal/ui/feature_providers.go`  
 - 黑盒测试入口：`internal/ui/model_blackbox_test.go`  
 - CLI 接线：`internal/cli/interactive/run.go`（`bootstrap.Install()`）与 `internal/bootstrap/install.go`  
 - Host 总线与中控：`internal/host/bus/bus.go`、`internal/host/controller/controller.go`  

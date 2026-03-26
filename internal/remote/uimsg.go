@@ -28,9 +28,3 @@ type RunCompletionCacheMsg struct {
 	RemoteLabel string
 	Commands    []string
 }
-
-// OpenAddRemoteOverlayMsg opens the add/connect remote overlay.
-type OpenAddRemoteOverlayMsg struct {
-	Save    bool
-	Connect bool
-}

@@ -9,7 +9,7 @@ import (
 )
 
 func openAddRemoteOverlay(m ui.Model, save, connect bool) ui.Model {
-	m = m.OpenOverlay(i18n.T("en", i18n.KeyAddRemoteTitle), "")
+	m = m.OpenOverlayFeature("remote", i18n.T("en", i18n.KeyAddRemoteTitle), "")
 	state := getRemoteOverlayState()
 	state.AddRemote.Active = true
 	state.RemoteAuth = RemoteAuthOverlayState{}

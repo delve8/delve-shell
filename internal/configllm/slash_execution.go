@@ -13,9 +13,9 @@ func registerSlashExecutionProvider() {
 		switch {
 		case text == "/config llm":
 			return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-				Kind: inputlifecycletype.OutputMessage,
-				Message: &inputlifecycletype.MessagePayload{
-					Value: OpenOverlayMsg{},
+				Kind: inputlifecycletype.OutputOverlayOpen,
+				Overlay: &inputlifecycletype.OverlayPayload{
+					Key: "config_llm",
 				},
 			}), true, nil
 		case strings.HasPrefix(text, "/config llm base_url "):

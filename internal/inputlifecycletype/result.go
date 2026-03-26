@@ -44,6 +44,12 @@ func cloneOutputEvent(event OutputEvent) OutputEvent {
 	}
 	if event.Overlay != nil {
 		payload := *event.Overlay
+		if len(event.Overlay.Params) > 0 {
+			payload.Params = make(map[string]string, len(event.Overlay.Params))
+			for k, v := range event.Overlay.Params {
+				payload.Params[k] = v
+			}
+		}
 		cloned.Overlay = &payload
 	}
 	if event.Status != nil {

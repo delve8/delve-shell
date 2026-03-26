@@ -125,7 +125,13 @@ func (m Model) SetMainViewportContent() Model {
 
 // OpenOverlay opens a generic overlay and sets title/content.
 func (m Model) OpenOverlay(title, content string) Model {
+	return m.OpenOverlayFeature("", title, content)
+}
+
+// OpenOverlayFeature opens a feature-owned overlay and records its active key.
+func (m Model) OpenOverlayFeature(key, title, content string) Model {
 	m.Overlay.Active = true
+	m.Overlay.Key = key
 	m.Overlay.Title = title
 	m.Overlay.Content = content
 	return m
@@ -135,6 +141,7 @@ func (m Model) OpenOverlay(title, content string) Model {
 // Feature-specific flags are still owned by each feature package.
 func (m Model) CloseOverlayVisual() Model {
 	m.Overlay.Active = false
+	m.Overlay.Key = ""
 	m.Overlay.Title = ""
 	m.Overlay.Content = ""
 	return m

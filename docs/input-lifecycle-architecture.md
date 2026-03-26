@@ -172,6 +172,14 @@ slash：
 - `host/bus.InputPorts` 中旧的 `SubmitChan` 已移除；bus 当前只保留结构化 `SubmissionChan` 以及 slash 观测通道 `Slash*Chan`。
 - slash 处理器的长期执行归属（继续留在 UI 适配层，还是迁往 controller/service）还未最终收口。
 
+补充：
+
+- 2026-03-26 当前实现中，overlay-heavy feature 已完成第一轮统一 contract 收口：
+  - `remote`、`configllm`、`skill` 的 overlay wiring 统一走 `ui.RegisterOverlayFeature(...)`
+  - slash 打开 overlay 不再发送 feature 私有 `OpenXxxOverlayMsg`，而是统一返回结构化 `OutputOverlayOpen`
+  - UI 记录当前活动 overlay key，并将 `open / event / close` 按 key 路由到对应 feature
+  - `ConnectDone/AuthPrompt`、`CheckDone`、`AddRefsLoaded/AddPathsLoaded` 这类 overlay 异步事件不再走全局 message provider 主路径
+
 ## 5. 建议的新模块分层
 
 以下为建议模块，不要求一次全部落地，但建议按这个边界建设。

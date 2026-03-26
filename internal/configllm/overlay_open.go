@@ -44,5 +44,5 @@ func openOverlay(m ui.Model) ui.Model {
 	}
 	st.MaxCharsInput.Blur()
 	setOverlayState(st)
-	return m.OpenOverlay(i18n.T("en", i18n.KeyConfigLLMTitle), "")
+	return m.OpenOverlayFeature("config_llm", i18n.T("en", i18n.KeyConfigLLMTitle), "")
 }

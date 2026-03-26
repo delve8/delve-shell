@@ -151,12 +151,10 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			// Refresh content before closing overlay to preserve old behavior.
 			m = m.RefreshViewport()
 
-			m.Overlay.Active = false
+			m = m.CloseOverlayVisual()
 			state.AddRemote.Active = false
 			state.AddRemote.Error = ""
 			state.AddRemote.OfferOverwrite = false
-			m.Overlay.Title = ""
-			m.Overlay.Content = ""
 			m.Input.Focus()
 			m.EmitConfigUpdatedIntent()
 			return ret(m, nil, true)
@@ -238,12 +236,10 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			return ret(m, nil, true)
 		}
 
-		m.Overlay.Active = false
+		m = m.CloseOverlayVisual()
 		state.AddRemote.Active = false
 		state.AddRemote.Error = ""
 		state.AddRemote.OfferOverwrite = false
-		m.Overlay.Title = ""
-		m.Overlay.Content = ""
 		m.Input.Focus()
 		return ret(m, nil, true)
 	}

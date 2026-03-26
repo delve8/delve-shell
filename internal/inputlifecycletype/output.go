@@ -21,8 +21,10 @@ type TranscriptPayload struct {
 
 // OverlayPayload describes an overlay open/close effect.
 type OverlayPayload struct {
+	Key     string
 	Title   string
 	Content string
+	Params  map[string]string
 }
 
 // StatusPayload describes a UI status update such as idle/running/pending.

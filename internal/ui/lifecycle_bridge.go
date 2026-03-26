@@ -184,25 +184,41 @@ func (m Model) submitLifecycleSlash(rawText, inputLine string, selectedIndex int
 
 func (m Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (Model, tea.Cmd) {
 	for _, out := range res.Outputs {
-		if out.Kind != inputlifecycletype.OutputMessage || out.Message == nil {
-			continue
-		}
-		msg := out.Message.Value
-		switch typed := msg.(type) {
-		case LifecycleSlashExecuteMsg:
-			return m.handleLifecycleSlashExecuteMsg(typed)
-		case OverlayShowMsg:
-			return m.handleOverlayShowMsg(typed)
-		case OverlayCloseMsg:
+		switch out.Kind {
+		case inputlifecycletype.OutputOverlayOpen:
+			if out.Overlay != nil {
+				return m.handleOverlayOpenIntentMsg(OverlayOpenIntentMsg{
+					Key:     out.Overlay.Key,
+					Params:  out.Overlay.Params,
+					Title:   out.Overlay.Title,
+					Content: out.Overlay.Content,
+				})
+			}
+		case inputlifecycletype.OutputOverlayClose:
 			return m.handleOverlayCloseMsg()
-		case PreInputClearMsg:
-			return m.clearSlashInput(), nil
-		case TranscriptAppendMsg:
-			return m.handleTranscriptAppendMsg(typed)
-		default:
-			for _, p := range messageProviderChain.List() {
-				if m2, cmd, handled := p(m, msg); handled {
-					return m2, cmd
+		case inputlifecycletype.OutputMessage:
+			if out.Message == nil {
+				continue
+			}
+			msg := out.Message.Value
+			switch typed := msg.(type) {
+			case LifecycleSlashExecuteMsg:
+				return m.handleLifecycleSlashExecuteMsg(typed)
+			case OverlayOpenIntentMsg:
+				return m.handleOverlayOpenIntentMsg(typed)
+			case OverlayShowMsg:
+				return m.handleOverlayShowMsg(typed)
+			case OverlayCloseMsg:
+				return m.handleOverlayCloseMsg()
+			case PreInputClearMsg:
+				return m.clearSlashInput(), nil
+			case TranscriptAppendMsg:
+				return m.handleTranscriptAppendMsg(typed)
+			default:
+				for _, p := range messageProviderChain.List() {
+					if m2, cmd, handled := p(m, msg); handled {
+						return m2, cmd
+					}
 				}
 			}
 		}

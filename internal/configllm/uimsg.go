@@ -7,9 +7,6 @@ type CheckDoneMsg struct {
 	CorrectedBaseURL string
 }
 
-// OpenOverlayMsg opens the config LLM overlay.
-type OpenOverlayMsg struct{}
-
 // ApplyFieldMsg applies a single `/config llm <field> ...` slash command.
 type ApplyFieldMsg struct {
 	Field string

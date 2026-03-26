@@ -17,16 +17,20 @@ func registerSlashExecutionProvider() {
 		text := strings.TrimSpace(req.RawText)
 		switch {
 		case text == "/config add-skill":
-			return messageResult(OpenAddSkillOverlayMsg{}), true, nil
+			return overlayOpenResult("skill_add", nil), true, nil
 		case strings.HasPrefix(text, "/config add-skill"):
 			url, ref, path := parseAddSkillArgs(strings.TrimSpace(strings.TrimPrefix(text, "/config add-skill")))
-			return messageResult(OpenAddSkillOverlayMsg{URL: url, Ref: ref, Path: path}), true, nil
+			return overlayOpenResult("skill_add", map[string]string{
+				"url":  url,
+				"ref":  ref,
+				"path": path,
+			}), true, nil
 		case strings.HasPrefix(text, "/config update-skill"):
 			name := strings.TrimSpace(strings.TrimPrefix(text, "/config update-skill"))
 			if name == "" {
 				return transcriptErrorResult(i18n.T("en", i18n.KeyDescConfigUpdateSkill)), true, nil
 			}
-			return messageResult(OpenUpdateSkillOverlayMsg{Name: name}), true, nil
+			return overlayOpenResult("skill_update", map[string]string{"name": name}), true, nil
 		case strings.HasPrefix(text, "/config del-skill "):
 			name := strings.TrimSpace(strings.TrimPrefix(text, "/config del-skill "))
 			return handleSlashConfigDelSkillPrefix(name), true, nil
@@ -102,6 +106,16 @@ func messageResult(msg any) inputlifecycletype.ProcessResult {
 		Kind: inputlifecycletype.OutputMessage,
 		Message: &inputlifecycletype.MessagePayload{
 			Value: msg,
+		},
+	})
+}
+
+func overlayOpenResult(key string, params map[string]string) inputlifecycletype.ProcessResult {
+	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+		Kind: inputlifecycletype.OutputOverlayOpen,
+		Overlay: &inputlifecycletype.OverlayPayload{
+			Key:    key,
+			Params: params,
 		},
 	})
 }

@@ -9,16 +9,12 @@ import (
 )
 
 func handleConfigLLMCheckDoneMessage(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
+	if m.Overlay.Key != "config_llm" {
+		return m, nil, false
+	}
 	done, ok := msg.(CheckDoneMsg)
 	if !ok {
-		switch t := msg.(type) {
-		case OpenOverlayMsg:
-			return openOverlay(m), nil, true
-		case ApplyFieldMsg:
-			return applyConfigLLMField(m, t.Field, t.Value), nil, true
-		default:
-			return m, nil, false
-		}
+		return m, nil, false
 	}
 	lang := "en"
 	st := getOverlayState()

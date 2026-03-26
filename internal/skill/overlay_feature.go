@@ -12,57 +12,71 @@ import (
 )
 
 func registerOverlayFeature() {
-	ui.RegisterOverlayKeyProvider(func(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
-		state := getSkillOverlayState()
-		if state.AddSkill.Active {
-			return handleAddSkillOverlayKey(m, key, msg)
-		}
-		if state.UpdateSkill.Active {
-			return handleUpdateSkillOverlayKey(m, key)
-		}
-		return m, nil, false
-	})
-
-	ui.RegisterMessageProvider(func(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
-		state := getSkillOverlayState()
-		switch t := msg.(type) {
-		case OpenAddSkillOverlayMsg:
-			return openAddSkillOverlay(m, t.URL, t.Ref, t.Path), nil, true
-		case OpenUpdateSkillOverlayMsg:
-			return openUpdateSkillOverlay(m, t.Name), nil, true
-		case AddRefsLoadedMsg:
-			if state.AddSkill.Active {
-				state.AddSkill.RefsFullList = t.Refs
-				state.AddSkill.RefCandidates = filterByPrefix(t.Refs, state.AddSkill.RefInput.Value())
-				state.AddSkill.RefIndex = 0
-				setSkillOverlayState(state)
+	ui.RegisterOverlayFeature(ui.OverlayFeature{
+		Open: func(m ui.Model, req ui.OverlayOpenRequest) (ui.Model, tea.Cmd, bool) {
+			switch req.Key {
+			case "skill_add":
+				return openAddSkillOverlay(m, req.Params["url"], req.Params["ref"], req.Params["path"]), nil, true
+			case "skill_update":
+				return openUpdateSkillOverlay(m, req.Params["name"]), nil, true
+			default:
+				return m, nil, false
 			}
-			return m, nil, true
-		case AddPathsLoadedMsg:
-			if state.AddSkill.Active {
-				state.AddSkill.PathsFullList = t.Paths
-				state = updateAddSkillPathCandidates(state)
-				setSkillOverlayState(state)
+		},
+		Key: func(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
+			if m.Overlay.Key != "skill" {
+				return m, nil, false
 			}
-			return m, nil, true
-		default:
+			state := getSkillOverlayState()
+			if state.AddSkill.Active {
+				return handleAddSkillOverlayKey(m, key, msg)
+			}
+			if state.UpdateSkill.Active {
+				return handleUpdateSkillOverlayKey(m, key)
+			}
 			return m, nil, false
-		}
-	})
-
-	ui.RegisterOverlayContentProvider(func(m ui.Model) (string, bool) {
-		return buildSkillOverlayContent(m)
-	})
-
-	ui.RegisterOverlayCloseHook(func(m ui.Model) ui.Model {
-		resetSkillOverlayState()
-		return m
+		},
+		Event: func(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
+			if m.Overlay.Key != "skill" {
+				return m, nil, false
+			}
+			state := getSkillOverlayState()
+			switch t := msg.(type) {
+			case AddRefsLoadedMsg:
+				if state.AddSkill.Active {
+					state.AddSkill.RefsFullList = t.Refs
+					state.AddSkill.RefCandidates = filterByPrefix(t.Refs, state.AddSkill.RefInput.Value())
+					state.AddSkill.RefIndex = 0
+					setSkillOverlayState(state)
+				}
+				return m, nil, true
+			case AddPathsLoadedMsg:
+				if state.AddSkill.Active {
+					state.AddSkill.PathsFullList = t.Paths
+					state = updateAddSkillPathCandidates(state)
+					setSkillOverlayState(state)
+				}
+				return m, nil, true
+			default:
+				return m, nil, false
+			}
+		},
+		Content: func(m ui.Model) (string, bool) {
+			return buildSkillOverlayContent(m)
+		},
+		Close: func(m ui.Model, activeKey string) ui.Model {
+			if activeKey != "skill" {
+				return m
+			}
+			resetSkillOverlayState()
+			return m
+		},
 	})
 }
 
 func openAddSkillOverlay(m ui.Model, url, ref, path string) ui.Model {
 	lang := "en"
-	m = m.OpenOverlay(i18n.T(lang, i18n.KeyAddSkillTitle), "")
+	m = m.OpenOverlayFeature("skill", i18n.T(lang, i18n.KeyAddSkillTitle), "")
 	state := getSkillOverlayState()
 	state.AddSkill.Active = true
 	state.UpdateSkill = UpdateSkillOverlayState{}

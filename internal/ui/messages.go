@@ -32,6 +32,14 @@ type OverlayShowMsg struct {
 	Content string
 }
 
+// OverlayOpenIntentMsg asks the UI to open a registered overlay feature by key.
+type OverlayOpenIntentMsg struct {
+	Key     string
+	Params  map[string]string
+	Title   string
+	Content string
+}
+
 // PreInputClearMsg clears transient input-phase slash state.
 type PreInputClearMsg struct{}
 

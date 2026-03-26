@@ -67,6 +67,7 @@ func (m Model) LayoutHeight() int {
 // OverlayState stores generic modal overlay state shared across features.
 type OverlayState struct {
 	Active   bool
+	Key      string
 	Title    string
 	Content  string
 	Viewport viewport.Model
@@ -102,6 +103,14 @@ func (m Model) delveMsg(msg string) string {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.syncInputPlaceholder()
 
+	if m.Overlay.Active {
+		for _, p := range overlayEventProviderChain.List() {
+			if m2, cmd, handled := p(m, msg); handled {
+				return m2, cmd
+			}
+		}
+	}
+
 	for _, p := range messageProviderChain.List() {
 		if m2, cmd, handled := p(m, msg); handled {
 			return m2, cmd
@@ -115,6 +124,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleBlurMsg()
 	case tea.FocusMsg:
 		return m.handleFocusMsg()
+	case OverlayOpenIntentMsg:
+		return m.handleOverlayOpenIntentMsg(msg)
 	case OverlayShowMsg:
 		return m.handleOverlayShowMsg(msg)
 	case OverlayCloseMsg:

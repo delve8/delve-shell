@@ -55,7 +55,7 @@ func handleUpdateSkillOverlayKey(m ui.Model, key string) (ui.Model, tea.Cmd, boo
 			return ret(m, nil, true)
 		}
 		// On success, close overlay and show a short confirmation message.
-		m.Overlay.Active = false
+		m = m.CloseOverlayVisual()
 		state.UpdateSkill.Active = false
 		state.UpdateSkill.Error = ""
 		shortCommit := state.UpdateSkill.LatestCommit

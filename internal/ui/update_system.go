@@ -9,9 +9,10 @@ import (
 )
 
 func (m Model) closeOverlayCommon(refocusInput bool) (Model, tea.Cmd) {
+	activeKey := m.Overlay.Key
 	m = m.CloseOverlayVisual()
 	for _, h := range overlayCloseHookChain.List() {
-		m = h(m)
+		m = h(m, activeKey)
 	}
 	if refocusInput {
 		m.Input.Focus()
@@ -22,6 +23,24 @@ func (m Model) closeOverlayCommon(refocusInput bool) (Model, tea.Cmd) {
 func (m Model) handleOverlayShowMsg(msg OverlayShowMsg) (Model, tea.Cmd) {
 	m = m.OpenOverlay(msg.Title, msg.Content)
 	m = m.InitOverlayViewport()
+	return m, nil
+}
+
+func (m Model) handleOverlayOpenIntentMsg(msg OverlayOpenIntentMsg) (Model, tea.Cmd) {
+	req := OverlayOpenRequest{
+		Key:     msg.Key,
+		Params:  msg.Params,
+		Title:   msg.Title,
+		Content: msg.Content,
+	}
+	for _, p := range overlayOpenProviderChain.List() {
+		if m2, cmd, handled := p(m, req); handled {
+			return m2, cmd
+		}
+	}
+	if req.Title != "" || req.Content != "" {
+		return m.handleOverlayShowMsg(OverlayShowMsg{Title: req.Title, Content: req.Content})
+	}
 	return m, nil
 }
 

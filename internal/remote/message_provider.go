@@ -11,10 +11,7 @@ import (
 )
 
 func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
-	state := getRemoteOverlayState()
 	switch t := msg.(type) {
-	case OpenAddRemoteOverlayMsg:
-		return openAddRemoteOverlay(m, t.Save, t.Connect), nil, true
 	case ExecutionChangedMsg:
 		m.Remote.Active = t.Active
 		m.Remote.Label = t.Label
@@ -30,13 +27,24 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		}
 		setCachedRunSuggestions(t.Commands)
 		return m, nil, true
+	default:
+		return m, nil, false
+	}
+}
+
+func remoteOverlayEventProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
+	if m.Overlay.Key != "remote" {
+		return m, nil, false
+	}
+
+	state := getRemoteOverlayState()
+	switch t := msg.(type) {
 	case ConnectDoneMsg:
 		state.AddRemote.Connecting = false
 		state.AddRemote.Error = ""
 		state.AddRemote.OfferOverwrite = false
 		state.RemoteAuth.Connecting = false
 
-		// When Remote Auth overlay is active, close it on successful connection.
 		if state.RemoteAuth.Step != "" {
 			if t.Success {
 				m = m.CloseOverlayVisual()
@@ -51,12 +59,9 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 			return m, nil, true
 		}
 
-		// Fallback: add-remote overlay.
 		state.AddRemote.Active = false
-		m.Overlay.Title = ""
-		m.Overlay.Content = ""
 		if t.Success {
-			m.Overlay.Active = false
+			m = m.CloseOverlayVisual()
 			m.Input.Focus()
 		}
 		setRemoteOverlayState(state)
@@ -64,8 +69,7 @@ func remoteMessageProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 	case AuthPromptMsg:
 		state.AddRemote.Connecting = false
 		state.AddRemote.Active = false
-		m.Overlay.Active = true
-		m.Overlay.Title = "Remote Auth"
+		m = m.OpenOverlayFeature("remote", "Remote Auth", "")
 		state.RemoteAuth.Target = t.Target
 		state.RemoteAuth.Error = t.Err
 		m.Interaction.ChoiceIndex = 0

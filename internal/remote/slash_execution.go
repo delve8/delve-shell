@@ -14,11 +14,14 @@ func registerSlashExecutionProvider() {
 		switch {
 		case text == "/config add-remote":
 			return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-				Kind: inputlifecycletype.OutputMessage,
-				Message: &inputlifecycletype.MessagePayload{Value: OpenAddRemoteOverlayMsg{
-					Save:    true,
-					Connect: false,
-				}},
+				Kind: inputlifecycletype.OutputOverlayOpen,
+				Overlay: &inputlifecycletype.OverlayPayload{
+					Key: "remote_add",
+					Params: map[string]string{
+						"save":    "true",
+						"connect": "false",
+					},
+				},
 			}), true, nil
 		case strings.HasPrefix(text, "/config add-remote "):
 			args := strings.TrimSpace(strings.TrimPrefix(text, "/config add-remote "))
@@ -28,11 +31,14 @@ func registerSlashExecutionProvider() {
 			return applyConfigRemoveRemote(nameOrTarget), true, nil
 		case text == "/remote on":
 			return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-				Kind: inputlifecycletype.OutputMessage,
-				Message: &inputlifecycletype.MessagePayload{Value: OpenAddRemoteOverlayMsg{
-					Save:    false,
-					Connect: true,
-				}},
+				Kind: inputlifecycletype.OutputOverlayOpen,
+				Overlay: &inputlifecycletype.OverlayPayload{
+					Key: "remote_add",
+					Params: map[string]string{
+						"save":    "false",
+						"connect": "true",
+					},
+				},
 			}), true, nil
 		case strings.HasPrefix(text, "/remote on "):
 			target := strings.TrimSpace(strings.TrimPrefix(text, "/remote on "))
