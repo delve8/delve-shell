@@ -3,7 +3,6 @@ package agent
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -246,9 +245,6 @@ func (r *Runner) Run(ctx context.Context, userMessage string, conversationHistor
 	}
 	return strings.TrimSpace(msg.Content), nil
 }
-
-// ErrNoAPIKey indicates LLM API Key was not set (deprecated, use ErrLLMNotConfigured).
-var ErrNoAPIKey = errors.New("LLM API key not set")
 
 // ErrLLMNotConfigured indicates LLM is not configured in config.yaml. Error() returns English text for logs; UI should show localized message via i18n.
 var ErrLLMNotConfigured errLLMNotConfigured
