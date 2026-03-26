@@ -4,13 +4,13 @@ import (
 	"strings"
 
 	"delve-shell/internal/config"
+	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/ui"
-	"delve-shell/internal/uivm"
 )
 
-func applyConfigAllowlistAutoRun(value string, sender ui.ActionSender) inputlifecycletype.ProcessResult {
+func applyConfigAllowlistAutoRun(value string, sender ui.CommandSender) inputlifecycletype.ProcessResult {
 	value = strings.TrimSpace(strings.ToLower(value))
 	var on bool
 	switch value {
@@ -40,7 +40,7 @@ func applyConfigAllowlistAutoRun(value string, sender ui.ActionSender) inputlife
 		display = i18n.T("en", i18n.KeyAutoRunNone)
 	}
 	if sender != nil {
-		_ = sender.Send(uivm.UIAction{Kind: uivm.UIActionAllowlistAutoRun, BoolValue: on})
+		_ = sender.Send(hostcmd.AllowlistAutoRun{Enabled: on})
 	}
 	return transcriptSuggestResult(
 		i18n.Tf("en", i18n.KeyConfigSavedAllowlistAutoRun, display),
@@ -48,13 +48,13 @@ func applyConfigAllowlistAutoRun(value string, sender ui.ActionSender) inputlife
 	)
 }
 
-func applyConfigAllowlistUpdate(sender ui.ActionSender) inputlifecycletype.ProcessResult {
+func applyConfigAllowlistUpdate(sender ui.CommandSender) inputlifecycletype.ProcessResult {
 	added, err := config.AllowlistUpdateWithDefaults()
 	if err != nil {
 		return transcriptErrorResult(i18n.T("en", i18n.KeyConfigPrefix) + err.Error())
 	}
 	if sender != nil {
-		_ = sender.Send(uivm.UIAction{Kind: uivm.UIActionConfigUpdated})
+		_ = sender.Send(hostcmd.ConfigUpdated{})
 	}
 	return transcriptSuggestResult(
 		i18n.Tf("en", i18n.KeyAllowlistUpdateDone, added),

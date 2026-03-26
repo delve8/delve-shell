@@ -16,13 +16,13 @@ const (
 
 // Model is the Bubble Tea session and approval UI.
 type Model struct {
-	Input        textinput.Model
-	Viewport     viewport.Model
-	messages     []string
-	ChoiceCard   ChoiceCardState
-	ActionSender ActionSender
-	layout       LayoutState
-	Interaction  InteractionState
+	Input         textinput.Model
+	Viewport      viewport.Model
+	messages      []string
+	ChoiceCard    ChoiceCardState
+	CommandSender CommandSender
+	layout        LayoutState
+	Interaction   InteractionState
 
 	// Overlay state: when Overlay.Active is true, a modal is rendered on top of the main UI.
 	Overlay OverlayState

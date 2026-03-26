@@ -10,11 +10,11 @@ import (
 	"delve-shell/internal/bootstrap"
 	"delve-shell/internal/config"
 	"delve-shell/internal/configllm"
+	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/remote"
 	"delve-shell/internal/remoteauth"
 	"delve-shell/internal/ui"
-	"delve-shell/internal/uivm"
 )
 
 func TestMain(m *testing.M) {
@@ -51,78 +51,78 @@ func (r testReadModel) TakeOpenConfigLLMOnFirstLayout() bool {
 	return v
 }
 
-type testActionSender struct {
+type testCommandSender struct {
 	f *blackboxFixture
 }
 
-func (s testActionSender) Send(a uivm.UIAction) bool {
-	switch a.Kind {
-	case uivm.UIActionSubmission:
+func (s testCommandSender) Send(cmd hostcmd.Command) bool {
+	switch c := cmd.(type) {
+	case hostcmd.Submission:
 		select {
-		case s.f.submissions <- a.Submission:
+		case s.f.submissions <- c.Submission:
 			return true
 		default:
 			return false
 		}
-	case uivm.UIActionSessionNew:
+	case hostcmd.SessionNew:
 		select {
 		case s.f.sessionNew <- struct{}{}:
 			return true
 		default:
 			return false
 		}
-	case uivm.UIActionSessionSwitch:
+	case hostcmd.SessionSwitch:
 		select {
-		case s.f.sessionSwitch <- a.Text:
+		case s.f.sessionSwitch <- c.SessionID:
 			return true
 		default:
 			return false
 		}
-	case uivm.UIActionConfigUpdated:
+	case hostcmd.ConfigUpdated:
 		select {
 		case s.f.configUpdated <- struct{}{}:
 			return true
 		default:
 			return false
 		}
-	case uivm.UIActionExecDirect:
+	case hostcmd.ExecDirect:
 		select {
-		case s.f.execDirectChan <- a.Text:
+		case s.f.execDirectChan <- c.Command:
 			return true
 		default:
 			return false
 		}
-	case uivm.UIActionCancelRequested:
+	case hostcmd.CancelRequested:
 		select {
 		case s.f.cancelRequest <- struct{}{}:
 			return true
 		default:
 			return false
 		}
-	case uivm.UIActionShellSnapshot:
+	case hostcmd.ShellSnapshot:
 		select {
-		case s.f.shellRequested <- a.Messages:
+		case s.f.shellRequested <- c.Messages:
 			return true
 		default:
 			return false
 		}
-	case uivm.UIActionRemoteOnTarget:
+	case hostcmd.RemoteOnTarget:
 		select {
-		case s.f.remoteOn <- a.Text:
+		case s.f.remoteOn <- c.Target:
 			return true
 		default:
 			return false
 		}
-	case uivm.UIActionRemoteOff:
+	case hostcmd.RemoteOff:
 		select {
 		case s.f.remoteOff <- struct{}{}:
 			return true
 		default:
 			return false
 		}
-	case uivm.UIActionRemoteAuthReply:
+	case hostcmd.RemoteAuthReply:
 		select {
-		case s.f.remoteAuthResp <- a.RemoteAuthReply:
+		case s.f.remoteAuthResp <- c.Response:
 			return true
 		default:
 			return false
@@ -147,7 +147,7 @@ func newBlackboxFixture(t *testing.T) blackboxFixture {
 		remoteAuthResp: make(chan remoteauth.Response, 2),
 	}
 	f.model = ui.NewModel(nil, testReadModel{openConfigLLM: &f.openConfigLLM})
-	f.model.ActionSender = testActionSender{f: &f}
+	f.model.CommandSender = testCommandSender{f: &f}
 	return f
 }
 

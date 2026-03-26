@@ -19,17 +19,17 @@ func registerSlashExecutionProvider() {
 				},
 			}), true, nil
 		case strings.HasPrefix(text, "/config llm base_url "):
-			return applyFieldResult("base_url", strings.TrimSpace(strings.TrimPrefix(text, "/config llm base_url ")), req.ActionSender), true, nil
+			return applyFieldResult("base_url", strings.TrimSpace(strings.TrimPrefix(text, "/config llm base_url ")), req.CommandSender), true, nil
 		case strings.HasPrefix(text, "/config llm api_key "):
-			return applyFieldResult("api_key", strings.TrimSpace(strings.TrimPrefix(text, "/config llm api_key ")), req.ActionSender), true, nil
+			return applyFieldResult("api_key", strings.TrimSpace(strings.TrimPrefix(text, "/config llm api_key ")), req.CommandSender), true, nil
 		case strings.HasPrefix(text, "/config llm model "):
-			return applyFieldResult("model", strings.TrimSpace(strings.TrimPrefix(text, "/config llm model ")), req.ActionSender), true, nil
+			return applyFieldResult("model", strings.TrimSpace(strings.TrimPrefix(text, "/config llm model ")), req.CommandSender), true, nil
 		default:
 			return inputlifecycletype.ProcessResult{}, false, nil
 		}
 	})
 }
 
-func applyFieldResult(field, value string, sender ui.ActionSender) inputlifecycletype.ProcessResult {
+func applyFieldResult(field, value string, sender ui.CommandSender) inputlifecycletype.ProcessResult {
 	return applyConfigLLMFieldResult(field, value, sender)
 }

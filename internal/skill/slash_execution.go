@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/skills"
 	"delve-shell/internal/ui"
-	"delve-shell/internal/uivm"
 )
 
 func registerSlashExecutionProvider() {
@@ -83,8 +83,7 @@ func executeSkillInvocation(req ui.SlashExecutionRequest, rest string) inputlife
 		return transcriptErrorResult(i18n.Tf("en", i18n.KeySkillInstallFailed, err))
 	}
 	payload := skillInvocationPrompt(skillName, skillContent, naturalLanguage)
-	if req.ActionSender == nil || !req.ActionSender.Send(uivm.UIAction{
-		Kind: uivm.UIActionSubmission,
+	if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.Submission{
 		Submission: inputlifecycletype.InputSubmission{
 			Kind:    inputlifecycletype.SubmissionChat,
 			Source:  inputlifecycletype.SourceProgrammatic,

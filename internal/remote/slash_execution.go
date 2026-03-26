@@ -3,9 +3,9 @@ package remote
 import (
 	"strings"
 
+	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/ui"
-	"delve-shell/internal/uivm"
 )
 
 func registerSlashExecutionProvider() {
@@ -25,7 +25,7 @@ func registerSlashExecutionProvider() {
 			}), true, nil
 		case strings.HasPrefix(text, "/config add-remote "):
 			args := strings.TrimSpace(strings.TrimPrefix(text, "/config add-remote "))
-			return applyConfigAddRemote(args, req.ActionSender), true, nil
+			return applyConfigAddRemote(args, req.CommandSender), true, nil
 		case strings.HasPrefix(text, "/config del-remote "):
 			nameOrTarget := strings.TrimSpace(strings.TrimPrefix(text, "/config del-remote "))
 			return applyConfigRemoveRemote(nameOrTarget), true, nil
@@ -42,17 +42,12 @@ func registerSlashExecutionProvider() {
 			}), true, nil
 		case strings.HasPrefix(text, "/remote on "):
 			target := strings.TrimSpace(strings.TrimPrefix(text, "/remote on "))
-			if req.ActionSender == nil || !req.ActionSender.Send(uivm.UIAction{
-				Kind: uivm.UIActionRemoteOnTarget,
-				Text: target,
-			}) {
+			if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.RemoteOnTarget{Target: target}) {
 				return inputlifecycletype.ProcessResult{}, true, nil
 			}
 			return inputlifecycletype.ConsumedResult(), true, nil
 		case text == "/remote off":
-			if req.ActionSender == nil || !req.ActionSender.Send(uivm.UIAction{
-				Kind: uivm.UIActionRemoteOff,
-			}) {
+			if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.RemoteOff{}) {
 				return inputlifecycletype.ProcessResult{}, true, nil
 			}
 			return inputlifecycletype.ConsumedResult(), true, nil

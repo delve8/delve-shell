@@ -2,7 +2,7 @@
 
 ## Scope
 
-This acceptance note covers the recent refactor series that moved UI write-side effects to action intents and removed direct `internal/ui` dependency on `host/*` packages.
+This acceptance note covers the recent refactor series that moved UI write-side effects to structured host commands and removed direct `internal/ui` dependency on `host/*` packages.
 
 Non-goals of this note:
 - product behavior review
@@ -13,7 +13,7 @@ Non-goals of this note:
 
 Accepted boundary outcomes:
 - `internal/ui` has no direct imports from `internal/host/*`, `internal/runtime/*`, or service packages.
-- UI write-side operations are emitted as `uivm.UIAction` intents and consumed in `internal/host/controller/ui_actions.go`.
+- UI write-side operations are emitted as structured `hostcmd.Command` values and consumed in `internal/host/controller/ui_actions.go`.
 - Slash submission now enters the unified input lifecycle and is executed locally in `internal/ui`, without a controller relay payload.
 - Remote execution display state (`Active`, `Label`) is stored in `ui.Model` and updated via remote UI messages, not host mirrors.
 - UI startup and allowlist read-side access is narrowed to `ui.ReadModel`.

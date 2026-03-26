@@ -12,20 +12,20 @@ import (
 	"delve-shell/internal/cli/hostfsm"
 	"delve-shell/internal/execenv"
 	"delve-shell/internal/host/bus"
+	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/runtime/executormgr"
 	"delve-shell/internal/runtime/runnermgr"
 	"delve-shell/internal/runtime/sessionmgr"
 	"delve-shell/internal/uipresenter"
-	"delve-shell/internal/uivm"
 )
 
 type Options struct {
 	Stop <-chan struct{}
 
-	Bus      *bus.Bus
-	Inputs   bus.InputPorts
-	CurrentP *atomic.Pointer[tea.Program]
-	UIActions <-chan uivm.UIAction
+	Bus           *bus.Bus
+	Inputs        bus.InputPorts
+	CurrentP      *atomic.Pointer[tea.Program]
+	Commands      <-chan hostcmd.Command
 	ShellSnapshot chan<- []string
 
 	Sessions *sessionmgr.Manager
@@ -51,8 +51,8 @@ type Controller struct {
 
 	ui *uipresenter.Presenter
 
-	currentP *atomic.Pointer[tea.Program]
-	uiActions <-chan uivm.UIAction
+	currentP      *atomic.Pointer[tea.Program]
+	commands      <-chan hostcmd.Command
 	shellSnapshot chan<- []string
 
 	sessions *sessionmgr.Manager
@@ -80,8 +80,8 @@ func New(opts Options) *Controller {
 		bus: opts.Bus,
 		ui:  uipresenter.New(uipresenter.BusSender{Bus: opts.Bus}),
 
-		currentP: opts.CurrentP,
-		uiActions: opts.UIActions,
+		currentP:      opts.CurrentP,
+		commands:      opts.Commands,
 		shellSnapshot: opts.ShellSnapshot,
 
 		sessions: opts.Sessions,
@@ -116,8 +116,8 @@ func (c *Controller) run() {
 			return
 		case e := <-c.bus.Events():
 			c.handleEvent(e)
-		case action := <-c.uiActions:
-			c.handleUIAction(action)
+		case command := <-c.commands:
+			c.handleCommand(command)
 		}
 	}
 }

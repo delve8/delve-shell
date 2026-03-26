@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 
+	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/inputlifecycle"
 	"delve-shell/internal/inputlifecycletype"
@@ -12,8 +13,8 @@ import (
 	"delve-shell/internal/inputprocess/chatproc"
 	"delve-shell/internal/inputprocess/controlproc"
 	"delve-shell/internal/inputprocess/slashproc"
-	"delve-shell/internal/uivm"
 
+	"delve-shell/internal/uivm"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -37,7 +38,7 @@ func hasSlashPreInputState(m Model) bool {
 }
 
 type slashRuntimeExecutor struct {
-	sender ActionSender
+	sender CommandSender
 }
 
 func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inputlifecycletype.ProcessResult, error) {
@@ -47,7 +48,7 @@ func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inpu
 			RawText:       trimmed,
 			InputLine:     req.InputLine,
 			SelectedIndex: req.SelectedIndex,
-			ActionSender:  e.sender,
+			CommandSender: e.sender,
 		}); handled {
 			return res, err
 		}
@@ -62,13 +63,13 @@ func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inpu
 			},
 		}), nil
 	case trimmed == "/new":
-		if e.sender == nil || !e.sender.Send(uivm.UIAction{Kind: uivm.UIActionSessionNew}) {
+		if e.sender == nil || !e.sender.Send(hostcmd.SessionNew{}) {
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 		}
 		return inputlifecycletype.ConsumedResult(), nil
 	case strings.HasPrefix(trimmed, "/sessions "):
 		sessionID := strings.TrimSpace(strings.TrimPrefix(trimmed, "/sessions "))
-		if e.sender == nil || !e.sender.Send(uivm.UIAction{Kind: uivm.UIActionSessionSwitch, Text: sessionID}) {
+		if e.sender == nil || !e.sender.Send(hostcmd.SessionSwitch{SessionID: sessionID}) {
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 		}
 		return inputlifecycletype.ConsumedResult(), nil
@@ -84,7 +85,7 @@ func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inpu
 				},
 			}), nil
 		}
-		if e.sender == nil || !e.sender.Send(uivm.UIAction{Kind: uivm.UIActionExecDirect, Text: cmd}) {
+		if e.sender == nil || !e.sender.Send(hostcmd.ExecDirect{Command: cmd}) {
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 		}
 		return inputlifecycletype.ConsumedResult(), nil
@@ -100,17 +101,14 @@ func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inpu
 }
 
 type uiChatSubmissionExecutor struct {
-	sender ActionSender
+	sender CommandSender
 }
 
 func (e uiChatSubmissionExecutor) ExecuteChat(sub inputlifecycletype.InputSubmission) (inputlifecycletype.ProcessResult, error) {
 	if e.sender == nil {
 		return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 	}
-	if !e.sender.Send(uivm.UIAction{
-		Kind:       uivm.UIActionSubmission,
-		Submission: sub,
-	}) {
+	if !e.sender.Send(hostcmd.Submission{Submission: sub}) {
 		return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 	}
 	res := inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
@@ -122,7 +120,7 @@ func (e uiChatSubmissionExecutor) ExecuteChat(sub inputlifecycletype.InputSubmis
 }
 
 type uiControlActionExecutor struct {
-	sender ActionSender
+	sender CommandSender
 }
 
 func (e uiControlActionExecutor) ExecuteControl(action inputlifecycletype.ControlAction) (inputlifecycletype.ProcessResult, error) {
@@ -131,7 +129,7 @@ func (e uiControlActionExecutor) ExecuteControl(action inputlifecycletype.Contro
 		if e.sender == nil {
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 		}
-		if !e.sender.Send(uivm.UIAction{Kind: uivm.UIActionCancelRequested}) {
+		if !e.sender.Send(hostcmd.CancelRequested{}) {
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 		}
 		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
@@ -158,9 +156,9 @@ func (e uiControlActionExecutor) ExecuteControl(action inputlifecycletype.Contro
 
 func (m Model) lifecycleEngine() inputlifecycle.Engine {
 	router := inputlifecycle.NewRouter(
-		controlproc.New(uiControlContexts{m: m}, uiControlActionExecutor{sender: m.ActionSender}),
-		slashproc.New(slashRuntimeExecutor{sender: m.ActionSender}),
-		chatproc.New(uiChatSubmissionExecutor{sender: m.ActionSender}),
+		controlproc.New(uiControlContexts{m: m}, uiControlActionExecutor{sender: m.CommandSender}),
+		slashproc.New(slashRuntimeExecutor{sender: m.CommandSender}),
+		chatproc.New(uiChatSubmissionExecutor{sender: m.CommandSender}),
 	)
 	return inputlifecycle.NewEngine(inputpreflight.Engine{}, router)
 }

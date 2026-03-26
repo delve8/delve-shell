@@ -224,7 +224,7 @@ type SlashExecutionRequest struct {
 	RawText       string
 	InputLine     string
 	SelectedIndex int
-	ActionSender  ActionSender
+	CommandSender CommandSender
 }
 
 // SlashExecutionProvider handles slash execution outside the ui package.

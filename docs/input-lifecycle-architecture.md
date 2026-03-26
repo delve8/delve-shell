@@ -166,7 +166,7 @@ slash：
 
 尚未完成的部分：
 
-- `controller` 已不再对 `UIActionSubmission` 基于 `RawText` 再做 submit 分类；普通 chat submission 直接进入 `KindUserChatSubmitted`，`/new` 与 `/sessions` 改为显式 UI intent。
+- `controller` 已不再对 UI 提交做基于 `RawText` 的二次 submit 分类；普通 chat submission 直接进入 `KindUserChatSubmitted`，`/new` 与 `/sessions` 改为显式 session command。
 - `host/bus.InputPorts` 中旧的 `SubmitChan` 已移除；bus 当前只保留结构化 `SubmissionChan`。
 - slash 处理器的长期执行归属（继续留在 UI 适配层，还是迁往 controller/service）还未最终收口。
 

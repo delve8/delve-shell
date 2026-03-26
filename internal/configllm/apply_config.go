@@ -4,11 +4,11 @@ import (
 	"strings"
 
 	"delve-shell/internal/config"
+	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/service/configsvc"
 	"delve-shell/internal/ui"
-	"delve-shell/internal/uivm"
 )
 
 func applyConfigLLMFromOverlayStart(m ui.Model, baseURL, apiKey, model, maxMessagesStr, maxCharsStr string) ui.Model {
@@ -37,7 +37,7 @@ func applyConfigLLMFromOverlayStart(m ui.Model, baseURL, apiKey, model, maxMessa
 	return m
 }
 
-func applyConfigLLMFieldResult(field, value string, sender ui.ActionSender) inputlifecycletype.ProcessResult {
+func applyConfigLLMFieldResult(field, value string, sender ui.CommandSender) inputlifecycletype.ProcessResult {
 	value = strings.TrimSpace(value)
 	lang := "en"
 	cfg, err := config.Load()
@@ -73,7 +73,7 @@ func applyConfigLLMFieldResult(field, value string, sender ui.ActionSender) inpu
 		})
 	}
 	if sender != nil {
-		_ = sender.Send(uivm.UIAction{Kind: uivm.UIActionConfigUpdated})
+		_ = sender.Send(hostcmd.ConfigUpdated{})
 	}
 	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 		Kind: inputlifecycletype.OutputTranscriptAppend,

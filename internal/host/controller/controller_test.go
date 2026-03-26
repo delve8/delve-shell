@@ -14,11 +14,11 @@ import (
 	"delve-shell/internal/execenv"
 	"delve-shell/internal/hiltypes"
 	"delve-shell/internal/host/bus"
+	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/runtime/sessionmgr"
 	"delve-shell/internal/ui"
 	"delve-shell/internal/uipresenter"
-	"delve-shell/internal/uivm"
 )
 
 type recordSender struct {
@@ -435,7 +435,7 @@ func TestNew_WiresBusAndPump(t *testing.T) {
 	}
 }
 
-func TestHandleUIAction_SubmissionPublishesStructuredChatEvent(t *testing.T) {
+func TestHandleCommand_SubmissionPublishesStructuredChatEvent(t *testing.T) {
 	s := &recordSender{}
 	c := newTestControllerWithPresenter(s)
 	sub := inputlifecycletype.InputSubmission{
@@ -444,7 +444,7 @@ func TestHandleUIAction_SubmissionPublishesStructuredChatEvent(t *testing.T) {
 		RawText: "abc",
 	}
 
-	c.handleUIAction(uivm.UIAction{Kind: uivm.UIActionSubmission, Submission: sub})
+	c.handleCommand(hostcmd.Submission{Submission: sub})
 
 	select {
 	case ev := <-c.bus.Events():
@@ -459,11 +459,11 @@ func TestHandleUIAction_SubmissionPublishesStructuredChatEvent(t *testing.T) {
 	}
 }
 
-func TestHandleUIAction_SessionNewPublishesEvent(t *testing.T) {
+func TestHandleCommand_SessionNewPublishesEvent(t *testing.T) {
 	s := &recordSender{}
 	c := newTestControllerWithPresenter(s)
 
-	c.handleUIAction(uivm.UIAction{Kind: uivm.UIActionSessionNew})
+	c.handleCommand(hostcmd.SessionNew{})
 
 	select {
 	case ev := <-c.bus.Events():
@@ -475,11 +475,11 @@ func TestHandleUIAction_SessionNewPublishesEvent(t *testing.T) {
 	}
 }
 
-func TestHandleUIAction_SessionSwitchPublishesEvent(t *testing.T) {
+func TestHandleCommand_SessionSwitchPublishesEvent(t *testing.T) {
 	s := &recordSender{}
 	c := newTestControllerWithPresenter(s)
 
-	c.handleUIAction(uivm.UIAction{Kind: uivm.UIActionSessionSwitch, Text: "demo"})
+	c.handleCommand(hostcmd.SessionSwitch{SessionID: "demo"})
 
 	select {
 	case ev := <-c.bus.Events():

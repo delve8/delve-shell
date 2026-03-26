@@ -3,10 +3,10 @@ package run
 import (
 	"strings"
 
+	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/ui"
-	"delve-shell/internal/uivm"
 )
 
 func registerSlashExecutionProvider() {
@@ -16,14 +16,14 @@ func registerSlashExecutionProvider() {
 		case text == "/config show":
 			return transcriptSuggestResult(i18n.T("en", i18n.KeyConfigHint), false), true, nil
 		case text == "/config update auto-run list":
-			return applyConfigAllowlistUpdate(req.ActionSender), true, nil
+			return applyConfigAllowlistUpdate(req.CommandSender), true, nil
 		case text == "/config reload", text == "/reload":
-			if req.ActionSender != nil {
-				_ = req.ActionSender.Send(uivm.UIAction{Kind: uivm.UIActionConfigUpdated})
+			if req.CommandSender != nil {
+				_ = req.CommandSender.Send(hostcmd.ConfigUpdated{})
 			}
 			return inputlifecycletype.ConsumedResult(), true, nil
 		case strings.HasPrefix(text, "/config auto-run "):
-			return applyConfigAllowlistAutoRun(strings.TrimSpace(strings.TrimPrefix(text, "/config auto-run ")), req.ActionSender), true, nil
+			return applyConfigAllowlistAutoRun(strings.TrimSpace(strings.TrimPrefix(text, "/config auto-run ")), req.CommandSender), true, nil
 		default:
 			return inputlifecycletype.ProcessResult{}, false, nil
 		}

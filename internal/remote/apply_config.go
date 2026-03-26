@@ -3,14 +3,14 @@ package remote
 import (
 	"strings"
 
+	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/service/remotesvc"
 	"delve-shell/internal/ui"
-	"delve-shell/internal/uivm"
 )
 
-func applyConfigAddRemote(args string, sender ui.ActionSender) inputlifecycletype.ProcessResult {
+func applyConfigAddRemote(args string, sender ui.CommandSender) inputlifecycletype.ProcessResult {
 	lang := "en"
 	parts := strings.Fields(args)
 	if len(parts) < 1 {
@@ -33,7 +33,7 @@ func applyConfigAddRemote(args string, sender ui.ActionSender) inputlifecycletyp
 		display = name + " (" + target + ")"
 	}
 	if sender != nil {
-		_ = sender.Send(uivm.UIAction{Kind: uivm.UIActionConfigUpdated})
+		_ = sender.Send(hostcmd.ConfigUpdated{})
 	}
 	return remoteTranscriptSuggestResult(i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display), true)
 }

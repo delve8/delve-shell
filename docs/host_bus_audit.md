@@ -6,7 +6,7 @@
 
 - 下文中关于 `SlashSubmitChan` / `KindSlashRelayToUI` / `TryRelaySlashSubmit` / `SlashSubmitRelayMsg` 的描述属于 2026-03-25 的历史实现记录。
 - 当前代码已经移除该回路，slash 主提交改为统一 lifecycle 后进入独立的 `internal/slashdispatch` runtime；UI 仅保留适配层与渲染职责。
-- 2026-03-26 起，`UIActionSubmission` 不再在 `controller` 中二次做字符串 submit 分类；普通 chat submission 直接发布为 `KindUserChatSubmitted`，`/new` 与 `/sessions` 由 UI 发出显式 session intent。
+- 2026-03-26 起，UI 到 host 的写侧边界已收口为结构化 `hostcmd.Command`；普通 chat submission 直接发布为 `KindUserChatSubmitted`，`/new` 与 `/sessions` 由 UI 发出显式 session command。
 - 2026-03-26 后续收口中，`host/bus.InputPorts.SubmitChan` 与 `host/route/submit_classify.go` 已移除；bus 主入口改为结构化 `SubmissionChan`。
 
 ## 进入 `hostbus.Bus` 的来源
@@ -14,8 +14,8 @@
 | 来源 | 事件形态 |
 |------|----------|
 | `BridgeInputs` ← `SubmissionChan` | `InputSubmission`（chat/slash）→ `KindUserChatSubmitted`（保留 `Event.Submission`） |
-| `Controller.handleUIAction` ← `UIActionSubmission` | 直接发布 `KindUserChatSubmitted`（保留 `Event.Submission`） |
-| `Controller.handleUIAction` ← `UIActionSessionNew` / `UIActionSessionSwitch` | 直接发布 `KindSessionNewRequested` / `KindSessionSwitchRequested` |
+| `Controller.handleCommand` ← `hostcmd.Submission` | 直接发布 `KindUserChatSubmitted`（保留 `Event.Submission`） |
+| `Controller.handleCommand` ← `hostcmd.SessionNew` / `hostcmd.SessionSwitch` | 直接发布 `KindSessionNewRequested` / `KindSessionSwitchRequested` |
 | `BridgeInputs` ← `ConfigUpdatedChan` | `KindConfigUpdated` |
 | `BridgeInputs` ← `CancelRequestChan` | `KindCancelRequested` |
 | `BridgeInputs` ← `ExecDirectChan` | `KindExecDirectRequested` |
@@ -59,8 +59,8 @@
 以下描述**稳态**下的主路径；具体函数名以代码为准。
 
 1. TUI lifecycle：普通聊天提交形成 `InputSubmission{Kind: chat, RawText: ...}`。
-2. UI：`ActionSender.Send(UIActionSubmission{Submission: ...})`。
-3. `Controller.handleUIAction`：直接 `PublishBlocking(KindUserChatSubmitted)`，并保留 `Event.Submission`。
+2. UI：`CommandSender.Send(hostcmd.Submission{Submission: ...})`。
+3. `Controller.handleCommand`：直接 `PublishBlocking(KindUserChatSubmitted)`，并保留 `Event.Submission`。
 4. `Controller`：`handleUserChat` → 启动/续跑 runner 侧 LLM 工作流。
 5. LLM 结束后：`PublishBlocking(KindLLMRunCompleted)`（在独立 goroutine 中投递，避免阻塞中控循环）。
 6. `Controller`：`handleLLMRunCompleted` → `uipresenter` → `AgentReply` 等 → **`EnqueueUIBlocking`** → `StartUIPump` → TUI `Update`。

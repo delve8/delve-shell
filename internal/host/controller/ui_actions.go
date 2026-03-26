@@ -2,46 +2,46 @@ package controller
 
 import (
 	"delve-shell/internal/host/bus"
-	"delve-shell/internal/uivm"
+	"delve-shell/internal/hostcmd"
 )
 
-func (c *Controller) handleUIAction(action uivm.UIAction) {
-	switch action.Kind {
-	case uivm.UIActionSubmission:
+func (c *Controller) handleCommand(command hostcmd.Command) {
+	switch cmd := command.(type) {
+	case hostcmd.Submission:
 		c.bus.PublishBlocking(bus.Event{
 			Kind:       bus.KindUserChatSubmitted,
-			UserText:   action.Submission.RawText,
-			Submission: action.Submission,
+			UserText:   cmd.Submission.RawText,
+			Submission: cmd.Submission,
 		})
-	case uivm.UIActionSessionNew:
+	case hostcmd.SessionNew:
 		c.bus.PublishBlocking(bus.Event{Kind: bus.KindSessionNewRequested})
-	case uivm.UIActionSessionSwitch:
-		c.bus.PublishBlocking(bus.Event{Kind: bus.KindSessionSwitchRequested, SessionID: action.Text})
-	case uivm.UIActionConfigUpdated:
+	case hostcmd.SessionSwitch:
+		c.bus.PublishBlocking(bus.Event{Kind: bus.KindSessionSwitchRequested, SessionID: cmd.SessionID})
+	case hostcmd.ConfigUpdated:
 		c.bus.PublishBlocking(bus.Event{Kind: bus.KindConfigUpdated})
-	case uivm.UIActionExecDirect:
-		c.bus.PublishBlocking(bus.Event{Kind: bus.KindExecDirectRequested, Command: action.Text})
-	case uivm.UIActionCancelRequested:
+	case hostcmd.ExecDirect:
+		c.bus.PublishBlocking(bus.Event{Kind: bus.KindExecDirectRequested, Command: cmd.Command})
+	case hostcmd.CancelRequested:
 		c.bus.PublishBlocking(bus.Event{Kind: bus.KindCancelRequested})
-	case uivm.UIActionShellSnapshot:
+	case hostcmd.ShellSnapshot:
 		if c.shellSnapshot != nil {
-			msgs := make([]string, len(action.Messages))
-			copy(msgs, action.Messages)
+			msgs := make([]string, len(cmd.Messages))
+			copy(msgs, cmd.Messages)
 			select {
 			case c.shellSnapshot <- msgs:
 			default:
 			}
 		}
-	case uivm.UIActionRemoteOnTarget:
-		c.bus.PublishBlocking(bus.Event{Kind: bus.KindRemoteOnRequested, RemoteTarget: action.Text})
-	case uivm.UIActionRemoteOff:
+	case hostcmd.RemoteOnTarget:
+		c.bus.PublishBlocking(bus.Event{Kind: bus.KindRemoteOnRequested, RemoteTarget: cmd.Target})
+	case hostcmd.RemoteOff:
 		c.bus.PublishBlocking(bus.Event{Kind: bus.KindRemoteOffRequested})
-	case uivm.UIActionRemoteAuthReply:
-		c.bus.PublishBlocking(bus.Event{Kind: bus.KindRemoteAuthResponseSubmitted, RemoteAuthResponse: action.RemoteAuthReply})
-	case uivm.UIActionAllowlistAutoRun:
-		c.currentAllowlistAutoRun.Store(action.BoolValue)
+	case hostcmd.RemoteAuthReply:
+		c.bus.PublishBlocking(bus.Event{Kind: bus.KindRemoteAuthResponseSubmitted, RemoteAuthResponse: cmd.Response})
+	case hostcmd.AllowlistAutoRun:
+		c.currentAllowlistAutoRun.Store(cmd.Enabled)
 		if c.runners != nil {
-			c.runners.SetAllowlistAutoRun(action.BoolValue)
+			c.runners.SetAllowlistAutoRun(cmd.Enabled)
 		}
 	}
 }
