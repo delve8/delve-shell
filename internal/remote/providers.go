@@ -22,6 +22,7 @@ func registerProviders() {
 	})
 
 	ui.RegisterOverlayFeature(ui.OverlayFeature{
+		KeyID: "remote",
 		Open: func(m ui.Model, req ui.OverlayOpenRequest) (ui.Model, tea.Cmd, bool) {
 			if req.Key != "remote_add" {
 				return m, nil, false

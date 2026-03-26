@@ -13,6 +13,7 @@ import (
 
 func registerOverlayFeature() {
 	ui.RegisterOverlayFeature(ui.OverlayFeature{
+		KeyID: "skill",
 		Open: func(m ui.Model, req ui.OverlayOpenRequest) (ui.Model, tea.Cmd, bool) {
 			switch req.Key {
 			case "skill_add":

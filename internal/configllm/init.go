@@ -10,6 +10,7 @@ import (
 func Register() {
 	registerSlashExecutionProvider()
 	ui.RegisterOverlayFeature(ui.OverlayFeature{
+		KeyID: "config_llm",
 		Open: func(m ui.Model, req ui.OverlayOpenRequest) (ui.Model, tea.Cmd, bool) {
 			if req.Key != "config_llm" {
 				return m, nil, false

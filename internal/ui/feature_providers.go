@@ -53,17 +53,6 @@ func RegisterRootSlashOptionProvider(p func(lang string) []SlashOption) {
 // When handled==true, the returned model/cmd should be used by ui.
 type OverlayKeyProvider func(m Model, key string, msg tea.KeyMsg) (Model, tea.Cmd, bool)
 
-var overlayKeyProviderChain = slashreg.NewProviderChain[OverlayKeyProvider]()
-
-// RegisterOverlayKeyProvider registers an overlay key provider.
-// Providers are executed in registration order; the first one that returns handled=true wins.
-func RegisterOverlayKeyProvider(p OverlayKeyProvider) {
-	if p == nil {
-		return
-	}
-	overlayKeyProviderChain.Add(p, func(x OverlayKeyProvider) bool { return x == nil })
-}
-
 // StateEventProvider handles non-overlay UI state synchronization events before the default update switch.
 // This is intended for global state mirroring, not arbitrary feature business logic.
 type StateEventProvider func(m Model, msg tea.Msg) (Model, tea.Cmd, bool)
@@ -82,30 +71,9 @@ func RegisterStateEventProvider(p StateEventProvider) {
 // Providers should inspect m.Overlay.Key and return handled=true only for their own overlay key.
 type OverlayEventProvider func(m Model, msg tea.Msg) (Model, tea.Cmd, bool)
 
-var overlayEventProviderChain = slashreg.NewProviderChain[OverlayEventProvider]()
-
-// RegisterOverlayEventProvider registers an overlay event provider.
-func RegisterOverlayEventProvider(p OverlayEventProvider) {
-	if p == nil {
-		return
-	}
-	overlayEventProviderChain.Add(p, func(x OverlayEventProvider) bool { return x == nil })
-}
-
 // OverlayContentProvider can provide overlay content for a model.
 // When handled==true, returned content should be used by ui overlay renderer.
 type OverlayContentProvider func(m Model) (content string, handled bool)
-
-var overlayContentProviderChain = slashreg.NewProviderChain[OverlayContentProvider]()
-
-// RegisterOverlayContentProvider registers an overlay content provider.
-// Providers are executed in registration order; the first one that returns handled=true wins.
-func RegisterOverlayContentProvider(p OverlayContentProvider) {
-	if p == nil {
-		return
-	}
-	overlayContentProviderChain.Add(p, func(x OverlayContentProvider) bool { return x == nil })
-}
 
 // OverlayOpenRequest describes a structured request to open an overlay feature.
 type OverlayOpenRequest struct {
@@ -118,19 +86,10 @@ type OverlayOpenRequest struct {
 // OverlayOpenProvider handles a structured overlay-open request.
 type OverlayOpenProvider func(m Model, req OverlayOpenRequest) (Model, tea.Cmd, bool)
 
-var overlayOpenProviderChain = slashreg.NewProviderChain[OverlayOpenProvider]()
-
-// RegisterOverlayOpenProvider registers an overlay-open provider.
-func RegisterOverlayOpenProvider(p OverlayOpenProvider) {
-	if p == nil {
-		return
-	}
-	overlayOpenProviderChain.Add(p, func(x OverlayOpenProvider) bool { return x == nil })
-}
-
 // OverlayFeature groups the standard overlay-related integration points for one feature.
-// Features can register any subset that they need.
+// Features register once by stable key and may implement any subset of the lifecycle hooks.
 type OverlayFeature struct {
+	KeyID   string
 	Open    OverlayOpenProvider
 	Key     OverlayKeyProvider
 	Content OverlayContentProvider
@@ -139,42 +98,24 @@ type OverlayFeature struct {
 	Startup StartupOverlayProvider
 }
 
+type registeredOverlayFeature struct {
+	key     string
+	feature OverlayFeature
+}
+
+var overlayFeatureRegistry = slashreg.NewProviderChain[registeredOverlayFeature]()
+
 // RegisterOverlayFeature registers a bundled overlay feature contract.
 func RegisterOverlayFeature(f OverlayFeature) {
-	if f.Open != nil {
-		RegisterOverlayOpenProvider(f.Open)
+	if f.KeyID == "" {
+		return
 	}
-	if f.Key != nil {
-		RegisterOverlayKeyProvider(f.Key)
-	}
-	if f.Event != nil {
-		RegisterOverlayEventProvider(f.Event)
-	}
-	if f.Content != nil {
-		RegisterOverlayContentProvider(f.Content)
-	}
-	if f.Close != nil {
-		RegisterOverlayCloseHook(f.Close)
-	}
-	if f.Startup != nil {
-		RegisterStartupOverlayProvider(f.Startup)
-	}
+	overlayFeatureRegistry.Add(registeredOverlayFeature{key: f.KeyID, feature: f}, func(x registeredOverlayFeature) bool { return x.key == "" })
 }
 
 // OverlayCloseHook resets feature-specific model fields when an overlay is dismissed
-// (Esc or programmatic close). Hooks run after generic overlay chrome is cleared.
+// (Esc or programmatic close).
 type OverlayCloseHook func(m Model, activeKey string) Model
-
-var overlayCloseHookChain = slashreg.NewProviderChain[OverlayCloseHook]()
-
-// RegisterOverlayCloseHook registers an overlay-dismiss reset hook.
-// Hooks run in registration order; each receives and returns the model by value.
-func RegisterOverlayCloseHook(h OverlayCloseHook) {
-	if h == nil {
-		return
-	}
-	overlayCloseHookChain.Add(h, func(x OverlayCloseHook) bool { return x == nil })
-}
 
 // TitleBarFragmentProvider supplies the leading title-bar segment (before " | " auto-run),
 // e.g. "Local" or "Remote" with an optional label. Providers run in registration order;
@@ -195,14 +136,17 @@ func RegisterTitleBarFragmentProvider(p TitleBarFragmentProvider) {
 // Providers run in registration order; the first one that returns handled=true wins.
 type StartupOverlayProvider func(m Model) (Model, tea.Cmd, bool)
 
-var startupOverlayProviderChain = slashreg.NewProviderChain[StartupOverlayProvider]()
+func overlayFeatures() []registeredOverlayFeature {
+	return overlayFeatureRegistry.List()
+}
 
-// RegisterStartupOverlayProvider registers a startup overlay provider.
-func RegisterStartupOverlayProvider(p StartupOverlayProvider) {
-	if p == nil {
-		return
+func overlayFeatureByKey(key string) (OverlayFeature, bool) {
+	for _, entry := range overlayFeatures() {
+		if entry.key == key {
+			return entry.feature, true
+		}
 	}
-	startupOverlayProviderChain.Add(p, func(x StartupOverlayProvider) bool { return x == nil })
+	return OverlayFeature{}, false
 }
 
 // SlashExecutionRequest is the normalized slash work item exposed to feature packages.

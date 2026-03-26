@@ -124,10 +124,9 @@ func (m Model) renderOverlay(base string) string {
 	}
 
 	var content string
-	for _, p := range overlayContentProviderChain.List() {
-		if c, handled := p(m); handled {
+	if feature, ok := overlayFeatureByKey(m.Overlay.Key); ok && feature.Content != nil {
+		if c, handled := feature.Content(m); handled {
 			content = c
-			break
 		}
 	}
 	if content == "" {

@@ -11,8 +11,8 @@ import (
 func (m Model) closeOverlayCommon(refocusInput bool) (Model, tea.Cmd) {
 	activeKey := m.Overlay.Key
 	m = m.CloseOverlayVisual()
-	for _, h := range overlayCloseHookChain.List() {
-		m = h(m, activeKey)
+	if feature, ok := overlayFeatureByKey(activeKey); ok && feature.Close != nil {
+		m = feature.Close(m, activeKey)
 	}
 	if refocusInput {
 		m.Input.Focus()
@@ -33,8 +33,11 @@ func (m Model) handleOverlayOpenIntentMsg(msg OverlayOpenIntentMsg) (Model, tea.
 		Title:   msg.Title,
 		Content: msg.Content,
 	}
-	for _, p := range overlayOpenProviderChain.List() {
-		if m2, cmd, handled := p(m, req); handled {
+	for _, entry := range overlayFeatures() {
+		if entry.feature.Open == nil {
+			continue
+		}
+		if m2, cmd, handled := entry.feature.Open(m, req); handled {
 			return m2, cmd
 		}
 	}
@@ -53,9 +56,8 @@ func (m Model) handleOverlayKey(key string, msg tea.KeyMsg) (Model, tea.Cmd, boo
 	if m.currentUIState() != uiStateOverlay {
 		return m, nil, false
 	}
-
-	for _, p := range overlayKeyProviderChain.List() {
-		if m2, cmd, handled := p(m, key, msg); handled {
+	if feature, ok := overlayFeatureByKey(m.Overlay.Key); ok && feature.Key != nil {
+		if m2, cmd, handled := feature.Key(m, key, msg); handled {
 			return m2, cmd, true
 		}
 	}
@@ -84,8 +86,11 @@ func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 	}
 	m = m.RefreshViewport()
 	if m.takeOpenConfigLLMOnFirstLayout() {
-		for _, p := range startupOverlayProviderChain.List() {
-			if m2, cmd, handled := p(m); handled {
+		for _, entry := range overlayFeatures() {
+			if entry.feature.Startup == nil {
+				continue
+			}
+			if m2, cmd, handled := entry.feature.Startup(m); handled {
 				return m2, cmd
 			}
 		}

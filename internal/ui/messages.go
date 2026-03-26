@@ -40,9 +40,6 @@ type OverlayOpenIntentMsg struct {
 	Content string
 }
 
-// PreInputClearMsg clears transient input-phase slash state.
-type PreInputClearMsg struct{}
-
 // LifecycleSlashExecuteMsg asks the UI to execute a slash submission locally.
 type LifecycleSlashExecuteMsg struct {
 	RawText       string

@@ -104,8 +104,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.syncInputPlaceholder()
 
 	if m.Overlay.Active {
-		for _, p := range overlayEventProviderChain.List() {
-			if m2, cmd, handled := p(m, msg); handled {
+		if feature, ok := overlayFeatureByKey(m.Overlay.Key); ok && feature.Event != nil {
+			if m2, cmd, handled := feature.Event(m, msg); handled {
 				return m2, cmd
 			}
 		}

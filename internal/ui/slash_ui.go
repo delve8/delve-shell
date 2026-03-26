@@ -23,16 +23,6 @@ type SlashOption struct {
 
 var slashRuntime = slashdispatch.NewRuntime[Model, tea.Cmd]()
 
-// getSlashOptions returns top-level slash commands from registered providers.
-func getSlashOptions(lang string) []SlashOption {
-	raw := uiregistry.RootSlashOptions(lang)
-	out := make([]SlashOption, 0, len(raw))
-	for _, o := range raw {
-		out = append(out, SlashOption{Cmd: o.Cmd, Desc: o.Desc, FillValue: o.FillValue})
-	}
-	return out
-}
-
 // getSlashOptionsForInput returns slash options to show.
 // Specialized domains (e.g. /sessions, /run, /config) are expected to be handled by providers.
 func getSlashOptionsForInput(inputVal string, lang string) []SlashOption {
