@@ -3,6 +3,7 @@ package ui
 import (
 	"strings"
 
+	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/i18n"
@@ -23,6 +24,7 @@ func (s *keySession) inputValue() string { return s.m.Input.Value() }
 func (s *keySession) setInputValue(v string) {
 	s.m.Input.SetValue(v)
 	s.m.Input.CursorEnd()
+	*s.m = s.m.syncInputHeight()
 }
 
 func (s *keySession) slashSuggestIndex() int { return s.m.Interaction.slashSuggestIndex }
@@ -37,9 +39,29 @@ func (s *keySession) updateViewportKey(msg tea.KeyMsg) tea.Cmd {
 	return cmd
 }
 
+func (s *keySession) scrollViewportForKey(key string) bool {
+	switch key {
+	case "ctrl+u":
+		s.m.Viewport.HalfPageUp()
+		return true
+	case "ctrl+d":
+		s.m.Viewport.HalfPageDown()
+		return true
+	case "alt+up":
+		s.m.Viewport.ScrollUp(1)
+		return true
+	case "alt+down":
+		s.m.Viewport.ScrollDown(1)
+		return true
+	default:
+		return false
+	}
+}
+
 func (s *keySession) updateTextInput(msg tea.KeyMsg) tea.Cmd {
 	var cmd tea.Cmd
 	s.m.Input, cmd = s.m.Input.Update(msg)
+	*s.m = s.m.syncInputHeight()
 	return cmd
 }
 
@@ -57,7 +79,7 @@ func (s *keySession) syncSuggestAfterInputChange(inputVal string) {
 }
 
 func (s *keySession) handleSlashUpDown(key string, inputVal string) bool {
-	if !strings.HasPrefix(inputVal, "/") || (key != "up" && key != "down") {
+	if !strings.HasPrefix(inputVal, "/") || s.m.Input.LineCount() > 1 || (key != "up" && key != "down") {
 		return false
 	}
 	_, vis, _ := s.slashSuggestionTriple(inputVal)
@@ -101,7 +123,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 	}
 
 	inputVal := ks.inputValue()
-	if strings.HasPrefix(inputVal, "/") {
+	if strings.HasPrefix(inputVal, "/") && mm.Input.LineCount() == 1 {
 		if key == "enter" {
 			if m2, cmd, handled := mm.handleSlashEnterKey(inputVal); handled {
 				return m2, cmd
@@ -116,6 +138,13 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 			return mm, cmd
 		}
 	}
+	if key == "ctrl+shift+c" || key == "shift+ctrl+c" {
+		text := mm.selectedOrVisibleScreenText()
+		if text != "" {
+			_ = clipboard.WriteAll(text)
+		}
+		return mm, nil
+	}
 
 	if m2, cmd, handled := mm.handleOverlayKey(key, msg); handled {
 		return m2, cmd
@@ -127,6 +156,9 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 	}
 	if key == "pgup" || key == "pgdown" {
 		return mm, ks.updateViewportKey(msg)
+	}
+	if ks.scrollViewportForKey(key) {
+		return mm, nil
 	}
 
 	if key == "enter" {
@@ -152,17 +184,21 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 			return mm, nil
 		}
 		mm = mm.appendUserSubmittedEcho(text)
+		var printCmd tea.Cmd
+		mm, printCmd = mm.printTranscriptCmd(false)
 		ks.setInputValue("")
 		ks.setSlashSuggestIndex(0)
 		if res, handled, err := mm.lifecycleEngine().SubmitEnter(text, capture.SelectedIndex); handled {
 			if err != nil {
 				mm = mm.AppendTranscriptLines(errStyle.Render(mm.delveMsg(err.Error())))
-				return mm.RefreshViewport(), nil
+				mm = mm.RefreshViewport()
+				mm, errCmd := mm.printTranscriptCmd(false)
+				return mm, tea.Sequence(printCmd, errCmd)
 			}
 			mm, cmd := mm.applyLifecycleResult(res)
-			return mm, cmd
+			return mm, tea.Sequence(printCmd, cmd)
 		}
-		return mm, nil
+		return mm, printCmd
 	}
 
 	cmd := ks.updateTextInput(msg)
@@ -180,12 +216,15 @@ func (m Model) clearSlashInput() Model {
 	m.Input.SetValue("")
 	m.Input.CursorEnd()
 	m.Interaction.slashSuggestIndex = 0
-	return m
+	return m.syncInputHeight()
 }
 
 // handleSlashEnterKey handles Enter when input starts with "/".
 func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 	if strings.TrimSpace(inputVal) == "" {
+		return m, nil, false
+	}
+	if m.Input.LineCount() > 1 {
 		return m, nil, false
 	}
 	_, vis, viewOpts := m.slashSuggestionContext(inputVal)
@@ -196,7 +235,7 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 		m.Input.SetValue(plan.FillValue)
 		m.Input.CursorEnd()
 		m.Interaction.slashSuggestIndex = 0
-		return m, nil, true
+		return m.syncInputHeight(), nil, true
 	case inputpreflight.EnterPlanSubmit:
 		if res, handled, err := m.lifecycleEngine().RouteSubmission(plan.Submission); handled {
 			if err != nil {

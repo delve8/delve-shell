@@ -234,7 +234,7 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyConfigUnknownField:            "unknown field ",
 		KeyConfigSaved:                   "Config saved (llm.%s).",
 		KeyWaitOrCancel:                  "(Please wait for the current response, or press Esc to cancel)",
-		KeyPlaceholderInput:              "Type your question or task, or / for slash commands...",
+		KeyPlaceholderInput:              "Type your question or / for slash commands.",
 		KeyInputHintApprove:              "1 or 2",
 		KeyInputHintApproveThree:         "1, 2 or 3",
 		KeyInputHintSensitive:            "1, 2 or 3",

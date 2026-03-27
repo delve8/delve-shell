@@ -15,7 +15,6 @@ import (
 
 // defaultTUIProgramOptions are passed to every tea.NewProgram for the main interactive session.
 var defaultTUIProgramOptions = []tea.ProgramOption{
-	tea.WithAltScreen(),
 	tea.WithReportFocus(),
 }
 

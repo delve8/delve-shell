@@ -79,6 +79,24 @@ func TestView_FooterAlwaysShown(t *testing.T) {
 	}
 }
 
+func TestMainTopPaddingLinesShrinksAsTranscriptPrints(t *testing.T) {
+	m := NewModel(nil, nil)
+	m.layout.Width = 80
+	m.layout.Height = 24
+
+	initialPad := m.mainTopPaddingLines()
+	if initialPad <= 0 {
+		t.Fatalf("expected positive initial top padding, got %d", initialPad)
+	}
+
+	m = m.AppendTranscriptLines("line1", "line2", "line3")
+	m.printedMessages = len(m.messages)
+	afterPrintPad := m.mainTopPaddingLines()
+	if afterPrintPad >= initialPad {
+		t.Fatalf("expected top padding to shrink after transcript prints, before=%d after=%d", initialPad, afterPrintPad)
+	}
+}
+
 func min(a, b int) int {
 	if a < b {
 		return a

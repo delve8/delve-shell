@@ -58,8 +58,8 @@ func RenderFooterBar(width int, parts FooterBarParts, st TitleBarStatus, s Title
 	}
 
 	statusStyle := statusStyleFor(st, s)
-	sep := s.Base.Render("   ")
-	sepW := 3
+	sep := s.Base.Render("        ")
+	sepW := 8
 
 	statusW := statusReserveW
 	autoW := autoReserveW

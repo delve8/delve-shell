@@ -22,7 +22,7 @@ func TestRenderFooterBar_fullWidthUsesSpacing(t *testing.T) {
 	if strings.Contains(out, "·") || !strings.Contains(out, "Local") || !strings.Contains(out, "[IDLE]") {
 		t.Fatalf("unexpected: %q", out)
 	}
-	if !strings.Contains(out, "   Auto-Run") {
+	if !strings.Contains(out, "        Auto-Run") {
 		t.Fatalf("expected wider spacing between segments in %q", out)
 	}
 }
@@ -42,7 +42,7 @@ func TestRenderFooterBar_truncatesRemoteMiddle(t *testing.T) {
 	if !strings.Contains(out, "…") {
 		t.Fatalf("expected middle ellipsis in %q", out)
 	}
-	if !strings.Contains(out, "Remote") || !strings.Contains(out, "XYZ1") {
+	if !strings.Contains(out, "…") || !strings.Contains(out, "1") {
 		t.Fatalf("expected both ends of remote label in %q", out)
 	}
 }

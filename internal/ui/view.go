@@ -12,6 +12,10 @@ import (
 
 // View implements tea.Model.
 func (m Model) View() string {
+	return m.renderScreenSnapshot()
+}
+
+func (m Model) renderBaseScreen() string {
 	lang := m.getLang()
 	sepW := m.layout.Width
 	if sepW <= 0 {
@@ -21,24 +25,34 @@ func (m Model) View() string {
 	footer := m.footerLine()
 
 	inChoice := m.hasPendingChoiceCard()
+	inputSeparator := ""
+	if m.Input.LineCount() > 1 {
+		inputSeparator = "\n"
+	}
+	mainBody := m.mainBodyView()
 	if m.layout.Height <= minInputLayoutWidth {
-		out := m.buildContent() + "\n" + sepLine + "\n" + m.Input.View()
-		out += m.inputBelowBlock(lang, inChoice)
+		out := sepLine + "\n" + m.Input.View()
+		if mainBody != "" {
+			out = mainBody + out
+		}
+		out += inputSeparator + m.inputBelowBlock(lang, inChoice)
 		out += footer
 		return out
 	}
 	// Base viewport height: leave room for the separator, input line, slash/choice dropdown, and footer below.
-	vh := m.mainViewportHeight()
-	m.Viewport.Width = m.layout.Width
-	m.Viewport.Height = vh
-	out := m.Viewport.View()
-	out += "\n" + sepLine + "\n" + m.Input.View()
-	out += m.inputBelowBlock(lang, inChoice)
+	out := sepLine + "\n" + m.Input.View()
+	if mainBody != "" {
+		out = mainBody + out
+	}
+	out += inputSeparator + m.inputBelowBlock(lang, inChoice)
 	out += footer
+	return out
+}
 
-	// Render overlay on top if active.
+func (m Model) renderScreenSnapshot() string {
+	out := m.renderBaseScreen()
 	if m.Overlay.Active {
-		out = m.renderOverlay(out)
+		return m.renderOverlay(out)
 	}
 	return out
 }

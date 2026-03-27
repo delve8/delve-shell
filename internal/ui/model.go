@@ -5,7 +5,8 @@ import (
 
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/uivm"
-	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 )
 
@@ -16,13 +17,15 @@ const (
 
 // Model is the Bubble Tea session and approval UI.
 type Model struct {
-	Input         textinput.Model
-	Viewport      viewport.Model
-	messages      []string
-	ChoiceCard    ChoiceCardState
-	CommandSender CommandSender
-	layout        LayoutState
-	Interaction   InteractionState
+	Input               textarea.Model
+	Viewport            viewport.Model
+	messages            []string
+	printedMessages     int
+	TranscriptSelection ScreenSelectionState
+	ChoiceCard          ChoiceCardState
+	CommandSender       CommandSender
+	layout              LayoutState
+	Interaction         InteractionState
 
 	// Overlay state: when Overlay.Active is true, a modal is rendered on top of the main UI.
 	Overlay OverlayState
@@ -38,6 +41,16 @@ type InteractionState struct {
 	ChoiceIndex       int  // 0-based selection when in Pending/PendingSensitive/PendingSuggested; Up/Down to move, Enter to confirm
 	WaitingForAI      bool // when true only blocks submitting new messages (Enter); /xxx slash commands always allowed
 }
+
+// ScreenSelectionState tracks a drag selection in the rendered screen buffer.
+type ScreenSelectionState struct {
+	Active bool
+	Anchor ScreenPoint
+	Focus  ScreenPoint
+}
+
+// TranscriptSelectionState is kept as a compatibility alias for older code paths.
+type TranscriptSelectionState = ScreenSelectionState
 
 // ChoiceCardState stores current pending choice card (approval or sensitive confirmation).
 type ChoiceCardState struct {
@@ -101,6 +114,7 @@ func (m Model) delveMsg(msg string) string {
 //   - update_overlay_key.go then update_keymsg.go, update_slash.go, update_approval.go — keyboard when overlay vs main input.
 //   - update_approval.go, update_events.go — agent approval and transcript events.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	prevOverlayActive := m.Overlay.Active
 	m.syncInputPlaceholder()
 
 	if m.Overlay.Active {
@@ -113,49 +127,64 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	for _, p := range stateEventProviderChain.List() {
 		if m2, cmd, handled := p(m, msg); handled {
-			return m2, cmd
+			return m.finalizeUpdate(prevOverlayActive, m2, cmd)
 		}
 	}
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		return m.handleWindowSizeMsg(msg)
+		m2, cmd := m.handleWindowSizeMsg(msg)
+		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
 
 	case tea.BlurMsg:
-		return m.handleBlurMsg()
+		m2, cmd := m.handleBlurMsg()
+		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
 	case tea.FocusMsg:
-		return m.handleFocusMsg()
+		m2, cmd := m.handleFocusMsg()
+		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
 	case tea.KeyMsg:
-		return m.handleKeyMsg(msg)
+		m2, cmd := m.handleKeyMsg(msg)
+		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
 
 	case tea.MouseMsg:
-		return m.handleMouseMsg(msg)
+		m2, cmd := m.handleMouseMsg(msg)
+		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
 
 	case ChoiceCardShowMsg:
-		return m.handleChoiceCardShowMsg(msg)
+		m2, cmd := m.handleChoiceCardShowMsg(msg)
+		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
 
 	case TranscriptAppendMsg:
-		return m.handleTranscriptAppendMsg(msg)
+		m2, cmd := m.handleTranscriptAppendMsg(msg)
+		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
 	case TranscriptReplaceMsg:
-		return m.handleTranscriptReplaceMsg(msg)
+		m2, cmd := m.handleTranscriptReplaceMsg(msg)
+		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
 
 	}
 
-	return m, nil
+	return m.finalizeUpdate(prevOverlayActive, m, nil)
 }
 
 // NewModel creates a Model with default input (slash commands and viewport scrolling).
 // initialMessages if non-nil is used as existing conversation (e.g. after /sh return).
 func NewModel(initialMessages []string, readModel ReadModel) Model {
-	ti := textinput.New()
+	ti := textarea.New()
 	ti.Placeholder = i18n.T("en", i18n.KeyPlaceholderInput)
 	ti.Prompt = "> "
-	ti.PromptStyle = inputPromptStyle
-	ti.TextStyle = inputTextStyle
-	ti.Cursor.Style = inputCursorStyle
+	ti.ShowLineNumbers = false
+	ti.KeyMap.InsertNewline = key.NewBinding(key.WithKeys("ctrl+j"), key.WithHelp("ctrl+j", "new line"))
 	ti.CharLimit = 0
-	ti.Width = defaultWidth - 4 // will be updated on first WindowSizeMsg to match terminal
+	ti.SetHeight(inputTextareaMinHeight)
+	ti.SetWidth(defaultWidth - 4) // will be updated on first WindowSizeMsg to match terminal
+	ti.FocusedStyle.Prompt = inputPromptStyle
+	ti.FocusedStyle.Text = inputTextStyle
+	ti.FocusedStyle.Placeholder = inputPlaceholderStyle
+	ti.BlurredStyle.Prompt = inputPromptStyle
+	ti.BlurredStyle.Text = inputTextStyle
+	ti.BlurredStyle.Placeholder = inputPlaceholderStyle
+	ti.Cursor.Style = inputCursorStyle
 	ti.Focus()
-	vp := viewport.New(defaultWidth, defaultHeight-4)
+	vp := viewport.New(defaultWidth, defaultHeight-3)
 	vp.MouseWheelEnabled = true
 	msgs := []string(nil)
 	if len(initialMessages) > 0 {

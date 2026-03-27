@@ -122,7 +122,18 @@ func (m Model) waitingLineBelowInputFixed(lang string) string {
 
 // inputBelowBlock reserves the fixed-height block below the input so the footer position stays stable.
 func (m Model) inputBelowBlock(lang string, inChoice bool) string {
+	if m.Input.LineCount() > 1 && !inChoice {
+		if m.Interaction.WaitingForAI {
+			text := m.waitingLineText(lang)
+			if text == "" {
+				return "\n"
+			}
+			return "\n" + text + "\n"
+		}
+		return "\n"
+	}
 	rows := make([]widget.ListRow, 0, inputBelowReserveRows)
+	reserveRows := inputBelowStableRows
 	if inChoice {
 		allowlistAutoRunEnabled := m.allowlistAutoRunEnabled()
 		opts := approvalview.ChoiceOptions(lang, m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil, allowlistAutoRunEnabled)
@@ -146,9 +157,10 @@ func (m Model) inputBelowBlock(lang string, inChoice bool) string {
 			}
 		}
 	}
-	block := widget.RenderFixedLinesBelowInput("   ", rows, inputBelowReserveRows, suggestStyle, suggestHi)
-	for i := 0; i < inputBelowReserveTailRows; i++ {
-		block += m.waitingLineBelowInputFixed(lang)
+	block := widget.RenderFixedLinesBelowInput("   ", rows, reserveRows, suggestStyle, suggestHi)
+	if m.Interaction.WaitingForAI && !inChoice && !strings.HasPrefix(m.Input.Value(), "/") {
+		waiting := i18n.T(lang, i18n.KeyWaitOrCancel)
+		block = widget.RenderFixedLinesBelowInput("   ", []widget.ListRow{{Text: waiting}}, reserveRows, suggestStyle, suggestHi)
 	}
 	return block
 }

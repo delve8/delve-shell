@@ -2,6 +2,7 @@ package ui_test
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -152,4 +153,87 @@ func enterText(m ui.Model, text string) ui.Model {
 	m.Input.CursorEnd()
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	return next.(ui.Model)
+}
+
+func TestBlackboxMainEnterSubmitsUserText(t *testing.T) {
+	f := newBlackboxFixture(t)
+	if got := f.model.Input.Height(); got != 1 {
+		t.Fatalf("expected initial input height 1, got %d", got)
+	}
+	got := enterText(f.model, "hello world")
+	if got.Input.Value() != "" {
+		t.Fatalf("expected input cleared after enter, got %q", got.Input.Value())
+	}
+	transcript := strings.Join(got.TranscriptLines(), "\n")
+	if !strings.Contains(transcript, "hello world") {
+		t.Fatalf("expected user text to be appended to transcript, got %q", transcript)
+	}
+}
+
+func TestBlackboxMainCtrlJInsertsNewline(t *testing.T) {
+	f := newBlackboxFixture(t)
+	m := f.model
+	m.Input.SetValue("hello")
+	m.Input.CursorEnd()
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyCtrlJ})
+	got := next.(ui.Model)
+	if got.Input.Value() != "hello\n" {
+		t.Fatalf("expected ctrl+j to insert newline, got %q", got.Input.Value())
+	}
+	if got.Input.Height() != 5 {
+		t.Fatalf("expected input height to jump to 5 after newline, got %d", got.Input.Height())
+	}
+}
+
+func TestBlackboxViewportHalfPageScrollKeys(t *testing.T) {
+	f := newBlackboxFixture(t)
+	m := f.model
+	next, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 12})
+	m = next.(ui.Model)
+	lines := make([]string, 0, 40)
+	for i := 0; i < 40; i++ {
+		lines = append(lines, "line")
+	}
+	m = m.AppendTranscriptLines(lines...).RefreshViewport()
+	bottom := m.Viewport.YOffset
+	if bottom <= 0 {
+		t.Fatalf("expected scrollable viewport, got y=%d", bottom)
+	}
+
+	next, _ = m.Update(tea.KeyMsg{Type: tea.KeyCtrlU})
+	up := next.(ui.Model)
+	if up.Viewport.YOffset >= bottom {
+		t.Fatalf("expected ctrl+u to scroll up, before=%d after=%d", bottom, up.Viewport.YOffset)
+	}
+
+	next, _ = up.Update(tea.KeyMsg{Type: tea.KeyCtrlD})
+	down := next.(ui.Model)
+	if down.Viewport.YOffset <= up.Viewport.YOffset {
+		t.Fatalf("expected ctrl+d to scroll down, before=%d after=%d", up.Viewport.YOffset, down.Viewport.YOffset)
+	}
+}
+
+func TestBlackboxViewportLineScrollAltKeys(t *testing.T) {
+	f := newBlackboxFixture(t)
+	m := f.model
+	next, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 12})
+	m = next.(ui.Model)
+	lines := make([]string, 0, 40)
+	for i := 0; i < 40; i++ {
+		lines = append(lines, "line")
+	}
+	m = m.AppendTranscriptLines(lines...).RefreshViewport()
+	start := m.Viewport.YOffset
+
+	next, _ = m.Update(tea.KeyMsg{Type: tea.KeyUp, Alt: true})
+	up := next.(ui.Model)
+	if up.Viewport.YOffset != start-1 {
+		t.Fatalf("expected alt+up to scroll up one line, before=%d after=%d", start, up.Viewport.YOffset)
+	}
+
+	next, _ = up.Update(tea.KeyMsg{Type: tea.KeyDown, Alt: true})
+	down := next.(ui.Model)
+	if down.Viewport.YOffset != start {
+		t.Fatalf("expected alt+down to scroll down one line, before=%d after=%d", up.Viewport.YOffset, down.Viewport.YOffset)
+	}
 }
