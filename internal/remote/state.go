@@ -30,8 +30,7 @@ type AddRemoteOverlayState struct {
 	FieldIndex     int
 	Error          string
 	OfferOverwrite bool // when true, error was "already exists"; show overwrite hint and accept O to overwrite
-	Save           bool // true = save/update remote config; false = only connect (for /remote on)
-	Connect        bool // true when opened via /remote on; false for /config add-remote
+	Save           bool // true = save/update remote config before connect (for /remote on overlay)
 	Connecting     bool // true while waiting for connection result (show "Connecting...")
 }
 

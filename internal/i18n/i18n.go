@@ -64,7 +64,6 @@ const (
 	KeyDescConfigLLMApiKey         = "desc_config_llm_api_key"
 	KeyDescConfigLLMModel          = "desc_config_llm_model"
 	KeyDescConfigAllowlistUpdate   = "desc_config_allowlist_update"
-	KeyDescConfigAddRemote         = "desc_config_add_remote"
 	KeyDescConfigRemoveRemote      = "desc_config_remove_remote"
 	KeyAllowlistUpdateDone         = "allowlist_update_done" // format: added count
 	KeyDescAutoRunListOnly         = "desc_auto_run_list_only"
@@ -174,56 +173,66 @@ What it does:
 Quick start:
   1. Type your task and press Enter.
   2. When a command card appears, press 1 to run, 2 to reject (or copy/dismiss when auto-run is off).
-  3. Type / to list slash commands; use /help anytime for this panel.
+  3. Type / for slash suggestions (Up/Down, Enter). /help opens this panel; scroll the log with PgUp/PgDown when needed.
 
-Slash commands (each line: command, next line: description):
+Slash commands (command line, then description; blank line between entries):
 
-  /help
-    Show this help
-  /config
-    Set or show config
-  /config add-remote
-    Add a remote
-  /config del-remote
-    Remove a remote
-  /config add-skill <url> [ref] [path]
-    Install a skill from a git repo (path = subpath if repo has multiple skills)
-  /config del-skill <skill_name>
-    Remove an installed skill
-  /config update-skill <skill_name>
-    Update an installed skill from its git source (branch/tag selectable in dialog)
-  /config auto-run list-only
-    Allowlist runs without confirmation
-  /config auto-run disable
-    Require approval for every command
-  /config update auto-run list
-    Merge default allowlist
-  /config llm
-    Set LLM
-  /config reload
-    Reload config and allowlist
-  /remote on [user@host]
-    Connect to a remote host
-  /remote off
-    Disconnect from remote and run commands locally
-  /new
-    Start a new session
-  /sessions
-    List and switch to another session
-  /skill <skill-name> [detail]
-    Ask AI to use an installed skill for this task
-  /config add-skill <url> [ref] [path]
-    Install a skill from a git repo (path = subpath in repo, e.g. skills/foo)
-  /config del-skill <skill_name>
-    Remove an installed skill
-  /run <cmd>
-    Run one command directly (no AI)
-  /sh
-    Spawn shell; exit shell to return here
-  /q
-    Quit (Ctrl+C also works)
+/help
+Show this help
 
-Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a suggestion, Enter fills then run.`,
+/config
+Set or show config
+
+/config del-remote
+Remove a remote
+
+/config add-skill <url> [ref] [path]
+Install a skill from a git repo (path = subpath if the repo has multiple skills, e.g. skills/foo)
+
+/config del-skill <skill_name>
+Remove an installed skill
+
+/config update-skill <skill_name>
+Update an installed skill from its git source (branch/tag selectable in dialog)
+
+/config auto-run list-only
+Allowlist runs without confirmation
+
+/config auto-run disable
+Require approval for every command
+
+/config update auto-run list
+Merge default allowlist
+
+/config llm
+Set LLM
+
+/config reload
+Reload config and allowlist
+
+/remote on [user@host]
+Connect over SSH. /remote lists saved hosts and /remote off; new targets open Add Remote (optional save to config). SSH host keys may prompt to accept or reject.
+
+/remote off
+Disconnect from remote and run commands locally
+
+/new
+Start a new session
+
+/sessions
+List and switch to another session
+
+/skill <skill-name> [detail]
+Ask AI to use an installed skill for this task
+
+/run <cmd>
+Run one command directly (no AI)
+
+/sh
+Spawn shell; exit shell to return here
+
+/q
+Quit (Ctrl+C also works)`,
 		KeyUsageRun:                      "Usage: /run <command> — e.g. /run ls -la",
 		KeyUnknownCmd:                    "Unknown command. Type /help for the full list, or try /q, /run <cmd>, /config.",
 		KeyDelveLabel:                    "Delve:",
@@ -280,7 +289,6 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyDescConfigLLMApiKey:           "Set LLM API key",
 		KeyDescConfigLLMModel:            "Set LLM model name",
 		KeyDescConfigAllowlistUpdate:     "Merge default allowlist",
-		KeyDescConfigAddRemote:           "Add a remote",
 		KeyDescConfigRemoveRemote:        "Remove a remote",
 		KeyAllowlistUpdateDone:           "Allowlist updated: %d new pattern(s) added. Use /config reload to apply.",
 		KeyDescAutoRunListOnly:           "Allowlist runs without confirmation",

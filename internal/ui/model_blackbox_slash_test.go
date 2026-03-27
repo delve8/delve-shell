@@ -98,7 +98,7 @@ func TestBlackboxSlashConfigDelRemoteNoHostsShowsHint(t *testing.T) {
 func TestBlackboxSlashConfigFillsToFirstSubcommandOnEnter(t *testing.T) {
 	f := newBlackboxFixture(t)
 	got := enterText(f.model, "/config")
-	if got.Input.Value() != "/config add-remote" {
+	if got.Input.Value() != "/config del-remote" {
 		t.Fatalf("expected /config to fill to first subcommand, got %q", got.Input.Value())
 	}
 }

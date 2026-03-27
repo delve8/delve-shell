@@ -3,40 +3,10 @@ package remote
 import (
 	"strings"
 
-	"delve-shell/internal/hostcmd"
+	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/inputlifecycletype"
-	"delve-shell/internal/config"
-	"delve-shell/internal/ui"
 )
-
-func applyConfigAddRemote(args string, sender ui.CommandSender) inputlifecycletype.ProcessResult {
-	lang := "en"
-	parts := strings.Fields(args)
-	if len(parts) < 1 {
-		return remoteTranscriptErrorResult(i18n.T(lang, i18n.KeyConfigPrefix) + "Usage: /config add-remote <user@host> [name] [identity_file]")
-	}
-	target := parts[0]
-	name := ""
-	identityFile := ""
-	if len(parts) >= 2 {
-		name = parts[1]
-	}
-	if len(parts) >= 3 {
-		identityFile = parts[2]
-	}
-	if err := config.AddRemote(target, name, identityFile); err != nil {
-		return remoteTranscriptErrorResult(i18n.T(lang, i18n.KeyConfigPrefix) + err.Error())
-	}
-	display := target
-	if name != "" {
-		display = name + " (" + target + ")"
-	}
-	if sender != nil {
-		_ = sender.Send(hostcmd.ConfigUpdated{})
-	}
-	return remoteTranscriptSuggestResult(i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display), true)
-}
 
 func applyConfigRemoveRemote(nameOrTarget string) inputlifecycletype.ProcessResult {
 	lang := "en"

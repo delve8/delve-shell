@@ -107,25 +107,19 @@ func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 			idx = 0
 		}
 		appendPathCompletionBlock(&b, keyFocused, cands, idx)
-		if state.AddRemote.Connect {
-			b.WriteString("\n")
-			saveLabel := "[ ]"
-			if state.AddRemote.Save {
-				saveLabel = "[X]"
-			}
-			saveLine := saveLabel + " Save as remote (Space to toggle)"
-			if state.AddRemote.FieldIndex == 3 {
-				b.WriteString(ui.SuggestHiRender(saveLine) + "\n")
-			} else {
-				b.WriteString(ui.SuggestStyleRender(saveLine) + "\n")
-			}
-			if state.AddRemote.Save {
-				b.WriteString("\n")
-				b.WriteString("Name (optional):\n")
-				b.WriteString(state.AddRemote.NameInput.View())
-			}
+		b.WriteString("\n")
+		saveLabel := "[ ]"
+		if state.AddRemote.Save {
+			saveLabel = "[X]"
+		}
+		saveLine := saveLabel + " Save as remote (Space to toggle)"
+		if state.AddRemote.FieldIndex == 3 {
+			b.WriteString(ui.SuggestHiRender(saveLine) + "\n")
 		} else {
-			b.WriteString("\n\n")
+			b.WriteString(ui.SuggestStyleRender(saveLine) + "\n")
+		}
+		if state.AddRemote.Save {
+			b.WriteString("\n")
 			b.WriteString("Name (optional):\n")
 			b.WriteString(state.AddRemote.NameInput.View())
 		}

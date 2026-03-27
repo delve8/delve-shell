@@ -36,7 +36,6 @@ func registerProviders() {
 			state.AddRemote.Error = ""
 			state.AddRemote.OfferOverwrite = false
 			state.AddRemote.Save = req.Params["save"] == "true"
-			state.AddRemote.Connect = req.Params["connect"] == "true"
 			pathcomplete.SetState(pathcomplete.State{Index: -1})
 			state.AddRemote.FieldIndex = 0
 			state.AddRemote.HostInput = textinput.New()

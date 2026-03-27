@@ -12,12 +12,8 @@ import (
 )
 
 // addRemoteFieldCount returns the number of focusable fields in the Add remote form.
-// Indices: 0 Host, 1 User, 2 Key path; when Connect: 3 Save; when Connect && Save: 4 Name.
-// When !Connect: 3 Name (always, config add-remote always persists).
+// Indices: 0 Host, 1 User, 2 Key path, 3 Save row; when Save: 4 Name.
 func addRemoteFieldCount(s AddRemoteOverlayState) int {
-	if !s.Connect {
-		return 4
-	}
 	if s.Save {
 		return 5
 	}
@@ -37,9 +33,7 @@ func applyAddRemoteFieldFocus(state *AddRemoteOverlayState) {
 	case 2:
 		state.KeyInput.Focus()
 	case 3:
-		if !state.Connect {
-			state.NameInput.Focus()
-		}
+		// Save row — no text field
 	case 4:
 		state.NameInput.Focus()
 	}
@@ -150,7 +144,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 		}
 
 	case " ":
-		if state.AddRemote.FieldIndex == 3 && state.AddRemote.Connect {
+		if state.AddRemote.FieldIndex == 3 {
 			state.AddRemote.Save = !state.AddRemote.Save
 			applyAddRemoteFieldFocus(&state.AddRemote)
 			return ret(m, nil, true)
@@ -212,20 +206,11 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			)
 			m.EmitConfigUpdatedIntent()
 		}
-		if state.AddRemote.Connect {
-			state.AddRemote.Connecting = true
-			state.AddRemote.Error = ""
-			if !m.EmitRemoteOnTargetIntent(target) {
-				state.AddRemote.Connecting = false
-			}
-			return ret(m, nil, true)
-		}
-
-		m = m.CloseOverlayVisual()
-		state.AddRemote.Active = false
+		state.AddRemote.Connecting = true
 		state.AddRemote.Error = ""
-		state.AddRemote.OfferOverwrite = false
-		m.Input.Focus()
+		if !m.EmitRemoteOnTargetIntent(target) {
+			state.AddRemote.Connecting = false
+		}
 		return ret(m, nil, true)
 	}
 
@@ -244,11 +229,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			pcState.Index = -1
 		}
 	case 3:
-		if !state.AddRemote.Connect {
-			state.AddRemote.NameInput, cmd = state.AddRemote.NameInput.Update(msg)
-		} else {
-			cmd = nil
-		}
+		cmd = nil
 	case 4:
 		state.AddRemote.NameInput, cmd = state.AddRemote.NameInput.Update(msg)
 	}
