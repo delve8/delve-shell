@@ -64,7 +64,17 @@ func (m Model) executeSlashSubmission(rawText string, selectedIndex int) (Model,
 		_ = m.EmitShellSnapshotIntent(m.TranscriptLines())
 		return m.clearSlashInput(), tea.Quit
 	}
-	return slashRuntime.ExecuteSubmission(m, text, selectedIndex, m.slashRuntimeDeps())
+	m, cmd := slashRuntime.ExecuteSubmission(m, text, selectedIndex, m.slashRuntimeDeps())
+	// Transcript lines are scrollback via tea.Println; append-only slash outcomes (e.g. unknown command)
+	// must schedule a print so the PTY and tests see new text.
+	m2, printCmd := m.printTranscriptCmd(false)
+	if printCmd != nil {
+		if cmd != nil {
+			return m2, tea.Sequence(cmd, printCmd)
+		}
+		return m2, printCmd
+	}
+	return m2, cmd
 }
 
 // executeSlashEarlySubmission runs slash-mode Enter after lifecycle submission routing.

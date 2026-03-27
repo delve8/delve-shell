@@ -209,9 +209,13 @@ func publishStructuredSubmission(b *Bus, sub inputlifecycletype.InputSubmission)
 	}
 	switch sub.Kind {
 	case inputlifecycletype.SubmissionChat, inputlifecycletype.SubmissionSlash:
+		userText := sub.RawText
+		if sub.SessionDisplayText != "" {
+			userText = sub.SessionDisplayText
+		}
 		b.PublishBlocking(Event{
 			Kind:       KindUserChatSubmitted,
-			UserText:   sub.RawText,
+			UserText:   userText,
 			Submission: sub,
 		})
 	}

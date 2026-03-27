@@ -26,6 +26,9 @@ type InputSubmission struct {
 
 	// RawText is the normalized submitted text.
 	RawText string
+	// SessionDisplayText, when non-empty, is what should be recorded in session history and shown as the user line
+	// instead of RawText (e.g. /skill … while RawText carries the LLM payload).
+	SessionDisplayText string
 	// InputLine preserves the raw input buffer for pre-input flows such as slash early Enter.
 	InputLine string
 	// SelectedIndex is meaningful for slash submissions and should be -1 when not applicable.

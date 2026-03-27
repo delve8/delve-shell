@@ -149,6 +149,8 @@ func (m Model) renderTranscriptLines(lines []uivm.Line) []string {
 			rendered = append(rendered, execStyle.Render(textwrap.WrapString(l.Text, w)))
 		case uivm.LineResult:
 			rendered = append(rendered, resultStyle.Render(textwrap.WrapString(l.Text, w)))
+		case uivm.LineSessionBanner:
+			rendered = append(rendered, sessionSwitchedStyle.Render(textwrap.WrapString(l.Text, w)))
 		default:
 			rendered = append(rendered, textwrap.WrapString(l.Text, w))
 		}

@@ -8,9 +8,13 @@ import (
 func (c *Controller) handleCommand(command hostcmd.Command) {
 	switch cmd := command.(type) {
 	case hostcmd.Submission:
+		userText := cmd.Submission.RawText
+		if cmd.Submission.SessionDisplayText != "" {
+			userText = cmd.Submission.SessionDisplayText
+		}
 		c.bus.PublishBlocking(bus.Event{
 			Kind:       bus.KindUserChatSubmitted,
-			UserText:   cmd.Submission.RawText,
+			UserText:   userText,
 			Submission: cmd.Submission,
 		})
 	case hostcmd.SessionNew:

@@ -32,6 +32,11 @@ type MainEnterInput struct {
 	DelRemoteNoneMsg   string
 }
 
+func isSessionSlashInput(s string) bool {
+	s = strings.TrimSpace(s)
+	return s == "/session" || strings.HasPrefix(s, "/session ")
+}
+
 func PlanMainEnter(in MainEnterInput) MainEnterPlan {
 	if len(in.Text) == 0 || in.Text[0] != '/' {
 		return MainEnterPlan{Kind: MainEnterPassToSubmit}
@@ -44,7 +49,8 @@ func PlanMainEnter(in MainEnterInput) MainEnterPlan {
 		HasSlashPrefix:        true,
 		Selected:              selected,
 		VisibleOptionCount:    len(in.Visible),
-		IsSessionNoneOption:   strings.HasPrefix(in.Text, "/sessions") && selected.Cmd == in.SessionNoneMsg,
+		// Do not use strings.HasPrefix(..., "/session"): "/sessions" would match incorrectly.
+		IsSessionNoneOption:   isSessionSlashInput(in.Text) && selected.Cmd == in.SessionNoneMsg,
 		IsDelRemoteNoneOption: selected.Cmd == in.DelRemoteNoneMsg,
 	})
 	switch outcome {

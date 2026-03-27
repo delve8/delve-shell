@@ -226,11 +226,11 @@ Disconnect from remote and run commands locally
 /new
 Start a new session
 
-/sessions
+/session
 List and switch to another session
 
-/skill <skill-name> [detail]
-Ask AI to use an installed skill for this task
+/skill <name> [detail]
+Use skill; optional detail for the AI
 
 /run <cmd>
 Run one command directly (no AI)
@@ -359,8 +359,8 @@ Quit (Ctrl+C also works)`,
 		KeyConfigLLMBaseURLAutoCorrected: "Base URL updated to %s (added /v1).",
 		KeyDescConfigLLM:                 "Set LLM",
 		KeyConfigHint:                    "Use /config llm for LLM; auto-run is in footer.",
-		KeyDescSkill:                     "Ask AI to use an installed skill for this task",
-		KeyUsageSkill:                    "Usage: /skill <skill-name> [detail] — describe what you want after the name",
+		KeyDescSkill:                     "Use skill; optional detail for the AI",
+		KeyUsageSkill:                    "Usage: /skill <name> [detail] — text after the name is optional context",
 		KeySkillNotFound:                 "Skill not found.",
 		KeySkillScriptNotFound:           "Script not found in skill.",
 		KeySkillNone:                     "No skills (add dirs with SKILL.md under ~/.delve-shell/skills/)",

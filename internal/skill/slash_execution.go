@@ -72,7 +72,7 @@ func executeSkillInvocation(req ui.SlashExecutionRequest, rest string) inputlife
 	skillName := fields[0]
 	naturalLanguage := strings.TrimSpace(strings.TrimPrefix(rest, skillName))
 	if naturalLanguage == "" {
-		return transcriptErrorResult(i18n.T("en", i18n.KeyUsageSkill))
+		naturalLanguage = "Follow SKILL.md (no extra detail from the user)."
 	}
 	skillDir := skillstore.SkillDir(skillName)
 	if _, err := os.Stat(filepath.Join(skillDir, "SKILL.md")); err != nil {
@@ -83,11 +83,13 @@ func executeSkillInvocation(req ui.SlashExecutionRequest, rest string) inputlife
 		return transcriptErrorResult(i18n.Tf("en", i18n.KeySkillInstallFailed, err))
 	}
 	payload := skillInvocationPrompt(skillName, skillContent, naturalLanguage)
+	userLine := strings.TrimSpace(req.RawText)
 	if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.Submission{
 		Submission: inputlifecycletype.InputSubmission{
-			Kind:    inputlifecycletype.SubmissionChat,
-			Source:  inputlifecycletype.SourceProgrammatic,
-			RawText: payload,
+			Kind:               inputlifecycletype.SubmissionChat,
+			Source:             inputlifecycletype.SourceProgrammatic,
+			RawText:            payload,
+			SessionDisplayText: userLine,
 		},
 	}) {
 		return inputlifecycletype.ProcessResult{}

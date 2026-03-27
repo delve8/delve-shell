@@ -14,7 +14,7 @@ func TestEvaluateMainEnter_NoSlash(t *testing.T) {
 }
 
 func TestEvaluateMainEnter_SessionNone(t *testing.T) {
-	got := EvaluateMainEnter("/sessions", EnterInput{
+	got := EvaluateMainEnter("/session", EnterInput{
 		HasSlashPrefix:      true,
 		Selected:            slashview.Option{Cmd: "No sessions available."},
 		VisibleOptionCount:  1,

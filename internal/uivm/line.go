@@ -16,6 +16,10 @@ const (
 
 	LineExec
 	LineResult
+
+	// LineSessionBanner is a short UI notice (e.g. session switch), not a normal transcript line:
+	// rendered without the "Delve:" prefix and with a distinct style.
+	LineSessionBanner
 )
 
 // Line is one semantic transcript line. Rendering and wrapping are owned by internal/ui.

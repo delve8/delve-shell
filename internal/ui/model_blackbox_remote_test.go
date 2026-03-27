@@ -36,16 +36,16 @@ func TestBlackboxSlashNewSubmitsCommand(t *testing.T) {
 	}
 }
 
-func TestBlackboxSlashSessionsPrefixSubmitsCommand(t *testing.T) {
+func TestBlackboxSlashSessionPrefixSubmitsCommand(t *testing.T) {
 	f := newBlackboxFixture(t)
-	got := enterText(f.model, "/sessions demo")
+	got := enterText(f.model, "/session demo")
 	select {
 	case sessionID := <-f.sessionSwitch:
 		if sessionID != "demo" {
 			t.Fatalf("expected session switch 'demo', got %q", sessionID)
 		}
 	default:
-		t.Fatalf("expected /sessions <id> to emit session-switch intent")
+		t.Fatalf("expected /session <id> to emit session-switch intent")
 	}
 	if strings.TrimSpace(got.Input.Value()) != "" {
 		t.Fatalf("expected input cleared after prefix slash execution, got %q", got.Input.Value())

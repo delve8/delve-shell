@@ -67,8 +67,8 @@ func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inpu
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 		}
 		return inputlifecycletype.ConsumedResult(), nil
-	case strings.HasPrefix(trimmed, "/sessions "):
-		sessionID := strings.TrimSpace(strings.TrimPrefix(trimmed, "/sessions "))
+	case strings.HasPrefix(trimmed, "/session "):
+		sessionID := strings.TrimSpace(strings.TrimPrefix(trimmed, "/session "))
 		if e.sender == nil || !e.sender.Send(hostcmd.SessionSwitch{SessionID: sessionID}) {
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 		}

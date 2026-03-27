@@ -54,14 +54,14 @@ func registerSlashOptionsProviders() {
 
 func rootSlashOptions(lang string) []ui.SlashOption {
 	return []ui.SlashOption{
-		{Cmd: "/help", Desc: i18n.T(lang, i18n.KeyDescHelp)},
-		{Cmd: "/config", Desc: i18n.T(lang, i18n.KeyDescConfig)},
 		{Cmd: "/remote", Desc: i18n.T(lang, i18n.KeyDescRemoteOn)},
-		{Cmd: "/new", Desc: i18n.T(lang, i18n.KeySessionNew)},
-		{Cmd: "/sessions", Desc: i18n.T(lang, i18n.KeyDescSessions)},
-		{Cmd: "/skill <skill-name> [detail]", Desc: i18n.T(lang, i18n.KeyDescSkill)},
+		{Cmd: "/skill <name> [detail]", Desc: i18n.T(lang, i18n.KeyDescSkill)},
 		{Cmd: slashRunUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun), FillValue: "/run "},
 		{Cmd: "/sh", Desc: i18n.T(lang, i18n.KeyDescSh)},
+		{Cmd: "/config", Desc: i18n.T(lang, i18n.KeyDescConfig)},
+		{Cmd: "/new", Desc: i18n.T(lang, i18n.KeySessionNew)},
+		{Cmd: "/session", Desc: i18n.T(lang, i18n.KeyDescSessions)},
+		{Cmd: "/help", Desc: i18n.T(lang, i18n.KeyDescHelp)},
 		{Cmd: "/q", Desc: i18n.T(lang, i18n.KeyDescExit)},
 	}
 }

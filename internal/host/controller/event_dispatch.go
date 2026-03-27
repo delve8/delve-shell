@@ -12,7 +12,7 @@ var hostEventHandlers = map[bus.Kind]func(*Controller, bus.Event){
 		c.handleSubmitSwitchSession(e.SessionID)
 	},
 	bus.KindUserChatSubmitted: func(c *Controller, e bus.Event) {
-		c.handleUserChat(e.UserText)
+		c.handleUserChat(e)
 	},
 	bus.KindConfigUpdated: func(c *Controller, _ bus.Event) {
 		c.handleConfigUpdated()

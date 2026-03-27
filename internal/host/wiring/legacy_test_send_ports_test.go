@@ -423,7 +423,7 @@ func TestBindSendPorts_SubmitPayloadTable(t *testing.T) {
 		"\ttrimmed by UI normally\t",
 		"unicode 你好",
 		`/run echo "hi"`,
-		`/sessions ` + strings.Repeat("id", 5),
+		`/session ` + strings.Repeat("id", 5),
 		`/new`,
 		`question ?`,
 		`exclaim !`,

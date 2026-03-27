@@ -13,15 +13,21 @@ import (
 	"delve-shell/internal/cli/hostfsm"
 	"delve-shell/internal/config"
 	"delve-shell/internal/history"
+	"delve-shell/internal/i18n"
 	"delve-shell/internal/host/bus"
 	"delve-shell/internal/modelinfo"
 	"delve-shell/internal/session"
 	"delve-shell/internal/uivm"
 )
 
-func (c *Controller) handleUserChat(userMsg string) {
+func (c *Controller) handleUserChat(e bus.Event) {
+	sessionText := strings.TrimSpace(e.UserText)
+	llmText := strings.TrimSpace(e.Submission.RawText)
+	if llmText == "" {
+		llmText = sessionText
+	}
 	if s := c.sessions.Current(); s != nil {
-		_ = s.AppendUserInput(userMsg)
+		_ = s.AppendUserInput(sessionText)
 	}
 	if c.llmRunning {
 		c.ui.AgentReply("", fmt.Errorf("LLM request is already running; press Esc to cancel it first"))
@@ -62,7 +68,7 @@ func (c *Controller) handleUserChat(userMsg string) {
 				historyMsgs = agent.TrimConversationToContext(historyMsgs, maxMsg, maxChars)
 			}
 		}
-		reply, runErr := r.Run(reqCtx, userMsg, historyMsgs)
+		reply, runErr := r.Run(reqCtx, llmText, historyMsgs)
 		c.bus.PublishBlocking(bus.Event{
 			Kind:  bus.KindLLMRunCompleted,
 			Reply: reply,
@@ -104,7 +110,13 @@ func (c *Controller) handleSubmitSwitchSession(sessionID string) {
 func (c *Controller) publishSessionTranscript(path string) {
 	events, _ := history.ReadRecent(path, agent.MaxConversationEvents)
 	lines := session.EventsToTranscriptLines(events)
-	lines = append(lines, uivm.Line{Kind: uivm.LineSystemSuggest, Text: "Session switched."})
+	sessionID := strings.TrimSuffix(filepath.Base(path), ".jsonl")
+	lang := "en"
+	if cfg, err := config.Load(); err == nil && cfg != nil && cfg.Language != "" {
+		lang = cfg.Language
+	}
+	banner := i18n.Tf(lang, i18n.KeySessionSwitchedTo, sessionID)
+	lines = append(lines, uivm.Line{Kind: uivm.LineSessionBanner, Text: banner})
 	lines = append(lines, uivm.Line{Kind: uivm.LineBlank})
 	c.ui.TranscriptReplace(lines)
 }
