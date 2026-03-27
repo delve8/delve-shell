@@ -1,6 +1,7 @@
 package executormgr
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -17,6 +18,7 @@ type sshNewWithPasswordFunc func(target, identityFile, password string) (execenv
 type Manager struct {
 	mu       sync.Mutex
 	executor execenv.CommandExecutor
+	pending  *pendingHostKeyDecision
 
 	remoteCredMu sync.Mutex
 	remoteCreds  map[string]remoteCred // key: host-only
@@ -29,6 +31,13 @@ type remoteCred struct {
 	Kind     string // "password" or "identity"
 	Username string
 	Secret   string // password or identity file path
+}
+
+type pendingHostKeyDecision struct {
+	target       string
+	label        string
+	identityFile string
+	mismatch     *execenv.HostKeyMismatchError
 }
 
 func New() *Manager {
@@ -198,6 +207,28 @@ func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 		prompt := &remoteauth.Prompt{Target: target, Err: info, UseConfiguredIdentity: true}
 		exec, _, err := m.newSSH(target, identityFile)
 		if err != nil || exec == nil {
+			var mismatch *execenv.HostKeyMismatchError
+			if errors.As(err, &mismatch) {
+				m.mu.Lock()
+				m.pending = &pendingHostKeyDecision{
+					target:       target,
+					label:        label,
+					identityFile: identityFile,
+					mismatch:     mismatch,
+				}
+				m.mu.Unlock()
+				return ConnectResult{
+					Connected: false,
+					Label:     label,
+					AuthPrompt: &remoteauth.Prompt{
+						Target:             target,
+						HostKeyVerify:      true,
+						HostKeyHost:        mismatch.Hostname,
+						HostKeyFingerprint: mismatch.Fingerprint,
+						Err:                hostKeyDecisionPrompt(mismatch),
+					},
+				}
+			}
 			msg := fmt.Sprintf("Remote connect failed for %s: %v", hostOnly, err)
 			return ConnectResult{Connected: false, Label: label, AuthPrompt: &remoteauth.Prompt{Target: target, Err: msg}}
 		}
@@ -209,9 +240,69 @@ func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 	// 3) Plain SSH attempt
 	exec, _, err := m.newSSH(target, "")
 	if err != nil || exec == nil {
+		var mismatch *execenv.HostKeyMismatchError
+		if errors.As(err, &mismatch) {
+			m.mu.Lock()
+			m.pending = &pendingHostKeyDecision{
+				target:       target,
+				label:        label,
+				identityFile: identityFile,
+				mismatch:     mismatch,
+			}
+			m.mu.Unlock()
+			return ConnectResult{
+				Connected: false,
+				Label:     label,
+				AuthPrompt: &remoteauth.Prompt{
+					Target:             target,
+					HostKeyVerify:      true,
+					HostKeyHost:        mismatch.Hostname,
+					HostKeyFingerprint: mismatch.Fingerprint,
+					Err:                hostKeyDecisionPrompt(mismatch),
+				},
+			}
+		}
 		msg := fmt.Sprintf("Remote connect failed for %s: %v", hostOnly, err)
 		return ConnectResult{Connected: false, Label: label, AuthPrompt: &remoteauth.Prompt{Target: target, Err: msg}}
 	}
 	m.Set(exec)
 	return ConnectResult{Connected: true, Label: label, Executor: exec}
+}
+
+func hostKeyDecisionPrompt(mismatch *execenv.HostKeyMismatchError) string {
+	if mismatch != nil && mismatch.UnknownHost {
+		return "Host key is not trusted yet. Accept to add/update known_hosts or reject to abort."
+	}
+	return "Host key mismatch detected. Accept to update known_hosts or reject to abort."
+}
+
+// ResolveHostKeyDecision resolves a pending host-key mismatch decision and retries connection on accept.
+func (m *Manager) ResolveHostKeyDecision(target string, accept bool) ConnectResult {
+	m.mu.Lock()
+	pending := m.pending
+	m.pending = nil
+	m.mu.Unlock()
+	if pending == nil || pending.mismatch == nil {
+		return ConnectResult{Connected: false, Label: config.HostFromTarget(target)}
+	}
+	if !accept {
+		return ConnectResult{Connected: false, Label: pending.label}
+	}
+	if err := execenv.UpdateKnownHost(pending.mismatch.Hostname, pending.mismatch.Key); err != nil {
+		return ConnectResult{
+			Connected:  false,
+			Label:      pending.label,
+			AuthPrompt: &remoteauth.Prompt{Target: pending.target, Err: fmt.Sprintf("Failed to update known_hosts: %v", err)},
+		}
+	}
+	exec, _, err := m.newSSH(pending.target, pending.identityFile)
+	if err != nil || exec == nil {
+		return ConnectResult{
+			Connected:  false,
+			Label:      pending.label,
+			AuthPrompt: &remoteauth.Prompt{Target: pending.target, Err: fmt.Sprintf("Remote connect failed for %s: %v", config.HostFromTarget(pending.target), err)},
+		}
+	}
+	m.Set(exec)
+	return ConnectResult{Connected: true, Label: pending.label, Executor: exec}
 }

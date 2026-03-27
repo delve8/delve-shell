@@ -23,16 +23,16 @@ func remoteStateProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		}
 		setCachedRunSuggestions(t.Commands)
 		return m, nil, true
+	case AuthPromptMsg, ConnectDoneMsg:
+		// Must run here, not only via overlay feature Event: direct `/remote on …` has no overlay
+		// open yet; those messages were previously dropped and produced a silent failure.
+		return remoteConnectUIHandler(m, msg)
 	default:
 		return m, nil, false
 	}
 }
 
-func remoteOverlayEventProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
-	if m.Overlay.Key != "remote" {
-		return m, nil, false
-	}
-
+func remoteConnectUIHandler(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 	state := getRemoteOverlayState()
 	switch t := msg.(type) {
 	case ConnectDoneMsg:
@@ -47,6 +47,8 @@ func remoteOverlayEventProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, boo
 				state.RemoteAuth.Step = ""
 				state.RemoteAuth.Target = ""
 				state.RemoteAuth.Error = ""
+				state.RemoteAuth.HostKeyHost = ""
+				state.RemoteAuth.HostKeyFP = ""
 				state.RemoteAuth.Username = ""
 				pathcomplete.SetState(pathcomplete.State{Index: -1})
 				m.Input.Focus()
@@ -69,7 +71,15 @@ func remoteOverlayEventProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, boo
 		m = m.OpenOverlayFeature("remote", "Remote Auth", "")
 		state.RemoteAuth.Target = t.Target
 		state.RemoteAuth.Error = t.Err
+		state.RemoteAuth.HostKeyHost = t.HostKeyHost
+		state.RemoteAuth.HostKeyFP = t.HostKeyFingerprint
 		m.Interaction.ChoiceIndex = 0
+		if t.HostKeyVerify {
+			state.RemoteAuth.Step = "hostkey"
+			state.RemoteAuth.Connecting = false
+			setRemoteOverlayState(state)
+			return m, nil, true
+		}
 		if t.UseConfiguredIdentity {
 			state.RemoteAuth.Step = "auto_identity"
 			state.RemoteAuth.Connecting = true

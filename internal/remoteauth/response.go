@@ -8,6 +8,9 @@ type Prompt struct {
 	Target                string
 	Err                   string
 	UseConfiguredIdentity bool // true when connecting immediately with a configured identity file; dialog shows "Connecting..." first
+	HostKeyVerify         bool
+	HostKeyFingerprint    string
+	HostKeyHost           string
 }
 
 // Response carries user-provided credentials from the remote auth overlay back to the host.
@@ -17,6 +20,6 @@ type Prompt struct {
 type Response struct {
 	Target   string
 	Username string
-	Kind     string
+	Kind     string // "password", "identity", "hostkey_accept", or "hostkey_reject"
 	Password string // password when Kind == "password", or key file path when Kind == "identity"
 }

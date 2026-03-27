@@ -9,10 +9,9 @@ import (
 )
 
 func getRemoteSlashOptions(filter string, lang string) []ui.SlashOption {
-	manualOpt := ui.SlashOption{Cmd: "/remote on", Desc: i18n.T(lang, i18n.KeyRemoteManualHint)}
 	remotes, err := config.LoadRemotes()
 	if err != nil || len(remotes) == 0 {
-		return []ui.SlashOption{manualOpt}
+		return nil
 	}
 
 	filterLower := strings.ToLower(filter)
@@ -29,9 +28,9 @@ func getRemoteSlashOptions(filter string, lang string) []ui.SlashOption {
 		})
 	}
 	if len(hostOpts) == 0 {
-		return []ui.SlashOption{manualOpt}
+		return nil
 	}
-	return append([]ui.SlashOption{manualOpt}, hostOpts...)
+	return hostOpts
 }
 
 func getRemoveRemoteSlashOptions(lang string, filter string) []ui.SlashOption {

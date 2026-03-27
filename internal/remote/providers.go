@@ -55,7 +55,8 @@ func registerProviders() {
 		Key: func(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
 			return handleRemoteOverlayKey(m, key, msg)
 		},
-		Event: remoteOverlayEventProvider,
+		// AuthPromptMsg / ConnectDoneMsg are handled in [remoteStateProvider] so they apply when
+		// no overlay is open yet (e.g. direct `/remote on host`).
 		Content: func(m ui.Model) (string, bool) {
 			return buildRemoteOverlayContent(m)
 		},

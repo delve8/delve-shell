@@ -325,7 +325,7 @@ Keyboard: Up/Down, PgUp/PgDown scroll. When input starts with /, Up/Down pick a 
 		KeyRemoteNone:                    "No remotes configured.",
 		KeyDelRemoteNoHosts:              "No hosts.",
 		KeyDescRemoteOn:                  "Connect to a remote host",
-		KeyDescRemoteOff:                 "Disconnect from remote and run commands locally",
+		KeyDescRemoteOff:                 "Disconnect from remote host",
 		KeyRemoteManualHint:              "Open remote connection dialog",
 		KeyHelpTitle:                     "Help",
 		KeyAddRemoteTitle:                "Add Remote",

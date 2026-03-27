@@ -17,27 +17,34 @@ func remoteSlashOptionsProvider(
 	normalized = strings.TrimSpace(normalized)
 	normalizedLower := strings.ToLower(normalized)
 
-	if normalizedLower == "remote" {
-		return []ui.SlashOption{
-			{Cmd: "/remote on", Desc: i18n.T(lang, i18n.KeyDescRemoteOn)},
-			{Cmd: "/remote off", Desc: i18n.T(lang, i18n.KeyDescRemoteOff)},
-		}, true
-	}
-
-	if strings.HasPrefix(normalizedLower, "remote on") {
-		filter := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "remote on"))
-		opts := getRemoteSlashOptions(filter, lang)
-		offOpt := ui.SlashOption{Cmd: "/remote off", Desc: i18n.T(lang, i18n.KeyDescRemoteOff)}
-		return append([]ui.SlashOption{offOpt}, opts...), true
-	}
-
-	// /remote off (and prefixes like "remote o" while typing); do not match "remote on" above.
-	if normalizedLower == "remote off" || strings.HasPrefix(normalizedLower, "remote off ") ||
-		(strings.HasPrefix(normalizedLower, "remote") && strings.HasPrefix("remote off", normalizedLower) &&
-			!strings.HasPrefix(normalizedLower, "remote on")) {
-		return []ui.SlashOption{
-			{Cmd: "/remote off", Desc: i18n.T(lang, i18n.KeyDescRemoteOff)},
-		}, true
+	if normalizedLower == "remote" || strings.HasPrefix(normalizedLower, "remote ") {
+		if normalizedLower == "remote on" {
+			hostOpts := getRemoteSlashOptions("", lang)
+			opts := make([]ui.SlashOption, 0, len(hostOpts)+2)
+			opts = append(opts, ui.SlashOption{Cmd: "/remote on", Desc: i18n.T(lang, i18n.KeyDescRemoteOn)})
+			opts = append(opts, hostOpts...)
+			opts = append(opts, ui.SlashOption{Cmd: "/remote off", Desc: i18n.T(lang, i18n.KeyDescRemoteOff)})
+			return opts, true
+		}
+		restRaw := ""
+		if len(normalized) >= len("remote") {
+			restRaw = strings.TrimSpace(normalized[len("remote"):])
+		}
+		restLower := ""
+		if len(normalizedLower) >= len("remote") {
+			restLower = strings.TrimSpace(normalizedLower[len("remote"):])
+		}
+		typedTarget := restRaw
+		hostFilter := restLower
+		if restLower == "on" || strings.HasPrefix(restLower, "on ") {
+			hostFilter = strings.TrimSpace(strings.TrimPrefix(restLower, "on"))
+			typedTarget = ""
+		}
+		if strings.HasPrefix(restLower, "off") {
+			hostFilter = restLower
+			typedTarget = ""
+		}
+		return buildRemoteDropdownOptions(lang, hostFilter, typedTarget), true
 	}
 
 	if normalizedLower == "config" || strings.HasPrefix(normalizedLower, "config ") {
@@ -77,4 +84,31 @@ func remoteSlashOptionsProvider(
 	}
 
 	return nil, false
+}
+
+func buildRemoteDropdownOptions(lang, hostFilter, typedTarget string) []ui.SlashOption {
+	opts := make([]ui.SlashOption, 0, 8)
+	seen := make(map[string]struct{}, 8)
+	push := func(opt ui.SlashOption) {
+		if _, ok := seen[opt.Cmd]; ok {
+			return
+		}
+		seen[opt.Cmd] = struct{}{}
+		opts = append(opts, opt)
+	}
+
+	typedTarget = strings.TrimSpace(typedTarget)
+	if typedTarget != "" && typedTarget != "on" && typedTarget != "off" {
+		push(ui.SlashOption{
+			Cmd:  "/remote on " + typedTarget,
+			Desc: i18n.T(lang, i18n.KeyRemoteManualHint),
+		})
+	}
+
+	for _, opt := range getRemoteSlashOptions(hostFilter, lang) {
+		push(opt)
+	}
+	push(ui.SlashOption{Cmd: "/remote on", Desc: i18n.T(lang, i18n.KeyDescRemoteOn)})
+	push(ui.SlashOption{Cmd: "/remote off", Desc: i18n.T(lang, i18n.KeyDescRemoteOff)})
+	return opts
 }

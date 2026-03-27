@@ -2,11 +2,14 @@ package executormgr
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
 	"errors"
 	"testing"
 
 	"delve-shell/internal/execenv"
 	"delve-shell/internal/remoteauth"
+	"golang.org/x/crypto/ssh"
 )
 
 type fakeExec struct{}
@@ -106,5 +109,91 @@ func TestHandleRemoteAuthResponse_Success_CachesAndSetsExecutor(t *testing.T) {
 	}
 	if _, _, _, ok := m.GetCachedCred("example.com"); !ok {
 		t.Fatalf("expected cred cached for hostOnly")
+	}
+}
+
+func TestConnect_HostKeyMismatch_ReturnsVerifyPrompt(t *testing.T) {
+	m := New()
+	m.SetSSHFactories(
+		func(target, identity string) (execenv.CommandExecutor, string, error) {
+			return nil, "", &execenv.HostKeyMismatchError{
+				Hostname:    "[example.com]:22",
+				Fingerprint: "SHA256:test",
+			}
+		},
+		nil,
+	)
+	res := m.Connect("root@example.com", "lbl", "")
+	if res.Connected {
+		t.Fatalf("expected not connected")
+	}
+	if res.AuthPrompt == nil || !res.AuthPrompt.HostKeyVerify {
+		t.Fatalf("expected host-key verify prompt")
+	}
+	if res.AuthPrompt.HostKeyFingerprint == "" {
+		t.Fatalf("expected fingerprint in host-key verify prompt")
+	}
+}
+
+func TestConnect_UnknownHostKey_ReturnsVerifyPrompt(t *testing.T) {
+	m := New()
+	m.SetSSHFactories(
+		func(target, identity string) (execenv.CommandExecutor, string, error) {
+			return nil, "", &execenv.HostKeyMismatchError{
+				Hostname:    "[example.com]:22",
+				Fingerprint: "SHA256:unknown",
+				UnknownHost: true,
+			}
+		},
+		nil,
+	)
+	res := m.Connect("root@example.com", "lbl", "")
+	if res.Connected {
+		t.Fatalf("expected not connected")
+	}
+	if res.AuthPrompt == nil || !res.AuthPrompt.HostKeyVerify {
+		t.Fatalf("expected host-key verify prompt")
+	}
+	if res.AuthPrompt.HostKeyFingerprint != "SHA256:unknown" {
+		t.Fatalf("unexpected fingerprint: %q", res.AuthPrompt.HostKeyFingerprint)
+	}
+	if res.AuthPrompt.Err == "" {
+		t.Fatalf("expected host-key decision message")
+	}
+}
+
+func TestResolveHostKeyDecision_Accept_Reconnects(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	m := New()
+	pub, _, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("generate key: %v", err)
+	}
+	sshKey, err := ssh.NewPublicKey(pub)
+	if err != nil {
+		t.Fatalf("new public key: %v", err)
+	}
+	calls := 0
+	m.SetSSHFactories(
+		func(target, identity string) (execenv.CommandExecutor, string, error) {
+			calls++
+			if calls == 1 {
+				return nil, "", &execenv.HostKeyMismatchError{
+					Hostname:    "[example.com]:22",
+					Fingerprint: "SHA256:test",
+					Key:         sshKey,
+				}
+			}
+			return fakeExec{}, "", nil
+		},
+		nil,
+	)
+	first := m.Connect("root@example.com", "lbl", "")
+	if first.AuthPrompt == nil || !first.AuthPrompt.HostKeyVerify {
+		t.Fatalf("expected host-key verify prompt from first connect")
+	}
+	res := m.ResolveHostKeyDecision("root@example.com", true)
+	if !res.Connected {
+		t.Fatalf("expected connected after accepting host key")
 	}
 }

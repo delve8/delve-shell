@@ -56,6 +56,9 @@ func (c *Controller) handleRemoteOn(target string) {
 			Target:                res.AuthPrompt.Target,
 			Err:                   res.AuthPrompt.Err,
 			UseConfiguredIdentity: res.AuthPrompt.UseConfiguredIdentity,
+			HostKeyVerify:         res.AuthPrompt.HostKeyVerify,
+			HostKeyFingerprint:    res.AuthPrompt.HostKeyFingerprint,
+			HostKeyHost:           res.AuthPrompt.HostKeyHost,
 		})
 	}
 	if !res.Connected {
@@ -74,6 +77,35 @@ func (c *Controller) handleRemoteOff() {
 }
 
 func (c *Controller) handleRemoteAuthResp(resp remoteauth.Response) {
+	if resp.Kind == "hostkey_accept" || resp.Kind == "hostkey_reject" {
+		res := c.executors.ResolveHostKeyDecision(resp.Target, resp.Kind == "hostkey_accept")
+		if res.AuthPrompt != nil {
+			c.ui.Raw(remote.AuthPromptMsg{
+				Target:                res.AuthPrompt.Target,
+				Err:                   res.AuthPrompt.Err,
+				UseConfiguredIdentity: res.AuthPrompt.UseConfiguredIdentity,
+				HostKeyVerify:         res.AuthPrompt.HostKeyVerify,
+				HostKeyFingerprint:    res.AuthPrompt.HostKeyFingerprint,
+				HostKeyHost:           res.AuthPrompt.HostKeyHost,
+			})
+		}
+		if !res.Connected {
+			if resp.Kind == "hostkey_reject" {
+				label := strings.TrimSpace(res.Label)
+				if label == "" {
+					label = config.HostFromTarget(resp.Target)
+				}
+				c.ui.SystemNotify(fmt.Sprintf("Remote host key rejected; not connected to %s.", label))
+			}
+			c.ui.RemoteConnectDone(false, res.Label, "")
+			return
+		}
+		c.updateRemoteRunCompletion(res.Executor, res.Label)
+		c.ui.RemoteStatus(true, res.Label)
+		c.ui.SystemNotify(fmt.Sprintf("Connected to remote: %s", res.Label))
+		c.ui.RemoteConnectDone(true, res.Label, "")
+		return
+	}
 	if resp.Password == "" {
 		return
 	}

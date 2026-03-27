@@ -20,6 +20,9 @@ type AuthPromptMsg struct {
 	Target                string
 	Err                   string
 	UseConfiguredIdentity bool
+	HostKeyVerify         bool
+	HostKeyFingerprint    string
+	HostKeyHost           string
 }
 
 // RunCompletionCacheMsg provides a cached list of candidate strings for /run completion.

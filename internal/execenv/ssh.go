@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -23,6 +24,32 @@ type SSHExecutor struct {
 	addr   string // host:port
 }
 
+// HostKeyMismatchError indicates the server presented a host key that conflicts
+// with entries already recorded in known_hosts.
+type HostKeyMismatchError struct {
+	Hostname    string
+	Fingerprint string
+	Key         ssh.PublicKey
+	UnknownHost bool
+	Cause       error
+}
+
+func (e *HostKeyMismatchError) Error() string {
+	if e == nil {
+		return "ssh host key mismatch"
+	}
+	if e.UnknownHost {
+		if e.Fingerprint == "" {
+			return "ssh host key unknown"
+		}
+		return fmt.Sprintf("ssh host key unknown (%s)", e.Fingerprint)
+	}
+	if e.Fingerprint == "" {
+		return "ssh host key mismatch"
+	}
+	return fmt.Sprintf("ssh host key mismatch (%s)", e.Fingerprint)
+}
+
 // NewSSHExecutor creates an SSHExecutor for target (user@host or host[:port]).
 // identityFile, when non-empty, is used as a private key; when empty, ~/.ssh/id_rsa
 // is tried first (like OpenSSH client), then SSH agent.
@@ -36,6 +63,32 @@ func NewSSHExecutor(target, identityFile string) (*SSHExecutor, string, error) {
 	if err != nil {
 		// Fallback to accepting any host key; caller should tighten this in high-security environments.
 		hostKeyCallback = ssh.InsecureIgnoreHostKey()
+	} else {
+		knownHostsCB := hostKeyCallback
+		hostKeyCallback = func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+			if cbErr := knownHostsCB(hostname, remote, key); cbErr != nil {
+				var keyErr *knownhosts.KeyError
+				if errors.As(cbErr, &keyErr) && len(keyErr.Want) > 0 {
+					return &HostKeyMismatchError{
+						Hostname:    hostname,
+						Fingerprint: ssh.FingerprintSHA256(key),
+						Key:         key,
+						Cause:       cbErr,
+					}
+				}
+				if errors.As(cbErr, &keyErr) && len(keyErr.Want) == 0 {
+					return &HostKeyMismatchError{
+						Hostname:    hostname,
+						Fingerprint: ssh.FingerprintSHA256(key),
+						Key:         key,
+						UnknownHost: true,
+						Cause:       cbErr,
+					}
+				}
+				return cbErr
+			}
+			return nil
+		}
 	}
 
 	authMethods, err := buildAuthMethods(identityFile, "")
@@ -77,6 +130,32 @@ func NewSSHExecutorWithPassword(target, identityFile, password string) (*SSHExec
 	hostKeyCallback, err := loadKnownHosts()
 	if err != nil {
 		hostKeyCallback = ssh.InsecureIgnoreHostKey()
+	} else {
+		knownHostsCB := hostKeyCallback
+		hostKeyCallback = func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+			if cbErr := knownHostsCB(hostname, remote, key); cbErr != nil {
+				var keyErr *knownhosts.KeyError
+				if errors.As(cbErr, &keyErr) && len(keyErr.Want) > 0 {
+					return &HostKeyMismatchError{
+						Hostname:    hostname,
+						Fingerprint: ssh.FingerprintSHA256(key),
+						Key:         key,
+						Cause:       cbErr,
+					}
+				}
+				if errors.As(cbErr, &keyErr) && len(keyErr.Want) == 0 {
+					return &HostKeyMismatchError{
+						Hostname:    hostname,
+						Fingerprint: ssh.FingerprintSHA256(key),
+						Key:         key,
+						UnknownHost: true,
+						Cause:       cbErr,
+					}
+				}
+				return cbErr
+			}
+			return nil
+		}
 	}
 
 	authMethods, err := buildAuthMethods(identityFile, password)
@@ -186,6 +265,65 @@ func loadKnownHosts() (ssh.HostKeyCallback, error) {
 	}
 	path := filepath.Join(home, ".ssh", "known_hosts")
 	return knownhosts.New(path)
+}
+
+// UpdateKnownHost replaces entries for hostname and writes the given public key to known_hosts.
+func UpdateKnownHost(hostname string, key ssh.PublicKey) error {
+	if strings.TrimSpace(hostname) == "" || key == nil {
+		return errors.New("hostname and key are required")
+	}
+	path, err := knownHostsPath()
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		return err
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	lines := strings.Split(string(raw), "\n")
+	out := make([]string, 0, len(lines)+1)
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			if trimmed != "" {
+				out = append(out, line)
+			}
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) == 0 {
+			continue
+		}
+		hosts := strings.Split(fields[0], ",")
+		matched := false
+		for _, h := range hosts {
+			if strings.TrimSpace(h) == hostname {
+				matched = true
+				break
+			}
+		}
+		if matched {
+			continue
+		}
+		out = append(out, line)
+	}
+	out = append(out, knownhosts.Line([]string{hostname}, key))
+	content := strings.Join(out, "\n")
+	if !strings.HasSuffix(content, "\n") {
+		content += "\n"
+	}
+	return os.WriteFile(path, []byte(content), 0600)
+}
+
+func knownHostsPath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".ssh", "known_hosts"), nil
 }
 
 // defaultIdentityPath is the path tried when identityFile is empty, matching OpenSSH client behavior.

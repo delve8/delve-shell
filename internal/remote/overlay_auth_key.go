@@ -20,6 +20,29 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 	}
 
 	switch state.RemoteAuth.Step {
+	case "hostkey":
+		if state.RemoteAuth.Connecting {
+			return ret(m, nil, true)
+		}
+		switch key {
+		case "1":
+			state.RemoteAuth.Connecting = true
+			_ = m.EmitRemoteAuthResponseIntent(remoteauth.Response{
+				Target: state.RemoteAuth.Target,
+				Kind:   "hostkey_accept",
+			})
+			return ret(m, nil, true)
+		case "2":
+			_ = m.EmitRemoteAuthResponseIntent(remoteauth.Response{
+				Target: state.RemoteAuth.Target,
+				Kind:   "hostkey_reject",
+			})
+			m = m.CloseOverlayVisual()
+			state.RemoteAuth = RemoteAuthOverlayState{}
+			return ret(m, nil, true)
+		}
+		return ret(m, nil, true)
+
 	case "auto_identity":
 		return ret(m, nil, true)
 

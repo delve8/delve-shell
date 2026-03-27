@@ -11,6 +11,40 @@ import (
 	"delve-shell/internal/ui"
 )
 
+// addRemoteFieldCount returns the number of focusable fields in the Add remote form.
+// Indices: 0 Host, 1 User, 2 Key path; when Connect: 3 Save; when Connect && Save: 4 Name.
+// When !Connect: 3 Name (always, config add-remote always persists).
+func addRemoteFieldCount(s AddRemoteOverlayState) int {
+	if !s.Connect {
+		return 4
+	}
+	if s.Save {
+		return 5
+	}
+	return 4
+}
+
+func applyAddRemoteFieldFocus(state *AddRemoteOverlayState) {
+	state.HostInput.Blur()
+	state.UserInput.Blur()
+	state.NameInput.Blur()
+	state.KeyInput.Blur()
+	switch state.FieldIndex {
+	case 0:
+		state.HostInput.Focus()
+	case 1:
+		state.UserInput.Focus()
+	case 2:
+		state.KeyInput.Focus()
+	case 3:
+		if !state.Connect {
+			state.NameInput.Focus()
+		}
+	case 4:
+		state.NameInput.Focus()
+	}
+}
+
 func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
 	state := getRemoteOverlayState()
 	pcState := pathcomplete.GetState()
@@ -21,7 +55,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 
 	switch key {
 	case "tab":
-		if state.AddRemote.FieldIndex == 3 {
+		if state.AddRemote.FieldIndex == 2 {
 			cands := pcState.Candidates
 			if len(cands) > 0 && pcState.Index >= 0 && pcState.Index < len(cands) {
 				chosen := cands[pcState.Index]
@@ -40,8 +74,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 		}
 
 	case "up", "down":
-		// In Key path with completion list: move within list. Else: Up/Down move focus between fields.
-		if state.AddRemote.FieldIndex == 3 && len(pcState.Candidates) > 0 {
+		if state.AddRemote.FieldIndex == 2 && len(pcState.Candidates) > 0 {
 			cands := pcState.Candidates
 			if key == "up" {
 				pcState.Index--
@@ -62,29 +95,10 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 		if key == "up" {
 			dir = -1
 		}
-		// Field count: 4 for /config add-remote, 5 (with save checkbox) for /remote on.
-		fieldCount := 4
-		if state.AddRemote.Connect {
-			fieldCount = 5
-		}
+		fieldCount := addRemoteFieldCount(state.AddRemote)
 		state.AddRemote.FieldIndex = (state.AddRemote.FieldIndex + dir + fieldCount) % fieldCount
-		state.AddRemote.UserInput.Blur()
-		state.AddRemote.HostInput.Blur()
-		state.AddRemote.NameInput.Blur()
-		state.AddRemote.KeyInput.Blur()
-		switch state.AddRemote.FieldIndex {
-		case 0:
-			state.AddRemote.HostInput.Focus()
-		case 1:
-			state.AddRemote.UserInput.Focus()
-		case 2:
-			state.AddRemote.NameInput.Focus()
-		case 3:
-			state.AddRemote.KeyInput.Focus()
-		case 4:
-			// Save checkbox: no textinput to focus.
-		}
-		if state.AddRemote.FieldIndex != 3 {
+		applyAddRemoteFieldFocus(&state.AddRemote)
+		if state.AddRemote.FieldIndex != 2 {
 			pcState.Candidates = nil
 			pcState.Index = -1
 		} else {
@@ -136,14 +150,14 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 		}
 
 	case " ":
-		// Space toggles save-as-remote only when focused on the checkbox field.
-		if state.AddRemote.FieldIndex == 4 {
+		if state.AddRemote.FieldIndex == 3 && state.AddRemote.Connect {
 			state.AddRemote.Save = !state.AddRemote.Save
+			applyAddRemoteFieldFocus(&state.AddRemote)
 			return ret(m, nil, true)
 		}
 
 	case "enter":
-		if state.AddRemote.FieldIndex == 3 {
+		if state.AddRemote.FieldIndex == 2 {
 			cands := pcState.Candidates
 			if len(cands) > 0 && pcState.Index >= 0 && pcState.Index < len(cands) {
 				chosen := cands[pcState.Index]
@@ -222,8 +236,6 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 	case 1:
 		state.AddRemote.UserInput, cmd = state.AddRemote.UserInput.Update(msg)
 	case 2:
-		state.AddRemote.NameInput, cmd = state.AddRemote.NameInput.Update(msg)
-	case 3:
 		state.AddRemote.KeyInput, cmd = state.AddRemote.KeyInput.Update(msg)
 		pcState.Candidates = pathcomplete.Candidates(state.AddRemote.KeyInput.Value())
 		if len(pcState.Candidates) > 0 {
@@ -231,8 +243,14 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 		} else {
 			pcState.Index = -1
 		}
+	case 3:
+		if !state.AddRemote.Connect {
+			state.AddRemote.NameInput, cmd = state.AddRemote.NameInput.Update(msg)
+		} else {
+			cmd = nil
+		}
 	case 4:
-		cmd = nil
+		state.AddRemote.NameInput, cmd = state.AddRemote.NameInput.Update(msg)
 	}
 	pathcomplete.SetState(pcState)
 	_ = msg

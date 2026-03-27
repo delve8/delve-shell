@@ -12,6 +12,8 @@ type RemoteAuthOverlayState struct {
 	Step          string
 	Target        string
 	Error         string
+	HostKeyHost   string
+	HostKeyFP     string
 	Username      string          // username to use when submitting (default root)
 	UsernameInput textinput.Model // username input in choose step
 	Input         textinput.Model // for password or identity path
