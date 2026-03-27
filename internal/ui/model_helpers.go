@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/viewport"
+	"github.com/mattn/go-runewidth"
 )
 
 const (
@@ -121,17 +122,20 @@ func (m Model) withTranscriptReplaced(lines []string) Model {
 	return m
 }
 
-// RefreshViewport rebuilds the view content and scrolls to bottom.
-// This is used by exact slash handlers that need immediate UI feedback.
+// RefreshViewport is kept as a compatibility shim for feature modules.
+// In normal log-stream mode it is a no-op; in choice-card mode it syncs the controlled viewport.
 func (m Model) RefreshViewport() Model {
-	m.Viewport.SetContent(m.buildContent())
-	m.Viewport.GotoBottom()
-	return m
+	return m.syncChoiceViewport()
 }
 
-// SetMainViewportContent rebuilds the main transcript viewport without changing scroll position.
-func (m Model) SetMainViewportContent() Model {
-	m.Viewport.SetContent(m.buildContent())
+func (m Model) syncChoiceViewport() Model {
+	if !m.hasPendingChoiceCard() {
+		return m
+	}
+	m.Viewport.Width = m.layout.Width
+	m.Viewport.Height = m.mainViewportHeight()
+	m.Viewport.SetContent(m.pendingChoiceContent())
+	m.Viewport.GotoBottom()
 	return m
 }
 
@@ -227,17 +231,10 @@ func (m Model) mainViewportHeight() int {
 
 func (m Model) mainBodyView() string {
 	if m.hasPendingChoiceCard() {
-		m.Viewport.Width = m.layout.Width
-		m.Viewport.Height = m.mainViewportHeight()
-		m.Viewport.SetContent(m.pendingChoiceContent())
-		m.Viewport.GotoBottom()
+		m = m.syncChoiceViewport()
 		return m.Viewport.View()
 	}
-	padLines := m.mainTopPaddingLines()
-	if padLines <= 0 {
-		return ""
-	}
-	return strings.Repeat("\n", padLines)
+	return ""
 }
 
 func (m Model) pendingChoiceContent() string {
@@ -256,24 +253,21 @@ func (m Model) printedTranscriptLineCount() int {
 	}
 	total := 0
 	for _, line := range m.messages[:limit] {
-		total += strings.Count(line, "\n") + 1
+		total += wrappedDisplayLineCount(transcriptAnsiStrip.ReplaceAllString(line, ""), m.contentWidth())
 	}
 	return total
 }
 
-func (m Model) mainTopPaddingLines() int {
+func (m Model) normalModeTopPaddingLines(bottomBlock string) int {
 	if m.layout.Height <= 0 {
 		return 0
 	}
-	available := m.layout.Height - m.inputChromeHeight()
-	if available <= 0 {
-		return 0
-	}
+	bottomLines := renderedDisplayLineCount(bottomBlock, m.contentWidth())
 	visiblePrinted := m.printedTranscriptLineCount()
-	if visiblePrinted > available {
-		visiblePrinted = available
+	if visiblePrinted > m.layout.Height {
+		visiblePrinted = m.layout.Height
 	}
-	pad := available - visiblePrinted
+	pad := m.layout.Height - visiblePrinted - bottomLines
 	if pad < 0 {
 		return 0
 	}
@@ -299,101 +293,39 @@ func (m Model) finalizeUpdate(prevOverlayActive bool, next Model, cmd tea.Cmd) (
 	return next, cmd
 }
 
-// visibleScreenLines returns the rendered lines for the current on-screen UI, excluding any selection styling.
-func (m Model) visibleScreenLines() []string {
-	return m.visibleScreenBuffer().Lines
-}
-
-func (m Model) visibleScreenBuffer() ScreenBuffer {
-	return newScreenBuffer(m.renderScreenSnapshot())
-}
-
-// visibleScreenText returns the current visible screen as plain text with ANSI stripped.
-func (m Model) visibleScreenText() string {
-	lines := m.visibleScreenLines()
-	if len(lines) == 0 {
-		return ""
-	}
-	var b strings.Builder
-	for i, line := range lines {
-		plain := transcriptAnsiStrip.ReplaceAllString(line, "")
-		plain = strings.TrimRight(plain, " ")
-		b.WriteString(plain)
-		if i < len(lines)-1 {
-			b.WriteString("\n")
-		}
-	}
-	return strings.TrimRight(b.String(), "\n")
-}
-
-// visiblePointForMouse maps a mouse coordinate to a visible screen point.
-func (m Model) visiblePointForMouse(y, x int) (ScreenPoint, bool) {
-	buf := m.visibleScreenBuffer()
-	pt, ok := buf.clampPoint(y, x)
-	if !ok {
-		return ScreenPoint{}, false
-	}
-	return pt, true
-}
-
-func (m Model) screenSelectionBounds() (ScreenPoint, ScreenPoint, bool) {
-	return m.visibleScreenBuffer().selectionBounds(m.TranscriptSelection)
-}
-
-// visibleLineForMouseY maps a mouse Y coordinate to a visible screen line index.
-func (m Model) visibleLineForMouseY(y int) (int, bool) {
-	lines := m.visibleScreenLines()
-	if len(lines) == 0 {
-		return 0, false
-	}
-	if y < 0 {
-		y = 0
-	}
-	if y >= len(lines) {
-		y = len(lines) - 1
-	}
-	return y, true
-}
-
-func (s ScreenSelectionState) bounds() (start, end ScreenPoint, ok bool) {
-	if !s.Active {
-		return ScreenPoint{}, ScreenPoint{}, false
-	}
-	start, end = s.Anchor, s.Focus
-	if start.Row > end.Row || (start.Row == end.Row && start.Col > end.Col) {
-		start, end = end, start
-	}
-	return start, end, true
-}
-
-func (m Model) transcriptSelectionText() (string, bool) {
-	return m.visibleScreenBuffer().selectionText(m.TranscriptSelection)
-}
-
-// selectedOrVisibleScreenText returns the active selection text if present, else the current visible screen text.
-func (m Model) selectedOrVisibleScreenText() string {
-	if text, ok := m.transcriptSelectionText(); ok && text != "" {
-		return text
-	}
-	return m.visibleScreenText()
-}
-
-func (m Model) withTranscriptSelection(start, end ScreenPoint) Model {
-	m.TranscriptSelection.Active = true
-	m.TranscriptSelection.Anchor = start
-	m.TranscriptSelection.Focus = end
-	return m
-}
-
-func (m Model) clearTranscriptSelection() Model {
-	m.TranscriptSelection = TranscriptSelectionState{}
-	return m
-}
-
 // renderSeparator returns a horizontal separator with provided width.
 func renderSeparator(width int) string {
 	if width < 1 {
 		width = 1
 	}
+	// Avoid drawing exactly to the terminal edge: many terminals will soft-wrap
+	// a full-width line, which breaks our bottom-block line accounting.
+	if width > 1 {
+		width--
+	}
 	return separatorStyle.Render(strings.Repeat("─", width))
+}
+
+func wrappedDisplayLineCount(text string, width int) int {
+	if width < 1 {
+		width = 1
+	}
+	parts := strings.Split(text, "\n")
+	total := 0
+	for _, part := range parts {
+		lineWidth := runewidth.StringWidth(part)
+		if lineWidth <= 0 {
+			total++
+			continue
+		}
+		total += (lineWidth + width - 1) / width
+	}
+	return total
+}
+
+func renderedDisplayLineCount(text string, width int) int {
+	if text == "" {
+		return 0
+	}
+	return wrappedDisplayLineCount(transcriptAnsiStrip.ReplaceAllString(text, ""), width)
 }

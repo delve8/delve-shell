@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/i18n"
@@ -50,12 +49,12 @@ func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 		m.Input.SetWidth(m.layout.Width - minInputLayoutWidth)
 	}
 	m = m.syncInputHeight()
-	if m.layout.Height > minInputLayoutWidth {
-		vh := m.mainViewportHeight()
-		m.Viewport.Width = m.layout.Width
-		m.Viewport.Height = vh
+	if m.hasPendingChoiceCard() && m.layout.Height > minInputLayoutWidth {
+		m = m.syncChoiceViewport()
 	}
-	m = m.RefreshViewport()
+	if m.Overlay.Active {
+		m = m.InitOverlayViewport()
+	}
 	if m.takeOpenConfigLLMOnFirstLayout() {
 		for _, entry := range overlayFeatures() {
 			if entry.feature.Startup == nil {
@@ -82,79 +81,33 @@ func (m Model) handleFocusMsg() (Model, tea.Cmd) {
 }
 
 func (m Model) handleMouseMsg(msg tea.MouseMsg) (Model, tea.Cmd) {
-	var cmd tea.Cmd
-	if m2, handled := m.handleScreenSelectionMouse(msg); handled {
-		return m2, nil
-	}
 	if m.Overlay.Active {
+		var cmd tea.Cmd
 		m.Overlay.Viewport, cmd = m.Overlay.Viewport.Update(msg)
 		return m, cmd
 	}
-	m.Viewport, cmd = m.Viewport.Update(msg)
-	return m, cmd
-}
-
-func (m Model) handleScreenSelectionMouse(msg tea.MouseMsg) (Model, bool) {
-	switch msg.Action {
-	case tea.MouseActionPress:
-		if msg.Button != tea.MouseButtonLeft {
-			return m, false
-		}
-		pt, ok := m.visiblePointForMouse(msg.Y, msg.X)
-		if !ok {
-			return m, false
-		}
-		m = m.withTranscriptSelection(pt, pt)
-		return m, true
-
-	case tea.MouseActionMotion:
-		if !m.TranscriptSelection.Active {
-			return m, false
-		}
-		pt, ok := m.visiblePointForMouse(msg.Y, msg.X)
-		if !ok {
-			return m, false
-		}
-		m.TranscriptSelection.Focus = pt
-		return m, true
-
-	case tea.MouseActionRelease:
-		if !m.TranscriptSelection.Active {
-			return m, false
-		}
-		if pt, ok := m.visiblePointForMouse(msg.Y, msg.X); ok {
-			m.TranscriptSelection.Focus = pt
-		}
-		text, ok := m.transcriptSelectionText()
-		if ok && text != "" {
-			_ = clipboard.WriteAll(text)
-		}
-		return m, true
-
-	default:
-		return m, false
-	}
+	return m, nil
 }
 
 func (m Model) handleTranscriptAppendMsg(msg TranscriptAppendMsg) (Model, tea.Cmd) {
 	if len(msg.Lines) == 0 {
 		return m, nil
 	}
+	if m.Interaction.WaitingForAI && transcriptHasSystemError(msg.Lines) {
+		m.Interaction.WaitingForAI = false
+	}
 	rendered := m.renderTranscriptLines(msg.Lines)
 	m = m.AppendTranscriptLines(rendered...)
-	m = m.RefreshViewport()
 	return m.printTranscriptCmd(false)
 }
 
 func (m Model) handleTranscriptReplaceMsg(msg TranscriptReplaceMsg) (Model, tea.Cmd) {
 	if len(msg.Lines) == 0 {
 		m = m.withTranscriptReplaced(nil)
-		m = m.RefreshViewport()
 		return m, nil
 	}
 	rendered := m.renderTranscriptLines(msg.Lines)
 	m = m.withTranscriptReplaced(rendered)
-	m = m.RefreshViewport()
 	return m.printTranscriptCmd(true)
 }
 
@@ -170,7 +123,7 @@ func (m Model) handleChoiceCardShowMsg(msg ChoiceCardShowMsg) (Model, tea.Cmd) {
 	}
 	m.Interaction.ChoiceIndex = 0
 	m.syncInputPlaceholder()
-	m = m.RefreshViewport()
+	m = m.syncChoiceViewport()
 	return m, nil
 }
 
@@ -201,4 +154,13 @@ func (m Model) renderTranscriptLines(lines []uivm.Line) []string {
 		}
 	}
 	return rendered
+}
+
+func transcriptHasSystemError(lines []uivm.Line) bool {
+	for _, line := range lines {
+		if line.Kind == uivm.LineSystemError {
+			return true
+		}
+	}
+	return false
 }

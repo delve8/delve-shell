@@ -75,7 +75,7 @@ func Register() {
 			if done.ErrText != "" {
 				st.Error = i18n.Tf(lang, i18n.KeyConfigLLMCheckFailed, done.ErrText)
 				setOverlayState(st)
-				return m.SetMainViewportContent(), nil, true
+				return m, nil, true
 			}
 			st.Error = ""
 			setOverlayState(st)

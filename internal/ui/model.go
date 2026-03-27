@@ -21,7 +21,6 @@ type Model struct {
 	Viewport            viewport.Model
 	messages            []string
 	printedMessages     int
-	TranscriptSelection ScreenSelectionState
 	ChoiceCard          ChoiceCardState
 	CommandSender       CommandSender
 	layout              LayoutState
@@ -41,16 +40,6 @@ type InteractionState struct {
 	ChoiceIndex       int  // 0-based selection when in Pending/PendingSensitive/PendingSuggested; Up/Down to move, Enter to confirm
 	WaitingForAI      bool // when true only blocks submitting new messages (Enter); /xxx slash commands always allowed
 }
-
-// ScreenSelectionState tracks a drag selection in the rendered screen buffer.
-type ScreenSelectionState struct {
-	Active bool
-	Anchor ScreenPoint
-	Focus  ScreenPoint
-}
-
-// TranscriptSelectionState is kept as a compatibility alias for older code paths.
-type TranscriptSelectionState = ScreenSelectionState
 
 // ChoiceCardState stores current pending choice card (approval or sensitive confirmation).
 type ChoiceCardState struct {

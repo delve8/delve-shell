@@ -66,7 +66,6 @@ func handleOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd
 			cfg = config.Default()
 			if err := config.EnsureRootDir(); err != nil {
 				m = m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T("en", i18n.KeyConfigPrefix) + err.Error()))
-				m = m.RefreshViewport()
 				return m, nil, true
 			}
 		}
@@ -91,7 +90,6 @@ func handleOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd
 		}
 		if err := config.Write(cfg); err != nil {
 			m = m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T("en", i18n.KeyConfigPrefix) + err.Error()))
-			m = m.RefreshViewport()
 			return m, nil, true
 		}
 		st = getOverlayState()

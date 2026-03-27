@@ -29,17 +29,15 @@ func (m Model) slashRuntimeDeps() slashdispatch.ExecDeps[Model, tea.Cmd] {
 		},
 		AppendSessionNone: func(mm Model) Model {
 			mm = mm.AppendTranscriptLines(suggestStyle.Render(mm.delveMsg(i18n.T(mm.getLang(), i18n.KeySessionNone))))
-			mm = mm.RefreshViewport()
 			return mm.clearSlashInput()
 		},
 		AppendDelRemoteNone: func(mm Model) Model {
 			mm = mm.AppendTranscriptLines(suggestStyle.Render(mm.delveMsg(i18n.T(mm.getLang(), i18n.KeyDelRemoteNoHosts))))
-			mm = mm.RefreshViewport()
 			return mm.clearSlashInput()
 		},
 		AppendUnknownSlash: func(mm Model) Model {
 			mm = mm.AppendTranscriptLines(errStyle.Render(mm.delveMsg(i18n.T(mm.getLang(), i18n.KeyUnknownCmd))))
-			return mm.RefreshViewport()
+			return mm
 		},
 		EchoSubmitted: func(mm Model, text string) Model {
 			return mm.appendUserSubmittedEcho(text)

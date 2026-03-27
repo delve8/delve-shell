@@ -3,7 +3,6 @@ package ui
 import (
 	"strings"
 
-	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/i18n"
@@ -32,31 +31,6 @@ func (s *keySession) slashSuggestIndex() int { return s.m.Interaction.slashSugge
 func (s *keySession) setSlashSuggestIndex(i int) { s.m.Interaction.slashSuggestIndex = i }
 
 func (s *keySession) waitingForAI() bool { return s.m.Interaction.WaitingForAI }
-
-func (s *keySession) updateViewportKey(msg tea.KeyMsg) tea.Cmd {
-	var cmd tea.Cmd
-	s.m.Viewport, cmd = s.m.Viewport.Update(msg)
-	return cmd
-}
-
-func (s *keySession) scrollViewportForKey(key string) bool {
-	switch key {
-	case "ctrl+u":
-		s.m.Viewport.HalfPageUp()
-		return true
-	case "ctrl+d":
-		s.m.Viewport.HalfPageDown()
-		return true
-	case "alt+up":
-		s.m.Viewport.ScrollUp(1)
-		return true
-	case "alt+down":
-		s.m.Viewport.ScrollDown(1)
-		return true
-	default:
-		return false
-	}
-}
 
 func (s *keySession) updateTextInput(msg tea.KeyMsg) tea.Cmd {
 	var cmd tea.Cmd
@@ -98,7 +72,16 @@ func (m Model) appendUserSubmittedEcho(text string) Model {
 	w := m.contentWidth()
 	sepLine := renderSeparator(w)
 	m.messages = maininput.AppendUserInputLines(m.messages, i18n.T(m.getLang(), i18n.KeyUserLabel), text, w, sepLine)
-	return m.RefreshViewport()
+	return m
+}
+
+func (m Model) appendSubmissionError(err error) (Model, tea.Cmd) {
+	if err == nil {
+		return m, nil
+	}
+	m.Interaction.WaitingForAI = false
+	m = m.AppendTranscriptLines(errStyle.Render(m.delveMsg(err.Error())))
+	return m.printTranscriptCmd(false)
 }
 
 func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
@@ -138,26 +121,12 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 			return mm, cmd
 		}
 	}
-	if key == "ctrl+shift+c" || key == "shift+ctrl+c" {
-		text := mm.selectedOrVisibleScreenText()
-		if text != "" {
-			_ = clipboard.WriteAll(text)
-		}
-		return mm, nil
-	}
-
 	if m2, cmd, handled := mm.handleOverlayKey(key, msg); handled {
 		return m2, cmd
 	}
 
 	inputVal = ks.inputValue()
 	if ks.handleSlashUpDown(key, inputVal) {
-		return mm, nil
-	}
-	if key == "pgup" || key == "pgdown" {
-		return mm, ks.updateViewportKey(msg)
-	}
-	if ks.scrollViewportForKey(key) {
 		return mm, nil
 	}
 
@@ -190,9 +159,8 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 		ks.setSlashSuggestIndex(0)
 		if res, handled, err := mm.lifecycleEngine().SubmitEnter(text, capture.SelectedIndex); handled {
 			if err != nil {
-				mm = mm.AppendTranscriptLines(errStyle.Render(mm.delveMsg(err.Error())))
-				mm = mm.RefreshViewport()
-				mm, errCmd := mm.printTranscriptCmd(false)
+				var errCmd tea.Cmd
+				mm, errCmd = mm.appendSubmissionError(err)
 				return mm, tea.Sequence(printCmd, errCmd)
 			}
 			mm, cmd := mm.applyLifecycleResult(res)
@@ -239,8 +207,9 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 	case inputpreflight.EnterPlanSubmit:
 		if res, handled, err := m.lifecycleEngine().RouteSubmission(plan.Submission); handled {
 			if err != nil {
-				m = m.AppendTranscriptLines(errStyle.Render(m.delveMsg(err.Error())))
-				return m.RefreshViewport(), nil, true
+				var cmd tea.Cmd
+				m, cmd = m.appendSubmissionError(err)
+				return m, cmd, true
 			}
 			m = m.clearSlashInput()
 			returned, cmd := m.applyLifecycleResult(res)

@@ -29,23 +29,27 @@ func (m Model) renderBaseScreen() string {
 	if m.Input.LineCount() > 1 {
 		inputSeparator = "\n"
 	}
+	bottomBlock := sepLine + "\n" + m.Input.View() + inputSeparator + m.inputBelowBlock(lang, inChoice) + footer
+	if !inChoice {
+		padLines := m.normalModeTopPaddingLines(bottomBlock)
+		if padLines <= 0 {
+			return bottomBlock
+		}
+		return strings.Repeat("\n", padLines) + bottomBlock
+	}
 	mainBody := m.mainBodyView()
 	if m.layout.Height <= minInputLayoutWidth {
-		out := sepLine + "\n" + m.Input.View()
+		out := bottomBlock
 		if mainBody != "" {
 			out = mainBody + out
 		}
-		out += inputSeparator + m.inputBelowBlock(lang, inChoice)
-		out += footer
 		return out
 	}
 	// Base viewport height: leave room for the separator, input line, slash/choice dropdown, and footer below.
-	out := sepLine + "\n" + m.Input.View()
+	out := bottomBlock
 	if mainBody != "" {
 		out = mainBody + out
 	}
-	out += inputSeparator + m.inputBelowBlock(lang, inChoice)
-	out += footer
 	return out
 }
 
@@ -187,19 +191,6 @@ func (m Model) renderOverlay(base string) string {
 		return base
 	}
 	return out
-}
-
-// buildContent returns the scrollable viewport content (messages + pending/suggest cards); title is rendered in View().
-func (m Model) buildContent() string {
-	var b strings.Builder
-	for _, line := range m.messages {
-		b.WriteString(line)
-		b.WriteString("\n")
-	}
-	if m.appendApprovalViewportContent(&b) {
-		return b.String()
-	}
-	return b.String()
 }
 
 // syncInputPlaceholder sets the input placeholder to selection hint (1/2 or 1/2/3) when waiting for choice, else normal placeholder.

@@ -101,7 +101,6 @@ func (m Model) applyApprovalDecision(d approvalflow.Decision) (Model, bool) {
 			choice = uivm.SensitiveRefuse
 		}
 		m.appendDecisionLines(kind, lang)
-		m = m.RefreshViewport()
 		if m.ChoiceCard.pendingSensitive.Respond != nil {
 			m.ChoiceCard.pendingSensitive.Respond(choice)
 		}
@@ -132,7 +131,6 @@ func (m Model) applyApprovalDecision(d approvalflow.Decision) (Model, bool) {
 			doCopy = true
 		}
 		m.appendDecisionLines(kind, lang)
-		m = m.RefreshViewport()
 		if doCopy {
 			_ = clipboard.WriteAll(m.ChoiceCard.pending.Command)
 			m.appendSuggestedLine(m.ChoiceCard.pending.Command, lang)

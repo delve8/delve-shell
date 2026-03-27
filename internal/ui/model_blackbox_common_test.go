@@ -12,6 +12,7 @@ import (
 	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/remoteauth"
 	"delve-shell/internal/ui"
+	"delve-shell/internal/uivm"
 )
 
 func TestMain(m *testing.M) {
@@ -185,55 +186,15 @@ func TestBlackboxMainCtrlJInsertsNewline(t *testing.T) {
 	}
 }
 
-func TestBlackboxViewportHalfPageScrollKeys(t *testing.T) {
+func TestBlackboxSystemErrorClearsProcessingState(t *testing.T) {
 	f := newBlackboxFixture(t)
-	m := f.model
-	next, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 12})
-	m = next.(ui.Model)
-	lines := make([]string, 0, 40)
-	for i := 0; i < 40; i++ {
-		lines = append(lines, "line")
+	f.model.Interaction.WaitingForAI = true
+	nextModel, _ := f.model.Update(ui.TranscriptAppendMsg{Lines: []uivm.Line{{Kind: uivm.LineSystemError, Text: "backend failed"}}})
+	next := nextModel.(ui.Model)
+	if next.Interaction.WaitingForAI {
+		t.Fatal("expected system error to clear waiting state")
 	}
-	m = m.AppendTranscriptLines(lines...).RefreshViewport()
-	bottom := m.Viewport.YOffset
-	if bottom <= 0 {
-		t.Fatalf("expected scrollable viewport, got y=%d", bottom)
-	}
-
-	next, _ = m.Update(tea.KeyMsg{Type: tea.KeyCtrlU})
-	up := next.(ui.Model)
-	if up.Viewport.YOffset >= bottom {
-		t.Fatalf("expected ctrl+u to scroll up, before=%d after=%d", bottom, up.Viewport.YOffset)
-	}
-
-	next, _ = up.Update(tea.KeyMsg{Type: tea.KeyCtrlD})
-	down := next.(ui.Model)
-	if down.Viewport.YOffset <= up.Viewport.YOffset {
-		t.Fatalf("expected ctrl+d to scroll down, before=%d after=%d", up.Viewport.YOffset, down.Viewport.YOffset)
-	}
-}
-
-func TestBlackboxViewportLineScrollAltKeys(t *testing.T) {
-	f := newBlackboxFixture(t)
-	m := f.model
-	next, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 12})
-	m = next.(ui.Model)
-	lines := make([]string, 0, 40)
-	for i := 0; i < 40; i++ {
-		lines = append(lines, "line")
-	}
-	m = m.AppendTranscriptLines(lines...).RefreshViewport()
-	start := m.Viewport.YOffset
-
-	next, _ = m.Update(tea.KeyMsg{Type: tea.KeyUp, Alt: true})
-	up := next.(ui.Model)
-	if up.Viewport.YOffset != start-1 {
-		t.Fatalf("expected alt+up to scroll up one line, before=%d after=%d", start, up.Viewport.YOffset)
-	}
-
-	next, _ = up.Update(tea.KeyMsg{Type: tea.KeyDown, Alt: true})
-	down := next.(ui.Model)
-	if down.Viewport.YOffset != start {
-		t.Fatalf("expected alt+down to scroll down one line, before=%d after=%d", up.Viewport.YOffset, down.Viewport.YOffset)
+	if !strings.Contains(strings.Join(next.TranscriptLines(), "\n"), "Delve: Error: backend failed") {
+		t.Fatalf("expected submit error to be appended to transcript, got %q", strings.Join(next.TranscriptLines(), "\n"))
 	}
 }

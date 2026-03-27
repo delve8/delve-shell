@@ -126,7 +126,6 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 				ui.SuggestStyleRender(delvPrefix+i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display)),
 				"",
 			)
-			m = m.RefreshViewport()
 			m = m.CloseOverlayVisual()
 			state.AddRemote.Active = false
 			state.AddRemote.Error = ""
@@ -199,8 +198,6 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			)
 			m.EmitConfigUpdatedIntent()
 		}
-
-		m = m.RefreshViewport()
 		if state.AddRemote.Connect {
 			state.AddRemote.Connecting = true
 			state.AddRemote.Error = ""

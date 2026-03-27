@@ -46,7 +46,9 @@ func RenderFooterBar(width int, parts FooterBarParts, st TitleBarStatus, s Title
 	}
 
 	statusText := strings.TrimSpace(parts.Status)
-	autoText := strings.TrimSpace(parts.AutoRunFull)
+	autoFullText := strings.TrimSpace(parts.AutoRunFull)
+	autoShortText := strings.TrimSpace(parts.AutoRunShort)
+	autoText := autoFullText
 	remoteText := strings.TrimSpace(parts.Remote)
 	autoReserveW := parts.AutoRunReserveWidth
 	if autoReserveW < runewidth.StringWidth(autoText) {
@@ -58,35 +60,47 @@ func RenderFooterBar(width int, parts FooterBarParts, st TitleBarStatus, s Title
 	}
 
 	statusStyle := statusStyleFor(st, s)
-	sep := s.Base.Render("        ")
-	sepW := 8
+	const maxSepW = 8
+	const minSepW = 2
 
 	statusW := statusReserveW
 	autoW := autoReserveW
 	remoteW := runewidth.StringWidth(remoteText)
 
+	sepW := maxSepW
+	if total := statusW + maxSepW + autoW + maxSepW + remoteW; total > width {
+		overflow := total - width
+		sepW = max(minSepW, maxSepW-((overflow+1)/2))
+	}
+	sep := s.Base.Render(strings.Repeat(" ", sepW))
+
 	renderStatus := func(text string) string {
 		return renderExactWidth(statusStyle, text, statusReserveW)
-	}
-	renderAuto := func(text string) string {
-		return renderExactWidth(s.Base, text, autoReserveW)
 	}
 	renderBase := func(text string) string {
 		return s.Base.Render(text)
 	}
 
+	if autoShortText != "" {
+		shortW := runewidth.StringWidth(autoShortText)
+		if statusW+sepW+autoW+sepW+remoteW > width && shortW < autoW {
+			autoText = autoShortText
+			autoW = shortW
+		}
+	}
+
 	if statusW+sepW+autoW+sepW+remoteW <= width {
-		return renderStatus(statusText) + sep + renderAuto(autoText) + sep + renderBase(remoteText)
+		return renderStatus(statusText) + sep + renderExactWidth(s.Base, autoText, autoW) + sep + renderBase(remoteText)
 	}
 
 	remoteAvail := width - statusW - sepW - autoW - sepW
 	if remoteAvail >= 1 {
 		remoteText = truncateMiddle(remoteText, remoteAvail)
-		return renderStatus(statusText) + sep + renderAuto(autoText) + sep + renderBase(remoteText)
+		return renderStatus(statusText) + sep + renderExactWidth(s.Base, autoText, autoW) + sep + renderBase(remoteText)
 	}
 
 	if statusW+sepW+autoW <= width {
-		return renderStatus(statusText) + sep + renderAuto(autoText)
+		return renderStatus(statusText) + sep + renderExactWidth(s.Base, autoText, autoW)
 	}
 
 	if width <= statusW {

@@ -72,6 +72,66 @@ func TestRenderFooterBar_autoRunWidthIsStable(t *testing.T) {
 	}
 }
 
+func TestRenderFooterBar_shrinksSpacingBeforeRemote(t *testing.T) {
+	plain := lipgloss.NewStyle()
+	s := TitleLineStyles{
+		Base:       plain,
+		StatusIdle: plain,
+	}
+	out := RenderFooterBar(38, FooterBarParts{
+		Remote:       "Local",
+		AutoRunFull:  "Auto-Run: None",
+		AutoRunShort: "AR:off",
+		Status:       "[IDLE]",
+	}, TitleBarStatusIdle, s)
+	if !strings.Contains(out, "  Auto-Run") {
+		t.Fatalf("expected footer to retain at least a 2-space separator in %q", out)
+	}
+	if !strings.Contains(out, "Local") {
+		t.Fatalf("expected remote text to survive after spacing shrink in %q", out)
+	}
+}
+
+func TestRenderFooterBar_usesShortAutoRunBeforeTruncatingRemote(t *testing.T) {
+	plain := lipgloss.NewStyle()
+	s := TitleLineStyles{
+		Base:       plain,
+		StatusIdle: plain,
+	}
+	out := RenderFooterBar(28, FooterBarParts{
+		Remote:       "Local",
+		AutoRunFull:  "Auto-Run: List Only",
+		AutoRunShort: "AR:list",
+		Status:       "[IDLE]",
+	}, TitleBarStatusIdle, s)
+	if !strings.Contains(out, "AR:list") {
+		t.Fatalf("expected short auto-run label in %q", out)
+	}
+	if !strings.Contains(out, "Local") {
+		t.Fatalf("expected remote to remain visible after auto-run shortens in %q", out)
+	}
+}
+
+func TestRenderFooterBar_keepsShortAutoRunWhileRemoteShrinks(t *testing.T) {
+	plain := lipgloss.NewStyle()
+	s := TitleLineStyles{
+		Base:       plain,
+		StatusIdle: plain,
+	}
+	out := RenderFooterBar(24, FooterBarParts{
+		Remote:       "Remote-XYZ1",
+		AutoRunFull:  "Auto-Run: None",
+		AutoRunShort: "AR:off",
+		Status:       "[IDLE]",
+	}, TitleBarStatusIdle, s)
+	if strings.Contains(out, "Auto-Run: None") {
+		t.Fatalf("expected short auto-run label to stay active while remote shrinks in %q", out)
+	}
+	if !strings.Contains(out, "AR:off") {
+		t.Fatalf("expected short auto-run label in %q", out)
+	}
+}
+
 func TestRenderTitleLine_otherUsesBaseOnly(t *testing.T) {
 	mark := lipgloss.NewStyle().Bold(true)
 	s := TitleLineStyles{Base: mark}
