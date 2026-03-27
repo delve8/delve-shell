@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"delve-shell/internal/config"
+	"delve-shell/internal/i18n"
 	"delve-shell/internal/pathcomplete"
 	"delve-shell/internal/ui"
 )
@@ -37,10 +38,10 @@ func pathCompletionWindow(cands []string, index int, maxRows int) (start int, wi
 
 // appendPathCompletionBlock renders one title row (or a blank row when showTitle is false) plus
 // pathCompletionFixedRows list rows, so total height stays constant when toggling the title.
-func appendPathCompletionBlock(b *strings.Builder, showTitle bool, cands []string, selectedIndex int) {
+func appendPathCompletionBlock(b *strings.Builder, showTitle bool, cands []string, selectedIndex int, lang string) {
 	// Caller is responsible for spacing before this block (e.g. one "\n\n" after the text input).
 	if showTitle {
-		b.WriteString("Path completion (Up/Down select, Enter or Tab to pick):\n")
+		b.WriteString(ui.RenderOverlayPicklistHintLine(lang))
 	} else {
 		b.WriteString("\n")
 	}
@@ -74,12 +75,13 @@ func appendPathCompletionBlock(b *strings.Builder, showTitle bool, cands []strin
 func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 	state := getRemoteOverlayState()
 	pcState := pathcomplete.GetState()
+	lang := m.GetLang()
 	if state.AddRemote.Active {
 		var b strings.Builder
 		if state.AddRemote.Connecting {
 			b.WriteString("Add remote\n\n")
 			b.WriteString(ui.SuggestStyleRender("Connecting...") + "\n\n")
-			b.WriteString("Esc to cancel.")
+			b.WriteString(ui.RenderOverlayHintLine(lang, i18n.KeyOverlayEscCancel))
 			return b.String(), true
 		}
 
@@ -106,7 +108,7 @@ func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 			cands = nil
 			idx = 0
 		}
-		appendPathCompletionBlock(&b, keyFocused, cands, idx)
+		appendPathCompletionBlock(&b, keyFocused, cands, idx, lang)
 		b.WriteString("\n")
 		saveLabel := "[ ]"
 		if state.AddRemote.Save {
@@ -124,91 +126,91 @@ func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 			b.WriteString(state.AddRemote.NameInput.View())
 		}
 		b.WriteString("\n\n")
-		b.WriteString("Up/Down to move between fields, Enter to apply, Esc to cancel.")
+		b.WriteString(ui.RenderOverlayFormFooterHint(lang))
 		return b.String(), true
 	}
 
 	switch state.RemoteAuth.Step {
 	case "hostkey":
-		return buildRemoteAuthHostKeyContent(state), true
+		return buildRemoteAuthHostKeyContent(state, lang), true
 	case "username":
-		return buildRemoteAuthUsernameContent(state), true
+		return buildRemoteAuthUsernameContent(state, lang), true
 	case "choose":
-		return buildRemoteAuthChoiceContent(state), true
+		return buildRemoteAuthChoiceContent(state, lang), true
 	case "password":
-		return buildRemoteAuthPasswordContent(state), true
+		return buildRemoteAuthPasswordContent(state, lang), true
 	case "identity":
-		return buildRemoteAuthIdentityContent(state, pcState), true
+		return buildRemoteAuthIdentityContent(state, pcState, lang), true
 	case "auto_identity":
-		return buildRemoteAuthAutoIdentityContent(state), true
+		return buildRemoteAuthAutoIdentityContent(state, lang), true
 	default:
 		return "", false
 	}
 }
 
-func buildRemoteAuthUsernameContent(state remoteOverlayState) string {
+func buildRemoteAuthUsernameContent(state remoteOverlayState, lang string) string {
 	var b strings.Builder
 	appendRemoteAuthError(&b, state.RemoteAuth.Error)
 	b.WriteString("SSH auth for " + remoteAuthHostLabel(state) + "\n\n")
 	b.WriteString("Username:\n")
 	b.WriteString(state.RemoteAuth.UsernameInput.View())
 	b.WriteString("\n\n")
-	b.WriteString("Press Enter to continue, Esc to cancel.")
+	b.WriteString(ui.RenderOverlayHintLine(lang, i18n.KeyOverlayEnterContinueEsc))
 	return b.String()
 }
 
-func buildRemoteAuthChoiceContent(state remoteOverlayState) string {
+func buildRemoteAuthChoiceContent(state remoteOverlayState, lang string) string {
 	var b strings.Builder
 	appendRemoteAuthError(&b, state.RemoteAuth.Error)
 	b.WriteString("Choose authentication method:\n")
 	b.WriteString("  1. Password\n")
 	b.WriteString("  2. Key file (identity file)\n\n")
-	b.WriteString("Press 1 or 2 to select, Esc to cancel.")
+	b.WriteString(ui.RenderOverlayHintLine(lang, i18n.KeyOverlay12SelectEsc))
 	return b.String()
 }
 
-func buildRemoteAuthPasswordContent(state remoteOverlayState) string {
+func buildRemoteAuthPasswordContent(state remoteOverlayState, lang string) string {
 	var b strings.Builder
 	appendRemoteAuthError(&b, state.RemoteAuth.Error)
 	b.WriteString("SSH password for " + remoteAuthHostLabel(state) + "\n")
 	if state.RemoteAuth.Connecting {
 		b.WriteString(ui.SuggestStyleRender("Connecting...") + "\n\n")
-		b.WriteString("Press Esc to cancel.")
+		b.WriteString(ui.RenderOverlayHintLine(lang, i18n.KeyOverlayEscCancel))
 	} else {
-		b.WriteString("Press Enter to submit, Esc to cancel.")
+		b.WriteString(ui.RenderOverlayHintLine(lang, i18n.KeyOverlayEnterSubmitEsc))
 	}
 	b.WriteString("\n\n")
 	b.WriteString(state.RemoteAuth.Input.View())
 	return b.String()
 }
 
-func buildRemoteAuthIdentityContent(state remoteOverlayState, pcState pathcomplete.State) string {
+func buildRemoteAuthIdentityContent(state remoteOverlayState, pcState pathcomplete.State, lang string) string {
 	var b strings.Builder
 	appendRemoteAuthError(&b, state.RemoteAuth.Error)
 	b.WriteString("SSH key file path for " + remoteAuthHostLabel(state) + "\n")
 	if state.RemoteAuth.Connecting {
 		b.WriteString(ui.SuggestStyleRender("Connecting...") + "\n\n")
-		b.WriteString("Press Esc to cancel.")
+		b.WriteString(ui.RenderOverlayHintLine(lang, i18n.KeyOverlayEscCancel))
 	} else {
-		b.WriteString("Press Enter to submit, Esc to cancel.")
+		b.WriteString(ui.RenderOverlayHintLine(lang, i18n.KeyOverlayEnterSubmitEsc))
 	}
 	b.WriteString("\n\n")
 	b.WriteString(state.RemoteAuth.Input.View())
 	b.WriteString("\n\n")
-	appendPathCompletionBlock(&b, true, pcState.Candidates, pcState.Index)
+	appendPathCompletionBlock(&b, true, pcState.Candidates, pcState.Index, lang)
 	return b.String()
 }
 
-func buildRemoteAuthAutoIdentityContent(state remoteOverlayState) string {
+func buildRemoteAuthAutoIdentityContent(state remoteOverlayState, lang string) string {
 	var b strings.Builder
 	appendRemoteAuthError(&b, state.RemoteAuth.Error)
 	b.WriteString("SSH auth for " + remoteAuthHostLabel(state) + "\n\n")
 	b.WriteString(ui.SuggestStyleRender("Connecting with configured SSH key...") + "\n\n")
-	b.WriteString("Esc to cancel.")
+	b.WriteString(ui.RenderOverlayHintLine(lang, i18n.KeyOverlayEscCancel))
 	return b.String()
 }
 
-func buildRemoteAuthHostKeyContent(state remoteOverlayState) string {
+func buildRemoteAuthHostKeyContent(state remoteOverlayState, lang string) string {
 	var b strings.Builder
 	appendRemoteAuthError(&b, state.RemoteAuth.Error)
 	host := state.RemoteAuth.HostKeyHost
@@ -223,12 +225,12 @@ func buildRemoteAuthHostKeyContent(state remoteOverlayState) string {
 	b.WriteString("\n")
 	if state.RemoteAuth.Connecting {
 		b.WriteString(ui.SuggestStyleRender("Updating known_hosts and reconnecting...") + "\n\n")
-		b.WriteString("Esc to cancel.")
+		b.WriteString(ui.RenderOverlayHintLine(lang, i18n.KeyOverlayEscCancel))
 		return b.String()
 	}
 	b.WriteString("1. Accept and update known_hosts\n")
 	b.WriteString("2. Reject and abort\n\n")
-	b.WriteString("Press 1 or 2.")
+	b.WriteString(ui.RenderOverlayHintLine(lang, i18n.KeyOverlay12SelectEsc))
 	return b.String()
 }
 

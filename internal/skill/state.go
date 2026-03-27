@@ -18,7 +18,7 @@ type AddSkillOverlayState struct {
 	RefsFullList   []string // all refs from remote (for filtering)
 	RefCandidates  []string // refs filtered by Ref input prefix
 	RefIndex       int      // selection in ref dropdown
-	PathsFullList  []string // paths from git repo (when non-nil, Path dropdown uses this instead of static list)
+	PathsFullList  []string // paths from git after ListPaths; Path dropdown only uses this (no static placeholder list)
 	PathCandidates []string // path options filtered by Path input prefix
 	PathIndex      int      // selection in path dropdown
 }

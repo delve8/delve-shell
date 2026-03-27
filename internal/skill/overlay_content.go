@@ -11,7 +11,7 @@ import (
 func buildSkillOverlayContent(m ui.Model) (string, bool) {
 	state := getSkillOverlayState()
 	if state.AddSkill.Active {
-		lang := "en"
+		lang := m.GetLang()
 		var b strings.Builder
 		if state.AddSkill.Error != "" {
 			b.WriteString(ui.ErrStyleRender(state.AddSkill.Error) + "\n\n")
@@ -23,7 +23,7 @@ func buildSkillOverlayContent(m ui.Model) (string, bool) {
 		b.WriteString(state.AddSkill.RefInput.View())
 		if state.AddSkill.FieldIndex == 1 && len(state.AddSkill.RefCandidates) > 0 {
 			b.WriteString("\n")
-			b.WriteString("  (Up/Down select, Enter or Tab to pick)\n")
+			b.WriteString(ui.RenderOverlayPicklistHintLine(lang))
 			for i, c := range state.AddSkill.RefCandidates {
 				line := "  " + c
 				if i == state.AddSkill.RefIndex {
@@ -38,7 +38,7 @@ func buildSkillOverlayContent(m ui.Model) (string, bool) {
 		b.WriteString(state.AddSkill.PathInput.View())
 		if state.AddSkill.FieldIndex == 2 && len(state.AddSkill.PathCandidates) > 0 {
 			b.WriteString("\n")
-			b.WriteString("  (Up/Down select, Enter or Tab to pick)\n")
+			b.WriteString(ui.RenderOverlayPicklistHintLine(lang))
 			for i, c := range state.AddSkill.PathCandidates {
 				line := "  " + c
 				if i == state.AddSkill.PathIndex {
@@ -52,12 +52,12 @@ func buildSkillOverlayContent(m ui.Model) (string, bool) {
 		b.WriteString(i18n.T(lang, i18n.KeyAddSkillNameLabel) + "\n")
 		b.WriteString(state.AddSkill.NameInput.View())
 		b.WriteString("\n\n")
-		b.WriteString(i18n.T(lang, i18n.KeyAddSkillHint))
+		b.WriteString(ui.RenderOverlayFormFooterHint(lang))
 		return b.String(), true
 	}
 
 	if state.UpdateSkill.Active {
-		lang := "en"
+		lang := m.GetLang()
 		var b strings.Builder
 		if state.UpdateSkill.Error != "" {
 			b.WriteString(ui.ErrStyleRender(state.UpdateSkill.Error) + "\n\n")
@@ -70,7 +70,7 @@ func buildSkillOverlayContent(m ui.Model) (string, bool) {
 			path = "."
 		}
 		b.WriteString("Path:  " + path + "\n\n")
-		b.WriteString("Ref (Up/Down to change, Enter to update, Esc to cancel):\n")
+		b.WriteString(ui.RenderOverlayUpdateSkillRefTitleLine(lang))
 		for i, r := range state.UpdateSkill.Refs {
 			line := "  " + r
 			if i == state.UpdateSkill.RefIndex {

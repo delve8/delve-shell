@@ -20,17 +20,6 @@ var errStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
 
 const addSkillFieldCount = 4
 
-var addSkillPathOptions = []string{
-	".",
-	"skills",
-	"skills/.curated",
-	"skills/.experimental",
-	"skills/.system",
-	".agents/skills",
-	".agent/skills",
-	".claude/skills",
-}
-
 func delveMsg(lang, msg string) string {
 	return i18n.T(lang, i18n.KeyDelveLabel) + " " + msg
 }
@@ -63,7 +52,7 @@ func runListPathsCmd(url, ref string) tea.Cmd {
 }
 
 func updateAddSkillPathCandidates(state skillOverlayState) skillOverlayState {
-	source := addSkillPathOptions
+	var source []string
 	if len(state.AddSkill.PathsFullList) > 0 {
 		source = state.AddSkill.PathsFullList
 	}

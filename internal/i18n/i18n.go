@@ -128,7 +128,6 @@ const (
 	KeyConfigLLMModelLabel           = "config_llm_model_label"
 	KeyConfigLLMMaxMessagesLabel     = "config_llm_max_messages_label"
 	KeyConfigLLMMaxCharsLabel        = "config_llm_max_chars_label"
-	KeyConfigLLMHint                 = "config_llm_hint"
 	KeyConfigLLMApiKeyRequired       = "config_llm_api_key_required"
 	KeyConfigLLMModelRequired        = "config_llm_model_required"
 	KeyConfigLLMChecking             = "config_llm_checking"                // "Checking..."
@@ -151,7 +150,6 @@ const (
 	KeyAddSkillRefLabel      = "add_skill_ref_label"
 	KeyAddSkillPathLabel     = "add_skill_path_label"
 	KeyAddSkillNameLabel     = "add_skill_name_label"
-	KeyAddSkillHint          = "add_skill_hint"
 	KeyAddSkillAuthHint      = "add_skill_auth_hint"
 	KeyAddSkillURLRequired   = "add_skill_url_required"
 	KeySkillInstalled        = "skill_installed"
@@ -161,6 +159,15 @@ const (
 	KeyUsageSkillInstall     = "usage_skill_install"
 	KeyUsageSkillRemove      = "usage_skill_remove"
 	KeySkillAlreadyExists    = "skill_already_exists"
+
+	// Overlay keyboard hints (dim footer / pick lists; full line per key for translation word order).
+	KeyOverlayFormFooter               = "overlay_form_footer"
+	KeyOverlayPicklistHint             = "overlay_picklist_hint"
+	KeyOverlayUpdateSkillRefTitle      = "overlay_update_skill_ref_title"
+	KeyOverlayEscCancel                = "overlay_esc_cancel"
+	KeyOverlayEnterContinueEsc         = "overlay_enter_continue_esc"
+	KeyOverlay12SelectEsc              = "overlay_12_select_esc"
+	KeyOverlayEnterSubmitEsc           = "overlay_enter_submit_esc"
 )
 
 var messages = map[string]map[string]string{
@@ -344,7 +351,6 @@ Quit (Ctrl+C also works)`,
 		KeyConfigLLMModelLabel:           "Model:",
 		KeyConfigLLMMaxMessagesLabel:     "Max context messages (default 50):",
 		KeyConfigLLMMaxCharsLabel:        "Max context chars (default: no limit or auto from API):",
-		KeyConfigLLMHint:                 "Up/Down to move between fields, Enter to save, Esc to cancel.",
 		KeyConfigLLMApiKeyRequired:       "API key is required.",
 		KeyConfigLLMModelRequired:        "Model is required.",
 		KeyConfigLLMChecking:             "Checking...",
@@ -366,7 +372,6 @@ Quit (Ctrl+C also works)`,
 		KeyAddSkillRefLabel:              "Ref — branch or tag:",
 		KeyAddSkillPathLabel:             "Path in repo — e.g. skills/foo:",
 		KeyAddSkillNameLabel:             "Local skill name:",
-		KeyAddSkillHint:                  "Up/Down to move, Enter to install, Esc to cancel.",
 		KeyAddSkillAuthHint:              "Private repo: HTTPS — git credential helper or GITHUB_TOKEN; SSH — ssh-add.",
 		KeyAddSkillURLRequired:           "URL is required.",
 		KeySkillInstalled:                "Skill installed: %s",
@@ -376,6 +381,13 @@ Quit (Ctrl+C also works)`,
 		KeyUsageSkillInstall:             "Usage: /config add-skill <url> [ref] [path] — path required if repo has multiple skills (e.g. skills/foo)",
 		KeyUsageSkillRemove:              "Usage: /config del-skill <skill_name>",
 		KeySkillAlreadyExists:            "Skill already exists. Remove it first or use another name, or use /config update-skill <name> to update it.",
+		KeyOverlayFormFooter:             "Up/Down to move · Enter to apply · Esc to cancel",
+		KeyOverlayPicklistHint:           "  Up/Down to move · Enter or Tab to apply",
+		KeyOverlayUpdateSkillRefTitle:    "Ref · Up/Down to move · Enter to update · Esc to cancel:",
+		KeyOverlayEscCancel:              "Esc to cancel",
+		KeyOverlayEnterContinueEsc:       "Enter to continue · Esc to cancel",
+		KeyOverlay12SelectEsc:            "1 or 2 to select · Esc to cancel",
+		KeyOverlayEnterSubmitEsc:         "Enter to submit · Esc to cancel",
 	},
 }
 

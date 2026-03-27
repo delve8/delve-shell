@@ -223,7 +223,8 @@ func (m Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (Model
 				return m, nil
 			}
 		case inputlifecycletype.OutputOverlayClose:
-			return m.closeOverlayCommon(false)
+			// Restore focus to the main input after dismissing the overlay (Esc / same as handleOverlayKey).
+			return m.closeOverlayCommon(true)
 		case inputlifecycletype.OutputPreInputClear:
 			return m.clearSlashInput(), nil
 		}

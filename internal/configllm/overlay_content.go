@@ -35,6 +35,6 @@ func buildConfigLLMOverlayContent() (string, bool) {
 	b.WriteString(i18n.T(lang, i18n.KeyConfigLLMMaxCharsLabel) + "\n")
 	b.WriteString(st.MaxCharsInput.View())
 	b.WriteString("\n\n")
-	b.WriteString(i18n.T(lang, i18n.KeyConfigLLMHint))
+	b.WriteString(ui.RenderOverlayFormFooterHint(lang))
 	return b.String(), true
 }

@@ -90,6 +90,11 @@ func (m Model) getLang() string {
 	return "en"
 }
 
+// GetLang returns the UI language code for i18n (e.g. "en"). Callers outside package ui use this.
+func (m Model) GetLang() string {
+	return m.getLang()
+}
+
 // delveMsg prefixes msg with "Delve: " for tool/system messages (config, session, notify, etc.).
 func (m Model) delveMsg(msg string) string {
 	return i18n.T(m.getLang(), i18n.KeyDelveLabel) + " " + msg
