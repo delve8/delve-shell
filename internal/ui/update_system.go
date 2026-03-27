@@ -90,11 +90,11 @@ func (m Model) handleMouseMsg(msg tea.MouseMsg) (Model, tea.Cmd) {
 }
 
 func (m Model) handleTranscriptAppendMsg(msg TranscriptAppendMsg) (Model, tea.Cmd) {
+	if msg.ClearWaitingForAI || (m.Interaction.WaitingForAI && transcriptHasSystemError(msg.Lines)) {
+		m.Interaction.WaitingForAI = false
+	}
 	if len(msg.Lines) == 0 {
 		return m, nil
-	}
-	if m.Interaction.WaitingForAI && transcriptHasSystemError(msg.Lines) {
-		m.Interaction.WaitingForAI = false
 	}
 	rendered := m.renderTranscriptLines(msg.Lines)
 	m = m.AppendTranscriptLines(rendered...)

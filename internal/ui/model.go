@@ -154,6 +154,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m2, cmd := m.handleTranscriptReplaceMsg(msg)
 		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
 
+	case transcriptPrintedMsg:
+		if msg.upTo > len(m.messages) {
+			msg.upTo = len(m.messages)
+		}
+		if msg.upTo < 0 {
+			msg.upTo = 0
+		}
+		m.printedMessages = msg.upTo
+		return m.finalizeUpdate(prevOverlayActive, m, nil)
+
 	}
 
 	return m.finalizeUpdate(prevOverlayActive, m, nil)

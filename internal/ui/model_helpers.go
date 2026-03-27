@@ -1,12 +1,11 @@
 package ui
 
 import (
-	"regexp"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/viewport"
-	"github.com/mattn/go-runewidth"
+	"github.com/charmbracelet/x/ansi"
 )
 
 const (
@@ -19,8 +18,6 @@ const (
 	inputTextareaMaxHeight   = 5
 	inputBelowStableRows     = 5
 )
-
-var transcriptAnsiStrip = regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]|\x1b[\[?][0-9;]*[a-zA-Z]?`)
 
 // ReadModel provides host-derived read-only state needed by UI rendering and local decisions.
 type ReadModel interface {
@@ -109,10 +106,13 @@ func (m Model) printTranscriptCmd(clearFirst bool) (Model, tea.Cmd) {
 	if clearFirst {
 		cmds = append(cmds, teaCmdForMsg(tea.ClearScreen()))
 	}
-	for _, line := range m.messages[m.printedMessages:] {
+	end := len(m.messages)
+	for _, line := range m.messages[m.printedMessages:end] {
 		cmds = append(cmds, tea.Println(line))
 	}
-	m.printedMessages = len(m.messages)
+	cmds = append(cmds, func() tea.Msg {
+		return transcriptPrintedMsg{upTo: end}
+	})
 	return m, tea.Sequence(cmds...)
 }
 
@@ -253,7 +253,7 @@ func (m Model) printedTranscriptLineCount() int {
 	}
 	total := 0
 	for _, line := range m.messages[:limit] {
-		total += wrappedDisplayLineCount(transcriptAnsiStrip.ReplaceAllString(line, ""), m.contentWidth())
+		total += terminalWrappedRows(line, m.contentWidth())
 	}
 	return total
 }
@@ -262,7 +262,7 @@ func (m Model) normalModeTopPaddingLines(bottomBlock string) int {
 	if m.layout.Height <= 0 {
 		return 0
 	}
-	bottomLines := renderedDisplayLineCount(bottomBlock, m.contentWidth())
+	bottomLines := terminalWrappedRows(bottomBlock, m.contentWidth())
 	visiblePrinted := m.printedTranscriptLineCount()
 	if visiblePrinted > m.layout.Height {
 		visiblePrinted = m.layout.Height
@@ -306,26 +306,25 @@ func renderSeparator(width int) string {
 	return separatorStyle.Render(strings.Repeat("─", width))
 }
 
-func wrappedDisplayLineCount(text string, width int) int {
+// terminalWrappedRows returns how many terminal rows a string occupies at the given width,
+// matching soft-wrap behavior used when Bubble Tea prints transcript lines (see ansi.StringWidth
+// in the standard renderer). Using runewidth on ANSI-stripped text was slightly off for styled
+// transcript lines and caused the bottom block to drift upward over time.
+func terminalWrappedRows(text string, width int) int {
 	if width < 1 {
 		width = 1
 	}
+	// Do not short-circuit text=="" : strings.Split("", "\n") is []string{""}, one blank display row,
+	// matching tea.Println("") and the trailing "" appended by AppendUserInputLines after each user line.
 	parts := strings.Split(text, "\n")
 	total := 0
 	for _, part := range parts {
-		lineWidth := runewidth.StringWidth(part)
-		if lineWidth <= 0 {
+		w := ansi.StringWidth(part)
+		if w <= 0 {
 			total++
 			continue
 		}
-		total += (lineWidth + width - 1) / width
+		total += (w + width - 1) / width
 	}
 	return total
-}
-
-func renderedDisplayLineCount(text string, width int) int {
-	if text == "" {
-		return 0
-	}
-	return wrappedDisplayLineCount(transcriptAnsiStrip.ReplaceAllString(text, ""), width)
 }

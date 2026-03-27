@@ -115,12 +115,15 @@ func TestMainTopPaddingLinesAccountsForTerminalWidth(t *testing.T) {
 	}
 }
 
-func TestRenderedDisplayLineCountAccountsForSoftWrap(t *testing.T) {
+func TestTerminalWrappedRowsAccountsForSoftWrap(t *testing.T) {
+	if got := terminalWrappedRows("", 10); got != 1 {
+		t.Fatalf("empty message is one blank row (tea.Println), got %d", got)
+	}
 	text := "12345\nabcdef"
-	if got := renderedDisplayLineCount(text, 10); got != 2 {
+	if got := terminalWrappedRows(text, 10); got != 2 {
 		t.Fatalf("expected 2 display lines at width 10, got %d", got)
 	}
-	if got := renderedDisplayLineCount(text, 3); got != 4 {
+	if got := terminalWrappedRows(text, 3); got != 4 {
 		t.Fatalf("expected 4 display lines at width 3, got %d", got)
 	}
 }

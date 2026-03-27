@@ -46,7 +46,11 @@ func (t *RunSkillTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 				Required: true,
 			},
 			"args": {
-				Type:     schema.Array,
+				Type: schema.Array,
+				ElemInfo: &schema.ParameterInfo{
+					Type: schema.String,
+					Desc: "One argument passed to the script.",
+				},
 				Desc:     "Optional list of arguments to pass to the script.",
 				Required: false,
 			},

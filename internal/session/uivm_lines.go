@@ -28,7 +28,6 @@ func EventsToTranscriptLines(events []history.Event) []uivm.Line {
 			}
 			if json.Unmarshal(ev.Payload, &p) == nil && strings.TrimSpace(p.Reply) != "" {
 				out = append(out, uivm.Line{Kind: uivm.LineAI, Text: p.Reply})
-				out = append(out, uivm.Line{Kind: uivm.LineSeparator})
 			}
 		case "command":
 			var p struct {

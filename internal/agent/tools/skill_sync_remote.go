@@ -11,22 +11,20 @@ import (
 )
 
 // syncSkillScriptsToRemote ensures that the local scriptsDir contents are present on the remote host under remoteScriptsDir.
-// It compares remote and local file contents and only updates when they differ. No tar/gzip or extra tools are required;
-// all operations use basic sh + mkdir + cat.
+// Files are sent with the SCP protocol (remote scp -t) over the existing golang.org/x/crypto/ssh connection — not SFTP and not the local scp binary.
 func syncSkillScriptsToRemote(ctx context.Context, executor execenv.CommandExecutor, scriptsDir, remoteScriptsDir string) error {
 	if scriptsDir == "" || remoteScriptsDir == "" {
 		return nil
 	}
-	if _, ok := executor.(*execenv.SSHExecutor); !ok {
-		// Local executor: nothing to sync.
+	sshExec, ok := executor.(*execenv.SSHExecutor)
+	if !ok {
 		return nil
 	}
 	info, err := os.Stat(scriptsDir)
 	if err != nil || !info.IsDir() {
 		return nil
 	}
-	// Ensure remote root directory exists.
-	if _, _, _, err := executor.Run(ctx, "sh -c "+quoteForSh("mkdir -p "+remoteScriptsDir)); err != nil {
+	if _, _, _, err := sshExec.Run(ctx, "sh -c "+quoteForSh("mkdir -p "+remoteScriptsDir)); err != nil {
 		return err
 	}
 	return filepath.WalkDir(scriptsDir, func(path string, d fs.DirEntry, walkErr error) error {
@@ -44,42 +42,15 @@ func syncSkillScriptsToRemote(ctx context.Context, executor execenv.CommandExecu
 		if rel == "" || rel == "." {
 			return nil
 		}
-		localData, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
 		remoteFile := remoteScriptsDir + "/" + rel
 		remoteDir := remoteScriptsDir
 		if idx := strings.LastIndex(remoteFile, "/"); idx > 0 {
 			remoteDir = remoteFile[:idx]
 		}
-		// Read remote content if file exists.
-		readCmd := "if [ -f " + quoteForSh(remoteFile) + " ]; then cat " + quoteForSh(remoteFile) + "; fi"
-		remoteOut, _, _, _ := executor.Run(ctx, "sh -c "+quoteForSh(readCmd))
-		if remoteOut == string(localData) {
-			return nil
-		}
-		// Create parent dir and upload file via here-doc.
-		uploadBuilder := &strings.Builder{}
-		uploadBuilder.WriteString("mkdir -p ")
-		uploadBuilder.WriteString(quoteForSh(remoteDir))
-		uploadBuilder.WriteString(" && cat > ")
-		uploadBuilder.WriteString(quoteForSh(remoteFile))
-		// Use a delimiter that is very unlikely to appear in scripts.
-		delimiter := "EOF_DELVE_SKILL"
-		uploadBuilder.WriteString(" << '")
-		uploadBuilder.WriteString(delimiter)
-		uploadBuilder.WriteString("'\n")
-		uploadBuilder.Write(localData)
-		if !strings.HasSuffix(uploadBuilder.String(), "\n") {
-			uploadBuilder.WriteString("\n")
-		}
-		uploadBuilder.WriteString(delimiter)
-		uploadBuilder.WriteString("\n")
-		if _, _, _, err := executor.Run(ctx, "sh -c "+quoteForSh(uploadBuilder.String())); err != nil {
+		if _, _, _, err := sshExec.Run(ctx, "sh -c "+quoteForSh("mkdir -p "+remoteDir)); err != nil {
 			return err
 		}
-		return nil
+		return sshExec.CopyLocalFileToRemote(ctx, path, remoteFile)
 	})
 }
 

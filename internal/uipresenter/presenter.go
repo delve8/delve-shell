@@ -73,25 +73,34 @@ func (p *Presenter) AgentReply(reply string, err error) {
 	if err != nil {
 		// Keep UI pure of agent/config; presenter provides a stable, human-readable error.
 		if errors.Is(err, context.Canceled) {
-			p.Raw(ui.TranscriptAppendMsg{Lines: []uivm.Line{
-				{Kind: uivm.LineSystemSuggest, Text: "Cancelled."},
-				{Kind: uivm.LineBlank},
-			}})
+			p.Raw(ui.TranscriptAppendMsg{
+				ClearWaitingForAI: true,
+				Lines: []uivm.Line{
+					{Kind: uivm.LineSystemSuggest, Text: "Cancelled."},
+					{Kind: uivm.LineBlank},
+				},
+			})
 			return
 		}
-		p.Raw(ui.TranscriptAppendMsg{Lines: []uivm.Line{
-			{Kind: uivm.LineSystemError, Text: err.Error()},
-			{Kind: uivm.LineBlank},
-		}})
+		p.Raw(ui.TranscriptAppendMsg{
+			ClearWaitingForAI: true,
+			Lines: []uivm.Line{
+				{Kind: uivm.LineSystemError, Text: err.Error()},
+				{Kind: uivm.LineBlank},
+			},
+		})
 		return
 	}
 	if reply == "" {
+		p.Raw(ui.TranscriptAppendMsg{ClearWaitingForAI: true})
 		return
 	}
-	p.Raw(ui.TranscriptAppendMsg{Lines: []uivm.Line{
-		{Kind: uivm.LineAI, Text: reply},
-		{Kind: uivm.LineSeparator},
-	}})
+	p.Raw(ui.TranscriptAppendMsg{
+		ClearWaitingForAI: true,
+		Lines: []uivm.Line{
+			{Kind: uivm.LineAI, Text: reply},
+		},
+	})
 }
 
 // --- System line (non-AI) ---

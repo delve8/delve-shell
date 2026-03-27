@@ -186,6 +186,15 @@ func NewSSHExecutorWithPassword(target, identityFile, password string) (*SSHExec
 	}, label, nil
 }
 
+// CopyLocalFileToRemote uploads a local file using the SCP protocol over the existing SSH
+// session (remote runs scp -t). Parent directories must exist (e.g. mkdir -p) before calling.
+func (e *SSHExecutor) CopyLocalFileToRemote(ctx context.Context, localPath, remotePath string) error {
+	if e == nil || e.client == nil {
+		return errors.New("ssh client is not connected")
+	}
+	return scpUpload(ctx, e.client, localPath, remotePath)
+}
+
 // Run implements CommandExecutor by executing the command via "sh -c" on the remote host.
 func (e *SSHExecutor) Run(ctx context.Context, command string) (stdout, stderr string, exitCode int, err error) {
 	if e.client == nil {
