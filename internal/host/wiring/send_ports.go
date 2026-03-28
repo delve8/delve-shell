@@ -6,7 +6,7 @@ import (
 	"delve-shell/internal/hostcmd"
 )
 
-// BindSendPorts wires host bus input ports and the /sh snapshot channel onto r.
+// BindSendPorts wires host bus input ports and the /bash snapshot channel onto r.
 func BindSendPorts(r *app.Runtime, ports bus.InputPorts, shellSnapshot chan<- hostcmd.ShellSnapshot) {
 	r.WireSend(&app.Send{
 		Submission:     ports.SubmissionChan,

@@ -8,13 +8,13 @@ import (
 
 func TestCaptureSlashSelection_FillOnly(t *testing.T) {
 	res := CaptureSlashSelection(CaptureInput{
-		InputVal:     "/r",
-		Text:         "/r",
+		InputVal:     "/e",
+		Text:         "/e",
 		SuggestIndex: 0,
-		Selected:     slashview.Option{Cmd: "/run <cmd>", FillValue: "/run "},
+		Selected:     slashview.Option{Cmd: "/exec <cmd>", FillValue: "/exec "},
 		HasSelected:  true,
 	})
-	if !res.FillOnly || res.FillValue != "/run " {
+	if !res.FillOnly || res.FillValue != "/exec " {
 		t.Fatalf("unexpected result: %+v", res)
 	}
 }

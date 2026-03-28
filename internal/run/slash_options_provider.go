@@ -18,16 +18,13 @@ func registerSlashOptionsProviders() {
 		if normalizedLower == "config" || strings.HasPrefix(normalizedLower, "config ") {
 			return configSlashOptions(lang), true
 		}
-		if normalizedLower != "run" && !strings.HasPrefix(normalizedLower, "run ") {
+		if normalizedLower != "exec" && !strings.HasPrefix(normalizedLower, "exec ") {
 			return nil, false
 		}
-		if normalizedLower == "run" {
-			return []ui.SlashOption{{Cmd: slashRunUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun), FillValue: "/run "}}, true
+		if normalizedLower == "exec" {
+			return []ui.SlashOption{{Cmd: slashExecUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun), FillValue: "/exec "}}, true
 		}
-		rest := ""
-		if len(normalized) >= 3 {
-			rest = strings.TrimSpace(normalized[3:])
-		}
+		rest := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "exec"))
 		if strings.Contains(rest, " ") || strings.Contains(rest, "\t") {
 			return []ui.SlashOption{}, true
 		}
@@ -39,7 +36,7 @@ func registerSlashOptionsProviders() {
 			if prefix != "" && !strings.HasPrefix(strings.ToLower(c), prefix) {
 				continue
 			}
-			opts = append(opts, ui.SlashOption{Cmd: "/run " + c, Desc: ""})
+			opts = append(opts, ui.SlashOption{Cmd: "/exec " + c, Desc: ""})
 			if len(opts) >= maxRunCands {
 				break
 			}
@@ -56,8 +53,8 @@ func rootSlashOptions(lang string) []ui.SlashOption {
 	return []ui.SlashOption{
 		{Cmd: "/remote", Desc: i18n.T(lang, i18n.KeyDescRemoteOn)},
 		{Cmd: "/skill <name> [detail]", Desc: i18n.T(lang, i18n.KeyDescSkill)},
-		{Cmd: slashRunUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun), FillValue: "/run "},
-		{Cmd: "/sh", Desc: i18n.T(lang, i18n.KeyDescSh)},
+		{Cmd: slashExecUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun), FillValue: "/exec "},
+		{Cmd: "/bash", Desc: i18n.T(lang, i18n.KeyDescSh)},
 		{Cmd: "/config", Desc: i18n.T(lang, i18n.KeyDescConfig)},
 		{Cmd: "/new", Desc: i18n.T(lang, i18n.KeySessionNew)},
 		{Cmd: "/session", Desc: i18n.T(lang, i18n.KeyDescSessions)},

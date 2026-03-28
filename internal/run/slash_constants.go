@@ -1,3 +1,3 @@
 package run
 
-const slashRunUsageOption = "/run <cmd>"
+const slashExecUsageOption = "/exec <cmd>"

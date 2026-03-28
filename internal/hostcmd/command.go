@@ -40,7 +40,7 @@ type CancelRequested struct{}
 
 func (CancelRequested) hostCommand() {}
 
-// SubshellMode selects how /sh behaves after the TUI exits.
+// SubshellMode selects how /bash behaves after the TUI exits.
 type SubshellMode int
 
 const (

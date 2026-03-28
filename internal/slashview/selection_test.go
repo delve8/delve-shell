@@ -3,10 +3,10 @@ package slashview
 import "testing"
 
 func TestShouldFillOnly(t *testing.T) {
-	if !ShouldFillOnly(Option{Cmd: "/run <cmd>"}, "/r") {
+	if !ShouldFillOnly(Option{Cmd: "/exec <cmd>"}, "/e") {
 		t.Fatalf("expected fill-only for prefix")
 	}
-	if ShouldFillOnly(Option{Cmd: "/run <cmd>"}, "/run <cmd>") {
+	if ShouldFillOnly(Option{Cmd: "/exec <cmd>"}, "/exec <cmd>") {
 		t.Fatalf("did not expect fill-only for exact match")
 	}
 	if !ShouldFillOnly(Option{Cmd: "/skill demo", FillValue: "/skill demo "}, "/skill demo") {

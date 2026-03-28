@@ -118,13 +118,15 @@ func (p *Presenter) SystemNotify(text string) {
 // --- Command execution (transcript) ---
 
 func (p *Presenter) CommandExecutedDirect(cmd, result string) {
-	p.CommandExecutedFromTool(cmd, false, result, false, false)
+	p.CommandExecutedFromTool(cmd, false, result, false, false, true)
 }
 
-func (p *Presenter) CommandExecutedFromTool(cmd string, allowed bool, result string, sensitive, suggested bool) {
+func (p *Presenter) CommandExecutedFromTool(cmd string, allowed bool, result string, sensitive, suggested, direct bool) {
 	// Presenter builds transcript semantics; UI owns styling and wrapping.
 	tag := "approved"
-	if suggested {
+	if direct {
+		tag = "direct"
+	} else if suggested {
 		tag = "suggested"
 	} else if allowed {
 		tag = "allowlist"
@@ -187,7 +189,7 @@ func (p *Presenter) DispatchAgentUI(x any) {
 	case *hiltypes.SensitiveConfirmationRequest:
 		p.ShowSensitiveConfirmation(v)
 	case hiltypes.ExecEvent:
-		p.CommandExecutedFromTool(v.Command, v.Allowed, v.Result, v.Sensitive, v.Suggested)
+		p.CommandExecutedFromTool(v.Command, v.Allowed, v.Result, v.Sensitive, v.Suggested, false)
 	}
 }
 
@@ -205,7 +207,7 @@ func (p *Presenter) RemoteAuthPrompt(target, errText string, useConfiguredIdenti
 	p.Raw(remote.AuthPromptMsg{Target: target, Err: errText, UseConfiguredIdentity: useConfiguredIdentity})
 }
 
-// --- Completion cache (/run) ---
+// --- Completion cache (/exec) ---
 
 func (p *Presenter) RunCompletionCache(remoteLabel string, commands []string) {
 	p.Raw(remote.RunCompletionCacheMsg{RemoteLabel: remoteLabel, Commands: commands})

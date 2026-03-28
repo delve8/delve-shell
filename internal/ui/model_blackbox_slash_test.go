@@ -23,11 +23,11 @@ func TestBlackboxSlashHelpOpensOverlay(t *testing.T) {
 	}
 }
 
-func TestBlackboxSlashShSendsMessagesToShell(t *testing.T) {
+func TestBlackboxSlashBashSendsMessagesToShell(t *testing.T) {
 	f := newBlackboxFixture(t)
 	f.model = f.model.WithTranscriptLines([]string{"a", "b"})
 
-	_ = enterText(f.model, "/sh")
+	_ = enterText(f.model, "/bash")
 	select {
 	case snap := <-f.shellRequested:
 		msgs := snap.Messages
@@ -38,47 +38,47 @@ func TestBlackboxSlashShSendsMessagesToShell(t *testing.T) {
 			t.Fatalf("expected local bash subshell mode, got %v", snap.Mode)
 		}
 		joined := strings.Join(msgs, "\n")
-		if !strings.Contains(joined, "User: /sh") {
-			t.Fatalf("expected User echo for /sh in snapshot, got %#v", msgs)
+		if !strings.Contains(joined, "User: /bash") {
+			t.Fatalf("expected User echo for /bash in snapshot, got %#v", msgs)
 		}
 	default:
-		t.Fatalf("expected /sh to send message snapshot")
+		t.Fatalf("expected /bash to send message snapshot")
 	}
 }
 
-func TestBlackboxSlashShRemoteModeWhenRemoteActive(t *testing.T) {
+func TestBlackboxSlashBashRemoteModeWhenRemoteActive(t *testing.T) {
 	f := newBlackboxFixture(t)
 	next, _ := f.model.Update(remote.ExecutionChangedMsg{Active: true, Label: "r1"})
 	m := next.(ui.Model)
-	_ = enterText(m, "/sh")
+	_ = enterText(m, "/bash")
 	select {
 	case snap := <-f.shellRequested:
 		if snap.Mode != hostcmd.SubshellModeRemoteSSH {
 			t.Fatalf("expected remote SSH subshell mode, got %v", snap.Mode)
 		}
 	default:
-		t.Fatalf("expected /sh snapshot")
+		t.Fatalf("expected /bash snapshot")
 	}
 }
 
 func TestBlackboxSlashRunExecutesDirectCommand(t *testing.T) {
 	f := newBlackboxFixture(t)
-	_ = enterText(f.model, "/run echo")
+	_ = enterText(f.model, "/exec echo")
 	select {
 	case cmd := <-f.execDirectChan:
 		if cmd != "echo" {
 			t.Fatalf("expected exec cmd 'echo', got %q", cmd)
 		}
 	default:
-		t.Fatalf("expected /run to send command to execDirectChan")
+		t.Fatalf("expected /exec to send command to execDirectChan")
 	}
 }
 
 func TestBlackboxSlashRunUsageFillsInput(t *testing.T) {
 	f := newBlackboxFixture(t)
-	got := enterText(f.model, "/run")
-	if got.Input.Value() != "/run " {
-		t.Fatalf("expected /run to fill input to '/run ', got %q", got.Input.Value())
+	got := enterText(f.model, "/exec")
+	if got.Input.Value() != "/exec " {
+		t.Fatalf("expected /exec to fill input to '/exec ', got %q", got.Input.Value())
 	}
 }
 
@@ -90,11 +90,11 @@ func TestBlackboxSlashRunDropdownUsesRemoteCachedSuggestionsWhenAvailable(t *tes
 	next2, _ := m1.Update(remote.RunCompletionCacheMsg{RemoteLabel: "r1", Commands: []string{"busybox", "bzip2"}})
 	m2 := next2.(ui.Model)
 
-	m2.Input.SetValue("/run b")
+	m2.Input.SetValue("/exec b")
 	m2.Input.CursorEnd()
 	view := m2.View()
-	if !strings.Contains(view, "/run busybox") || !strings.Contains(view, "/run bzip2") {
-		t.Fatalf("expected remote cached /run suggestions in dropdown, got view:\n%s", view)
+	if !strings.Contains(view, "/exec busybox") || !strings.Contains(view, "/exec bzip2") {
+		t.Fatalf("expected remote cached /exec suggestions in dropdown, got view:\n%s", view)
 	}
 }
 

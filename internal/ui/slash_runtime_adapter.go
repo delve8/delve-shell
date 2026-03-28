@@ -60,7 +60,7 @@ func (m Model) executeSlashSubmission(rawText string, selectedIndex int) (Model,
 	if text == "" {
 		return m, nil
 	}
-	if text == "/sh" {
+	if text == "/bash" {
 		m = m.appendUserSubmittedEcho(text)
 		mode := hostcmd.SubshellModeLocalBash
 		if m.Remote.Active {

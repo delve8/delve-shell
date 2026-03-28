@@ -73,7 +73,7 @@ This means chat, slash, and control now share one submission model and one outpu
 
 ### Feature Modules
 
-- `internal/run`: direct `/run`, `/sh`, allowlist config helpers, local command completion.
+- `internal/run`: direct `/exec`, `/bash`, allowlist config helpers, local command completion.
 - `internal/remote`: remote config, connect/disconnect, auth, and remote-specific UI state/events.
 - `internal/skill`: skill install/update/remove, skill invocation, skill overlays.
 - `internal/skillstore`: skill discovery, manifest parsing, install/update/remove, and source management.
@@ -94,7 +94,7 @@ This means chat, slash, and control now share one submission model and one outpu
 - Slash suggestions are provider-based and intentionally lightweight.
 - Slash execution is feature-registered through a single execution contract.
 - Overlay-heavy features use a unified overlay feature contract for open, event, key, content, close, and startup hooks.
-- Fill-only slash rows such as `/run <cmd>` are encoded as option metadata instead of separate legacy selected-handler registries.
+- Fill-only slash rows such as `/exec <cmd>` are encoded as option metadata instead of separate legacy selected-handler registries.
 
 The project favors a small plugin surface. It currently does not assume a very large slash surface or a large number of feature modules.
 

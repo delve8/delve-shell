@@ -37,7 +37,7 @@ var TerminalCases = []Case{
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second}, // wait for TUI ready
-			{Input: "/help", Expect: []string{"Slash commands", "斜杠命令", "Quit", "退出", "/q", "/run", "/help"}, Timeout: 5 * time.Second},
+			{Input: "/help", Expect: []string{"Slash commands", "斜杠命令", "Quit", "退出", "/q", "/exec", "/help"}, Timeout: 5 * time.Second},
 			{Input: "/q", Expect: []string{}, Timeout: 2 * time.Second},
 		},
 	},
@@ -58,7 +58,7 @@ var TerminalCases = []Case{
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
-			{Input: "/foo", Expect: []string{"Unknown command", "未知命令", "/q", "/run", "/help"}, Timeout: 5 * time.Second},
+			{Input: "/foo", Expect: []string{"Unknown command", "未知命令", "/q", "/exec", "/help"}, Timeout: 5 * time.Second},
 			{Input: "/q", Expect: []string{}, Timeout: 2 * time.Second},
 		},
 	},
@@ -68,7 +68,7 @@ var TerminalCases = []Case{
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
-			{Input: "/run echo 1", Expect: []string{"Run:", "echo 1", "exit_code", "direct", "直接执行"}, Timeout: 5 * time.Second},
+			{Input: "/exec echo 1", Expect: []string{"Run:", "echo 1", "exit_code", "direct", "直接执行"}, Timeout: 5 * time.Second},
 			{Input: "/q", Expect: []string{}, Timeout: 2 * time.Second},
 		},
 	},

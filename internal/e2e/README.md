@@ -22,7 +22,7 @@ Always set a **non-zero test timeout** (e.g. `-timeout=60s`); if a step stalls w
 | TUI_smoke_help_quit | Startup, /help, /q |
 | TUI_config_show | /config show: config path and LLM summary |
 | TUI_unknown_cmd | Invalid slash command (e.g. /foo): error message |
-| TUI_run_direct | /run echo 1: direct run and result with exit_code |
+| TUI_run_direct | /exec echo 1: direct run and result with exit_code |
 | TUI_reload | /config reload: config and allowlist reload message |
 | TUI_approval_flow | Requires LLM: send message → approval card → y → result (skipped by default) |
 
@@ -52,5 +52,5 @@ Terminal output is stripped of ANSI escapes before matching for stable assertion
 
 ## Troubleshooting
 
-- **`/config show`, `/run`, `/help` behave like unknown command in e2e**: the real binary must call `bootstrap.Install()` before constructing UI models so slash handlers, overlays, and message providers are registered. The interactive entrypoint already does this in `internal/cli/interactive/run.go`; if a new binary is added and skips that install step, e2e will time out waiting for text that never appears.
+- **`/config show`, `/exec`, `/help` behave like unknown command in e2e**: the real binary must call `bootstrap.Install()` before constructing UI models so slash handlers, overlays, and message providers are registered. The interactive entrypoint already does this in `internal/cli/interactive/run.go`; if a new binary is added and skips that install step, e2e will time out waiting for text that never appears.
 - **Hang until `go test` global timeout**: check PTY read loop and step `Expect` strings; `ReadUntilAny` respects the step deadline and returns failure with a tail of captured output when nothing matches.

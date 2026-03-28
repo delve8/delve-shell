@@ -22,7 +22,7 @@ var defaultTUIProgramOptions = []tea.ProgramOption{
 }
 
 // tuiRestartLoop runs one or more Bubble Tea programs in sequence: when the user exits the TUI
-// and the shell bridge has delivered saved transcript lines (e.g. /sh), either a local bash
+// and the shell bridge has delivered saved transcript lines (e.g. /bash), either a local bash
 // is started on stdio or (when Remote is active) an interactive shell runs over the existing
 // SSH connection; when that returns, the TUI starts again with those messages restored.
 type tuiRestartLoop struct {

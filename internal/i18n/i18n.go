@@ -232,16 +232,16 @@ List and switch to another session
 /skill <name> [detail]
 Use skill; optional detail for the AI
 
-/run <cmd>
+/exec <cmd>
 Run one command directly (no AI)
 
-/sh
-Spawn shell; exit shell to return here
+/bash
+Spawn bash; exit shell to return here
 
 /q
 Quit (Ctrl+C also works)`,
-		KeyUsageRun:                      "Usage: /run <command> — e.g. /run ls -la",
-		KeyUnknownCmd:                    "Unknown command. Type /help for the full list, or try /q, /run <cmd>, /config.",
+		KeyUsageRun:                      "Usage: /exec <command> — e.g. /exec ls -la",
+		KeyUnknownCmd:                    "Unknown command. Type /help for the full list, or try /q, /exec <cmd>, /config.",
 		KeyDelveLabel:                    "Delve:",
 		KeyConfigReloaded:                "Config and allowlist reloaded. Next message will use new config.",
 		KeyCancelled:                     "(Cancelled)",
@@ -286,7 +286,7 @@ Quit (Ctrl+C also works)`,
 		KeyRunLabel:                      "Run: ",
 		KeySkillLine:                     "Skill: %s",
 		KeyDescExit:                      "Quit delve-shell",
-		KeyDescRun:                       "Run a command directly (no AI)",
+		KeyDescRun:                       "Execute a command directly (no AI)",
 		KeyDescSh:                        "Spawn bash; return here when done",
 		KeyDescConfig:                    "Set or show config",
 		KeyDescReload:                    "Reload config and allowlist",
@@ -302,7 +302,7 @@ Quit (Ctrl+C also works)`,
 		KeyDescAutoRunDisable:            "Require approval for every command",
 		KeyModeRequired:                  "Usage: /mode suggest or /mode run",
 		KeyRunTagSuggested:               "suggested",
-		KeySuggestedCopyHint:             "Select the command above to copy, or use /run <cmd> to run it.",
+		KeySuggestedCopyHint:             "Select the command above to copy, or use /exec <cmd> to run it.",
 		KeySuggestedCardTitle:            "Suggested command (not executed):",
 		KeySuggestedCardHint:             "1=copy, 2=dismiss",
 		KeySuggestedCopied:               "Copied to clipboard.",

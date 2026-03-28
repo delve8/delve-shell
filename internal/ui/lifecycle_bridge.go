@@ -73,8 +73,8 @@ func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inpu
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 		}
 		return inputlifecycletype.ConsumedResult(), nil
-	case strings.HasPrefix(trimmed, "/run "):
-		cmd := strings.TrimSpace(strings.TrimPrefix(trimmed, "/run "))
+	case strings.HasPrefix(trimmed, "/exec "):
+		cmd := strings.TrimSpace(strings.TrimPrefix(trimmed, "/exec "))
 		if cmd == "" {
 			return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 				Kind: inputlifecycletype.OutputTranscriptAppend,

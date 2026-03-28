@@ -50,6 +50,22 @@ func TestPresenter_AgentReply(t *testing.T) {
 	}
 }
 
+func TestPresenter_CommandExecutedDirect_usesDirectTag(t *testing.T) {
+	var r recordSender
+	p := New(&r)
+	p.CommandExecutedDirect("ls", "out")
+	if len(r.msgs) != 1 {
+		t.Fatalf("want 1 msg, got %d", len(r.msgs))
+	}
+	ta, ok := r.msgs[0].(ui.TranscriptAppendMsg)
+	if !ok || len(ta.Lines) < 1 {
+		t.Fatalf("want TranscriptAppendMsg with lines, got %#v", r.msgs[0])
+	}
+	if ta.Lines[0].Text != "Run: ls (direct)" {
+		t.Fatalf("want direct tag, got %q", ta.Lines[0].Text)
+	}
+}
+
 func TestPresenter_DispatchAgentUI(t *testing.T) {
 	var r recordSender
 	p := New(&r)
@@ -67,8 +83,12 @@ func TestPresenter_DispatchAgentUI(t *testing.T) {
 	if sr, ok := r.msgs[1].(ui.ChoiceCardShowMsg); !ok || sr.PendingSensitive == nil || sr.PendingSensitive.Command != "cat" {
 		t.Fatalf("msg1 %T %+v", r.msgs[1], r.msgs[1])
 	}
-	if _, ok := r.msgs[2].(ui.TranscriptAppendMsg); !ok {
+	ta, ok := r.msgs[2].(ui.TranscriptAppendMsg)
+	if !ok {
 		t.Fatalf("msg2 type %T %+v", r.msgs[2], r.msgs[2])
+	}
+	if len(ta.Lines) < 1 || ta.Lines[0].Text != "Run: x (allowlist)" {
+		t.Fatalf("ExecEvent allowlist tag: got %#v", ta.Lines)
 	}
 }
 

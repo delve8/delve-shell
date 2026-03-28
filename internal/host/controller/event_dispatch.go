@@ -44,7 +44,7 @@ var hostEventHandlers = map[bus.Kind]func(*Controller, bus.Event){
 	},
 	bus.KindAgentExecEvent: func(c *Controller, e bus.Event) {
 		v := e.AgentExec
-		c.ui.CommandExecutedFromTool(v.Command, v.Allowed, v.Result, v.Sensitive, v.Suggested)
+		c.ui.CommandExecutedFromTool(v.Command, v.Allowed, v.Result, v.Sensitive, v.Suggested, false)
 	},
 	bus.KindAgentUnknown: func(c *Controller, e bus.Event) {
 		c.handleAgentUI(e.AgentUI)

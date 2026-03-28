@@ -170,7 +170,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // NewModel creates a Model with default input (slash commands and viewport scrolling).
-// initialMessages if non-nil is used as existing conversation (e.g. after /sh return).
+// initialMessages if non-nil is used as existing conversation (e.g. after /bash return).
 func NewModel(initialMessages []string, readModel ReadModel) Model {
 	ti := textarea.New()
 	ti.Placeholder = i18n.T("en", i18n.KeyPlaceholderInput)

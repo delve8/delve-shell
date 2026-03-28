@@ -3,7 +3,7 @@ package slashview
 import "strings"
 
 // remoteOnHostMatch matches /remote on <host> rows when input is like "remote", "remote p", "remote on pr"
-// (prefix on the host segment, same idea as /run <cmd> prefix matching).
+// (prefix on the host segment, same idea as /exec <cmd> prefix matching).
 func remoteOnHostMatch(inputLower, cmd string) bool {
 	host, ok := strings.CutPrefix(cmd, "/remote on ")
 	if !ok || host == "" {

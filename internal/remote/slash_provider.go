@@ -7,7 +7,7 @@ import (
 	"delve-shell/internal/ui"
 )
 
-const remoteRunUsageOption = "/run <cmd>"
+const remoteExecUsageOption = "/exec <cmd>"
 
 func remoteSlashOptionsProvider(
 	inputVal string,
@@ -36,16 +36,16 @@ func remoteSlashOptionsProvider(
 		}
 	}
 
-	// Remote /run suggestions: when a cached list exists, prefer it over local PATH scanning.
-	if normalizedLower == "run" || strings.HasPrefix(normalizedLower, "run ") {
+	// Remote /exec suggestions: when a cached list exists, prefer it over local PATH scanning.
+	if normalizedLower == "exec" || strings.HasPrefix(normalizedLower, "exec ") {
 		cands := getCachedRunSuggestions()
 		if len(cands) == 0 {
 			return nil, false
 		}
-		if normalizedLower == "run" {
-			return []ui.SlashOption{{Cmd: remoteRunUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun)}}, true
+		if normalizedLower == "exec" {
+			return []ui.SlashOption{{Cmd: remoteExecUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun)}}, true
 		}
-		rest := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "run"))
+		rest := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "exec"))
 		if strings.Contains(rest, " ") || strings.Contains(rest, "\t") {
 			return []ui.SlashOption{}, true
 		}
@@ -56,7 +56,7 @@ func remoteSlashOptionsProvider(
 			if prefix != "" && !strings.HasPrefix(strings.ToLower(c), prefix) {
 				continue
 			}
-			opts = append(opts, ui.SlashOption{Cmd: "/run " + c, Desc: ""})
+			opts = append(opts, ui.SlashOption{Cmd: "/exec " + c, Desc: ""})
 			if len(opts) >= maxRunCands {
 				break
 			}

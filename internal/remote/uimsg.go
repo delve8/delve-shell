@@ -25,7 +25,7 @@ type AuthPromptMsg struct {
 	HostKeyHost           string
 }
 
-// RunCompletionCacheMsg provides a cached list of candidate strings for /run completion.
+// RunCompletionCacheMsg provides a cached list of candidate strings for /exec completion.
 // RemoteLabel identifies which remote the list belongs to (empty for local).
 type RunCompletionCacheMsg struct {
 	RemoteLabel string

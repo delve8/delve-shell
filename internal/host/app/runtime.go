@@ -158,7 +158,7 @@ func (r *Runtime) PublishCancelRequest() bool {
 	}
 }
 
-// PublishShellSnapshot sends transcript lines for /sh return restore.
+// PublishShellSnapshot sends transcript lines for /bash return restore.
 func (r *Runtime) PublishShellSnapshot(snap hostcmd.ShellSnapshot) bool {
 	s := r.currentSend()
 	if s == nil || s.ShellSnapshot == nil {

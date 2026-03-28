@@ -3,10 +3,10 @@ package slashview
 import "testing"
 
 func TestSelectedByVisibleIndex_ReturnsOption(t *testing.T) {
-	opts := []Option{{Cmd: "/help"}, {Cmd: "/run <cmd>"}, {Cmd: "/remote on"}}
+	opts := []Option{{Cmd: "/help"}, {Cmd: "/exec <cmd>"}, {Cmd: "/remote on"}}
 	vis := []int{1, 2}
 	got, ok := SelectedByVisibleIndex(opts, vis, 0)
-	if !ok || got.Cmd != "/run <cmd>" {
+	if !ok || got.Cmd != "/exec <cmd>" {
 		t.Fatalf("unexpected selected option: %+v ok=%v", got, ok)
 	}
 }
