@@ -8,12 +8,12 @@ func TestEvaluatePendingThreeOptions(t *testing.T) {
 		t.Fatalf("unexpected result: %#v", r)
 	}
 	r = Evaluate("2", true, false, 0, 3)
-	if r.Decision != DecisionCopy {
-		t.Fatalf("expected copy, got %#v", r)
-	}
-	r = Evaluate("3", true, false, 0, 3)
 	if r.Decision != DecisionDismiss {
 		t.Fatalf("expected dismiss, got %#v", r)
+	}
+	r = Evaluate("3", true, false, 0, 3)
+	if r.Decision != DecisionCopy {
+		t.Fatalf("expected copy, got %#v", r)
 	}
 }
 
@@ -26,7 +26,7 @@ func TestEvaluateSensitive(t *testing.T) {
 
 func TestEvaluateEnterAndArrow(t *testing.T) {
 	r := Evaluate("enter", true, false, 1, 3)
-	if r.Decision != DecisionCopy {
+	if r.Decision != DecisionDismiss {
 		t.Fatalf("enter should map to option 2: %#v", r)
 	}
 	r = Evaluate("down", true, false, 0, 3)

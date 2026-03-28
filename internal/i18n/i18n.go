@@ -7,7 +7,6 @@ const (
 	KeyHelpText              = "help_text"
 	KeyUsageRun              = "usage_run"
 	KeyUnknownCmd            = "unknown_cmd"
-	KeyConfigReloaded        = "config_reloaded"
 	KeyCancelled             = "cancelled"
 	KeyErrorPrefix           = "error_prefix"
 	KeyConfigPrefix          = "config_prefix"
@@ -16,7 +15,7 @@ const (
 	KeyWaitOrCancel          = "wait_or_cancel"
 	KeyPlaceholderInput      = "placeholder_input"
 	KeyInputHintApprove      = "input_hint_approve"       // placeholder when waiting for 1/2 (approval)
-	KeyInputHintApproveThree = "input_hint_approve_three" // placeholder when waiting for 1/2/3 (Run/Copy/Dismiss)
+	KeyInputHintApproveThree = "input_hint_approve_three" // placeholder when waiting for 1/2/3 (Run/Dismiss/Copy)
 	KeyInputHintSensitive    = "input_hint_sensitive"     // placeholder when waiting for 1/2/3 (sensitive)
 	// Choice menu labels (for Up/Down + Enter selection list)
 	KeyChoiceApprove            = "choice_approve"
@@ -30,7 +29,7 @@ const (
 	KeyApprovalSummary          = "approval_summary"
 	KeyApprovalWhy              = "approval_why"
 	KeyApproveYN                = "approve_yn"       // 2 options
-	KeyApproveYNThree           = "approve_yn_three" // 3 options: Run, Copy, Dismiss
+	KeyApproveYNThree           = "approve_yn_three" // 3 options: Run, Dismiss, Copy
 	KeyApprovalDecisionApproved = "approval_decision_approved"
 	KeyApprovalDecisionRejected = "approval_decision_rejected"
 	KeyRiskReadOnly             = "risk_read_only"
@@ -56,10 +55,8 @@ const (
 	KeyDescRun    = "desc_run"
 	KeyDescSh     = "desc_sh"
 	KeyDescConfig = "desc_config"
-	KeyDescReload = "desc_reload"
 	KeyDescHelp   = "desc_help"
 	// /config 子项说明（仅在选择 /config 后显示）
-	KeyDescConfigShow              = "desc_config_show"
 	KeyDescConfigLLMBaseURL        = "desc_config_llm_base_url"
 	KeyDescConfigLLMApiKey         = "desc_config_llm_api_key"
 	KeyDescConfigLLMModel          = "desc_config_llm_model"
@@ -127,7 +124,6 @@ const (
 	KeyConfigLLMCheckFailed          = "config_llm_check_failed"            // format: "LLM check failed: %v"
 	KeyConfigLLMBaseURLAutoCorrected = "config_llm_base_url_auto_corrected" // format: "Base URL updated to %s (added /v1)."
 	KeyDescConfigLLM                 = "desc_config_llm"
-	KeyConfigHint                    = "config_hint" // when /config or /config show is used: point to /config llm
 	// Skill
 	KeyDescSkill             = "desc_skill"
 	KeyUsageSkill            = "usage_skill"
@@ -167,11 +163,11 @@ var messages = map[string]map[string]string{
 		KeyHelpText: `delve-shell — AI-assisted ops. Every command runs only after you approve.
 
 What it does:
-  Describe a task in natural language; the AI suggests commands. Commands that match the allowlist (and have no shell write redirection) run without a card; all others show a card (Run, Copy, or Dismiss). An empty allowlist matches nothing, so every command shows the card. All runs are recorded in session history for audit.
+  Describe a task in natural language; the AI suggests commands. Commands that match the allowlist (and have no shell write redirection) run without a card; all others show a card (Run, Dismiss, or Copy). An empty allowlist matches nothing, so every command shows the card. All runs are recorded in session history for audit.
 
 Quick start:
   1. Type your task and press Enter.
-  2. When a command card appears, press 1 to run, 2 to copy the command, 3 to dismiss without running.
+  2. When a command card appears, press 1 to run, 2 to dismiss without running, 3 to copy the command.
   3. Type / for slash suggestions (Up/Down, Enter). /help opens this panel; scroll the log with PgUp/PgDown when needed.
 
 Slash commands (command line, then description; blank line between entries):
@@ -180,7 +176,7 @@ Slash commands (command line, then description; blank line between entries):
 Show this help
 
 /config
-Set or show config
+Config subcommands (see list below)
 
 /config del-remote
 Remove a remote
@@ -197,11 +193,8 @@ Update an installed skill from its git source (branch/tag selectable in dialog)
 /config update auto-run list
 Merge default allowlist
 
-/config llm
-Set LLM
-
-/config reload
-Reload config and allowlist
+/config model
+Configure model (LLM API)
 
 /access
 Connect over SSH: dropdown lists saved hosts first, then /access New (add target), then /access Local (use local executor). Host segment in saved targets must be lowercase so /access Local and /access New do not collide with host names.
@@ -232,7 +225,6 @@ Quit (Ctrl+C also works)`,
 		KeyUsageRun:                      "Usage: /exec <command> — e.g. /exec ls -la",
 		KeyUnknownCmd:                    "Unknown command. Type /help for the full list, or try /quit, /exec <cmd>, /config.",
 		KeyDelveLabel:                    "Delve:",
-		KeyConfigReloaded:                "Config and allowlist reloaded. Next message will use new config.",
 		KeyCancelled:                     "(Cancelled)",
 		KeyErrorPrefix:                   "Error: ",
 		KeyConfigPrefix:                  "Config: ",
@@ -254,7 +246,7 @@ Quit (Ctrl+C also works)`,
 		KeyApprovalSummary:               "Summary:",
 		KeyApprovalWhy:                   "Why:",
 		KeyApproveYN:                     "1=approve, 2=reject",
-		KeyApproveYNThree:                "1=Run, 2=Copy, 3=Dismiss",
+		KeyApproveYNThree:                "1=Run, 2=Dismiss, 3=Copy",
 		KeyApprovalDecisionApproved:      "Decision: approved",
 		KeyApprovalDecisionRejected:      "Decision: rejected",
 		KeyRiskReadOnly:                  "READ-ONLY",
@@ -269,7 +261,7 @@ Quit (Ctrl+C also works)`,
 		KeySensitiveChoice2:              "2 = Run, return result to AI, store in history",
 		KeySensitiveChoice3:              "3 = Run, return result to AI, do not store in history",
 		KeySensitivePressKey:             "Press 1, 2, or 3: ",
-		KeyErrLLMNotConfigured:           "LLM not configured. Use /config to set llm.api_key (and llm.base_url, llm.model), then send a message again (no restart needed). Supports $VAR or ${VAR} for env. Config path: %s",
+		KeyErrLLMNotConfigured:           "LLM not configured. Use /config model or edit llm.api_key (and llm.base_url, llm.model), then send a message again (no restart needed). Supports $VAR or ${VAR} for env. Config path: %s",
 		KeyUserLabel:                     "User: ",
 		KeyAILabel:                       "AI: ",
 		KeyRunLabel:                      "Run: ",
@@ -277,16 +269,14 @@ Quit (Ctrl+C also works)`,
 		KeyDescExit:                      "Quit delve-shell",
 		KeyDescRun:                       "Execute a command directly (no AI)",
 		KeyDescSh:                        "Spawn bash",
-		KeyDescConfig:                    "Set or show config",
-		KeyDescReload:                    "Reload config and allowlist",
+		KeyDescConfig:                    "Config subcommands",
 		KeyDescHelp:                      "Show this help",
-		KeyDescConfigShow:                "Show current config path and LLM summary",
 		KeyDescConfigLLMBaseURL:          "Set LLM API base URL",
 		KeyDescConfigLLMApiKey:           "Set LLM API key",
 		KeyDescConfigLLMModel:            "Set LLM model name",
 		KeyDescConfigAllowlistUpdate:     "Merge default allowlist",
 		KeyDescConfigRemoveRemote:        "Remove a remote",
-		KeyAllowlistUpdateDone:           "Allowlist updated: %d new pattern(s) added. Use /config reload to apply.",
+		KeyAllowlistUpdateDone:           "Allowlist updated: %d new pattern(s) added. Changes apply immediately.",
 		KeyModeRequired:                  "Usage: /mode suggest or /mode run",
 		KeyRunTagSuggested:               "suggested",
 		KeySuggestedCopyHint:             "Select the command above to copy, or use /exec <cmd> to run it.",
@@ -338,8 +328,7 @@ Quit (Ctrl+C also works)`,
 		KeyConfigLLMCheckOK:              "LLM check OK.",
 		KeyConfigLLMCheckFailed:          "LLM check failed: %v",
 		KeyConfigLLMBaseURLAutoCorrected: "Base URL updated to %s (added /v1).",
-		KeyDescConfigLLM:                 "Set LLM",
-		KeyConfigHint:                    "Use /config llm for LLM configuration.",
+		KeyDescConfigLLM:                 "Configure model (LLM API)",
 		KeyDescSkill:                     "Use skill; optional detail for the AI",
 		KeyUsageSkill:                    "Usage: /skill <name> [detail] — text after the name is optional context",
 		KeySkillNotFound:                 "Skill not found.",

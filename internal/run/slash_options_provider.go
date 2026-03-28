@@ -73,7 +73,6 @@ func configSlashOptions(lang string) []ui.SlashOption {
 		{Cmd: "/config del-skill", Desc: i18n.T(lang, i18n.KeyDescSkillRemove)},
 		{Cmd: "/config update-skill", Desc: i18n.T(lang, i18n.KeyDescConfigUpdateSkill)},
 		{Cmd: "/config update auto-run list", Desc: i18n.T(lang, i18n.KeyDescConfigAllowlistUpdate)},
-		{Cmd: "/config llm", Desc: i18n.T(lang, i18n.KeyDescConfigLLM)},
-		{Cmd: "/config reload", Desc: i18n.T(lang, i18n.KeyDescReload)},
+		{Cmd: "/config model", Desc: i18n.T(lang, i18n.KeyDescConfigLLM)},
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 
 	"delve-shell/internal/agent"
+	"delve-shell/internal/agentctx"
 	"delve-shell/internal/cli/hostfsm"
 	"delve-shell/internal/config"
 	"delve-shell/internal/history"
@@ -43,6 +44,9 @@ func (c *Controller) handleUserChat(e bus.Event) {
 		return
 	}
 	reqCtx, cancel := context.WithCancel(context.Background())
+	if n := strings.TrimSpace(e.Submission.SkillInvocationSkillName); n != "" {
+		reqCtx = agentctx.WithSkillSlashTurn(reqCtx, n)
+	}
 	c.llmRunning = true
 	c.llmCancel = cancel
 

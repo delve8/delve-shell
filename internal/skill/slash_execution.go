@@ -86,10 +86,11 @@ func executeSkillInvocation(req ui.SlashExecutionRequest, rest string) inputlife
 	userLine := strings.TrimSpace(req.RawText)
 	if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.Submission{
 		Submission: inputlifecycletype.InputSubmission{
-			Kind:               inputlifecycletype.SubmissionChat,
-			Source:             inputlifecycletype.SourceProgrammatic,
-			RawText:            payload,
-			SessionDisplayText: userLine,
+			Kind:                     inputlifecycletype.SubmissionChat,
+			Source:                   inputlifecycletype.SourceProgrammatic,
+			RawText:                  payload,
+			SessionDisplayText:       userLine,
+			SkillInvocationSkillName: skillName,
 		},
 	}) {
 		return inputlifecycletype.ProcessResult{}

@@ -416,7 +416,7 @@ func TestBindSendPorts_SubmitPayloadTable(t *testing.T) {
 	payloads := []string{
 		"hello",
 		"/help",
-		"/config llm",
+		"/config model",
 		"",
 		"a",
 		strings.Repeat("x", 300),

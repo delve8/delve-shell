@@ -57,9 +57,9 @@ func Evaluate(key string, hasPending bool, hasSensitive bool, choiceIndex int, c
 		case "1":
 			r.Decision = DecisionApprove
 		case "2":
-			r.Decision = DecisionCopy
-		case "3":
 			r.Decision = DecisionDismiss
+		case "3":
+			r.Decision = DecisionCopy
 		}
 	}
 	return r

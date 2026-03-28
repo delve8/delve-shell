@@ -42,17 +42,6 @@ var TerminalCases = []Case{
 		},
 	},
 	{
-		Name:    "TUI_config_show",
-		Skip:    "",
-		Timeout: DefaultStepTimeout,
-		Steps: []Step{
-			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
-			// KeyConfigHint EN: "Use /config llm for LLM configuration."
-			{Input: "/config show", Expect: []string{"/config llm", "LLM", "configuration"}, Timeout: 5 * time.Second},
-			{Input: "/quit", Expect: []string{}, Timeout: 2 * time.Second},
-		},
-	},
-	{
 		Name:    "TUI_unknown_cmd",
 		Skip:    "",
 		Timeout: DefaultStepTimeout,
@@ -73,22 +62,12 @@ var TerminalCases = []Case{
 		},
 	},
 	{
-		Name:    "TUI_reload",
-		Skip:    "",
-		Timeout: DefaultStepTimeout,
-		Steps: []Step{
-			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
-			{Input: "/config reload", Expect: []string{"reloaded", "重载", "Config and allowlist", "配置与允许列表"}, Timeout: 3 * time.Second},
-			{Input: "/quit", Expect: []string{}, Timeout: 2 * time.Second},
-		},
-	},
-	{
 		Name:    "TUI_approval_flow",
 		Skip:    "need E2E_LLM=1 and valid LLM config",
 		Timeout: 20 * time.Second,
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
-			{Input: "Use execute_command to run `pwd` and then tell me the result.", Expect: []string{"Command to run", "待执行的命令", "1=Run", "1=approve", "2=Copy", "2=reject", "3=Dismiss"}, Timeout: 18 * time.Second},
+			{Input: "Use execute_command to run `pwd` and then tell me the result.", Expect: []string{"Command to run", "待执行的命令", "1=Run", "1=approve", "2=Dismiss", "2=reject", "3=Copy"}, Timeout: 18 * time.Second},
 			{Input: "1", Expect: []string{"exit_code", "Run:", "pwd"}, Timeout: 10 * time.Second},
 		},
 	},

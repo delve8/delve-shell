@@ -154,7 +154,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 }
 
 func allowlistExecutionParagraph() string {
-	return `Commands that match the allowlist (and have no shell write redirection like > or >>) run without an approval card. All other commands show an approval card: Run, Copy (clipboard, no execution), or Dismiss. An empty allowlist means nothing matches, so every command shows the card. Prefer one combined command per task when the user must approve.`
+	return `Commands that match the allowlist (and have no shell write redirection like > or >>) run without an approval card. All other commands show an approval card: Run, Dismiss (no execution), or Copy (clipboard, no execution). An empty allowlist means nothing matches, so every command shows the card. Prefer one combined command per task when the user must approve.`
 }
 
 // MaxConversationEvents is the max number of session events to use when building conversation history (user_input + llm_response only).

@@ -58,6 +58,6 @@ func TestBlackboxStartupOverlayProviderOpensConfigLLM(t *testing.T) {
 	next, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	got := next.(ui.Model)
 	if !got.Overlay.Active || !configllm.OverlayActive() {
-		t.Fatalf("expected startup overlay provider to open config llm overlay")
+		t.Fatalf("expected startup overlay provider to open config model overlay")
 	}
 }

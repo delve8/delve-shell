@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 )
 
-// overlayState holds `/config llm` interactive overlay (same lifetime pattern as internal/remote overlay state).
+// overlayState holds `/config model` interactive overlay (same lifetime pattern as internal/remote overlay state).
 type overlayState struct {
 	Active           bool
 	Checking         bool

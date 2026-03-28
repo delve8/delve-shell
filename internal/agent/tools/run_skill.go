@@ -11,6 +11,7 @@ import (
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
 
+	"delve-shell/internal/agentctx"
 	"delve-shell/internal/execenv"
 	"delve-shell/internal/hil"
 	"delve-shell/internal/hiltypes"
@@ -18,7 +19,8 @@ import (
 	"delve-shell/internal/skillstore"
 )
 
-// RunSkillTool runs a skill script via HIL approval; same approval/execution flow as execute_command.
+// RunSkillTool runs a skill script via HIL approval by default; when the LLM context is a /skill <name> turn
+// and skill_name matches, approval is skipped (sensitive-path confirmation still applies).
 type RunSkillTool struct {
 	RequestApproval              func(command, summary, reason, riskLevel, skillName string) hiltypes.ApprovalResponse
 	RequestSensitiveConfirmation func(command string) hiltypes.SensitiveChoice
@@ -33,7 +35,7 @@ var _ tool.InvokableTool = (*RunSkillTool)(nil)
 func (t *RunSkillTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 	return &schema.ToolInfo{
 		Name: "run_skill",
-		Desc: "Run a script from an installed skill. Skills are under ~/.delve-shell/skills/<skill_name>/ with SKILL.md and scripts/ subdir. Use list_skills to discover skills and their scripts. This tool always shows an approval card; the command runs in the skill's scripts/ directory. Set result_contains_secrets if the script output may contain sensitive data.",
+		Desc: "Run a script from an installed skill. Skills are under ~/.delve-shell/skills/<skill_name>/ with SKILL.md and scripts/ subdir. Use list_skills to discover skills and their scripts. When the user started the turn with /skill <name> for the same skill, approval is skipped; otherwise an approval card is shown. The command runs in the skill's scripts/ directory. Set result_contains_secrets if the script output may contain sensitive data.",
 		ParamsOneOf: schema.NewParamsOneOfByParams(map[string]*schema.ParameterInfo{
 			"skill_name": {
 				Type:     schema.String,
@@ -181,8 +183,12 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 		riskLevel = strings.TrimSpace(strings.ToLower(meta.RiskLevel))
 	}
 
-	// Always request approval for run_skill (no allowlist shortcut).
-	resp := t.RequestApproval(cmd, summary, reason, riskLevel, skillName)
+	var resp hiltypes.ApprovalResponse
+	if slashSkill, ok := agentctx.SkillSlashSkillName(ctx); ok && strings.EqualFold(slashSkill, skillName) {
+		resp = hiltypes.ApprovalResponse{Approved: true}
+	} else {
+		resp = t.RequestApproval(cmd, summary, reason, riskLevel, skillName)
+	}
 	if t.Session != nil {
 		_ = t.Session.AppendCommand(cmd, resp.Approved, reason, riskLevel, "skill", skillName)
 	}
