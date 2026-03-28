@@ -31,7 +31,7 @@ func PlanSlashEnter(inputVal string, selected slashview.Option, hasSelected bool
 	if trimmed == "" {
 		return EnterPlan{Kind: EnterPlanNone}
 	}
-	if trimmed == "/q" {
+	if trimmed == "/quit" {
 		return EnterPlan{
 			Kind: EnterPlanSubmit,
 			Submission: inputlifecycletype.InputSubmission{

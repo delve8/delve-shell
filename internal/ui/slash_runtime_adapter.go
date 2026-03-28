@@ -5,7 +5,6 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/slashdispatch"
@@ -60,14 +59,8 @@ func (m Model) executeSlashSubmission(rawText string, selectedIndex int) (Model,
 	if text == "" {
 		return m, nil
 	}
-	if text == "/bash" {
-		m = m.appendUserSubmittedEcho(text)
-		mode := hostcmd.SubshellModeLocalBash
-		if m.Remote.Active {
-			mode = hostcmd.SubshellModeRemoteSSH
-		}
-		_ = m.EmitShellSnapshotIntentWithMode(m.TranscriptLines(), mode)
-		return m.clearSlashInput(), tea.Quit
+	if m2, cmd, ok := trySlashBashQuit(m, text); ok {
+		return m2, cmd
 	}
 	m, cmd := slashRuntime.ExecuteSubmission(m, text, selectedIndex, m.slashRuntimeDeps())
 	// Transcript lines are scrollback via tea.Println; append-only slash outcomes (e.g. unknown command)

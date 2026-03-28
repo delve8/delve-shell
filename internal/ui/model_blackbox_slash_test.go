@@ -1,6 +1,7 @@
 package ui_test
 
 import (
+	"runtime"
 	"strings"
 	"testing"
 
@@ -24,6 +25,9 @@ func TestBlackboxSlashHelpOpensOverlay(t *testing.T) {
 }
 
 func TestBlackboxSlashBashSendsMessagesToShell(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("/bash is not available on Windows")
+	}
 	f := newBlackboxFixture(t)
 	f.model = f.model.WithTranscriptLines([]string{"a", "b"})
 
@@ -47,6 +51,9 @@ func TestBlackboxSlashBashSendsMessagesToShell(t *testing.T) {
 }
 
 func TestBlackboxSlashBashRemoteModeWhenRemoteActive(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("/bash is not available on Windows")
+	}
 	f := newBlackboxFixture(t)
 	next, _ := f.model.Update(remote.ExecutionChangedMsg{Active: true, Label: "r1"})
 	m := next.(ui.Model)

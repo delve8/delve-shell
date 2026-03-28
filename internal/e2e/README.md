@@ -19,7 +19,7 @@ Always set a **non-zero test timeout** (e.g. `-timeout=60s`); if a step stalls w
 
 | Case name | Coverage |
 |-----------|----------|
-| TUI_smoke_help_quit | Startup, /help, /q |
+| TUI_smoke_help_quit | Startup, /help, /quit |
 | TUI_config_show | /config show: config path and LLM summary |
 | TUI_unknown_cmd | Invalid slash command (e.g. /foo): error message |
 | TUI_run_direct | /exec echo 1: direct run and result with exit_code |

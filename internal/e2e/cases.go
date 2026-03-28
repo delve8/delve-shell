@@ -37,8 +37,8 @@ var TerminalCases = []Case{
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second}, // wait for TUI ready
-			{Input: "/help", Expect: []string{"Slash commands", "斜杠命令", "Quit", "退出", "/q", "/exec", "/help"}, Timeout: 5 * time.Second},
-			{Input: "/q", Expect: []string{}, Timeout: 2 * time.Second},
+			{Input: "/help", Expect: []string{"Slash commands", "斜杠命令", "Quit", "退出", "/quit", "/exec", "/help"}, Timeout: 5 * time.Second},
+			{Input: "/quit", Expect: []string{}, Timeout: 2 * time.Second},
 		},
 	},
 	{
@@ -49,7 +49,7 @@ var TerminalCases = []Case{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
 			// KeyConfigHint EN: "Use /config llm for LLM; auto-run is in footer." (footer line also shows Auto-Run)
 			{Input: "/config show", Expect: []string{"/config llm", "LLM", "auto-run", "footer"}, Timeout: 5 * time.Second},
-			{Input: "/q", Expect: []string{}, Timeout: 2 * time.Second},
+			{Input: "/quit", Expect: []string{}, Timeout: 2 * time.Second},
 		},
 	},
 	{
@@ -58,8 +58,8 @@ var TerminalCases = []Case{
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
-			{Input: "/foo", Expect: []string{"Unknown command", "未知命令", "/q", "/exec", "/help"}, Timeout: 5 * time.Second},
-			{Input: "/q", Expect: []string{}, Timeout: 2 * time.Second},
+			{Input: "/foo", Expect: []string{"Unknown command", "未知命令", "/quit", "/exec", "/help"}, Timeout: 5 * time.Second},
+			{Input: "/quit", Expect: []string{}, Timeout: 2 * time.Second},
 		},
 	},
 	{
@@ -69,7 +69,7 @@ var TerminalCases = []Case{
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
 			{Input: "/exec echo 1", Expect: []string{"Run:", "echo 1", "exit_code", "direct", "直接执行"}, Timeout: 5 * time.Second},
-			{Input: "/q", Expect: []string{}, Timeout: 2 * time.Second},
+			{Input: "/quit", Expect: []string{}, Timeout: 2 * time.Second},
 		},
 	},
 	{
@@ -79,7 +79,7 @@ var TerminalCases = []Case{
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
 			{Input: "/config reload", Expect: []string{"reloaded", "重载", "Config and allowlist", "配置与允许列表"}, Timeout: 3 * time.Second},
-			{Input: "/q", Expect: []string{}, Timeout: 2 * time.Second},
+			{Input: "/quit", Expect: []string{}, Timeout: 2 * time.Second},
 		},
 	},
 	{

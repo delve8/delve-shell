@@ -161,13 +161,13 @@ const (
 	KeySkillAlreadyExists    = "skill_already_exists"
 
 	// Overlay keyboard hints (dim footer / pick lists; full line per key for translation word order).
-	KeyOverlayFormFooter               = "overlay_form_footer"
-	KeyOverlayPicklistHint             = "overlay_picklist_hint"
-	KeyOverlayUpdateSkillRefTitle      = "overlay_update_skill_ref_title"
-	KeyOverlayEscCancel                = "overlay_esc_cancel"
-	KeyOverlayEnterContinueEsc         = "overlay_enter_continue_esc"
-	KeyOverlay12SelectEsc              = "overlay_12_select_esc"
-	KeyOverlayEnterSubmitEsc           = "overlay_enter_submit_esc"
+	KeyOverlayFormFooter          = "overlay_form_footer"
+	KeyOverlayPicklistHint        = "overlay_picklist_hint"
+	KeyOverlayUpdateSkillRefTitle = "overlay_update_skill_ref_title"
+	KeyOverlayEscCancel           = "overlay_esc_cancel"
+	KeyOverlayEnterContinueEsc    = "overlay_enter_continue_esc"
+	KeyOverlay12SelectEsc         = "overlay_12_select_esc"
+	KeyOverlayEnterSubmitEsc      = "overlay_enter_submit_esc"
 )
 
 var messages = map[string]map[string]string{
@@ -241,13 +241,10 @@ Use skill; optional detail for the AI
 /exec <cmd>
 Run one command directly (no AI)
 
-/bash
-Spawn bash; exit shell to return here
-
-/q
+` + helpEnBashSection + `/quit
 Quit (Ctrl+C also works)`,
 		KeyUsageRun:                      "Usage: /exec <command> — e.g. /exec ls -la",
-		KeyUnknownCmd:                    "Unknown command. Type /help for the full list, or try /q, /exec <cmd>, /config.",
+		KeyUnknownCmd:                    "Unknown command. Type /help for the full list, or try /quit, /exec <cmd>, /config.",
 		KeyDelveLabel:                    "Delve:",
 		KeyConfigReloaded:                "Config and allowlist reloaded. Next message will use new config.",
 		KeyCancelled:                     "(Cancelled)",
@@ -293,7 +290,7 @@ Quit (Ctrl+C also works)`,
 		KeySkillLine:                     "Skill: %s",
 		KeyDescExit:                      "Quit delve-shell",
 		KeyDescRun:                       "Execute a command directly (no AI)",
-		KeyDescSh:                        "Spawn bash; return here when done",
+		KeyDescSh:                        "Spawn bash",
 		KeyDescConfig:                    "Set or show config",
 		KeyDescReload:                    "Reload config and allowlist",
 		KeyDescHelp:                      "Show this help",
@@ -345,7 +342,7 @@ Quit (Ctrl+C also works)`,
 		KeySessionNone:                   "No previous sessions.",
 		KeyRemoteNone:                    "No remotes configured.",
 		KeyDelRemoteNoHosts:              "No hosts.",
-		KeyDescRemoteOn:                  "Connect to a remote host",
+		KeyDescRemoteOn:                  "Connect to host",
 		KeyDescRemoteOff:                 "Disconnect from remote host",
 		KeyRemoteManualHint:              "Open remote connection dialog",
 		KeyHelpTitle:                     "Help",

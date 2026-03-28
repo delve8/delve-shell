@@ -48,7 +48,7 @@ func TestPlanSlashEnter(t *testing.T) {
 	})
 
 	t.Run("quit becomes control submission", func(t *testing.T) {
-		got := PlanSlashEnter("/q", slashview.Option{Cmd: "/q"}, true, 5)
+		got := PlanSlashEnter("/quit", slashview.Option{Cmd: "/quit"}, true, 5)
 		if got.Kind != EnterPlanSubmit {
 			t.Fatalf("Kind=%q want submit", got.Kind)
 		}

@@ -72,7 +72,7 @@ func TestEngineOnEnter(t *testing.T) {
 	})
 
 	t.Run("quit control submission", func(t *testing.T) {
-		got, ok := engine.OnEnter(" /q ", 7)
+		got, ok := engine.OnEnter(" /quit ", 7)
 		if !ok {
 			t.Fatal("expected control submission")
 		}

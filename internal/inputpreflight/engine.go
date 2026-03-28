@@ -41,7 +41,7 @@ func (Engine) OnEnter(current string, selectedIndex int) (inputlifecycletype.Inp
 		InputLine:     current,
 		SelectedIndex: -1,
 	}
-	if trimmed == "/q" {
+	if trimmed == "/quit" {
 		submission.Kind = inputlifecycletype.SubmissionControl
 		submission.ControlSignal = inputlifecycletype.ControlSignalQuit
 		return submission, true

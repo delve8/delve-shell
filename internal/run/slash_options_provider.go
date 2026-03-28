@@ -50,17 +50,20 @@ func registerSlashOptionsProviders() {
 }
 
 func rootSlashOptions(lang string) []ui.SlashOption {
-	return []ui.SlashOption{
+	opts := []ui.SlashOption{
 		{Cmd: "/access", Desc: i18n.T(lang, i18n.KeyDescRemoteOn)},
 		{Cmd: "/skill <name> [detail]", Desc: i18n.T(lang, i18n.KeyDescSkill)},
 		{Cmd: slashExecUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun)},
-		{Cmd: "/bash", Desc: i18n.T(lang, i18n.KeyDescSh)},
+	}
+	opts = append(opts, bashRootSlashOptions(lang)...)
+	opts = append(opts, []ui.SlashOption{
 		{Cmd: "/config", Desc: i18n.T(lang, i18n.KeyDescConfig)},
 		{Cmd: "/new", Desc: i18n.T(lang, i18n.KeySessionNew)},
 		{Cmd: "/session", Desc: i18n.T(lang, i18n.KeyDescSessions)},
 		{Cmd: "/help", Desc: i18n.T(lang, i18n.KeyDescHelp)},
-		{Cmd: "/q", Desc: i18n.T(lang, i18n.KeyDescExit)},
-	}
+		{Cmd: "/quit", Desc: i18n.T(lang, i18n.KeyDescExit)},
+	}...)
+	return opts
 }
 
 func configSlashOptions(lang string) []ui.SlashOption {
