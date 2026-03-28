@@ -11,15 +11,15 @@ import (
 
 func TestBlackboxSlashRemoteOnOpensOverlay(t *testing.T) {
 	f := newBlackboxFixture(t)
-	got := enterText(f.model, "/remote on")
+	got := enterText(f.model, "/access New")
 	if !got.Overlay.Active {
-		t.Fatalf("expected /remote on to open add-remote overlay")
+		t.Fatalf("expected /access New to open add-remote overlay")
 	}
 }
 
 func TestBlackboxOverlayEscRunsFeatureResetHook(t *testing.T) {
 	f := newBlackboxFixture(t)
-	m := enterText(f.model, "/remote on")
+	m := enterText(f.model, "/access New")
 	if !m.Overlay.Active {
 		t.Fatalf("precondition failed: add-remote overlay should be active")
 	}
@@ -65,7 +65,7 @@ func TestBlackboxEscClearsSlashInputBeforeCancelling(t *testing.T) {
 	f.model.Interaction.WaitingForAI = true
 
 	m := f.model
-	m.Input.SetValue("/remote")
+	m.Input.SetValue("/access")
 	m.Input.CursorEnd()
 
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})

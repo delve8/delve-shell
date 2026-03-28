@@ -1,6 +1,8 @@
 package remote
 
 import (
+	"strings"
+
 	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/ui"
@@ -18,7 +20,7 @@ func getRemoteSlashOptions() []ui.SlashOption {
 	for _, r := range remotes {
 		desc := r.Name
 		hostOpts = append(hostOpts, ui.SlashOption{
-			Cmd:  "/remote on " + config.HostFromTarget(r.Target),
+			Cmd:  "/access " + strings.ToLower(config.HostFromTarget(r.Target)),
 			Desc: desc,
 		})
 	}

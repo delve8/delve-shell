@@ -7,7 +7,7 @@ type ExecutionChangedMsg struct {
 	Label  string // e.g. "dev (root@1.2.3.4)" or "user@host"
 }
 
-// ConnectDoneMsg notifies the TUI that a /remote on connection attempt finished (from controller).
+// ConnectDoneMsg notifies the TUI that a remote connection attempt finished (from controller), e.g. after /access <target>.
 // When Success is true, the UI closes the overlay and refocuses; when false, the UI clears "Connecting..." state.
 type ConnectDoneMsg struct {
 	Success bool

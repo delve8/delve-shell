@@ -246,7 +246,7 @@ func TestAddRemote_validatesUserAtHost(t *testing.T) {
 	if err := EnsureRootDir(); err != nil {
 		t.Fatal(err)
 	}
-	for _, invalid := range []string{"hostonly", "@host", "user@", "user@@host", ""} {
+	for _, invalid := range []string{"hostonly", "@host", "user@", "user@@host", "", "root@Host"} {
 		if err := AddRemote(invalid, "", ""); err == nil {
 			t.Errorf("AddRemote(%q) should error", invalid)
 		}

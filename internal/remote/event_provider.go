@@ -24,7 +24,7 @@ func remoteStateProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		setCachedRunSuggestions(t.Commands)
 		return m, nil, true
 	case AuthPromptMsg, ConnectDoneMsg:
-		// Must run here, not only via overlay feature Event: direct `/remote on …` has no overlay
+		// Must run here, not only via overlay feature Event: direct `/access …` has no overlay
 		// open yet; those messages were previously dropped and produced a silent failure.
 		return remoteConnectUIHandler(m, msg)
 	default:

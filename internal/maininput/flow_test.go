@@ -11,7 +11,7 @@ func TestCaptureSlashSelection_FillOnly(t *testing.T) {
 		InputVal:     "/e",
 		Text:         "/e",
 		SuggestIndex: 0,
-		Selected:     slashview.Option{Cmd: "/exec <cmd>", FillValue: "/exec "},
+		Selected:     slashview.Option{Cmd: "/exec <cmd>"},
 		HasSelected:  true,
 	})
 	if !res.FillOnly || res.FillValue != "/exec " {

@@ -15,7 +15,7 @@ func registerSlashExecutionProvider() {
 		case strings.HasPrefix(text, "/config del-remote "):
 			nameOrTarget := strings.TrimSpace(strings.TrimPrefix(text, "/config del-remote "))
 			return applyConfigRemoveRemote(nameOrTarget), true, nil
-		case text == "/remote on":
+		case text == "/access New":
 			return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 				Kind: inputlifecycletype.OutputOverlayOpen,
 				Overlay: &inputlifecycletype.OverlayPayload{
@@ -25,14 +25,14 @@ func registerSlashExecutionProvider() {
 					},
 				},
 			}), true, nil
-		case strings.HasPrefix(text, "/remote on "):
-			target := strings.TrimSpace(strings.TrimPrefix(text, "/remote on "))
-			if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.RemoteOnTarget{Target: target}) {
+		case text == "/access Local":
+			if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.RemoteOff{}) {
 				return inputlifecycletype.ProcessResult{}, true, nil
 			}
 			return inputlifecycletype.ConsumedResult(), true, nil
-		case text == "/remote off":
-			if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.RemoteOff{}) {
+		case strings.HasPrefix(text, "/access "):
+			target := strings.TrimSpace(strings.TrimPrefix(text, "/access "))
+			if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.RemoteOnTarget{Target: target}) {
 				return inputlifecycletype.ProcessResult{}, true, nil
 			}
 			return inputlifecycletype.ConsumedResult(), true, nil

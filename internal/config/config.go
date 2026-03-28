@@ -29,7 +29,7 @@ type LLMConfig struct {
 	MaxContextChars    int    `yaml:"max_context_chars,omitempty"`    // approximate max chars for conversation history; 0 = no limit; helps avoid overflow on fixed-context models
 }
 
-// RemoteTarget is one named remote host that can be selected via /remote on.
+// RemoteTarget is one named remote host that can be selected via /access <host>.
 type RemoteTarget struct {
 	// Name is a short label like "dev" or "prod".
 	Name string `yaml:"name"`

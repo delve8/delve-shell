@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"unicode"
 
 	"gopkg.in/yaml.v3"
 )
@@ -69,6 +70,17 @@ func isUserAtHost(s string) bool {
 	return true
 }
 
+// hostSegmentIsLowercase reports whether the host part of user@host has no uppercase letters (reserved /access tokens use Title case).
+func hostSegmentIsLowercase(target string) bool {
+	h := HostFromTarget(target)
+	for _, r := range h {
+		if unicode.IsUpper(r) {
+			return false
+		}
+	}
+	return true
+}
+
 // AddRemote appends a remote to remotes.yaml. Target is required (user@host or user@host:port); name is an optional label.
 // Duplicate is checked by target (same target cannot be added twice).
 func AddRemote(target, name, identityFile string) error {
@@ -78,6 +90,9 @@ func AddRemote(target, name, identityFile string) error {
 	}
 	if !isUserAtHost(target) {
 		return fmt.Errorf("target must be user@host or user@host:port (e.g. root@192.168.1.1)")
+	}
+	if !hostSegmentIsLowercase(target) {
+		return fmt.Errorf("host in target must be lowercase (no uppercase letters in host segment)")
 	}
 	remotes, err := LoadRemotes()
 	if err != nil {
@@ -104,6 +119,9 @@ func UpdateRemote(target, name, identityFile string) error {
 	}
 	if !isUserAtHost(target) {
 		return fmt.Errorf("target must be user@host or user@host:port (e.g. root@192.168.1.1)")
+	}
+	if !hostSegmentIsLowercase(target) {
+		return fmt.Errorf("host in target must be lowercase (no uppercase letters in host segment)")
 	}
 	remotes, err := LoadRemotes()
 	if err != nil {

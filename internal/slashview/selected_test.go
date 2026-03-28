@@ -3,7 +3,7 @@ package slashview
 import "testing"
 
 func TestSelectedByVisibleIndex_ReturnsOption(t *testing.T) {
-	opts := []Option{{Cmd: "/help"}, {Cmd: "/exec <cmd>"}, {Cmd: "/remote on"}}
+	opts := []Option{{Cmd: "/help"}, {Cmd: "/exec <cmd>"}, {Cmd: "/access New"}}
 	vis := []int{1, 2}
 	got, ok := SelectedByVisibleIndex(opts, vis, 0)
 	if !ok || got.Cmd != "/exec <cmd>" {

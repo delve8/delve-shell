@@ -18,18 +18,21 @@ func TestRemoteSlashOptions_RootOrdersHostsThenActions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	opts, handled := remoteSlashOptionsProvider("/remote", "en")
+	opts, handled := remoteSlashOptionsProvider("/access", "en")
 	if !handled {
-		t.Fatal("expected /remote to be handled")
+		t.Fatal("expected /access to be handled")
 	}
 	if len(opts) < 4 {
 		t.Fatalf("expected at least 4 options, got %d", len(opts))
 	}
-	if opts[0].Cmd != "/remote on prod" || opts[1].Cmd != "/remote on db-bastion" {
+	if opts[0].Cmd != "/access prod" || opts[1].Cmd != "/access db-bastion" {
 		t.Fatalf("expected host options first, got %#v", opts[:2])
 	}
-	if opts[len(opts)-2].Cmd != "/remote on" || opts[len(opts)-1].Cmd != "/remote off" {
-		t.Fatalf("expected action options last, got %#v", opts[len(opts)-2:])
+	if opts[len(opts)-2].Cmd != "/access New" {
+		t.Fatalf("expected /access New second-to-last, got %#v", opts[len(opts)-2])
+	}
+	if opts[len(opts)-1].Cmd != "/access Local" {
+		t.Fatalf("expected /access Local last, got %#v", opts[len(opts)-1])
 	}
 }
 
@@ -39,12 +42,12 @@ func TestRemoteSlashOptions_ProviderListsAllRemotesThenActions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	opts, handled := remoteSlashOptionsProvider("/remote zzz", "en")
+	opts, handled := remoteSlashOptionsProvider("/access zzz", "en")
 	if !handled {
-		t.Fatal("expected /remote zzz to be handled")
+		t.Fatal("expected /access zzz to be handled")
 	}
 	if len(opts) != 2 {
-		t.Fatalf("no remotes: want on+off only, got %d", len(opts))
+		t.Fatalf("no remotes: want New+Local only, got %d", len(opts))
 	}
 
 	if err := config.AddRemote("ops@prod", "Production", ""); err != nil {
@@ -53,8 +56,8 @@ func TestRemoteSlashOptions_ProviderListsAllRemotesThenActions(t *testing.T) {
 	if err := config.AddRemote("ops@db-bastion", "DB", ""); err != nil {
 		t.Fatal(err)
 	}
-	full, handled := remoteSlashOptionsProvider("/remote p", "en")
+	full, handled := remoteSlashOptionsProvider("/access p", "en")
 	if !handled || len(full) != 4 {
-		t.Fatalf("want 2 hosts + on + off from provider, got %d %#v", len(full), full)
+		t.Fatalf("want 2 hosts + New + Local from provider, got %d %#v", len(full), full)
 	}
 }

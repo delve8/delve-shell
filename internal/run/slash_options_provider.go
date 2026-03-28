@@ -22,7 +22,7 @@ func registerSlashOptionsProviders() {
 			return nil, false
 		}
 		if normalizedLower == "exec" {
-			return []ui.SlashOption{{Cmd: slashExecUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun), FillValue: "/exec "}}, true
+			return []ui.SlashOption{{Cmd: slashExecUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun)}}, true
 		}
 		rest := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "exec"))
 		if strings.Contains(rest, " ") || strings.Contains(rest, "\t") {
@@ -51,9 +51,9 @@ func registerSlashOptionsProviders() {
 
 func rootSlashOptions(lang string) []ui.SlashOption {
 	return []ui.SlashOption{
-		{Cmd: "/remote", Desc: i18n.T(lang, i18n.KeyDescRemoteOn)},
+		{Cmd: "/access", Desc: i18n.T(lang, i18n.KeyDescRemoteOn)},
 		{Cmd: "/skill <name> [detail]", Desc: i18n.T(lang, i18n.KeyDescSkill)},
-		{Cmd: slashExecUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun), FillValue: "/exec "},
+		{Cmd: slashExecUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun)},
 		{Cmd: "/bash", Desc: i18n.T(lang, i18n.KeyDescSh)},
 		{Cmd: "/config", Desc: i18n.T(lang, i18n.KeyDescConfig)},
 		{Cmd: "/new", Desc: i18n.T(lang, i18n.KeySessionNew)},

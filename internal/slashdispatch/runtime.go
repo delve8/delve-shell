@@ -56,10 +56,7 @@ func (r *Runtime[M, C]) ExecuteSubmission(m M, rawText string, selectedIndex int
 	case maininput.MainEnterShowDelRemoteNone:
 		return deps.AppendDelRemoteNone(m), zero
 	case maininput.MainEnterResolveSelected:
-		if plan.Selected.FillValue != "" {
-			return deps.FillInput(m, plan.Selected.FillValue), zero
-		}
-		return deps.AppendUnknownSlash(m), zero
+		return deps.FillInput(m, slashview.ChosenToInputValue(plan.Selected)), zero
 	case maininput.MainEnterUnknownSlash:
 		return deps.AppendUnknownSlash(m), zero
 	}

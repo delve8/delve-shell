@@ -36,8 +36,8 @@ func TestProcessorProcess(t *testing.T) {
 
 	_, err := p.Process(inputlifecycletype.InputSubmission{
 		Kind:          inputlifecycletype.SubmissionSlash,
-		RawText:       "/remote on",
-		InputLine:     " /remote on ",
+		RawText:       "/access New",
+		InputLine:     " /access New ",
 		SelectedIndex: 2,
 	})
 	if err != nil {
@@ -46,10 +46,10 @@ func TestProcessorProcess(t *testing.T) {
 	if exec.calls != 1 {
 		t.Fatalf("ExecuteSlash calls = %d want 1", exec.calls)
 	}
-	if exec.req.RawText != "/remote on" {
-		t.Fatalf("RawText = %q want /remote on", exec.req.RawText)
+	if exec.req.RawText != "/access New" {
+		t.Fatalf("RawText = %q want /access New", exec.req.RawText)
 	}
-	if exec.req.InputLine != " /remote on " {
+	if exec.req.InputLine != " /access New " {
 		t.Fatalf("InputLine = %q want raw input line", exec.req.InputLine)
 	}
 	if exec.req.SelectedIndex != 2 {

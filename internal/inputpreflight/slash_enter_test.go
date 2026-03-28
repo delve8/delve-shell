@@ -20,8 +20,8 @@ func TestPlanSlashEnter(t *testing.T) {
 		if got.Kind != EnterPlanFillOnly {
 			t.Fatalf("Kind=%q want fill_only", got.Kind)
 		}
-		if got.FillValue != "/config" {
-			t.Fatalf("FillValue=%q want /config", got.FillValue)
+		if got.FillValue != "/config " {
+			t.Fatalf("FillValue=%q want /config ", got.FillValue)
 		}
 	})
 

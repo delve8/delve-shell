@@ -20,7 +20,7 @@ func TestEngineOnInputChanged(t *testing.T) {
 	})
 
 	t.Run("slash input", func(t *testing.T) {
-		got := engine.OnInputChanged(" /remote on")
+		got := engine.OnInputChanged(" /access New")
 		if got.Mode != inputlifecycletype.PreInputModeSlash {
 			t.Fatalf("Mode=%q want slash", got.Mode)
 		}

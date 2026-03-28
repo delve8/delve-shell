@@ -6,10 +6,9 @@ func TestVisibleIndices_MatchByPrefix(t *testing.T) {
 	opts := []Option{
 		{Cmd: "/help"},
 		{Cmd: "/exec <cmd>"},
-		{Cmd: "/remote on"},
+		{Cmd: "/access"},
 	}
-	got := VisibleIndices("/r", opts)
-	// /exec no longer shares the "r" prefix with /remote.
+	got := VisibleIndices("/a", opts)
 	if len(got) != 1 || got[0] != 2 {
 		t.Fatalf("unexpected indices: %#v", got)
 	}
@@ -55,23 +54,60 @@ func TestChosenToInputValue_StripsPlaceholder(t *testing.T) {
 	}
 }
 
-func TestVisibleIndices_RemoteOnHostPrefix(t *testing.T) {
+func TestChosenToInputValue_trailingSpaceOnPlainCmd(t *testing.T) {
+	got := ChosenToInputValue(Option{Cmd: "/config"})
+	if got != "/config " {
+		t.Fatalf("unexpected value: %q", got)
+	}
+}
+
+func TestVisibleIndices_AccessHostPrefix(t *testing.T) {
 	opts := []Option{
-		{Cmd: "/remote on prod"},
-		{Cmd: "/remote on db"},
-		{Cmd: "/remote on"},
-		{Cmd: "/remote off"},
+		{Cmd: "/access prod"},
+		{Cmd: "/access db"},
+		{Cmd: "/access Local"},
+		{Cmd: "/access New"},
 	}
-	got := VisibleIndices("/remote p", opts)
+	got := VisibleIndices("/access p", opts)
 	if len(got) != 1 || got[0] != 0 {
-		t.Fatalf("want prod only for /remote p, got %#v", got)
+		t.Fatalf("want prod only for /access p, got %#v", got)
 	}
-	got = VisibleIndices("/remote on pr", opts)
+	got = VisibleIndices("/access pr", opts)
 	if len(got) != 1 || got[0] != 0 {
-		t.Fatalf("want prod for /remote on pr, got %#v", got)
+		t.Fatalf("want prod for /access pr, got %#v", got)
 	}
-	if got2 := VisibleIndices("/remote zzz", opts); len(got2) != 0 {
-		t.Fatalf("want no host rows for /remote zzz, got %#v", got2)
+	if got2 := VisibleIndices("/access zzz", opts); len(got2) != 0 {
+		t.Fatalf("want no host rows for /access zzz, got %#v", got2)
+	}
+}
+
+func TestVisibleIndices_AccessLocalReservedVsHost(t *testing.T) {
+	opts := []Option{
+		{Cmd: "/access Local"},
+		{Cmd: "/access local"},
+	}
+	got := VisibleIndices("/access Local", opts)
+	if len(got) != 1 || got[0] != 0 {
+		t.Fatalf("Title Local: want reserved row only, got %#v", got)
+	}
+	got = VisibleIndices("/access local", opts)
+	if len(got) != 2 {
+		t.Fatalf("lowercase local: want reserved + host row, got %#v", got)
+	}
+}
+
+func TestVisibleIndices_AccessNewReservedVsHost(t *testing.T) {
+	opts := []Option{
+		{Cmd: "/access New"},
+		{Cmd: "/access new"},
+	}
+	got := VisibleIndices("/access New", opts)
+	if len(got) != 1 || got[0] != 0 {
+		t.Fatalf("Title New: want reserved row only, got %#v", got)
+	}
+	got = VisibleIndices("/access new", opts)
+	if len(got) != 2 {
+		t.Fatalf("lowercase new: want reserved + host row, got %#v", got)
 	}
 }
 

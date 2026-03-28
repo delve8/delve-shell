@@ -143,7 +143,7 @@ func getSkillSlashOptions(lang string, filter string) []ui.SlashOption {
 			if cmdName == "" {
 				cmdName = s.Name
 			}
-			opts = append(opts, ui.SlashOption{Cmd: "/skill " + cmdName, Desc: s.Description, FillValue: "/skill " + cmdName + " "})
+			opts = append(opts, ui.SlashOption{Cmd: "/skill " + cmdName, Desc: s.Description, FillValue: "/skill " + cmdName})
 		}
 		return opts
 	}
@@ -159,7 +159,7 @@ func getSkillSlashOptions(lang string, filter string) []ui.SlashOption {
 				if cmdName == "" {
 					cmdName = s.Name
 				}
-				opts = append(opts, ui.SlashOption{Cmd: "/skill " + cmdName, Desc: s.Description, FillValue: "/skill " + cmdName + " "})
+				opts = append(opts, ui.SlashOption{Cmd: "/skill " + cmdName, Desc: s.Description, FillValue: "/skill " + cmdName})
 			}
 		}
 		if len(opts) == 0 && len(list) > 0 {

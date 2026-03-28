@@ -217,11 +217,17 @@ Set LLM
 /config reload
 Reload config and allowlist
 
-/remote on [user@host]
-Connect over SSH. /remote lists saved hosts and /remote off; new targets open Add Remote (optional save to config). SSH host keys may prompt to accept or reject.
+/access
+Connect over SSH: dropdown lists saved hosts first, then /access New (add target), then /access Local (use local executor). Host segment in saved targets must be lowercase so /access Local and /access New do not collide with host names.
 
-/remote off
+/access New
+Open Add Remote (new SSH target; optional save to config)
+
+/access Local
 Disconnect from remote and run commands locally
+
+/access [user@host or host]
+Connect to a saved host or enter user@host
 
 /new
 Start a new session

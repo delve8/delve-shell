@@ -93,7 +93,7 @@ func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inpu
 	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 		Kind: inputlifecycletype.OutputSlashExecute,
 		Slash: &inputlifecycletype.SlashExecutionPayload{
-			RawText:       req.RawText,
+			RawText:       trimmed,
 			InputLine:     req.InputLine,
 			SelectedIndex: req.SelectedIndex,
 		},
