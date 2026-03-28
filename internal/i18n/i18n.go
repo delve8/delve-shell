@@ -66,21 +66,13 @@ const (
 	KeyDescConfigAllowlistUpdate   = "desc_config_allowlist_update"
 	KeyDescConfigRemoveRemote      = "desc_config_remove_remote"
 	KeyAllowlistUpdateDone         = "allowlist_update_done" // format: added count
-	KeyDescAutoRunListOnly         = "desc_auto_run_list_only"
-	KeyDescAutoRunDisable          = "desc_auto_run_disable"
 	KeyModeRequired                = "mode_required"
 	KeyRunTagSuggested             = "run_tag_suggested"
 	KeySuggestedCopyHint           = "suggested_copy_hint"
 	KeySuggestedCardTitle          = "suggested_card_title"
 	KeySuggestedCardHint           = "suggested_card_hint"
 	KeySuggestedCopied             = "suggested_copied"
-	KeyAutoRunLabel                = "auto_run_label"                  // "Auto-Run: " (EN) / "自动执行：" (ZH)
-	KeyAutoRunListOnly             = "auto_run_list_only"              // "List Only" / "名单内的"
-	KeyAutoRunNone                 = "auto_run_none"                   // "Disabled" (EN) / "已关闭" (ZH)
-	KeyModeSetTo                   = "mode_set_to"                     // deprecated; was mode
-	KeyAllowlistAutoRunSetTo       = "allowlist_auto_run_set_to"       // "Auto-run set to %s (this session only)."
-	KeyConfigSavedAllowlistAutoRun = "config_saved_allowlist_auto_run" // "Config saved (allowlist_auto_run: %s)."
-	KeyConfigAutoRunRequired       = "config_auto_run_required"
+	KeyModeSetTo                   = "mode_set_to"        // deprecated; was mode
 	KeyConfigRemoteAdded           = "config_remote_added"   // format: name, target
 	KeyConfigRemoteRemoved         = "config_remote_removed" // format: name
 
@@ -135,7 +127,7 @@ const (
 	KeyConfigLLMCheckFailed          = "config_llm_check_failed"            // format: "LLM check failed: %v"
 	KeyConfigLLMBaseURLAutoCorrected = "config_llm_base_url_auto_corrected" // format: "Base URL updated to %s (added /v1)."
 	KeyDescConfigLLM                 = "desc_config_llm"
-	KeyConfigHint                    = "config_hint" // when /config or /config show is used: point to /config llm and footer
+	KeyConfigHint                    = "config_hint" // when /config or /config show is used: point to /config llm
 	// Skill
 	KeyDescSkill             = "desc_skill"
 	KeyUsageSkill            = "usage_skill"
@@ -175,11 +167,11 @@ var messages = map[string]map[string]string{
 		KeyHelpText: `delve-shell — AI-assisted ops. Every command runs only after you approve.
 
 What it does:
-  Describe a task in natural language; the AI suggests commands. Commands on the allowlist run automatically; others show a card (Run / Reject or Run / Copy / Dismiss). All runs are recorded in session history for audit.
+  Describe a task in natural language; the AI suggests commands. Commands that match the allowlist (and have no shell write redirection) run without a card; all others show a card (Run, Copy, or Dismiss). An empty allowlist matches nothing, so every command shows the card. All runs are recorded in session history for audit.
 
 Quick start:
   1. Type your task and press Enter.
-  2. When a command card appears, press 1 to run, 2 to reject (or copy/dismiss when auto-run is off).
+  2. When a command card appears, press 1 to run, 2 to copy the command, 3 to dismiss without running.
   3. Type / for slash suggestions (Up/Down, Enter). /help opens this panel; scroll the log with PgUp/PgDown when needed.
 
 Slash commands (command line, then description; blank line between entries):
@@ -201,12 +193,6 @@ Remove an installed skill
 
 /config update-skill <skill_name>
 Update an installed skill from its git source (branch/tag selectable in dialog)
-
-/config auto-run list-only
-Allowlist runs without confirmation
-
-/config auto-run disable
-Require approval for every command
 
 /config update auto-run list
 Merge default allowlist
@@ -301,20 +287,12 @@ Quit (Ctrl+C also works)`,
 		KeyDescConfigAllowlistUpdate:     "Merge default allowlist",
 		KeyDescConfigRemoveRemote:        "Remove a remote",
 		KeyAllowlistUpdateDone:           "Allowlist updated: %d new pattern(s) added. Use /config reload to apply.",
-		KeyDescAutoRunListOnly:           "Allowlist runs without confirmation",
-		KeyDescAutoRunDisable:            "Require approval for every command",
 		KeyModeRequired:                  "Usage: /mode suggest or /mode run",
 		KeyRunTagSuggested:               "suggested",
 		KeySuggestedCopyHint:             "Select the command above to copy, or use /exec <cmd> to run it.",
 		KeySuggestedCardTitle:            "Suggested command (not executed):",
 		KeySuggestedCardHint:             "1=copy, 2=dismiss",
 		KeySuggestedCopied:               "Copied to clipboard.",
-		KeyAutoRunLabel:                  "Auto-Run: ",
-		KeyAutoRunListOnly:               "List Only",
-		KeyAutoRunNone:                   "Disabled",
-		KeyAllowlistAutoRunSetTo:         "Auto-Run set to %s (this session only).",
-		KeyConfigSavedAllowlistAutoRun:   "Config saved (auto-run: %s).",
-		KeyConfigAutoRunRequired:         "auto-run: use list-only or disable",
 		KeyConfigRemoteAdded:             "Remote added: %s.",
 		KeyConfigRemoteRemoved:           "Remote removed: %s.",
 		KeyStatusIdle:                    "[IDLE]",
@@ -361,7 +339,7 @@ Quit (Ctrl+C also works)`,
 		KeyConfigLLMCheckFailed:          "LLM check failed: %v",
 		KeyConfigLLMBaseURLAutoCorrected: "Base URL updated to %s (added /v1).",
 		KeyDescConfigLLM:                 "Set LLM",
-		KeyConfigHint:                    "Use /config llm for LLM; auto-run is in footer.",
+		KeyConfigHint:                    "Use /config llm for LLM configuration.",
 		KeyDescSkill:                     "Use skill; optional detail for the AI",
 		KeyUsageSkill:                    "Usage: /skill <name> [detail] — text after the name is optional context",
 		KeySkillNotFound:                 "Skill not found.",

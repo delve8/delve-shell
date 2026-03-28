@@ -29,8 +29,6 @@ func registerSlashExecutionProvider() {
 				_ = req.CommandSender.Send(hostcmd.ConfigUpdated{})
 			}
 			return inputlifecycletype.ConsumedResult(), true, nil
-		case strings.HasPrefix(text, "/config auto-run "):
-			return applyConfigAllowlistAutoRun(strings.TrimSpace(strings.TrimPrefix(text, "/config auto-run ")), req.CommandSender), true, nil
 		default:
 			return inputlifecycletype.ProcessResult{}, false, nil
 		}

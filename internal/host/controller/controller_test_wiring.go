@@ -18,14 +18,12 @@ func TestNew_WiresBusAndPump(t *testing.T) {
 	b := bus.New(8)
 	ports := bus.NewInputPorts()
 	var p atomic.Pointer[tea.Program]
-	var auto atomic.Bool
 
 	c := New(Options{
-		Stop:                    stop,
-		Bus:                     b,
-		Inputs:                  ports,
-		CurrentP:                &p,
-		CurrentAllowlistAutoRun: &auto,
+		Stop:     stop,
+		Bus:      b,
+		Inputs:   ports,
+		CurrentP: &p,
 	})
 	if c == nil {
 		t.Fatal("controller is nil")

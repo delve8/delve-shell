@@ -79,8 +79,7 @@ func (m Model) slashDropdownBelowInput(lang string) string {
 
 // choiceLinesBelowInput returns extra lines for numeric choice menu under the input.
 func (m Model) choiceLinesBelowInput(lang string) string {
-	allowlistAutoRunEnabled := m.allowlistAutoRunEnabled()
-	opts := approvalview.ChoiceOptions(lang, m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil, allowlistAutoRunEnabled)
+	opts := approvalview.ChoiceOptions(lang, m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil)
 	if len(opts) == 0 {
 		return ""
 	}
@@ -135,8 +134,7 @@ func (m Model) inputBelowBlock(lang string, inChoice bool) string {
 	rows := make([]widget.ListRow, 0, inputBelowReserveRows)
 	reserveRows := inputBelowStableRows
 	if inChoice {
-		allowlistAutoRunEnabled := m.allowlistAutoRunEnabled()
-		opts := approvalview.ChoiceOptions(lang, m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil, allowlistAutoRunEnabled)
+		opts := approvalview.ChoiceOptions(lang, m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil)
 		adapted := make([]maininput.ChoiceOption, 0, len(opts))
 		for _, o := range opts {
 			adapted = append(adapted, maininput.ChoiceOption{Num: o.Num, Label: o.Label})

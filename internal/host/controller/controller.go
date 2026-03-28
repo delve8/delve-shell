@@ -34,8 +34,6 @@ type Options struct {
 	Executors *executormgr.Manager
 	GetExec   func() execenv.CommandExecutor
 
-	CurrentAllowlistAutoRun *atomic.Bool
-
 	SyncSessionPath func(path string)
 
 	// OnEventDispatch is optional; invoked at the start of each dequeued event before the handler runs.
@@ -61,8 +59,7 @@ type Controller struct {
 	executors *executormgr.Manager
 	getExec   func() execenv.CommandExecutor
 
-	currentAllowlistAutoRun *atomic.Bool
-	syncSessionPath         func(path string)
+	syncSessionPath func(path string)
 
 	fsm    *hostfsm.Machine
 	fsmCtx hostfsm.Context
@@ -88,10 +85,8 @@ func New(opts Options) *Controller {
 		runners:  opts.Runners,
 
 		executors: opts.Executors,
-		getExec:   opts.GetExec,
-
-		currentAllowlistAutoRun: opts.CurrentAllowlistAutoRun,
-		syncSessionPath:         opts.SyncSessionPath,
+		getExec:         opts.GetExec,
+		syncSessionPath: opts.SyncSessionPath,
 
 		fsm: hostfsm.NewMachine(hostfsm.StateIdle),
 

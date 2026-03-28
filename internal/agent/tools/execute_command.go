@@ -15,11 +15,10 @@ import (
 	"delve-shell/internal/history"
 )
 
-// ExecuteCommandTool runs a command/script; blocks on requestApproval until user chooses Run/Reject/Copy when not auto-run.
+// ExecuteCommandTool runs a command/script; blocks on requestApproval until user chooses Run or Reject when the command is not allowlisted (or has write redirection).
 // When command may access sensitive path(s), blocks on requestSensitiveConfirmation for user to choose: refuse / run+store / run+no store.
-// AllowlistAutoRun: when true, allowlisted commands run directly and only others show card (2 options: Run, Reject); when false, every command shows card (3 options: Run, Copy, Dismiss).
+// Allowlist: when non-nil, matching commands run without the approval card; an empty allowlist matches nothing.
 type ExecuteCommandTool struct {
-	AllowlistAutoRun             bool // when false, no command auto-runs; card has Run/Copy/Dismiss
 	Allowlist                    *hil.Allowlist
 	SensitiveMatcher             *hil.SensitiveMatcher
 	RequestApproval              func(command, summary, reason, riskLevel, skillName string) hiltypes.ApprovalResponse
@@ -83,9 +82,8 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 	}
 	sensitive := input.ResultContainsSecrets
 
-	// When AllowlistAutoRun is false, no command runs without user choice; when true, allowlist matches run directly.
 	allowed := false
-	if t.AllowlistAutoRun && t.Allowlist != nil {
+	if t.Allowlist != nil {
 		allowed = !hil.ContainsWriteRedirection(command) &&
 			t.Allowlist.AllowStrict(command)
 	}

@@ -7,13 +7,10 @@ type ChoiceOption struct {
 	Label string
 }
 
-func ChoiceCount(hasPending bool, hasPendingSensitive bool, allowlistAutoRunEnabled bool) int {
+func ChoiceCount(hasPending bool, hasPendingSensitive bool) int {
 	switch {
 	case hasPending:
-		if !allowlistAutoRunEnabled {
-			return 3
-		}
-		return 2
+		return 3
 	case hasPendingSensitive:
 		return 3
 	default:
@@ -21,19 +18,13 @@ func ChoiceCount(hasPending bool, hasPendingSensitive bool, allowlistAutoRunEnab
 	}
 }
 
-func ChoiceOptions(lang string, hasPending bool, hasPendingSensitive bool, allowlistAutoRunEnabled bool) []ChoiceOption {
+func ChoiceOptions(lang string, hasPending bool, hasPendingSensitive bool) []ChoiceOption {
 	switch {
 	case hasPending:
-		if !allowlistAutoRunEnabled {
-			return []ChoiceOption{
-				{1, i18n.T(lang, i18n.KeyChoiceApprove)},
-				{2, i18n.T(lang, i18n.KeyChoiceCopy)},
-				{3, i18n.T(lang, i18n.KeyChoiceDismiss)},
-			}
-		}
 		return []ChoiceOption{
 			{1, i18n.T(lang, i18n.KeyChoiceApprove)},
-			{2, i18n.T(lang, i18n.KeyChoiceReject)},
+			{2, i18n.T(lang, i18n.KeyChoiceCopy)},
+			{3, i18n.T(lang, i18n.KeyChoiceDismiss)},
 		}
 	case hasPendingSensitive:
 		return []ChoiceOption{
@@ -46,13 +37,10 @@ func ChoiceOptions(lang string, hasPending bool, hasPendingSensitive bool, allow
 	}
 }
 
-func InputPlaceholder(lang string, hasPending bool, hasPendingSensitive bool, allowlistAutoRunEnabled bool) string {
+func InputPlaceholder(lang string, hasPending bool, hasPendingSensitive bool) string {
 	switch {
 	case hasPending:
-		if !allowlistAutoRunEnabled {
-			return i18n.T(lang, i18n.KeyInputHintApproveThree)
-		}
-		return i18n.T(lang, i18n.KeyInputHintApprove)
+		return i18n.T(lang, i18n.KeyInputHintApproveThree)
 	case hasPendingSensitive:
 		return i18n.T(lang, i18n.KeyInputHintSensitive)
 	default:

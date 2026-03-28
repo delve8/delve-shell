@@ -107,10 +107,3 @@ func (m Model) EmitRemoteAuthResponseIntent(resp remoteauth.Response) bool {
 	}
 	return m.CommandSender.Send(hostcmd.RemoteAuthReply{Response: resp})
 }
-
-func (m Model) EmitAllowlistAutoRunSyncIntent(v bool) {
-	if m.CommandSender == nil {
-		return
-	}
-	_ = m.CommandSender.Send(hostcmd.AllowlistAutoRun{Enabled: v})
-}

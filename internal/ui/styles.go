@@ -40,6 +40,8 @@ var (
 	riskHighStyle                 = lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true)  // [HIGH-RISK]
 	approvalDecisionApprovedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)  // Decision: approved
 	approvalDecisionRejectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true)  // Decision: rejected
+	// Dismiss: distinct from approve/reject and from neutral card lines (Why/Summary).
+	approvalDecisionDismissStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("245")).Bold(true).Italic(true)
 )
 
 var (

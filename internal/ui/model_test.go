@@ -24,8 +24,9 @@ func TestView_FooterAlwaysShown(t *testing.T) {
 	if len(lines) > m.layout.Height {
 		t.Fatalf("View() must not exceed Height: got %d lines, Height=%d", len(lines), m.layout.Height)
 	}
-	if strings.Contains(lines[0], "Auto-Run") || strings.Contains(lines[0], "自动执行") {
-		t.Error("View() should not render the status line at the top anymore")
+	if (strings.Contains(lines[0], "[IDLE]") || strings.Contains(lines[0], "[空闲]")) &&
+		(strings.Contains(lines[0], "Local") || strings.Contains(lines[0], "本地")) {
+		t.Error("View() should not render the footer status line at the top")
 	}
 	tailStart := len(lines) - 5
 	if tailStart < 0 {
@@ -35,15 +36,15 @@ func TestView_FooterAlwaysShown(t *testing.T) {
 	if !strings.Contains(footer, "[IDLE]") && !strings.Contains(footer, "[空闲]") && !strings.Contains(footer, "[PROCESSING]") && !strings.Contains(footer, "[处理中]") {
 		t.Error("View() should show status in the footer (e.g. [IDLE] or [空闲])")
 	}
-	if !strings.Contains(footer, "Auto-Run") && !strings.Contains(footer, "自动执行") {
-		t.Error("View() should show Auto-Run label in the footer")
+	if !strings.Contains(footer, "Local") && !strings.Contains(footer, "本地") {
+		t.Error("View() should show remote segment in the footer (e.g. Local)")
 	}
 
 	// Small height path: footer must still appear.
 	m.layout.Height = 4
 	viewSmall := m.View()
-	if !strings.Contains(viewSmall, "Auto-Run") && !strings.Contains(viewSmall, "自动执行") {
-		t.Error("View() at small height should still show the footer with Auto-Run label")
+	if !strings.Contains(viewSmall, "Local") && !strings.Contains(viewSmall, "本地") {
+		t.Error("View() at small height should still show the footer with remote segment")
 	}
 
 	// With Pending, footer shows [NEED APPROVAL] or [待确认]
@@ -68,11 +69,12 @@ func TestView_FooterAlwaysShown(t *testing.T) {
 	}
 	// Footer title must be in the visible area near the bottom, not at the top.
 	visible := strings.Join(choiceLines[:min(len(choiceLines), m2.layout.Height)], "\n")
-	if strings.Contains(choiceLines[0], "Auto-Run") || strings.Contains(choiceLines[0], "自动执行") {
-		t.Error("footer should not appear in the first visible line")
+	if (strings.Contains(choiceLines[0], "[NEED APPROVAL]") || strings.Contains(choiceLines[0], "[待确认]")) &&
+		(strings.Contains(choiceLines[0], "Local") || strings.Contains(choiceLines[0], "本地")) {
+		t.Error("footer line should not appear as the first visible line")
 	}
-	if !strings.Contains(visible, "Auto-Run") && !strings.Contains(visible, "自动执行") {
-		t.Error("footer (Auto-Run label) must appear in visible area")
+	if !strings.Contains(visible, "Local") && !strings.Contains(visible, "本地") {
+		t.Error("footer (remote segment) must appear in visible area")
 	}
 	if !strings.Contains(visible, "[NEED APPROVAL]") && !strings.Contains(visible, "[待确认]") {
 		t.Error("footer (pending status) must appear in visible area")

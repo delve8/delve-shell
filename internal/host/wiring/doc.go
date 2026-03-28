@@ -1,2 +1,2 @@
-// Package wiring connects bus input ports to app.Runtime (single Wire per process) and allowlist callbacks.
+// Package wiring connects bus input ports to app.Runtime (single Wire per process).
 package wiring

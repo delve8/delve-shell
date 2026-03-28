@@ -72,9 +72,3 @@ type RemoteAuthReply struct {
 }
 
 func (RemoteAuthReply) hostCommand() {}
-
-type AllowlistAutoRun struct {
-	Enabled bool
-}
-
-func (AllowlistAutoRun) hostCommand() {}

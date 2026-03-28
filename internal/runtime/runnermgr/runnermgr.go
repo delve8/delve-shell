@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"sync/atomic"
 
 	"delve-shell/internal/agent"
 	"delve-shell/internal/config"
@@ -27,8 +26,6 @@ type Manager struct {
 
 	rulesText string
 
-	allowlistAutoRun atomic.Bool
-
 	uiEvents chan<- any
 }
 
@@ -41,8 +38,6 @@ type Options struct {
 
 	SessionProvider  func() *history.Session
 	ExecutorProvider func() execenv.CommandExecutor
-
-	AllowlistAutoRun bool
 
 	UIEvents chan<- any // *ApprovalRequest | *SensitiveConfirmationRequest | ExecEvent
 }
@@ -57,7 +52,6 @@ func New(opts Options) *Manager {
 		rulesText:             opts.RulesText,
 		uiEvents:              opts.UIEvents,
 	}
-	m.allowlistAutoRun.Store(opts.AllowlistAutoRun)
 	return m
 }
 
@@ -66,12 +60,6 @@ func (m *Manager) Invalidate() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.r = nil
-}
-
-// SetAllowlistAutoRun updates the runtime value (used for UI footer/status bar + approval options) and invalidates the runner.
-func (m *Manager) SetAllowlistAutoRun(v bool) {
-	m.allowlistAutoRun.Store(v)
-	m.Invalidate()
 }
 
 // Get returns a cached Runner or builds a new one.
@@ -99,11 +87,9 @@ func (m *Manager) Get(ctx context.Context) (*agent.Runner, error) {
 	}
 	sensitiveMatcher := hil.NewSensitiveMatcher(sensitivePatterns)
 
-	autoRun := m.allowlistAutoRun.Load()
 	r, err := agent.NewRunner(ctx, agent.RunnerOptions{
 		Config: cfg,
 		HIL: agent.RunnerHILInput{
-			AllowlistAutoRun: &autoRun,
 			Allowlist:        allowlist,
 			SensitiveMatcher: sensitiveMatcher,
 		},

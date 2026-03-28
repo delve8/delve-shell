@@ -13,14 +13,12 @@ import (
 )
 
 func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
-	allowlistAutoRunEnabled := m.allowlistAutoRunEnabled()
 	res := approvalflow.Evaluate(
 		key,
 		m.ChoiceCard.pending != nil,
 		m.ChoiceCard.pendingSensitive != nil,
-		allowlistAutoRunEnabled,
 		m.Interaction.ChoiceIndex,
-		approvalview.ChoiceCount(m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil, allowlistAutoRunEnabled),
+		approvalview.ChoiceCount(m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil),
 	)
 	if !res.Handled {
 		return m, false
@@ -55,6 +53,12 @@ func (m *Model) appendDecisionLines(decision approvalview.DecisionKind, lang str
 			case approvalview.DecisionReject:
 				if line.Text == i18n.T(lang, i18n.KeyApprovalDecisionRejected) {
 					rendered = approvalDecisionRejectedStyle.Render(line.Text)
+				} else {
+					rendered = suggestStyle.Render(line.Text)
+				}
+			case approvalview.DecisionDismiss:
+				if line.Text == i18n.T(lang, i18n.KeyChoiceDismiss) {
+					rendered = approvalDecisionDismissStyle.Render(line.Text)
 				} else {
 					rendered = suggestStyle.Render(line.Text)
 				}

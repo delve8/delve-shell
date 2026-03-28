@@ -117,7 +117,7 @@ func RegisterOverlayFeature(f OverlayFeature) {
 // (Esc or programmatic close).
 type OverlayCloseHook func(m Model, activeKey string) Model
 
-// TitleBarFragmentProvider supplies the leading title-bar segment (before " | " auto-run),
+// TitleBarFragmentProvider supplies the leading title-bar segment (remote / context label),
 // e.g. "Local" or "Remote" with an optional label. Providers run in registration order;
 // the first that returns ok=true wins. If none return ok, ui uses the default "Local" segment.
 type TitleBarFragmentProvider func(m Model) (segment string, ok bool)

@@ -21,15 +21,7 @@ const (
 
 // ReadModel provides host-derived read-only state needed by UI rendering and local decisions.
 type ReadModel interface {
-	AllowlistAutoRunEnabled() bool
 	TakeOpenConfigLLMOnFirstLayout() bool
-}
-
-func (m Model) allowlistAutoRunEnabled() bool {
-	if m.ReadModel == nil {
-		return true
-	}
-	return m.ReadModel.AllowlistAutoRunEnabled()
 }
 
 func (m Model) takeOpenConfigLLMOnFirstLayout() bool {

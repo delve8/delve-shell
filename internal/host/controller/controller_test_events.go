@@ -74,8 +74,6 @@ func TestHandleLLMRunCompleted_ErrorWithout404NoHint(t *testing.T) {
 func TestHandleEvent_DispatchConfigUpdated(t *testing.T) {
 	s := &recordSender{}
 	c := newTestControllerWithPresenter(s)
-	c.currentAllowlistAutoRun = new(atomic.Bool)
-	c.currentAllowlistAutoRun.Store(true)
 	c.handleEvent(bus.Event{Kind: bus.KindAgentExecEvent, AgentExec: hiltypes.ExecEvent{Command: "x"}})
 	if len(s.msgs) != 1 {
 		t.Fatalf("want 1 msg, got %d", len(s.msgs))

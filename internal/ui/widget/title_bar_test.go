@@ -27,6 +27,25 @@ func TestRenderFooterBar_fullWidthUsesSpacing(t *testing.T) {
 	}
 }
 
+func TestRenderFooterBar_omitAutoUsesSingleSep(t *testing.T) {
+	plain := lipgloss.NewStyle()
+	s := TitleLineStyles{
+		Base:       plain,
+		StatusIdle: plain,
+	}
+	out := RenderFooterBar(80, FooterBarParts{
+		Remote:              "Local",
+		AutoRunReserveWidth: 0,
+		Status:              "[IDLE]",
+	}, TitleBarStatusIdle, s)
+	if strings.Contains(out, "Auto-Run") {
+		t.Fatalf("omit auto should not render middle segment: %q", out)
+	}
+	if !strings.Contains(out, "Local") || !strings.Contains(out, "[IDLE]") {
+		t.Fatalf("expected status and remote: %q", out)
+	}
+}
+
 func TestRenderFooterBar_truncatesRemoteMiddle(t *testing.T) {
 	plain := lipgloss.NewStyle()
 	s := TitleLineStyles{
@@ -53,22 +72,22 @@ func TestRenderFooterBar_autoRunWidthIsStable(t *testing.T) {
 		Base:       plain,
 		StatusIdle: plain,
 	}
-	on := RenderFooterBar(80, FooterBarParts{
+	a := RenderFooterBar(80, FooterBarParts{
 		Remote:              "Local",
 		AutoRunFull:         "Auto-Run: List Only",
 		AutoRunShort:        "AR:list",
 		AutoRunReserveWidth: 19,
 		Status:              "[IDLE]",
 	}, TitleBarStatusIdle, s)
-	off := RenderFooterBar(80, FooterBarParts{
+	b := RenderFooterBar(80, FooterBarParts{
 		Remote:              "Local",
-		AutoRunFull:         "Auto-Run: None",
-		AutoRunShort:        "AR:off",
+		AutoRunFull:         "Auto-Run: List Only",
+		AutoRunShort:        "AR:list",
 		AutoRunReserveWidth: 19,
 		Status:              "[IDLE]",
 	}, TitleBarStatusIdle, s)
-	if strings.Index(on, "Local") != strings.Index(off, "Local") {
-		t.Fatalf("expected remote segment to stay fixed: on=%q off=%q", on, off)
+	if strings.Index(a, "Local") != strings.Index(b, "Local") {
+		t.Fatalf("expected remote segment to stay fixed: a=%q b=%q", a, b)
 	}
 }
 
@@ -80,8 +99,8 @@ func TestRenderFooterBar_shrinksSpacingBeforeRemote(t *testing.T) {
 	}
 	out := RenderFooterBar(38, FooterBarParts{
 		Remote:       "Local",
-		AutoRunFull:  "Auto-Run: None",
-		AutoRunShort: "AR:off",
+		AutoRunFull:  "Auto-Run: List Only",
+		AutoRunShort: "AR:list",
 		Status:       "[IDLE]",
 	}, TitleBarStatusIdle, s)
 	if !strings.Contains(out, "  Auto-Run") {
@@ -120,14 +139,14 @@ func TestRenderFooterBar_keepsShortAutoRunWhileRemoteShrinks(t *testing.T) {
 	}
 	out := RenderFooterBar(24, FooterBarParts{
 		Remote:       "Remote-XYZ1",
-		AutoRunFull:  "Auto-Run: None",
-		AutoRunShort: "AR:off",
+		AutoRunFull:  "Auto-Run: List Only",
+		AutoRunShort: "AR:list",
 		Status:       "[IDLE]",
 	}, TitleBarStatusIdle, s)
-	if strings.Contains(out, "Auto-Run: None") {
+	if strings.Contains(out, "Auto-Run: List Only") {
 		t.Fatalf("expected short auto-run label to stay active while remote shrinks in %q", out)
 	}
-	if !strings.Contains(out, "AR:off") {
+	if !strings.Contains(out, "AR:list") {
 		t.Fatalf("expected short auto-run label in %q", out)
 	}
 }

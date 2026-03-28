@@ -39,7 +39,6 @@ type testReadModel struct {
 	openConfigLLM *bool
 }
 
-func (r testReadModel) AllowlistAutoRunEnabled() bool { return true }
 func (r testReadModel) TakeOpenConfigLLMOnFirstLayout() bool {
 	if r.openConfigLLM == nil {
 		return false

@@ -38,12 +38,6 @@ func wireHostStack(
 	hostBus := bus.New(512)
 	ports := bus.NewInputPorts()
 
-	var currentAllowlistAutoRun atomic.Bool
-	currentAllowlistAutoRun.Store(true)
-	if pf.Config != nil {
-		currentAllowlistAutoRun.Store(pf.Config.AllowlistAutoRunResolved())
-	}
-
 	executors := executormgr.New()
 	getExecutor := func() execenv.CommandExecutor { return executors.Get() }
 
@@ -60,7 +54,6 @@ func wireHostStack(
 		},
 		SessionProvider:  func() *history.Session { return sessions.Current() },
 		ExecutorProvider: getExecutor,
-		AllowlistAutoRun: currentAllowlistAutoRun.Load(),
 		UIEvents:         ports.AgentUIChan,
 	})
 
@@ -80,17 +73,10 @@ func wireHostStack(
 		Sessions:                sessions,
 		Runners:                 runners,
 		Executors:               executors,
-		GetExec:                 getExecutor,
-		CurrentAllowlistAutoRun: &currentAllowlistAutoRun,
-		SyncSessionPath:         syncSessionPath,
+		GetExec:         getExecutor,
+		SyncSessionPath: syncSessionPath,
 	})
 	controller.Start()
-
-	getAllowlistAutoRun := func() bool { return currentAllowlistAutoRun.Load() }
-	wiring.BindAllowlistAutoRun(rt, getAllowlistAutoRun, func(v bool) {
-		currentAllowlistAutoRun.Store(v)
-		runners.SetAllowlistAutoRun(v)
-	})
 
 	return &hostStack{
 		controller: controller,

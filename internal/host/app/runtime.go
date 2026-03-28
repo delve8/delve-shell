@@ -13,17 +13,13 @@ type Runtime struct {
 	mu sync.RWMutex
 	// send is the channel bundle installed by WireSend (nil when unwired).
 	send *Send
-	// allowlistFn returns current allowlist auto-run for the UI footer/status bar and approval choice count; nil means "default on".
-	allowlistFn func() bool
-	// syncAllowlist persists allowlist_auto_run changes and invalidates runner.
-	syncAllowlist func(bool)
 	remoteActive  bool
 	remoteLabel   string
 	cfgLLMMu      sync.Mutex
 	cfgLLMFirst   bool
 }
 
-// NewRuntime returns an empty runtime; call WireSend and BindAllowlistAutoRun, then adapt *Runtime for the interactive UI loop.
+// NewRuntime returns an empty runtime; call WireSend, then adapt *Runtime for the interactive UI loop.
 func NewRuntime() *Runtime {
 	return &Runtime{}
 }
@@ -39,35 +35,6 @@ func (r *Runtime) currentSend() *Send {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.send
-}
-
-// BindAllowlistAutoRun wires the allowlist auto-run getter and sync callback.
-func (r *Runtime) BindAllowlistAutoRun(getter func() bool, sync func(bool)) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.allowlistFn = getter
-	r.syncAllowlist = sync
-}
-
-// AllowlistAutoRunEnabled returns true when no getter is set, otherwise the getter result.
-func (r *Runtime) AllowlistAutoRunEnabled() bool {
-	r.mu.RLock()
-	fn := r.allowlistFn
-	r.mu.RUnlock()
-	if fn == nil {
-		return true
-	}
-	return fn()
-}
-
-// InvokeSyncAllowlistAutoRun runs the allowlist sync callback when non-nil.
-func (r *Runtime) InvokeSyncAllowlistAutoRun(v bool) {
-	r.mu.RLock()
-	fn := r.syncAllowlist
-	r.mu.RUnlock()
-	if fn != nil {
-		fn(v)
-	}
 }
 
 // SetRemoteExecution updates remote execution mirror for the UI footer/status bar.
@@ -230,8 +197,6 @@ func (r *Runtime) PublishRemoteAuthResponse(resp remoteauth.Response) bool {
 func (r *Runtime) Reset() {
 	r.mu.Lock()
 	r.send = nil
-	r.allowlistFn = nil
-	r.syncAllowlist = nil
 	r.remoteActive = false
 	r.remoteLabel = ""
 	r.mu.Unlock()

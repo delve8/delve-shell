@@ -42,13 +42,6 @@ type hostReadModel struct {
 	host app.Host
 }
 
-func (r hostReadModel) AllowlistAutoRunEnabled() bool {
-	if r.host == nil {
-		return true
-	}
-	return r.host.AllowlistAutoRunEnabled()
-}
-
 func (r hostReadModel) TakeOpenConfigLLMOnFirstLayout() bool {
 	if r.host == nil {
 		return false

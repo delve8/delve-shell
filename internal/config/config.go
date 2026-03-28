@@ -15,8 +15,6 @@ type Config struct {
 	LLM LLMConfig `yaml:"llm"`
 	// History retention policy
 	History HistoryConfig `yaml:"history"`
-	// AllowlistAutoRun: when true, allowlisted commands run without confirmation; when false, every command shows approval card (Run/Copy/Dismiss). Default true.
-	AllowlistAutoRun *bool `yaml:"allowlist_auto_run,omitempty"`
 }
 
 // LLMConfig is the LLM API config.
@@ -70,11 +68,10 @@ func Load() (*Config, error) {
 	}
 	// Decode with optional remotes for migration from old config.yaml.
 	var file struct {
-		Language         string         `yaml:"language"`
-		Remotes          []RemoteTarget `yaml:"remotes,omitempty"`
-		LLM              LLMConfig      `yaml:"llm"`
-		History          HistoryConfig  `yaml:"history"`
-		AllowlistAutoRun *bool          `yaml:"allowlist_auto_run,omitempty"`
+		Language string         `yaml:"language"`
+		Remotes  []RemoteTarget `yaml:"remotes,omitempty"`
+		LLM      LLMConfig      `yaml:"llm"`
+		History  HistoryConfig  `yaml:"history"`
 	}
 	if err := yaml.Unmarshal(data, &file); err != nil {
 		return nil, err
@@ -92,10 +89,9 @@ func Load() (*Config, error) {
 		}
 	}
 	c := &Config{
-		Language:         file.Language,
-		LLM:              file.LLM,
-		History:          file.History,
-		AllowlistAutoRun: file.AllowlistAutoRun,
+		Language: file.Language,
+		LLM:      file.LLM,
+		History:  file.History,
 	}
 	return c, nil
 }
@@ -118,14 +114,6 @@ func Default() *Config {
 			MaxEntries: 0,
 		},
 	}
-}
-
-// AllowlistAutoRunResolved returns whether allowlisted commands run without confirmation. Default true.
-func (c *Config) AllowlistAutoRunResolved() bool {
-	if c.AllowlistAutoRun != nil {
-		return *c.AllowlistAutoRun
-	}
-	return true
 }
 
 // ExpandEnv replaces $VAR and ${VAR} in s with env values (shell-compatible).

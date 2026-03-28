@@ -23,7 +23,6 @@ import (
 
 // RunnerHILInput is allowlist and sensitive matching for tools and approval flow.
 type RunnerHILInput struct {
-	AllowlistAutoRun *bool // optional runtime override; when nil use Config.AllowlistAutoRunResolved()
 	Allowlist        *hil.Allowlist
 	SensitiveMatcher *hil.SensitiveMatcher
 }
@@ -87,12 +86,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		return <-ch
 	}
 
-	allowlistAutoRun := opts.Config.AllowlistAutoRunResolved()
-	if opts.HIL.AllowlistAutoRun != nil {
-		allowlistAutoRun = *opts.HIL.AllowlistAutoRun
-	}
 	execTool := &agenttools.ExecuteCommandTool{
-		AllowlistAutoRun:             allowlistAutoRun,
 		Allowlist:                    opts.HIL.Allowlist,
 		SensitiveMatcher:             opts.HIL.SensitiveMatcher,
 		RequestApproval:              requestApproval,
@@ -132,7 +126,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		sysPrompt = consts.DefaultSystemPrompt
 	}
 	sysPrompt = config.ExpandEnv(sysPrompt)
-	sysPrompt += "\n\n--- Auto-run ---\n" + autoRunParagraph(allowlistAutoRun)
+	sysPrompt += "\n\n--- Allowlist execution ---\n" + allowlistExecutionParagraph()
 	if opts.Session.RulesText != "" {
 		sysPrompt += "\n\n--- User rules (rules) ---\n" + opts.Session.RulesText
 	}
@@ -159,11 +153,8 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 	return &Runner{agent: reactAgent}, nil
 }
 
-func autoRunParagraph(allowlistAutoRun bool) string {
-	if allowlistAutoRun {
-		return `Auto-run: list only. Allowlisted commands run directly; others show an approval card (user can Run, Reject, or Copy). Commands with write redirection (>, >>) always show the card.`
-	}
-	return `Auto-run: none. Every command shows an approval card (Run, Copy, or Dismiss). No command runs without user choice. Prefer one combined command per task so the user approves once.`
+func allowlistExecutionParagraph() string {
+	return `Commands that match the allowlist (and have no shell write redirection like > or >>) run without an approval card. All other commands show an approval card: Run, Copy (clipboard, no execution), or Dismiss. An empty allowlist means nothing matches, so every command shows the card. Prefer one combined command per task when the user must approve.`
 }
 
 // MaxConversationEvents is the max number of session events to use when building conversation history (user_input + llm_response only).

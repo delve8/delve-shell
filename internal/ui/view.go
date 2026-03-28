@@ -108,22 +108,14 @@ func (m Model) titleBarLeadingSegment() string {
 	return "Local"
 }
 
-// footerLine returns the fixed status line (status + auto-run + remote) for display below the input; does not scroll.
+// footerLine returns the fixed status line (status + remote) for display below the input; does not scroll.
 func (m Model) footerLine() string {
 	lang := m.getLang()
 	remotePart := m.titleBarLeadingSegment()
-	autoRunFull := i18n.T(lang, i18n.KeyAutoRunLabel) + i18n.T(lang, i18n.KeyAutoRunListOnly)
-	autoRunShort := "AR:list"
-	if !m.allowlistAutoRunEnabled() {
-		autoRunFull = i18n.T(lang, i18n.KeyAutoRunLabel) + i18n.T(lang, i18n.KeyAutoRunNone)
-		autoRunShort = "AR:off"
-	}
 	statusStr := i18n.T(lang, m.statusKey())
 	return widget.RenderFooterBar(m.layout.Width, widget.FooterBarParts{
 		Remote:              remotePart,
-		AutoRunFull:         autoRunFull,
-		AutoRunShort:        autoRunShort,
-		AutoRunReserveWidth: footerAutoRunReserveWidth(lang),
+		AutoRunReserveWidth: 0,
 		Status:              statusStr,
 		StatusReserveWidth:  footerStatusReserveWidth(lang),
 	}, m.titleBarStatus(), widget.TitleLineStyles{
@@ -144,20 +136,6 @@ func footerStatusReserveWidth(lang string) int {
 	}
 	maxW := 0
 	for _, s := range statuses {
-		if w := runewidth.StringWidth(s); w > maxW {
-			maxW = w
-		}
-	}
-	return maxW
-}
-
-func footerAutoRunReserveWidth(lang string) int {
-	autoRunTexts := []string{
-		i18n.T(lang, i18n.KeyAutoRunLabel) + i18n.T(lang, i18n.KeyAutoRunListOnly),
-		i18n.T(lang, i18n.KeyAutoRunLabel) + i18n.T(lang, i18n.KeyAutoRunNone),
-	}
-	maxW := 0
-	for _, s := range autoRunTexts {
 		if w := runewidth.StringWidth(s); w > maxW {
 			maxW = w
 		}
@@ -196,8 +174,7 @@ func (m Model) renderOverlay(base string) string {
 // syncInputPlaceholder sets the input placeholder to selection hint (1/2 or 1/2/3) when waiting for choice, else normal placeholder.
 func (m *Model) syncInputPlaceholder() {
 	lang := m.getLang()
-	allowlistAutoRunEnabled := m.allowlistAutoRunEnabled()
-	m.Input.Placeholder = approvalview.InputPlaceholder(lang, m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil, allowlistAutoRunEnabled)
+	m.Input.Placeholder = approvalview.InputPlaceholder(lang, m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil)
 }
 
 // appendApprovalViewportContent appends sensitive or standard approval blocks to the viewport.

@@ -21,7 +21,7 @@ type Result struct {
 }
 
 // Evaluate interprets a key in approval/sensitive choice mode.
-func Evaluate(key string, hasPending bool, hasSensitive bool, allowlistAutoRunEnabled bool, choiceIndex int, choiceCount int) Result {
+func Evaluate(key string, hasPending bool, hasSensitive bool, choiceIndex int, choiceCount int) Result {
 	if !hasPending && !hasSensitive {
 		return Result{}
 	}
@@ -57,15 +57,9 @@ func Evaluate(key string, hasPending bool, hasSensitive bool, allowlistAutoRunEn
 		case "1":
 			r.Decision = DecisionApprove
 		case "2":
-			if allowlistAutoRunEnabled {
-				r.Decision = DecisionReject
-			} else {
-				r.Decision = DecisionCopy
-			}
+			r.Decision = DecisionCopy
 		case "3":
-			if !allowlistAutoRunEnabled {
-				r.Decision = DecisionDismiss
-			}
+			r.Decision = DecisionDismiss
 		}
 	}
 	return r

@@ -37,9 +37,9 @@ type FooterBarParts struct {
 	StatusReserveWidth  int
 }
 
-// RenderFooterBar renders a fixed footer/status line, preferring status first, then auto-run,
-// then remote. It uses lightweight spacing between segments and center-truncates the remote
-// segment when needed so both ends stay visible.
+// RenderFooterBar renders a fixed footer/status line: status first, optional middle segment (legacy: auto-run), then remote.
+// When AutoRunFull, AutoRunShort are empty and AutoRunReserveWidth <= 0, only status and remote are shown (one separator).
+// It uses lightweight spacing and center-truncates the remote segment when needed so both ends stay visible.
 func RenderFooterBar(width int, parts FooterBarParts, st TitleBarStatus, s TitleLineStyles) string {
 	if width < 1 {
 		width = 1
@@ -48,29 +48,43 @@ func RenderFooterBar(width int, parts FooterBarParts, st TitleBarStatus, s Title
 	statusText := strings.TrimSpace(parts.Status)
 	autoFullText := strings.TrimSpace(parts.AutoRunFull)
 	autoShortText := strings.TrimSpace(parts.AutoRunShort)
-	autoText := autoFullText
 	remoteText := strings.TrimSpace(parts.Remote)
-	autoReserveW := parts.AutoRunReserveWidth
-	if autoReserveW < runewidth.StringWidth(autoText) {
-		autoReserveW = runewidth.StringWidth(autoText)
-	}
+	omitAuto := autoFullText == "" && autoShortText == "" && parts.AutoRunReserveWidth <= 0
+
 	statusReserveW := parts.StatusReserveWidth
 	if statusReserveW < runewidth.StringWidth(statusText) {
 		statusReserveW = runewidth.StringWidth(statusText)
 	}
 
+	autoText := autoFullText
+	autoW := 0
+	autoReserveW := 0
+	if !omitAuto {
+		autoReserveW = parts.AutoRunReserveWidth
+		if autoReserveW < runewidth.StringWidth(autoText) {
+			autoReserveW = runewidth.StringWidth(autoText)
+		}
+		autoW = autoReserveW
+	}
+
+	statusW := statusReserveW
+	remoteW := runewidth.StringWidth(remoteText)
+
 	statusStyle := statusStyleFor(st, s)
 	const maxSepW = 8
 	const minSepW = 2
 
-	statusW := statusReserveW
-	autoW := autoReserveW
-	remoteW := runewidth.StringWidth(remoteText)
-
 	sepW := maxSepW
-	if total := statusW + maxSepW + autoW + maxSepW + remoteW; total > width {
-		overflow := total - width
-		sepW = max(minSepW, maxSepW-((overflow+1)/2))
+	if omitAuto {
+		if total := statusW + sepW + remoteW; total > width {
+			overflow := total - width
+			sepW = max(minSepW, maxSepW-overflow)
+		}
+	} else {
+		if total := statusW + sepW + autoW + sepW + remoteW; total > width {
+			overflow := total - width
+			sepW = max(minSepW, maxSepW-((overflow+1)/2))
+		}
 	}
 	sep := s.Base.Render(strings.Repeat(" ", sepW))
 
@@ -81,12 +95,27 @@ func RenderFooterBar(width int, parts FooterBarParts, st TitleBarStatus, s Title
 		return s.Base.Render(text)
 	}
 
-	if autoShortText != "" {
+	if !omitAuto && autoShortText != "" {
 		shortW := runewidth.StringWidth(autoShortText)
 		if statusW+sepW+autoW+sepW+remoteW > width && shortW < autoW {
 			autoText = autoShortText
 			autoW = shortW
 		}
+	}
+
+	if omitAuto {
+		if statusW+sepW+remoteW <= width {
+			return renderStatus(statusText) + sep + renderBase(remoteText)
+		}
+		remoteAvail := width - statusW - sepW
+		if remoteAvail >= 1 {
+			remoteText = truncateMiddle(remoteText, remoteAvail)
+			return renderStatus(statusText) + sep + renderBase(remoteText)
+		}
+		if width <= statusW {
+			return renderStatus(truncateMiddle(statusText, width))
+		}
+		return renderStatus(statusText)
 	}
 
 	if statusW+sepW+autoW+sepW+remoteW <= width {

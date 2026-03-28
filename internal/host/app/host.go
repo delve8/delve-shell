@@ -6,7 +6,7 @@ import (
 	"delve-shell/internal/remoteauth"
 )
 
-// Host is the injectable façade for host-side operations (bus sends, allowlist mirror, remote footer/status mirror, config-LLM startup).
+// Host is the injectable façade for host-side operations (bus sends, remote footer/status mirror, config-LLM startup).
 // *Runtime implements Host.
 type Host interface {
 	SubmitSubmission(sub inputlifecycletype.InputSubmission) bool
@@ -18,9 +18,6 @@ type Host interface {
 	PublishRemoteOnTarget(target string) bool
 	PublishRemoteOff() bool
 	PublishRemoteAuthResponse(resp remoteauth.Response) bool
-	BindAllowlistAutoRun(getter func() bool, sync func(bool))
-	AllowlistAutoRunEnabled() bool
-	InvokeSyncAllowlistAutoRun(v bool)
 	SetRemoteExecution(active bool, label string)
 	RemoteActive() bool
 	RemoteLabel() string
@@ -42,9 +39,6 @@ func (nopHost) PublishExecDirect(string)                           {}
 func (nopHost) PublishRemoteOnTarget(string) bool                  { return false }
 func (nopHost) PublishRemoteOff() bool                             { return false }
 func (nopHost) PublishRemoteAuthResponse(remoteauth.Response) bool { return false }
-func (nopHost) BindAllowlistAutoRun(func() bool, func(bool))       {}
-func (nopHost) AllowlistAutoRunEnabled() bool                      { return true }
-func (nopHost) InvokeSyncAllowlistAutoRun(bool)                    {}
 func (nopHost) SetRemoteExecution(bool, string)                    {}
 func (nopHost) RemoteActive() bool                                 { return false }
 func (nopHost) RemoteLabel() string                                { return "" }

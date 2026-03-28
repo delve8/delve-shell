@@ -44,10 +44,5 @@ func (c *Controller) handleCommand(command hostcmd.Command) {
 		c.bus.PublishBlocking(bus.Event{Kind: bus.KindRemoteOffRequested})
 	case hostcmd.RemoteAuthReply:
 		c.bus.PublishBlocking(bus.Event{Kind: bus.KindRemoteAuthResponseSubmitted, RemoteAuthResponse: cmd.Response})
-	case hostcmd.AllowlistAutoRun:
-		c.currentAllowlistAutoRun.Store(cmd.Enabled)
-		if c.runners != nil {
-			c.runners.SetAllowlistAutoRun(cmd.Enabled)
-		}
 	}
 }

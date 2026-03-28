@@ -1,9 +1,5 @@
 package controller
 
-import (
-	"delve-shell/internal/config"
-)
-
 func (c *Controller) handleCancelRequest() {
 	if !c.llmRunning || c.llmCancel == nil {
 		return
@@ -12,10 +8,9 @@ func (c *Controller) handleCancelRequest() {
 }
 
 func (c *Controller) handleConfigUpdated() {
-	if cfg, err := config.LoadEnsured(); err == nil && cfg != nil {
-		c.currentAllowlistAutoRun.Store(cfg.AllowlistAutoRunResolved())
+	if c.runners != nil {
+		c.runners.Invalidate()
 	}
-	c.runners.SetAllowlistAutoRun(c.currentAllowlistAutoRun.Load())
 	c.ui.ConfigReloaded()
 }
 
