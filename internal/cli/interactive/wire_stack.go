@@ -23,8 +23,9 @@ type hostStack struct {
 	controller *controller.Controller
 	rt         *app.Runtime
 	currentP   *atomic.Pointer[tea.Program]
-	shellSnap  <-chan []string
+	shellSnap  <-chan hostcmd.ShellSnapshot
 	commands   chan hostcmd.Command
+	getExec    func() execenv.CommandExecutor
 }
 
 // wireHostStack builds runners, host bus ports, controller, and *app.Runtime. Caller must Start() the controller.
@@ -63,7 +64,7 @@ func wireHostStack(
 		UIEvents:         ports.AgentUIChan,
 	})
 
-	shellRequestedChan := make(chan []string, 1)
+	shellRequestedChan := make(chan hostcmd.ShellSnapshot, 1)
 	rt := app.NewRuntime()
 	wiring.BindSendPorts(rt, ports, shellRequestedChan)
 
@@ -97,5 +98,6 @@ func wireHostStack(
 		currentP:   &currentP,
 		shellSnap:  shellRequestedChan,
 		commands:   commands,
+		getExec:    getExecutor,
 	}
 }

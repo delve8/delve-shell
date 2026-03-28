@@ -74,12 +74,17 @@ func (m Model) EmitExecDirectIntent(cmd string) {
 }
 
 func (m Model) EmitShellSnapshotIntent(msgs []string) bool {
+	return m.EmitShellSnapshotIntentWithMode(msgs, hostcmd.SubshellModeLocalBash)
+}
+
+// EmitShellSnapshotIntentWithMode sends transcript lines for /sh; mode selects local bash vs remote SSH shell.
+func (m Model) EmitShellSnapshotIntentWithMode(msgs []string, mode hostcmd.SubshellMode) bool {
 	if m.CommandSender == nil {
 		return false
 	}
 	out := make([]string, len(msgs))
 	copy(out, msgs)
-	return m.CommandSender.Send(hostcmd.ShellSnapshot{Messages: out})
+	return m.CommandSender.Send(hostcmd.ShellSnapshot{Messages: out, Mode: mode})
 }
 
 func (m Model) EmitRemoteOnTargetIntent(target string) bool {

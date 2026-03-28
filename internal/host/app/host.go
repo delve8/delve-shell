@@ -1,6 +1,7 @@
 package app
 
 import (
+	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/remoteauth"
 )
@@ -12,7 +13,7 @@ type Host interface {
 	TrySubmitSubmissionNonBlocking(sub inputlifecycletype.InputSubmission) bool
 	NotifyConfigUpdated()
 	PublishCancelRequest() bool
-	PublishShellSnapshot(msgs []string) bool
+	PublishShellSnapshot(snap hostcmd.ShellSnapshot) bool
 	PublishExecDirect(cmd string)
 	PublishRemoteOnTarget(target string) bool
 	PublishRemoteOff() bool
@@ -36,7 +37,7 @@ func (nopHost) TrySubmitSubmissionNonBlocking(inputlifecycletype.InputSubmission
 }
 func (nopHost) NotifyConfigUpdated()                               {}
 func (nopHost) PublishCancelRequest() bool                         { return false }
-func (nopHost) PublishShellSnapshot([]string) bool                 { return false }
+func (nopHost) PublishShellSnapshot(hostcmd.ShellSnapshot) bool { return false }
 func (nopHost) PublishExecDirect(string)                           {}
 func (nopHost) PublishRemoteOnTarget(string) bool                  { return false }
 func (nopHost) PublishRemoteOff() bool                             { return false }

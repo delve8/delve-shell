@@ -7,13 +7,14 @@ import (
 
 	"delve-shell/internal/host/app"
 	"delve-shell/internal/host/bus"
+	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/remoteauth"
 )
 
 func TestBindSendPorts_SubmissionDelivered(t *testing.T) {
 	ports := bus.NewInputPorts()
-	rt := bindTestPorts(t, ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan hostcmd.ShellSnapshot, 1))
 
 	done := make(chan inputlifecycletype.InputSubmission, 1)
 	go func() {
@@ -40,7 +41,7 @@ func TestBindSendPorts_SubmissionDelivered(t *testing.T) {
 
 func TestBindSendPorts_ConfigUpdated(t *testing.T) {
 	ports := bus.NewInputPorts()
-	rt := bindTestPorts(t, ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan hostcmd.ShellSnapshot, 1))
 
 	go func() { rt.NotifyConfigUpdated() }()
 	select {
@@ -52,7 +53,7 @@ func TestBindSendPorts_ConfigUpdated(t *testing.T) {
 
 func TestBindSendPorts_ExecDirectPublish(t *testing.T) {
 	ports := bus.NewInputPorts()
-	rt := bindTestPorts(t, ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan hostcmd.ShellSnapshot, 1))
 
 	done := make(chan string, 1)
 	go func() {
@@ -73,7 +74,7 @@ func TestBindSendPorts_ExecDirectPublish(t *testing.T) {
 
 func TestBindSendPorts_CancelPublish(t *testing.T) {
 	ports := bus.NewInputPorts()
-	rt := bindTestPorts(t, ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan hostcmd.ShellSnapshot, 1))
 
 	go func() { <-ports.CancelRequestChan }()
 
@@ -84,7 +85,7 @@ func TestBindSendPorts_CancelPublish(t *testing.T) {
 
 func TestBindSendPorts_RemoteOnOffAuth(t *testing.T) {
 	ports := bus.NewInputPorts()
-	rt := bindTestPorts(t, ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan hostcmd.ShellSnapshot, 1))
 
 	if !rt.PublishRemoteOnTarget("dev") {
 		t.Fatal("remote on publish failed")
@@ -123,16 +124,16 @@ func TestBindSendPorts_RemoteOnOffAuth(t *testing.T) {
 
 func TestBindSendPorts_ShellSnapshotPublish(t *testing.T) {
 	ports := bus.NewInputPorts()
-	shell := make(chan []string, 1)
+	shell := make(chan hostcmd.ShellSnapshot, 1)
 	rt := bindTestPorts(t, ports, shell)
 
 	msgs := []string{"a", "b"}
-	if !rt.PublishShellSnapshot(msgs) {
+	if !rt.PublishShellSnapshot(hostcmd.ShellSnapshot{Messages: msgs}) {
 		t.Fatal("shell snapshot publish failed")
 	}
 	select {
 	case got := <-shell:
-		if len(got) != 2 || got[0] != "a" || got[1] != "b" {
+		if len(got.Messages) != 2 || got.Messages[0] != "a" || got.Messages[1] != "b" {
 			t.Fatalf("unexpected snapshot: %#v", got)
 		}
 	case <-time.After(2 * time.Second):
@@ -142,7 +143,7 @@ func TestBindSendPorts_ShellSnapshotPublish(t *testing.T) {
 
 func TestBindSendPorts_SubmitNonBlockingVsFullBuffer(t *testing.T) {
 	ports := bus.NewInputPorts()
-	rt := bindTestPorts(t, ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan hostcmd.ShellSnapshot, 1))
 
 	sub := inputlifecycletype.InputSubmission{
 		Kind:    inputlifecycletype.SubmissionChat,
@@ -161,7 +162,7 @@ func TestBindSendPorts_SubmitNonBlockingVsFullBuffer(t *testing.T) {
 
 func TestBindSendPorts_ExecDirectEmptyNoBlock(t *testing.T) {
 	ports := bus.NewInputPorts()
-	rt := bindTestPorts(t, ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan hostcmd.ShellSnapshot, 1))
 
 	done := make(chan struct{})
 	go func() {
@@ -185,7 +186,7 @@ func TestBindSendPorts_ExecDirectEmptyNoBlock(t *testing.T) {
 func TestBindSendPorts_MultipleBindsLastWins(t *testing.T) {
 	p1 := bus.NewInputPorts()
 	p2 := bus.NewInputPorts()
-	shell := make(chan []string, 1)
+	shell := make(chan hostcmd.ShellSnapshot, 1)
 	r1 := app.NewRuntime()
 	BindSendPorts(r1, p1, shell)
 	r2 := app.NewRuntime()
@@ -234,7 +235,7 @@ func TestInputPortsCapacitiesDocumented(t *testing.T) {
 
 func TestBindSendPorts_AgentUIChanUnwired(t *testing.T) {
 	ports := bus.NewInputPorts()
-	bindTestPorts(t, ports, make(chan []string, 1))
+	bindTestPorts(t, ports, make(chan hostcmd.ShellSnapshot, 1))
 	if cap(ports.AgentUIChan) < 1 {
 		t.Fatal("agent chan missing capacity")
 	}
@@ -242,7 +243,7 @@ func TestBindSendPorts_AgentUIChanUnwired(t *testing.T) {
 
 func TestBindSendPorts_ConfigUpdatedNonBlockingDrop(t *testing.T) {
 	ports := bus.NewInputPorts()
-	rt := bindTestPorts(t, ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan hostcmd.ShellSnapshot, 1))
 	n := cap(ports.ConfigUpdatedChan)
 	for i := 0; i < n+20; i++ {
 		rt.NotifyConfigUpdated()
@@ -263,7 +264,7 @@ func TestBindSendPorts_ConfigUpdatedNonBlockingDrop(t *testing.T) {
 
 func TestBindSendPorts_RemoteBuffersIndependent(t *testing.T) {
 	ports := bus.NewInputPorts()
-	rt := bindTestPorts(t, ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan hostcmd.ShellSnapshot, 1))
 
 	for i := 0; i < cap(ports.RemoteOnChan); i++ {
 		if !rt.PublishRemoteOnTarget("x") {
@@ -277,7 +278,7 @@ func TestBindSendPorts_RemoteBuffersIndependent(t *testing.T) {
 
 func TestBindSendPorts_SubmitStressSequential(t *testing.T) {
 	ports := bus.NewInputPorts()
-	rt := bindTestPorts(t, ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan hostcmd.ShellSnapshot, 1))
 
 	const total = 200
 	go func() {
@@ -300,22 +301,22 @@ func TestBindSendPorts_SubmitStressSequential(t *testing.T) {
 
 func TestBindSendPorts_ShellSnapshotDelivered(t *testing.T) {
 	ports := bus.NewInputPorts()
-	shell := make(chan []string, 1)
+	shell := make(chan hostcmd.ShellSnapshot, 1)
 	rt := bindTestPorts(t, ports, shell)
 
 	msgs := []string{"line1", "line2"}
-	if !rt.PublishShellSnapshot(msgs) {
+	if !rt.PublishShellSnapshot(hostcmd.ShellSnapshot{Messages: msgs}) {
 		t.Fatal("publish failed")
 	}
 	got := <-shell
-	if len(got) != 2 || got[0] != "line1" {
+	if len(got.Messages) != 2 || got.Messages[0] != "line1" {
 		t.Fatalf("unexpected snapshot: %#v", got)
 	}
 }
 
 func TestBindSendPorts_RemoteOnSequential(t *testing.T) {
 	ports := bus.NewInputPorts()
-	rt := bindTestPorts(t, ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan hostcmd.ShellSnapshot, 1))
 
 	targets := []string{"a", "b", "c", "d", "e"}
 	for _, want := range targets {
@@ -331,7 +332,7 @@ func TestBindSendPorts_RemoteOnSequential(t *testing.T) {
 
 func TestBindSendPorts_ExecDirectSequential(t *testing.T) {
 	ports := bus.NewInputPorts()
-	rt := bindTestPorts(t, ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan hostcmd.ShellSnapshot, 1))
 
 	cmds := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
 	for _, want := range cmds {
@@ -348,7 +349,7 @@ func TestBindSendPorts_ExecDirectSequential(t *testing.T) {
 
 func TestBindSendPorts_CancelBurstWithinCapacity(t *testing.T) {
 	ports := bus.NewInputPorts()
-	rt := bindTestPorts(t, ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan hostcmd.ShellSnapshot, 1))
 	n := cap(ports.CancelRequestChan)
 	for i := 0; i < n; i++ {
 		if !rt.PublishCancelRequest() {
@@ -365,7 +366,7 @@ func TestBindSendPorts_CancelBurstWithinCapacity(t *testing.T) {
 
 func TestBindSendPorts_AuthResponseTable(t *testing.T) {
 	ports := bus.NewInputPorts()
-	rt := bindTestPorts(t, ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan hostcmd.ShellSnapshot, 1))
 
 	variants := []remoteauth.Response{
 		{Target: "root@10.0.0.1", Username: "root", Kind: "password", Password: "secret"},
@@ -410,7 +411,7 @@ func TestBindSendPorts_AuthResponseTable(t *testing.T) {
 
 func TestBindSendPorts_SubmitPayloadTable(t *testing.T) {
 	ports := bus.NewInputPorts()
-	rt := bindTestPorts(t, ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan hostcmd.ShellSnapshot, 1))
 
 	payloads := []string{
 		"hello",
@@ -471,7 +472,7 @@ func TestBindSendPorts_SubmitPayloadTable(t *testing.T) {
 
 func TestBindSendPorts_ExecDirectPayloadTable(t *testing.T) {
 	ports := bus.NewInputPorts()
-	rt := bindTestPorts(t, ports, make(chan []string, 1))
+	rt := bindTestPorts(t, ports, make(chan hostcmd.ShellSnapshot, 1))
 
 	cmds := []string{
 		"true",

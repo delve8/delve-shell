@@ -26,7 +26,7 @@ type Options struct {
 	Inputs        bus.InputPorts
 	CurrentP      *atomic.Pointer[tea.Program]
 	Commands      <-chan hostcmd.Command
-	ShellSnapshot chan<- []string
+	ShellSnapshot chan<- hostcmd.ShellSnapshot
 
 	Sessions *sessionmgr.Manager
 	Runners  *runnermgr.Manager
@@ -53,7 +53,7 @@ type Controller struct {
 
 	currentP      *atomic.Pointer[tea.Program]
 	commands      <-chan hostcmd.Command
-	shellSnapshot chan<- []string
+	shellSnapshot chan<- hostcmd.ShellSnapshot
 
 	sessions *sessionmgr.Manager
 	runners  *runnermgr.Manager

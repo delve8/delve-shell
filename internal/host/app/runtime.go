@@ -3,6 +3,7 @@ package app
 import (
 	"sync"
 
+	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/remoteauth"
 )
@@ -158,13 +159,13 @@ func (r *Runtime) PublishCancelRequest() bool {
 }
 
 // PublishShellSnapshot sends transcript lines for /sh return restore.
-func (r *Runtime) PublishShellSnapshot(msgs []string) bool {
+func (r *Runtime) PublishShellSnapshot(snap hostcmd.ShellSnapshot) bool {
 	s := r.currentSend()
 	if s == nil || s.ShellSnapshot == nil {
 		return false
 	}
 	select {
-	case s.ShellSnapshot <- msgs:
+	case s.ShellSnapshot <- snap:
 		return true
 	default:
 		return false

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/remoteauth"
 )
@@ -14,5 +15,5 @@ type Send struct {
 	RemoteOn       chan<- string
 	RemoteOff      chan<- struct{}
 	RemoteAuthResp chan<- remoteauth.Response
-	ShellSnapshot  chan<- []string
+	ShellSnapshot  chan<- hostcmd.ShellSnapshot
 }

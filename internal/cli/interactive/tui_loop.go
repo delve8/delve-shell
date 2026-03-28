@@ -1,12 +1,15 @@
 package interactive
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"sync/atomic"
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/execenv"
 	"delve-shell/internal/host/app"
 	"delve-shell/internal/host/controller"
 	"delve-shell/internal/hostcmd"
@@ -19,16 +22,18 @@ var defaultTUIProgramOptions = []tea.ProgramOption{
 }
 
 // tuiRestartLoop runs one or more Bubble Tea programs in sequence: when the user exits the TUI
-// and the shell bridge has delivered saved transcript lines (e.g. /sh), an interactive bash
-// is started on stdio; when that returns, the TUI starts again with those messages restored.
+// and the shell bridge has delivered saved transcript lines (e.g. /sh), either a local bash
+// is started on stdio or (when Remote is active) an interactive shell runs over the existing
+// SSH connection; when that returns, the TUI starts again with those messages restored.
 type tuiRestartLoop struct {
 	controller *controller.Controller
 	host       app.Host
 	// programPtr is shared with the host controller and UI pump so outbound tea.Msg reach the active program.
 	programPtr *atomic.Pointer[tea.Program]
 	// shellAfterExit receives at most one buffered snapshot per TUI exit when subshell was requested.
-	shellAfterExit <-chan []string
+	shellAfterExit <-chan hostcmd.ShellSnapshot
 	commands       chan<- hostcmd.Command
+	getExec        func() execenv.CommandExecutor
 	// openConfigLLMOnFirstLayout is applied only for the first TUI session in this process (startup overlay).
 	openConfigLLMOnFirstLayout bool
 }
@@ -54,13 +59,17 @@ func (r hostReadModel) TakeOpenConfigLLMOnFirstLayout() bool {
 func newTuiRestartLoop(
 	controller *controller.Controller,
 	programPtr *atomic.Pointer[tea.Program],
-	shellAfterExit <-chan []string,
+	shellAfterExit <-chan hostcmd.ShellSnapshot,
 	commands chan<- hostcmd.Command,
 	openConfigLLMOnFirstLayout bool,
 	host app.Host,
+	getExec func() execenv.CommandExecutor,
 ) *tuiRestartLoop {
 	if host == nil {
 		host = app.Nop()
+	}
+	if getExec == nil {
+		getExec = func() execenv.CommandExecutor { return execenv.LocalExecutor{} }
 	}
 	return &tuiRestartLoop{
 		controller:                 controller,
@@ -69,6 +78,7 @@ func newTuiRestartLoop(
 		shellAfterExit:             shellAfterExit,
 		commands:                   commands,
 		openConfigLLMOnFirstLayout: openConfigLLMOnFirstLayout,
+		getExec:                    getExec,
 	}
 }
 
@@ -83,8 +93,15 @@ func (l *tuiRestartLoop) run() error {
 		}
 		openLLM = false
 		select {
-		case saved = <-l.shellAfterExit:
-			runEmbeddedSubshellIgnoringExitCode()
+		case snap := <-l.shellAfterExit:
+			saved = snap.Messages
+			if snap.Mode == hostcmd.SubshellModeRemoteSSH {
+				if err := execenv.RunInteractiveSSHShell(context.Background(), l.getExec()); err != nil {
+					_, _ = fmt.Fprintf(os.Stderr, "delve-shell: remote shell: %v\n", err)
+				}
+			} else {
+				runEmbeddedSubshellIgnoringExitCode()
+			}
 		default:
 			return nil
 		}

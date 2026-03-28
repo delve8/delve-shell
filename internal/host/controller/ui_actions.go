@@ -29,10 +29,12 @@ func (c *Controller) handleCommand(command hostcmd.Command) {
 		c.bus.PublishBlocking(bus.Event{Kind: bus.KindCancelRequested})
 	case hostcmd.ShellSnapshot:
 		if c.shellSnapshot != nil {
-			msgs := make([]string, len(cmd.Messages))
-			copy(msgs, cmd.Messages)
+			snap := hostcmd.ShellSnapshot{
+				Messages: append([]string(nil), cmd.Messages...),
+				Mode:     cmd.Mode,
+			}
 			select {
-			case c.shellSnapshot <- msgs:
+			case c.shellSnapshot <- snap:
 			default:
 			}
 		}

@@ -40,8 +40,19 @@ type CancelRequested struct{}
 
 func (CancelRequested) hostCommand() {}
 
+// SubshellMode selects how /sh behaves after the TUI exits.
+type SubshellMode int
+
+const (
+	// SubshellModeLocalBash runs bash -i on stdio (default).
+	SubshellModeLocalBash SubshellMode = iota
+	// SubshellModeRemoteSSH runs an interactive shell over the existing SSH client (no second dial).
+	SubshellModeRemoteSSH
+)
+
 type ShellSnapshot struct {
 	Messages []string
+	Mode     SubshellMode
 }
 
 func (ShellSnapshot) hostCommand() {}

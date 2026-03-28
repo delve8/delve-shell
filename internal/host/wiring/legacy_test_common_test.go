@@ -5,10 +5,11 @@ import (
 
 	"delve-shell/internal/host/app"
 	"delve-shell/internal/host/bus"
+	"delve-shell/internal/hostcmd"
 )
 
 // bindTestPorts wires hostapp send endpoints. Do not use t.Parallel().
-func bindTestPorts(t *testing.T, ports bus.InputPorts, shell chan<- []string) *app.Runtime {
+func bindTestPorts(t *testing.T, ports bus.InputPorts, shell chan<- hostcmd.ShellSnapshot) *app.Runtime {
 	t.Helper()
 	rt := app.NewRuntime()
 	t.Cleanup(func() { rt.Reset() })

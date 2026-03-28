@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/config"
+	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/remote"
 	"delve-shell/internal/ui"
 )
@@ -28,9 +29,13 @@ func TestBlackboxSlashShSendsMessagesToShell(t *testing.T) {
 
 	_ = enterText(f.model, "/sh")
 	select {
-	case msgs := <-f.shellRequested:
+	case snap := <-f.shellRequested:
+		msgs := snap.Messages
 		if len(msgs) < 2 || msgs[0] != "a" || msgs[1] != "b" {
 			t.Fatalf("unexpected shell message snapshot prefix: %#v", msgs)
+		}
+		if snap.Mode != hostcmd.SubshellModeLocalBash {
+			t.Fatalf("expected local bash subshell mode, got %v", snap.Mode)
 		}
 		joined := strings.Join(msgs, "\n")
 		if !strings.Contains(joined, "User: /sh") {
@@ -38,6 +43,21 @@ func TestBlackboxSlashShSendsMessagesToShell(t *testing.T) {
 		}
 	default:
 		t.Fatalf("expected /sh to send message snapshot")
+	}
+}
+
+func TestBlackboxSlashShRemoteModeWhenRemoteActive(t *testing.T) {
+	f := newBlackboxFixture(t)
+	next, _ := f.model.Update(remote.ExecutionChangedMsg{Active: true, Label: "r1"})
+	m := next.(ui.Model)
+	_ = enterText(m, "/sh")
+	select {
+	case snap := <-f.shellRequested:
+		if snap.Mode != hostcmd.SubshellModeRemoteSSH {
+			t.Fatalf("expected remote SSH subshell mode, got %v", snap.Mode)
+		}
+	default:
+		t.Fatalf("expected /sh snapshot")
 	}
 }
 

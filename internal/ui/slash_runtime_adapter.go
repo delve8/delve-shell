@@ -5,6 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/inputlifecycletype"
 	"delve-shell/internal/slashdispatch"
@@ -61,7 +62,11 @@ func (m Model) executeSlashSubmission(rawText string, selectedIndex int) (Model,
 	}
 	if text == "/sh" {
 		m = m.appendUserSubmittedEcho(text)
-		_ = m.EmitShellSnapshotIntent(m.TranscriptLines())
+		mode := hostcmd.SubshellModeLocalBash
+		if m.Remote.Active {
+			mode = hostcmd.SubshellModeRemoteSSH
+		}
+		_ = m.EmitShellSnapshotIntentWithMode(m.TranscriptLines(), mode)
 		return m.clearSlashInput(), tea.Quit
 	}
 	m, cmd := slashRuntime.ExecuteSubmission(m, text, selectedIndex, m.slashRuntimeDeps())
