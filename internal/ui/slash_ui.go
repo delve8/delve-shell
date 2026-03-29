@@ -61,6 +61,9 @@ func (m Model) slashSuggestionContextWithLang(inputVal, lang string) (opts []Sla
 // slashDropdownBelowInput returns extra lines to show under the input when in slash mode (not in approval/sensitive choice).
 func (m Model) slashDropdownBelowInput(lang string) string {
 	inputVal := m.Input.Value()
+	if m.Interaction.inputHistIndex >= 0 {
+		return ""
+	}
 	if !strings.HasPrefix(inputVal, "/") {
 		return ""
 	}
@@ -121,7 +124,8 @@ func (m Model) waitingLineBelowInputFixed(lang string) string {
 
 // inputBelowBlock reserves the fixed-height block below the input so the footer position stays stable.
 func (m Model) inputBelowBlock(lang string, inChoice bool) string {
-	if m.Input.LineCount() > 1 && !inChoice {
+	// Multiline: skip choice list / slash / fixed block unless walking input history (need hint + layout).
+	if m.Input.LineCount() > 1 && !inChoice && m.Interaction.inputHistIndex < 0 {
 		if m.Interaction.WaitingForAI {
 			text := m.waitingLineText(lang)
 			if text == "" {
@@ -144,6 +148,10 @@ func (m Model) inputBelowBlock(lang string, inChoice bool) string {
 		for i, line := range lines {
 			rows[i] = widget.ListRow{Text: line.Text, Highlight: line.Highlight}
 		}
+	} else if m.Interaction.inputHistIndex >= 0 {
+		hint := i18n.T(lang, i18n.KeyInputHistBrowsingHint)
+		styled := inputHistBrowsingHintStyle.Render("   — " + hint)
+		rows = []widget.ListRow{{Text: styled, PreRendered: true}}
 	} else if strings.HasPrefix(m.Input.Value(), "/") {
 		_, vis, viewOpts := m.slashSuggestionContextWithLang(m.Input.Value(), lang)
 		if len(vis) > 0 {

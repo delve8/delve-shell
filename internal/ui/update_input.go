@@ -53,6 +53,9 @@ func (s *keySession) syncSuggestAfterInputChange(inputVal string) {
 }
 
 func (s *keySession) handleSlashUpDown(key string, inputVal string) bool {
+	if s.m.Interaction.inputHistIndex >= 0 {
+		return false
+	}
 	if !strings.HasPrefix(inputVal, "/") || s.m.Input.LineCount() > 1 || (key != "up" && key != "down") {
 		return false
 	}
@@ -63,12 +66,75 @@ func (s *keySession) handleSlashUpDown(key string, inputVal string) bool {
 	return true
 }
 
+// handleInputHistoryNav implements bash-like previous/next submitted line.
+// While browsing history (inputHistIndex >= 0), Up/Down keep moving through history even if the buffer is
+// multiline or starts with / (textarea line nav and slash completion stay disabled until browsing ends).
+// When not browsing, multiline drafts keep native Up/Down for moving between lines.
+func (s *keySession) handleInputHistoryNav(key string, inputVal string) bool {
+	if key != "up" && key != "down" {
+		return false
+	}
+	if s.m.Input.LineCount() > 1 && s.m.Interaction.inputHistIndex < 0 {
+		return false
+	}
+	if strings.HasPrefix(inputVal, "/") && s.m.Interaction.inputHistIndex < 0 {
+		return false
+	}
+	h := s.m.Interaction.inputHistory
+	if len(h) == 0 {
+		return false
+	}
+	if key == "up" {
+		if s.m.Interaction.inputHistIndex < 0 {
+			s.m.Interaction.inputHistScratch = s.m.Input.Value()
+			s.m.Interaction.inputHistIndex = len(h) - 1
+		} else if s.m.Interaction.inputHistIndex > 0 {
+			s.m.Interaction.inputHistIndex--
+		} else {
+			return true
+		}
+		s.setInputValue(h[s.m.Interaction.inputHistIndex])
+		s.setSlashSuggestIndex(0)
+		return true
+	}
+	// down
+	if s.m.Interaction.inputHistIndex < 0 {
+		return false
+	}
+	if s.m.Interaction.inputHistIndex < len(h)-1 {
+		s.m.Interaction.inputHistIndex++
+		s.setInputValue(h[s.m.Interaction.inputHistIndex])
+	} else {
+		s.m.Interaction.inputHistIndex = -1
+		s.setInputValue(s.m.Interaction.inputHistScratch)
+		s.m.Interaction.inputHistScratch = ""
+	}
+	s.setSlashSuggestIndex(0)
+	return true
+}
+
+func (m Model) withInputHistoryCommitted(line string) Model {
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return m
+	}
+	h := append(m.Interaction.inputHistory, line)
+	if len(h) > maxInputHistoryEntries {
+		h = h[len(h)-maxInputHistoryEntries:]
+	}
+	m.Interaction.inputHistory = h
+	m.Interaction.inputHistIndex = -1
+	m.Interaction.inputHistScratch = ""
+	return m
+}
+
 // appendUserSubmittedEcho appends the same "User: …" transcript line as the main Enter path.
 func (m Model) appendUserSubmittedEcho(text string) Model {
 	text = strings.TrimSpace(text)
 	if text == "" {
 		return m
 	}
+	m = m.withInputHistoryCommitted(text)
 	w := m.contentWidth()
 	sepLine := renderSeparator(w)
 	m.messages = maininput.AppendUserInputLines(m.messages, i18n.T(m.getLang(), i18n.KeyUserLabel), text, w, sepLine)
@@ -126,6 +192,9 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 	}
 
 	inputVal = ks.inputValue()
+	if ks.handleInputHistoryNav(key, inputVal) {
+		return mm, nil
+	}
 	if ks.handleSlashUpDown(key, inputVal) {
 		return mm, nil
 	}
@@ -169,6 +238,11 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 		return mm, printCmd
 	}
 
+	if mm.Interaction.inputHistIndex >= 0 && key != "up" && key != "down" {
+		mm.Interaction.inputHistIndex = -1
+		mm.Interaction.inputHistScratch = ""
+	}
+
 	cmd := ks.updateTextInput(msg)
 	ks.syncSuggestAfterInputChange(ks.inputValue())
 	return mm, cmd
@@ -184,6 +258,8 @@ func (m Model) clearSlashInput() Model {
 	m.Input.SetValue("")
 	m.Input.CursorEnd()
 	m.Interaction.slashSuggestIndex = 0
+	m.Interaction.inputHistIndex = -1
+	m.Interaction.inputHistScratch = ""
 	return m.syncInputHeight()
 }
 
@@ -219,6 +295,9 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 			if strings.HasPrefix(trimmed, "/skill ") {
 				m = m.appendUserSubmittedEcho(trimmed)
 				m, printCmd = m.printTranscriptCmd(false)
+			} else {
+				// Other slash submits: no user echo line here, but still record for Up/Down recall (incl. /help, /exec …).
+				m = m.withInputHistoryCommitted(trimmed)
 			}
 			m = m.clearSlashInput()
 			returned, cmd := m.applyLifecycleResult(res)

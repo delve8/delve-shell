@@ -17,6 +17,7 @@ const (
 	KeyInputHintApprove      = "input_hint_approve"       // placeholder when waiting for 1/2 (approval)
 	KeyInputHintApproveThree = "input_hint_approve_three" // placeholder when waiting for 1/2/3 (Run/Dismiss/Copy)
 	KeyInputHintSensitive    = "input_hint_sensitive"     // placeholder when waiting for 1/2/3 (sensitive)
+	KeyInputHistBrowsingHint = "input_hist_browsing_hint" // one line under input while walking local input history
 	// Choice menu labels (for Up/Down + Enter selection list)
 	KeyChoiceApprove            = "choice_approve"
 	KeyChoiceReject             = "choice_reject"
@@ -168,7 +169,9 @@ What it does:
 Quick start:
   1. Type your task and press Enter.
   2. When a command card appears, press 1 to run, 2 to dismiss without running, 3 to copy the command.
-  3. Type / for slash suggestions (Up/Down, Enter). /help opens this panel; scroll the log with PgUp/PgDown when needed.
+  3. Up/Down recall recent submitted lines (chat and slash). While a recalled line starts with /, keep using Up/Down to walk history; slash completion applies after you edit (any non–↑/↓ key) or finish browsing.
+  4. Type / for slash suggestions (Up/Down while editing a / line, then Enter).
+  5. Scroll the log with PgUp/PgDown when needed; /help opens this panel.
 
 Slash commands (command line, then description; blank line between entries):
 
@@ -232,6 +235,7 @@ Quit (Ctrl+C also works)`,
 		KeyConfigSaved:                   "Config saved (llm.%s).",
 		KeyWaitOrCancel:                  "(Please wait for the current response, or press Esc to cancel)",
 		KeyPlaceholderInput:              "Type your question or / for slash commands.",
+		KeyInputHistBrowsingHint:         "↑/↓ input history · Enter to send · any other key edits",
 		KeyInputHintApprove:              "1 or 2",
 		KeyInputHintApproveThree:         "1, 2 or 3",
 		KeyInputHintSensitive:            "1, 2 or 3",

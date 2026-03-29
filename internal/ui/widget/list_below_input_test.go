@@ -31,6 +31,19 @@ func TestRenderLinesBelowInput_PrefixAndHighlight(t *testing.T) {
 	}
 }
 
+func TestRenderLinesBelowInput_PreRenderedSkipsNormalStyle(t *testing.T) {
+	n := lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
+	h := lipgloss.NewStyle()
+	raw := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Render("__pre")
+	out := RenderLinesBelowInput("XX", []ListRow{{Text: raw, PreRendered: true}}, n, h)
+	if strings.Contains(out, "\x1b[31mXX") { // red from n applied to prefix+text
+		t.Fatalf("pre-rendered row should not wrap with normal style: %q", out)
+	}
+	if !strings.Contains(out, raw) {
+		t.Fatalf("want pre-rendered segment in output: %q", out)
+	}
+}
+
 func TestRenderFixedLinesBelowInput_PadsBlanks(t *testing.T) {
 	n := lipgloss.NewStyle()
 	h := lipgloss.NewStyle().Bold(true)

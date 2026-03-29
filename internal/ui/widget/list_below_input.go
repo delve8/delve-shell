@@ -10,6 +10,8 @@ import (
 type ListRow struct {
 	Text      string
 	Highlight bool
+	// PreRendered when true: Text is already a full styled line (e.g. lipgloss output); prefix and normal/hi are not applied.
+	PreRendered bool
 }
 
 // RenderLinesBelowInput renders a leading newline plus one styled line per row.
@@ -21,6 +23,10 @@ func RenderLinesBelowInput(prefix string, rows []ListRow, normal, hi lipgloss.St
 	var b strings.Builder
 	b.WriteString("\n")
 	for _, row := range rows {
+		if row.PreRendered {
+			b.WriteString(row.Text + "\n")
+			continue
+		}
 		line := prefix + row.Text
 		if row.Highlight {
 			b.WriteString(hi.Render(line) + "\n")

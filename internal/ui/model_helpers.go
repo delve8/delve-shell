@@ -17,6 +17,7 @@ const (
 	inputTextareaMinHeight   = 1
 	inputTextareaMaxHeight   = 5
 	inputBelowStableRows     = 5
+	maxInputHistoryEntries   = 200
 )
 
 // ReadModel provides host-derived read-only state needed by UI rendering and local decisions.

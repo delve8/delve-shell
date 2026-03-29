@@ -39,6 +39,11 @@ type InteractionState struct {
 	slashSuggestIndex int  // 0..len(visible)-1 when input starts with /
 	ChoiceIndex       int  // 0-based selection when in Pending/PendingSensitive/PendingSuggested; Up/Down to move, Enter to confirm
 	WaitingForAI      bool // when true only blocks submitting new messages (Enter); /xxx slash commands always allowed
+
+	// inputHistory: recent submitted lines (non-slash single-line path + echoed slash lines); Up/Down recall when not in slash suggestion mode.
+	inputHistory     []string
+	inputHistIndex   int    // index into inputHistory while browsing, -1 when editing the tail draft
+	inputHistScratch string // current buffer saved on first Up from the tail
 }
 
 // ChoiceCardState stores current pending choice card (approval or sensitive confirmation).
@@ -200,6 +205,9 @@ func NewModel(initialMessages []string, readModel ReadModel) Model {
 		Viewport:  vp,
 		messages:  msgs,
 		ReadModel: readModel,
+		Interaction: InteractionState{
+			inputHistIndex: -1,
+		},
 		layout: LayoutState{
 			Width:  defaultWidth,
 			Height: defaultHeight,
