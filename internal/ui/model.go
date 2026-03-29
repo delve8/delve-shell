@@ -181,7 +181,12 @@ func NewModel(initialMessages []string, readModel ReadModel) Model {
 	ti.Placeholder = i18n.T("en", i18n.KeyPlaceholderInput)
 	ti.Prompt = "> "
 	ti.ShowLineNumbers = false
-	ti.KeyMap.InsertNewline = key.NewBinding(key.WithKeys("ctrl+j"), key.WithHelp("ctrl+j", "new line"))
+	// InsertNewline: shift+enter when the TTY distinguishes it; alt+enter often works on macOS/Linux
+	// (\e\r); ctrl+j is always distinct. Plain Enter and Shift+Enter are the same on many terminals.
+	ti.KeyMap.InsertNewline = key.NewBinding(
+		key.WithKeys("shift+enter", "alt+enter", "ctrl+j"),
+		key.WithHelp("shift+enter / alt+enter / ctrl+j", "new line"),
+	)
 	ti.CharLimit = 0
 	ti.SetHeight(inputTextareaMinHeight)
 	ti.SetWidth(defaultWidth - 4) // will be updated on first WindowSizeMsg to match terminal

@@ -183,6 +183,24 @@ func TestBlackboxMainCtrlJInsertsNewline(t *testing.T) {
 	if got.Input.Height() != 5 {
 		t.Fatalf("expected input height to jump to 5 after newline, got %d", got.Input.Height())
 	}
+	if !strings.Contains(got.Input.View(), "hello") {
+		t.Fatalf("first line must stay visible after ctrl+j (viewport scroll), view: %q", got.Input.View())
+	}
+}
+
+func TestBlackboxAltEnterInsertsNewline(t *testing.T) {
+	f := newBlackboxFixture(t)
+	m := f.model
+	m.Input.SetValue("hello")
+	m.Input.CursorEnd()
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter, Alt: true})
+	got := next.(ui.Model)
+	if got.Input.Value() != "hello\n" {
+		t.Fatalf("expected alt+enter to insert newline, got %q", got.Input.Value())
+	}
+	if got.Input.Height() != 5 {
+		t.Fatalf("expected input height to jump to 5 after newline, got %d", got.Input.Height())
+	}
 }
 
 func TestBlackboxSystemErrorClearsProcessingState(t *testing.T) {

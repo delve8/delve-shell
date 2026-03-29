@@ -168,10 +168,11 @@ What it does:
 
 Quick start:
   1. Type your task and press Enter.
-  2. When a command card appears, press 1 to run, 2 to dismiss without running, 3 to copy the command.
-  3. Up/Down recall recent submitted lines (chat and slash). While a recalled line starts with /, keep using Up/Down to walk history; slash completion applies after you edit (any non–↑/↓ key) or finish browsing.
-  4. Type / for slash suggestions (Up/Down while editing a / line, then Enter).
-  5. Scroll the log with PgUp/PgDown when needed; /help opens this panel.
+  2. Multi-line messages: Shift+Enter, Alt+Enter, or Ctrl+J inserts a newline; Enter sends. Many terminals treat Shift+Enter the same as Enter—Alt+Enter or Ctrl+J remains reliable.
+  3. When a command card appears, press 1 to run, 2 to dismiss without running, 3 to copy the command.
+  4. Up/Down recall recent submitted lines (chat and slash). While a recalled line starts with /, keep using Up/Down to walk history; slash completion applies after you edit (any non–↑/↓ key) or finish browsing.
+  5. Type / for slash suggestions (Up/Down while editing a / line, then Enter).
+  6. Scroll the log with PgUp/PgDown when needed; /help opens this panel.
 
 Slash commands (command line, then description; blank line between entries):
 

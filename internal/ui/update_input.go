@@ -3,6 +3,7 @@ package ui
 import (
 	"strings"
 
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/i18n"
@@ -33,6 +34,13 @@ func (s *keySession) setSlashSuggestIndex(i int) { s.m.Interaction.slashSuggestI
 func (s *keySession) waitingForAI() bool { return s.m.Interaction.WaitingForAI }
 
 func (s *keySession) updateTextInput(msg tea.KeyMsg) tea.Cmd {
+	// bubbles/textarea repositions its inner viewport using the current height. While
+	// height is still 1, InsertNewline moves the cursor to logical line 2 and triggers
+	// ScrollDown so only that line fits—then we grow the widget and the first line stays
+	// off-screen until Up. Expand height before Update so repositionView sees the final size.
+	if key.Matches(msg, s.m.Input.KeyMap.InsertNewline) && s.m.Input.LineCount() == 1 {
+		s.m.Input.SetHeight(inputTextareaMaxHeight)
+	}
 	var cmd tea.Cmd
 	s.m.Input, cmd = s.m.Input.Update(msg)
 	*s.m = s.m.syncInputHeight()
