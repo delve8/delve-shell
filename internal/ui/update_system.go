@@ -45,6 +45,12 @@ func (m Model) handleOverlayKey(key string, msg tea.KeyMsg) (Model, tea.Cmd, boo
 func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 	m.layout.Width = msg.Width
 	m.layout.Height = msg.Height
+	if m.recenterStartupTitleOnce {
+		m.recenterStartupTitleOnce = false
+		if len(m.messages) > 0 {
+			m.messages[0] = startupTitleLine(m.contentWidth())
+		}
+	}
 	if m.layout.Width > minInputLayoutWidth {
 		m.Input.SetWidth(m.layout.Width - minInputLayoutWidth)
 	}

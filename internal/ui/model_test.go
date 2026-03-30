@@ -81,6 +81,40 @@ func TestView_FooterAlwaysShown(t *testing.T) {
 	}
 }
 
+func TestNewModelInitialTranscriptOnly(t *testing.T) {
+	m := NewModel([]string{"restored"}, nil)
+	if len(m.messages) != 1 || m.messages[0] != "restored" {
+		t.Fatalf("expected only restored line, got %#v", m.messages)
+	}
+}
+
+func TestNewModelStartupTitleWhenEmpty(t *testing.T) {
+	m := NewModel(nil, nil)
+	if len(m.messages) != 1 {
+		t.Fatalf("expected one startup line, got %d", len(m.messages))
+	}
+	if !strings.Contains(m.messages[0], "Delve Shell") {
+		t.Fatalf("expected startup title in line: %q", m.messages[0])
+	}
+}
+
+// Regression: two WindowSize (or similar) Updates before transcriptPrintedMsg must not enqueue a second print batch.
+func TestPrintTranscriptCmdSkipsSecondEnqueueBeforeTranscriptPrintedMsg(t *testing.T) {
+	m := NewModel(nil, nil)
+	m, cmd1 := m.printTranscriptCmd(false)
+	if want := len(m.messages); m.printedMessages != want {
+		t.Fatalf("printedMessages=%d want %d after scheduling print", m.printedMessages, want)
+	}
+	m2, cmd2 := m.printTranscriptCmd(false)
+	if cmd2 != nil {
+		t.Fatalf("expected nil second print cmd, got non-nil")
+	}
+	if m2.printedMessages != m.printedMessages {
+		t.Fatalf("printedMessages changed on no-op second call")
+	}
+	_ = cmd1
+}
+
 func TestMainTopPaddingLinesShrinksAsTranscriptPrints(t *testing.T) {
 	m := NewModel(nil, nil)
 	m.layout.Width = 80
@@ -104,7 +138,8 @@ func TestMainTopPaddingLinesAccountsForTerminalWidth(t *testing.T) {
 	wide := NewModel(nil, nil)
 	wide.layout.Width = 80
 	wide.layout.Height = 24
-	wide = wide.AppendTranscriptLines(strings.Repeat("x", 60))
+	// Replace default startup banner so printed line count stays small (padding math test).
+	wide = wide.WithTranscriptLines([]string{strings.Repeat("x", 60)})
 	wide.printedMessages = len(wide.messages)
 	wideBottom := renderSeparator(wide.layout.Width) + "\n" + wide.Input.View() + wide.inputBelowBlock(wide.getLang(), false) + wide.footerLine()
 

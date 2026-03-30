@@ -1,4 +1,4 @@
-<img src="assets/logo.svg" width="64" height="56" alt="delve-shell" />
+<img src="assets/logo.svg" width="64" height="64" alt="delve-shell" />
 
 # delve-shell
 

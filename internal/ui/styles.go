@@ -58,3 +58,6 @@ var (
 	inputCursorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("13"))
 	inputPlaceholderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("246"))
 )
+
+// Startup title (one line, transcript scrollback).
+var startupTitleStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("6")).Bold(true)

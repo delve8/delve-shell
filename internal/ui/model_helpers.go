@@ -70,11 +70,13 @@ func (m Model) TranscriptLines() []string {
 func (m Model) WithTranscriptLines(lines []string) Model {
 	if len(lines) == 0 {
 		m.messages = nil
+		m.recenterStartupTitleOnce = false
 		return m
 	}
 	out := make([]string, len(lines))
 	copy(out, lines)
 	m.messages = out
+	m.recenterStartupTitleOnce = false
 	return m
 }
 
@@ -103,6 +105,9 @@ func (m Model) printTranscriptCmd(clearFirst bool) (Model, tea.Cmd) {
 	for _, line := range m.messages[m.printedMessages:end] {
 		cmds = append(cmds, tea.Println(line))
 	}
+	// Sync printed count before async cmds run: a second WindowSize (or other Update) can arrive
+	// after this return but before transcriptPrintedMsg; without this, the same lines are enqueued twice.
+	m.printedMessages = end
 	cmds = append(cmds, func() tea.Msg {
 		return transcriptPrintedMsg{upTo: end}
 	})

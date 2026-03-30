@@ -21,6 +21,8 @@ type Model struct {
 	Viewport            viewport.Model
 	messages            []string
 	printedMessages     int
+	// recenterStartupTitleOnce: first WindowSize replaces the default-width-centered title with contentWidth().
+	recenterStartupTitleOnce bool
 	ChoiceCard          ChoiceCardState
 	CommandSender       CommandSender
 	layout              LayoutState
@@ -204,11 +206,15 @@ func NewModel(initialMessages []string, readModel ReadModel) Model {
 	if len(initialMessages) > 0 {
 		msgs = make([]string, len(initialMessages))
 		copy(msgs, initialMessages)
+	} else {
+		msgs = []string{startupTitleLine(defaultWidth)}
 	}
+	recenter := len(initialMessages) == 0
 	return Model{
 		Input:     ti,
 		Viewport:  vp,
 		messages:  msgs,
+		recenterStartupTitleOnce: recenter,
 		ReadModel: readModel,
 		Interaction: InteractionState{
 			inputHistIndex: -1,
