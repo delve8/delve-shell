@@ -102,3 +102,19 @@ func TestHandleCommand_SessionSwitchPublishesEvent(t *testing.T) {
 		t.Fatal("expected session switch event")
 	}
 }
+
+func TestHandleCommand_HistoryPreviewOpenPublishesEvent(t *testing.T) {
+	s := &recordSender{}
+	c := newTestControllerWithPresenter(s)
+
+	c.handleCommand(hostcmd.HistoryPreviewOpen{SessionID: "demo"})
+
+	select {
+	case ev := <-c.bus.Events():
+		if ev.Kind != bus.KindHistoryPreviewRequested || ev.SessionID != "demo" {
+			t.Fatalf("unexpected event: %+v", ev)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("expected history preview event")
+	}
+}

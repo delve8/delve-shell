@@ -14,6 +14,8 @@ func (k Kind) SemanticLabel() string {
 		return "SessionNewRequested"
 	case KindSessionSwitchRequested:
 		return "SessionSwitchRequested"
+	case KindHistoryPreviewRequested:
+		return "HistoryPreviewRequested"
 	case KindUserChatSubmitted:
 		return "AIRequested"
 	case KindConfigUpdated:
@@ -51,6 +53,8 @@ func (e Event) RedactedSummary() string {
 	case KindSessionNewRequested, KindRemoteOffRequested, KindCancelRequested, KindConfigUpdated:
 		return label
 	case KindSessionSwitchRequested:
+		return fmt.Sprintf("%s session_id=%s", label, clipOneLine(e.SessionID, 64))
+	case KindHistoryPreviewRequested:
 		return fmt.Sprintf("%s session_id=%s", label, clipOneLine(e.SessionID, 64))
 	case KindUserChatSubmitted:
 		return fmt.Sprintf("%s text=%q", label, clipOneLine(e.UserText, 80))

@@ -58,21 +58,21 @@ const (
 	KeyDescConfig = "desc_config"
 	KeyDescHelp   = "desc_help"
 	// /config 子项说明（仅在选择 /config 后显示）
-	KeyDescConfigLLMBaseURL        = "desc_config_llm_base_url"
-	KeyDescConfigLLMApiKey         = "desc_config_llm_api_key"
-	KeyDescConfigLLMModel          = "desc_config_llm_model"
-	KeyDescConfigAllowlistUpdate   = "desc_config_allowlist_update"
-	KeyDescConfigRemoveRemote      = "desc_config_remove_remote"
-	KeyAllowlistUpdateDone         = "allowlist_update_done" // format: added count
-	KeyModeRequired                = "mode_required"
-	KeyRunTagSuggested             = "run_tag_suggested"
-	KeySuggestedCopyHint           = "suggested_copy_hint"
-	KeySuggestedCardTitle          = "suggested_card_title"
-	KeySuggestedCardHint           = "suggested_card_hint"
-	KeySuggestedCopied             = "suggested_copied"
-	KeyModeSetTo                   = "mode_set_to"        // deprecated; was mode
-	KeyConfigRemoteAdded           = "config_remote_added"   // format: name, target
-	KeyConfigRemoteRemoved         = "config_remote_removed" // format: name
+	KeyDescConfigLLMBaseURL      = "desc_config_llm_base_url"
+	KeyDescConfigLLMApiKey       = "desc_config_llm_api_key"
+	KeyDescConfigLLMModel        = "desc_config_llm_model"
+	KeyDescConfigAllowlistUpdate = "desc_config_allowlist_update"
+	KeyDescConfigRemoveRemote    = "desc_config_remove_remote"
+	KeyAllowlistUpdateDone       = "allowlist_update_done" // format: added count
+	KeyModeRequired              = "mode_required"
+	KeyRunTagSuggested           = "run_tag_suggested"
+	KeySuggestedCopyHint         = "suggested_copy_hint"
+	KeySuggestedCardTitle        = "suggested_card_title"
+	KeySuggestedCardHint         = "suggested_card_hint"
+	KeySuggestedCopied           = "suggested_copied"
+	KeyModeSetTo                 = "mode_set_to"           // deprecated; was mode
+	KeyConfigRemoteAdded         = "config_remote_added"   // format: name, target
+	KeyConfigRemoteRemoved       = "config_remote_removed" // format: name
 
 	// Status bar (title): IDLE / RUNNING / pending approval / suggest card
 	KeyStatusIdle            = "status_idle"
@@ -100,9 +100,13 @@ const (
 	KeySessionNew                    = "session_new"
 	KeySessionPrompt                 = "session_prompt"
 	KeySessionSwitched               = "session_switched"
-	KeySessionSwitchedTo             = "session_switched_to" // format: "Switched to session: %s" (session id)
+	KeySessionSwitchedTo             = "session_switched_to" // format: "Switched to session: %s" (session id; /new banner)
+	KeyHistorySwitchedTo             = "history_switched_to" // format: after /history <id>; transcript is not loaded
+	KeyHistoryPreviewTitle           = "history_preview_title" // format: overlay title, e.g. "History · %s"
+	KeyHistoryPreviewEmpty           = "history_preview_empty" // overlay body when file has no lines yet
+	KeyHistoryPreviewFooter          = "history_preview_footer" // hint under preview (Esc / scroll)
 	KeySessionSelect                 = "session_select"
-	KeyDescSessions                  = "desc_sessions"
+	KeyDescSessions                  = "desc_sessions" // slash: /history description
 	KeySessionNone                   = "session_none"
 	KeyRemoteNone                    = "remote_none"         // No remotes configured
 	KeyDelRemoteNoHosts              = "del_remote_no_hosts" // slash dropdown when no remotes to remove (Cmd-only row, like KeySkillNone)
@@ -215,8 +219,8 @@ Connect to a saved host or enter user@host
 /new
 Start a new session
 
-/session
-List and switch to another session
+/history
+List and switch conversation history: submit /history <id> to open a read-only preview; press Enter in the dialog to switch, or Esc to cancel without switching. After choosing a row, only /history <id> is required; extra text on the line is ignored. Menu descriptions show the first turn as one line (line breaks shown as \n; long text ends with ...).
 
 /skill <name> [detail]
 Use skill; optional detail for the AI
@@ -310,9 +314,13 @@ Quit (Ctrl+C also works)`,
 		KeySessionPrompt:                 "Choose (0 = new, 1–%d = continue): ",
 		KeySessionSwitched:               "Switched to session.",
 		KeySessionSwitchedTo:             "Switched to session: %s",
+		KeyHistorySwitchedTo:             "Switched. Active history: %s",
+		KeyHistoryPreviewTitle:           "History · %s",
+		KeyHistoryPreviewEmpty:           "(No messages in this history yet.)",
+		KeyHistoryPreviewFooter:          "Enter to switch · PgUp/PgDn to scroll · Esc to cancel",
 		KeySessionSelect:                 "Up/Down select, Enter switch",
-		KeyDescSessions:                  "Switch session",
-		KeySessionNone:                   "No previous sessions.",
+		KeyDescSessions:                  "List and switch history",
+		KeySessionNone:                   "No previous history.",
 		KeyRemoteNone:                    "No remotes configured.",
 		KeyDelRemoteNoHosts:              "No hosts.",
 		KeyDescRemoteOn:                  "Connect to host",

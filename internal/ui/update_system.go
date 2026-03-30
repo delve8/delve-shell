@@ -1,8 +1,11 @@
 package ui
 
 import (
+	"strings"
+
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/textwrap"
 	"delve-shell/internal/uivm"
@@ -10,6 +13,7 @@ import (
 
 func (m Model) closeOverlayCommon(refocusInput bool) (Model, tea.Cmd) {
 	activeKey := m.Overlay.Key
+	m.Interaction.pendingHistorySwitchID = ""
 	m = m.CloseOverlayVisual()
 	if feature, ok := overlayFeatureByKey(activeKey); ok && feature.Close != nil {
 		m = feature.Close(m, activeKey)
@@ -24,6 +28,14 @@ func (m Model) closeOverlayCommon(refocusInput bool) (Model, tea.Cmd) {
 func (m Model) handleOverlayKey(key string, msg tea.KeyMsg) (Model, tea.Cmd, bool) {
 	if m.currentUIState() != uiStateOverlay {
 		return m, nil, false
+	}
+	if m.Overlay.Key == HistoryPreviewOverlayKey && key == "enter" {
+		id := m.Interaction.pendingHistorySwitchID
+		if id != "" && m.CommandSender != nil && m.CommandSender.Send(hostcmd.SessionSwitch{SessionID: id}) {
+			m, cmd := m.closeOverlayCommon(true)
+			return m, cmd, true
+		}
+		return m, nil, true
 	}
 	if feature, ok := overlayFeatureByKey(m.Overlay.Key); ok && feature.Key != nil {
 		if m2, cmd, handled := feature.Key(m, key, msg); handled {
@@ -115,6 +127,26 @@ func (m Model) handleTranscriptReplaceMsg(msg TranscriptReplaceMsg) (Model, tea.
 	rendered := m.renderTranscriptLines(msg.Lines)
 	m = m.withTranscriptReplaced(rendered)
 	return m.printTranscriptCmd(true)
+}
+
+func (m Model) handleOverlayShowMsg(msg OverlayShowMsg) (Model, tea.Cmd) {
+	if msg.Title == "" && strings.TrimSpace(msg.Content) == "" {
+		return m, nil
+	}
+	m = m.OpenOverlayFeature("", msg.Title, msg.Content)
+	m = m.InitOverlayViewport()
+	return m, nil
+}
+
+func (m Model) handleHistoryPreviewOverlayMsg(msg HistoryPreviewOverlayMsg) (Model, tea.Cmd) {
+	fields := strings.Fields(strings.TrimSpace(msg.SessionID))
+	if len(fields) == 0 || (msg.Title == "" && strings.TrimSpace(msg.Content) == "") {
+		return m, nil
+	}
+	m.Interaction.pendingHistorySwitchID = fields[0]
+	m = m.OpenOverlayFeature(HistoryPreviewOverlayKey, msg.Title, msg.Content)
+	m = m.InitOverlayViewport()
+	return m, nil
 }
 
 func (m Model) handleChoiceCardShowMsg(msg ChoiceCardShowMsg) (Model, tea.Cmd) {

@@ -24,6 +24,7 @@ type blackboxFixture struct {
 	model          ui.Model
 	submissions    chan inputlifecycletype.InputSubmission
 	sessionNew     chan struct{}
+	historyPreview chan string
 	sessionSwitch  chan string
 	execDirectChan chan string
 	shellRequested chan hostcmd.ShellSnapshot
@@ -64,6 +65,13 @@ func (s testCommandSender) Send(cmd hostcmd.Command) bool {
 	case hostcmd.SessionNew:
 		select {
 		case s.f.sessionNew <- struct{}{}:
+			return true
+		default:
+			return false
+		}
+	case hostcmd.HistoryPreviewOpen:
+		select {
+		case s.f.historyPreview <- c.SessionID:
 			return true
 		default:
 			return false
@@ -134,6 +142,7 @@ func newBlackboxFixture(t *testing.T) blackboxFixture {
 	f := blackboxFixture{
 		submissions:    make(chan inputlifecycletype.InputSubmission, 2),
 		sessionNew:     make(chan struct{}, 2),
+		historyPreview: make(chan string, 2),
 		sessionSwitch:  make(chan string, 2),
 		execDirectChan: make(chan string, 2),
 		shellRequested: make(chan hostcmd.ShellSnapshot, 2),

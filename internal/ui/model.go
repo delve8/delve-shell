@@ -13,20 +13,23 @@ import (
 const (
 	defaultWidth  = 80
 	defaultHeight = 24
+
+	// HistoryPreviewOverlayKey marks the /history read-only preview modal (Enter confirms switch, Esc cancels).
+	HistoryPreviewOverlayKey = "history_preview"
 )
 
 // Model is the Bubble Tea session and approval UI.
 type Model struct {
-	Input               textarea.Model
-	Viewport            viewport.Model
-	messages            []string
-	printedMessages     int
+	Input           textarea.Model
+	Viewport        viewport.Model
+	messages        []string
+	printedMessages int
 	// recenterStartupTitleOnce: first WindowSize replaces the default-width-centered title with contentWidth().
 	recenterStartupTitleOnce bool
-	ChoiceCard          ChoiceCardState
-	CommandSender       CommandSender
-	layout              LayoutState
-	Interaction         InteractionState
+	ChoiceCard               ChoiceCardState
+	CommandSender            CommandSender
+	layout                   LayoutState
+	Interaction              InteractionState
 
 	// Overlay state: when Overlay.Active is true, a modal is rendered on top of the main UI.
 	Overlay OverlayState
@@ -46,6 +49,9 @@ type InteractionState struct {
 	inputHistory     []string
 	inputHistIndex   int    // index into inputHistory while browsing, -1 when editing the tail draft
 	inputHistScratch string // current buffer saved on first Up from the tail
+
+	// pendingHistorySwitchID is the session id to pass to SessionSwitch when the user presses Enter in the history preview overlay.
+	pendingHistorySwitchID string
 }
 
 // ChoiceCardState stores current pending choice card (approval or sensitive confirmation).
@@ -161,6 +167,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m2, cmd := m.handleTranscriptReplaceMsg(msg)
 		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
 
+	case OverlayShowMsg:
+		m2, cmd := m.handleOverlayShowMsg(msg)
+		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
+
+	case HistoryPreviewOverlayMsg:
+		m2, cmd := m.handleHistoryPreviewOverlayMsg(msg)
+		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
+
 	case transcriptPrintedMsg:
 		if msg.upTo > len(m.messages) {
 			msg.upTo = len(m.messages)
@@ -211,11 +225,11 @@ func NewModel(initialMessages []string, readModel ReadModel) Model {
 	}
 	recenter := len(initialMessages) == 0
 	return Model{
-		Input:     ti,
-		Viewport:  vp,
-		messages:  msgs,
+		Input:                    ti,
+		Viewport:                 vp,
+		messages:                 msgs,
 		recenterStartupTitleOnce: recenter,
-		ReadModel: readModel,
+		ReadModel:                readModel,
 		Interaction: InteractionState{
 			inputHistIndex: -1,
 		},

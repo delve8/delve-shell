@@ -9,6 +9,7 @@ import (
 	"delve-shell/internal/hiltypes"
 	"delve-shell/internal/remote"
 	"delve-shell/internal/ui"
+	"delve-shell/internal/uivm"
 )
 
 type recordSender struct {
@@ -20,6 +21,33 @@ func (r *recordSender) Send(msg tea.Msg) {
 		return
 	}
 	r.msgs = append(r.msgs, msg)
+}
+
+func TestPresenter_ShowHistoryPreviewDialog_emitsOverlayMsg(t *testing.T) {
+	var r recordSender
+	p := New(&r)
+	p.ShowHistoryPreviewDialog([]uivm.Line{
+		{Kind: uivm.LineUser, Text: "hi"},
+	}, "abc123", "en")
+	if len(r.msgs) != 1 {
+		t.Fatalf("want 1 msg, got %d", len(r.msgs))
+	}
+	ov, ok := r.msgs[0].(ui.HistoryPreviewOverlayMsg)
+	if !ok || ov.SessionID != "abc123" || ov.Title == "" || ov.Content == "" {
+		t.Fatalf("want HistoryPreviewOverlayMsg, got %#v", r.msgs[0])
+	}
+}
+
+func TestPresenter_ApplyHistorySwitchBanner_emitsReplace(t *testing.T) {
+	var r recordSender
+	p := New(&r)
+	p.ApplyHistorySwitchBanner("abc123", "en")
+	if len(r.msgs) != 1 {
+		t.Fatalf("want 1 msg, got %d", len(r.msgs))
+	}
+	if _, ok := r.msgs[0].(ui.TranscriptReplaceMsg); !ok {
+		t.Fatalf("want TranscriptReplaceMsg, got %T", r.msgs[0])
+	}
 }
 
 func TestPresenter_Config(t *testing.T) {

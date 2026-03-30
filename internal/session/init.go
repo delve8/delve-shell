@@ -20,8 +20,8 @@ func Register() {
 		normalized = strings.TrimSpace(normalized)
 		normalizedLower := strings.ToLower(normalized)
 
-		if normalizedLower == "session" || strings.HasPrefix(normalizedLower, "session ") {
-			filter := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "session"))
+		if normalizedLower == "history" || strings.HasPrefix(normalizedLower, "history ") {
+			filter := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "history"))
 			return getSessionSlashOptions(filter), true
 		}
 
@@ -53,7 +53,7 @@ func getSessionSlashOptions(filter string) []ui.SlashOption {
 			}
 		}
 
-		cmd := "/session " + s.ID
+		cmd := "/history " + s.ID
 		desc := s.Snippet
 		opts = append(opts, ui.SlashOption{Cmd: cmd, Desc: desc})
 	}

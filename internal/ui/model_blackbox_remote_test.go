@@ -36,19 +36,37 @@ func TestBlackboxSlashNewSubmitsCommand(t *testing.T) {
 	}
 }
 
-func TestBlackboxSlashSessionPrefixSubmitsCommand(t *testing.T) {
+func TestBlackboxSlashHistoryPrefixPreviewThenEnterSwitches(t *testing.T) {
 	f := newBlackboxFixture(t)
-	got := enterText(f.model, "/session demo")
+	got := enterText(f.model, "/history demo")
 	select {
-	case sessionID := <-f.sessionSwitch:
-		if sessionID != "demo" {
-			t.Fatalf("expected session switch 'demo', got %q", sessionID)
+	case id := <-f.historyPreview:
+		if id != "demo" {
+			t.Fatalf("expected HistoryPreviewOpen id demo, got %q", id)
 		}
 	default:
-		t.Fatalf("expected /session <id> to emit session-switch intent")
+		t.Fatalf("expected /history <id> to emit history preview intent")
 	}
 	if strings.TrimSpace(got.Input.Value()) != "" {
 		t.Fatalf("expected input cleared after prefix slash execution, got %q", got.Input.Value())
+	}
+	withOverlay, _ := got.Update(ui.HistoryPreviewOverlayMsg{SessionID: "demo", Title: "H", Content: "preview\n\nfooter"})
+	m2 := withOverlay.(ui.Model)
+	if !m2.Overlay.Active {
+		t.Fatalf("expected overlay after HistoryPreviewOverlayMsg")
+	}
+	next, _ := m2.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m3 := next.(ui.Model)
+	select {
+	case sessionID := <-f.sessionSwitch:
+		if sessionID != "demo" {
+			t.Fatalf("expected session switch demo, got %q", sessionID)
+		}
+	default:
+		t.Fatalf("expected Enter in preview to emit session-switch intent")
+	}
+	if m3.Overlay.Active {
+		t.Fatalf("expected overlay closed after confirm")
 	}
 }
 

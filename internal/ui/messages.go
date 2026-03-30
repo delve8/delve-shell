@@ -21,6 +21,19 @@ type TranscriptReplaceMsg struct {
 	Lines []uivm.Line
 }
 
+// OverlayShowMsg opens the generic text overlay (same chrome as /help): scroll with PgUp/PgDn, Esc closes.
+type OverlayShowMsg struct {
+	Title   string
+	Content string
+}
+
+// HistoryPreviewOverlayMsg opens the /history preview modal; Enter sends SessionSwitch for SessionID, Esc closes without switching.
+type HistoryPreviewOverlayMsg struct {
+	SessionID string
+	Title     string
+	Content   string
+}
+
 // transcriptPrintedMsg is emitted after a batch of tea.Println lines has been applied to the
 // scrollback region, so printedMessages stays in sync with the terminal (avoids layout drift).
 type transcriptPrintedMsg struct {

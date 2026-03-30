@@ -111,8 +111,6 @@ func ListSessionsWithSummary(maxSessions int) ([]SessionSummary, error) {
 	return out, nil
 }
 
-const snippetMaxLen = 60
-
 func getSessionSummary(path string, mtime time.Time) SessionSummary {
 	id := strings.TrimSuffix(filepath.Base(path), ".jsonl")
 	displayTime := mtime.Format("2006-01-02 15:04")
@@ -128,11 +126,7 @@ func getSessionSummary(path string, mtime time.Time) SessionSummary {
 				Text string `json:"text"`
 			}
 			if json.Unmarshal(ev.Payload, &payload) == nil && payload.Text != "" {
-				snippet = payload.Text
-				if len(snippet) > snippetMaxLen {
-					snippet = snippet[:snippetMaxLen] + "..."
-				}
-				snippet = strings.TrimSpace(snippet)
+				snippet = FormatSessionSnippetForDisplay(payload.Text, sessionSnippetMaxRunes)
 				return SessionSummary{Path: path, ID: id, DisplayTime: displayTime, Snippet: snippet}
 			}
 		case "command":
@@ -147,10 +141,7 @@ func getSessionSummary(path string, mtime time.Time) SessionSummary {
 				} else {
 					snippet = payload.Command
 				}
-				if len(snippet) > snippetMaxLen {
-					snippet = snippet[:snippetMaxLen] + "..."
-				}
-				snippet = strings.TrimSpace(snippet)
+				snippet = FormatSessionSnippetForDisplay(snippet, sessionSnippetMaxRunes)
 				return SessionSummary{Path: path, ID: id, DisplayTime: displayTime, Snippet: snippet}
 			}
 		}

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 
+	"delve-shell/internal/history"
 	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/inputlifecycle"
@@ -67,12 +68,6 @@ func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inpu
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 		}
 		return inputlifecycletype.ConsumedResult(), nil
-	case strings.HasPrefix(trimmed, "/session "):
-		sessionID := strings.TrimSpace(strings.TrimPrefix(trimmed, "/session "))
-		if e.sender == nil || !e.sender.Send(hostcmd.SessionSwitch{SessionID: sessionID}) {
-			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
-		}
-		return inputlifecycletype.ConsumedResult(), nil
 	case strings.HasPrefix(trimmed, "/exec "):
 		cmd := strings.TrimSpace(strings.TrimPrefix(trimmed, "/exec "))
 		if cmd == "" {
@@ -89,6 +84,13 @@ func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inpu
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 		}
 		return inputlifecycletype.ConsumedResult(), nil
+	default:
+		if sessionID, ok := history.SwitchSessionIDFromSlashLine(trimmed); ok {
+			if e.sender == nil || !e.sender.Send(hostcmd.HistoryPreviewOpen{SessionID: sessionID}) {
+				return inputlifecycletype.ProcessResult{}, errUIIntentRejected
+			}
+			return inputlifecycletype.ConsumedResult(), nil
+		}
 	}
 	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 		Kind: inputlifecycletype.OutputSlashExecute,

@@ -32,9 +32,9 @@ type MainEnterInput struct {
 	DelRemoteNoneMsg   string
 }
 
-func isSessionSlashInput(s string) bool {
+func isHistorySlashInput(s string) bool {
 	s = strings.TrimSpace(s)
-	return s == "/session" || strings.HasPrefix(s, "/session ")
+	return s == "/history" || strings.HasPrefix(s, "/history ")
 }
 
 func PlanMainEnter(in MainEnterInput) MainEnterPlan {
@@ -46,11 +46,11 @@ func PlanMainEnter(in MainEnterInput) MainEnterPlan {
 		selected = slashview.Option{}
 	}
 	outcome := slashflow.EvaluateMainEnter(in.Text, slashflow.EnterInput{
-		HasSlashPrefix:        true,
-		Selected:              selected,
-		VisibleOptionCount:    len(in.Visible),
-		// Do not use strings.HasPrefix(..., "/session"): "/sessions" would match incorrectly.
-		IsSessionNoneOption:   isSessionSlashInput(in.Text) && selected.Cmd == in.SessionNoneMsg,
+		HasSlashPrefix:     true,
+		Selected:           selected,
+		VisibleOptionCount: len(in.Visible),
+		// Do not use strings.HasPrefix(..., "/history"): "/historyx" would match incorrectly.
+		IsSessionNoneOption:   isHistorySlashInput(in.Text) && selected.Cmd == in.SessionNoneMsg,
 		IsDelRemoteNoneOption: selected.Cmd == in.DelRemoteNoneMsg,
 	})
 	switch outcome {

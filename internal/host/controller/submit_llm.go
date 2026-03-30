@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -14,12 +15,44 @@ import (
 	"delve-shell/internal/cli/hostfsm"
 	"delve-shell/internal/config"
 	"delve-shell/internal/history"
-	"delve-shell/internal/i18n"
 	"delve-shell/internal/host/bus"
+	"delve-shell/internal/i18n"
 	"delve-shell/internal/modelinfo"
 	"delve-shell/internal/session"
 	"delve-shell/internal/uivm"
 )
+
+// publishHistorySwitchDone sets the main transcript to a short switch line after a confirmed /history switch.
+func (c *Controller) publishHistorySwitchDone(path string) {
+	sessionID := strings.TrimSuffix(filepath.Base(path), ".jsonl")
+	lang := "en"
+	if cfg, err := config.Load(); err == nil && cfg != nil && cfg.Language != "" {
+		lang = cfg.Language
+	}
+	c.ui.ApplyHistorySwitchBanner(sessionID, lang)
+}
+
+func (c *Controller) handleHistoryPreviewOpen(sessionID string) {
+	sessionID = strings.TrimSpace(sessionID)
+	if sessionID == "" {
+		return
+	}
+	if fields := strings.Fields(sessionID); len(fields) > 0 {
+		sessionID = fields[0]
+	}
+	sessionPath := filepath.Join(config.HistoryDir(), sessionID+".jsonl")
+	if _, err := os.Stat(sessionPath); err != nil {
+		c.ui.AgentReply("", fmt.Errorf("history not found: %s", sessionID))
+		return
+	}
+	lang := "en"
+	if cfg, err := config.Load(); err == nil && cfg != nil && cfg.Language != "" {
+		lang = cfg.Language
+	}
+	events, _ := history.ReadRecent(sessionPath, agent.MaxConversationEvents)
+	vmLines := session.EventsToTranscriptLines(events)
+	c.ui.ShowHistoryPreviewDialog(vmLines, sessionID, lang)
+}
 
 func (c *Controller) handleUserChat(e bus.Event) {
 	sessionText := strings.TrimSpace(e.UserText)
@@ -95,8 +128,12 @@ func (c *Controller) handleSubmitNewSession() {
 }
 
 func (c *Controller) handleSubmitSwitchSession(sessionID string) {
+	sessionID = strings.TrimSpace(sessionID)
 	if sessionID == "" {
 		return
+	}
+	if fields := strings.Fields(sessionID); len(fields) > 0 {
+		sessionID = fields[0]
 	}
 	sessionPath := filepath.Join(config.HistoryDir(), sessionID+".jsonl")
 	_, err := c.sessions.SwitchTo(sessionPath)
@@ -108,9 +145,10 @@ func (c *Controller) handleSubmitSwitchSession(sessionID string) {
 	if c.syncSessionPath != nil {
 		c.syncSessionPath(sessionPath)
 	}
-	c.publishSessionTranscript(sessionPath)
+	c.publishHistorySwitchDone(sessionPath)
 }
 
+// publishSessionTranscript loads recent events into the transcript, then appends a session banner (used for /new).
 func (c *Controller) publishSessionTranscript(path string) {
 	events, _ := history.ReadRecent(path, agent.MaxConversationEvents)
 	lines := session.EventsToTranscriptLines(events)

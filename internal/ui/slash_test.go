@@ -8,9 +8,9 @@ import (
 	"delve-shell/internal/uiregistry"
 )
 
-// TestGetSlashOptionsForInput_session_returnsSessionCommands asserts that
-// /session suggestions are returned as command text owned by session module.
-func TestGetSlashOptionsForInput_session_returnsSessionCommands(t *testing.T) {
+// TestGetSlashOptionsForInput_history_returnsHistoryCommands asserts that
+// /history suggestions are returned as command text owned by session module.
+func TestGetSlashOptionsForInput_history_returnsHistoryCommands(t *testing.T) {
 	dir := t.TempDir()
 	sessionsDir := filepath.Join(dir, "sessions")
 	if err := os.MkdirAll(sessionsDir, 0700); err != nil {
@@ -26,7 +26,7 @@ func TestGetSlashOptionsForInput_session_returnsSessionCommands(t *testing.T) {
 		}
 	}
 
-	raw := uiregistry.SlashOptionsForInput("/session", "en")
+	raw := uiregistry.SlashOptionsForInput("/history", "en")
 	opts := make([]SlashOption, 0, len(raw))
 	for _, o := range raw {
 		opts = append(opts, SlashOption{Cmd: o.Cmd, Desc: o.Desc, FillValue: o.FillValue})
@@ -35,8 +35,8 @@ func TestGetSlashOptionsForInput_session_returnsSessionCommands(t *testing.T) {
 		t.Fatalf("expected at least 1 option, got %d", len(opts))
 	}
 	for _, opt := range opts {
-		if len(opt.Cmd) < len("/session ") || opt.Cmd[:len("/session ")] != "/session " {
-			t.Fatalf("session option must be /session <id>, got %q", opt.Cmd)
+		if len(opt.Cmd) < len("/history ") || opt.Cmd[:len("/history ")] != "/history " {
+			t.Fatalf("history option must be /history <id>, got %q", opt.Cmd)
 		}
 	}
 }

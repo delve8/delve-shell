@@ -26,6 +26,13 @@ type SessionSwitch struct {
 
 func (SessionSwitch) hostCommand() {}
 
+// HistoryPreviewOpen asks the host to show a read-only history preview; the user confirms with Enter in the overlay.
+type HistoryPreviewOpen struct {
+	SessionID string
+}
+
+func (HistoryPreviewOpen) hostCommand() {}
+
 type ExecDirect struct {
 	Command string
 }

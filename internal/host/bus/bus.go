@@ -23,6 +23,7 @@ type Kind string
 const (
 	KindSessionNewRequested            Kind = "session_new_requested"
 	KindSessionSwitchRequested         Kind = "session_switch_requested"
+	KindHistoryPreviewRequested        Kind = "history_preview_requested"
 	KindUserChatSubmitted              Kind = "user_chat_submitted"
 	KindConfigUpdated                  Kind = "config_updated"
 	KindCancelRequested                Kind = "cancel_requested"
@@ -42,6 +43,7 @@ func AllKinds() []Kind {
 	return []Kind{
 		KindSessionNewRequested,
 		KindSessionSwitchRequested,
+		KindHistoryPreviewRequested,
 		KindUserChatSubmitted,
 		KindConfigUpdated,
 		KindCancelRequested,

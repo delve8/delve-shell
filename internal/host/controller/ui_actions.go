@@ -21,6 +21,8 @@ func (c *Controller) handleCommand(command hostcmd.Command) {
 		c.bus.PublishBlocking(bus.Event{Kind: bus.KindSessionNewRequested})
 	case hostcmd.SessionSwitch:
 		c.bus.PublishBlocking(bus.Event{Kind: bus.KindSessionSwitchRequested, SessionID: cmd.SessionID})
+	case hostcmd.HistoryPreviewOpen:
+		c.bus.PublishBlocking(bus.Event{Kind: bus.KindHistoryPreviewRequested, SessionID: cmd.SessionID})
 	case hostcmd.ConfigUpdated:
 		c.bus.PublishBlocking(bus.Event{Kind: bus.KindConfigUpdated})
 	case hostcmd.ExecDirect:

@@ -424,7 +424,7 @@ func TestBindSendPorts_SubmitPayloadTable(t *testing.T) {
 		"\ttrimmed by UI normally\t",
 		"unicode 你好",
 		`/exec echo "hi"`,
-		`/session ` + strings.Repeat("id", 5),
+		`/history ` + strings.Repeat("id", 5),
 		`/new`,
 		`question ?`,
 		`exclaim !`,

@@ -11,6 +11,9 @@ var hostEventHandlers = map[bus.Kind]func(*Controller, bus.Event){
 	bus.KindSessionSwitchRequested: func(c *Controller, e bus.Event) {
 		c.handleSubmitSwitchSession(e.SessionID)
 	},
+	bus.KindHistoryPreviewRequested: func(c *Controller, e bus.Event) {
+		c.handleHistoryPreviewOpen(e.SessionID)
+	},
 	bus.KindUserChatSubmitted: func(c *Controller, e bus.Event) {
 		c.handleUserChat(e)
 	},

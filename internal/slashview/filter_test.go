@@ -38,10 +38,10 @@ func TestVisibleIndices_EmptyInputAfterSlashShowsAll(t *testing.T) {
 
 func TestVisibleIndices_SessionsByPrefix(t *testing.T) {
 	opts := []Option{
-		{Cmd: "/session demo"},
-		{Cmd: "/session abc"},
+		{Cmd: "/history demo"},
+		{Cmd: "/history abc"},
 	}
-	got := VisibleIndices("/session d", opts)
+	got := VisibleIndices("/history d", opts)
 	if len(got) != 1 || got[0] != 0 {
 		t.Fatalf("unexpected session indices: %#v", got)
 	}

@@ -59,7 +59,7 @@ func rootSlashOptions(lang string) []ui.SlashOption {
 	opts = append(opts, []ui.SlashOption{
 		{Cmd: "/config", Desc: i18n.T(lang, i18n.KeyDescConfig)},
 		{Cmd: "/new", Desc: i18n.T(lang, i18n.KeySessionNew)},
-		{Cmd: "/session", Desc: i18n.T(lang, i18n.KeyDescSessions)},
+		{Cmd: "/history", Desc: i18n.T(lang, i18n.KeyDescSessions)},
 		{Cmd: "/help", Desc: i18n.T(lang, i18n.KeyDescHelp)},
 		{Cmd: "/quit", Desc: i18n.T(lang, i18n.KeyDescExit)},
 	}...)
