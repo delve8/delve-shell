@@ -11,9 +11,17 @@ import (
 	"delve-shell/internal/execenv"
 	"delve-shell/internal/remote"
 	"delve-shell/internal/remoteauth"
+	"delve-shell/internal/uivm"
 )
 
 func (c *Controller) handleExecDirect(cmd string) {
+	if c.runtime != nil && c.runtime.Offline() {
+		c.ui.TranscriptAppend([]uivm.Line{
+			{Kind: uivm.LineSystemError, Text: "Direct execution is disabled in Offline mode. Use the assistant's execute_command flow and paste results back."},
+			{Kind: uivm.LineBlank},
+		})
+		return
+	}
 	executor := c.getExec()
 	stdout, stderrStr, exitCode, runErr := executor.Run(context.Background(), cmd)
 	result := stdout
@@ -31,6 +39,9 @@ func (c *Controller) handleExecDirect(cmd string) {
 }
 
 func (c *Controller) handleRemoteOn(target string) {
+	if c.runtime != nil {
+		c.runtime.SetOffline(false)
+	}
 	identityFile := ""
 	label := target
 	remotes, errRemotes := config.LoadRemotes()
@@ -65,15 +76,33 @@ func (c *Controller) handleRemoteOn(target string) {
 		return
 	}
 	c.updateRemoteRunCompletion(res.Executor, res.Label)
-	c.ui.RemoteStatus(true, res.Label)
+	c.ui.RemoteStatus(true, res.Label, false)
 	c.ui.SystemNotify(fmt.Sprintf("Connected to remote: %s", res.Label))
 	c.ui.RemoteConnectDone(true, res.Label, "")
 }
 
 func (c *Controller) handleRemoteOff() {
+	if c.runtime != nil {
+		c.runtime.SetOffline(false)
+	}
 	c.executors.SwitchToLocal()
-	c.ui.RemoteStatus(false, "")
+	if c.runners != nil {
+		c.runners.Invalidate()
+	}
+	c.ui.RemoteStatus(false, "", false)
 	c.ui.SystemNotify("Switched back to local executor.")
+}
+
+func (c *Controller) handleAccessOffline() {
+	c.executors.SwitchToLocal()
+	if c.runtime != nil {
+		c.runtime.SetOffline(true)
+	}
+	if c.runners != nil {
+		c.runners.Invalidate()
+	}
+	c.ui.RemoteStatus(false, "", true)
+	c.ui.SystemNotify("Offline mode: commands are not executed here—copy to your environment, paste output in the dialog. Review each command; allowlist is not used.")
 }
 
 func (c *Controller) handleRemoteAuthResp(resp remoteauth.Response) {
@@ -101,7 +130,7 @@ func (c *Controller) handleRemoteAuthResp(resp remoteauth.Response) {
 			return
 		}
 		c.updateRemoteRunCompletion(res.Executor, res.Label)
-		c.ui.RemoteStatus(true, res.Label)
+		c.ui.RemoteStatus(true, res.Label, false)
 		c.ui.SystemNotify(fmt.Sprintf("Connected to remote: %s", res.Label))
 		c.ui.RemoteConnectDone(true, res.Label, "")
 		return
@@ -115,7 +144,7 @@ func (c *Controller) handleRemoteAuthResp(resp remoteauth.Response) {
 		return
 	}
 	c.updateRemoteRunCompletion(c.getExec(), labelStr)
-	c.ui.RemoteStatus(true, labelStr)
+	c.ui.RemoteStatus(true, labelStr, false)
 	c.ui.SystemNotify(fmt.Sprintf("Connected to remote: %s", labelStr))
 	c.ui.RemoteConnectDone(true, labelStr, "")
 }

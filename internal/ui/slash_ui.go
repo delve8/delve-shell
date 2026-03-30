@@ -138,15 +138,20 @@ func (m Model) inputBelowBlock(lang string, inChoice bool) string {
 	rows := make([]widget.ListRow, 0, inputBelowReserveRows)
 	reserveRows := inputBelowStableRows
 	if inChoice {
-		opts := approvalview.ChoiceOptions(lang, m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil)
-		adapted := make([]maininput.ChoiceOption, 0, len(opts))
-		for _, o := range opts {
-			adapted = append(adapted, maininput.ChoiceOption{Num: o.Num, Label: o.Label})
-		}
-		lines := maininput.BuildChoiceLines(adapted, m.Interaction.ChoiceIndex)
-		rows = make([]widget.ListRow, len(lines))
-		for i, line := range lines {
-			rows[i] = widget.ListRow{Text: line.Text, Highlight: line.Highlight}
+		if m.ChoiceCard.offlinePaste != nil {
+			hint := suggestStyle.Render(i18n.T(lang, i18n.KeyOfflinePasteHint))
+			rows = []widget.ListRow{{Text: hint, PreRendered: true}}
+		} else {
+			opts := approvalview.ChoiceOptions(lang, m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil)
+			adapted := make([]maininput.ChoiceOption, 0, len(opts))
+			for _, o := range opts {
+				adapted = append(adapted, maininput.ChoiceOption{Num: o.Num, Label: o.Label})
+			}
+			lines := maininput.BuildChoiceLines(adapted, m.Interaction.ChoiceIndex)
+			rows = make([]widget.ListRow, len(lines))
+			for i, line := range lines {
+				rows[i] = widget.ListRow{Text: line.Text, Highlight: line.Highlight}
+			}
 		}
 	} else if m.Interaction.inputHistIndex >= 0 {
 		hint := i18n.T(lang, i18n.KeyInputHistBrowsingHint)

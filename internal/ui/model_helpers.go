@@ -3,8 +3,8 @@ package ui
 import (
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/viewport"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -23,6 +23,7 @@ const (
 // ReadModel provides host-derived read-only state needed by UI rendering and local decisions.
 type ReadModel interface {
 	TakeOpenConfigLLMOnFirstLayout() bool
+	OfflineExecutionMode() bool
 }
 
 func (m Model) takeOpenConfigLLMOnFirstLayout() bool {
@@ -32,18 +33,29 @@ func (m Model) takeOpenConfigLLMOnFirstLayout() bool {
 	return m.ReadModel.TakeOpenConfigLLMOnFirstLayout()
 }
 
+func (m Model) offlineExecutionMode() bool {
+	if m.ReadModel == nil {
+		return false
+	}
+	return m.ReadModel.OfflineExecutionMode()
+}
+
 type uiState string
 
 const (
 	uiStateMainInput     uiState = "main_input"
 	uiStateChoiceCard    uiState = "choice_card"
 	uiStateChoiceCardAlt uiState = "choice_card_alt"
+	uiStateOfflinePaste  uiState = "offline_paste"
 	uiStateOverlay       uiState = "overlay"
 )
 
 // currentUIState is a lightweight FSM view of current UI mode.
 // Priority follows interactive exclusivity: pending > overlay > main.
 func (m Model) currentUIState() uiState {
+	if m.ChoiceCard.offlinePaste != nil {
+		return uiStateOfflinePaste
+	}
 	if m.ChoiceCard.pendingSensitive != nil {
 		return uiStateChoiceCardAlt
 	}
@@ -163,9 +175,9 @@ func (m Model) InitOverlayViewport() Model {
 	return m
 }
 
-// hasPendingApproval reports whether the UI is in approval choice mode.
+// hasPendingChoiceCard reports whether the UI is in approval, sensitive confirmation, or offline paste mode.
 func (m Model) hasPendingChoiceCard() bool {
-	return m.ChoiceCard.pending != nil || m.ChoiceCard.pendingSensitive != nil
+	return m.ChoiceCard.pending != nil || m.ChoiceCard.pendingSensitive != nil || m.ChoiceCard.offlinePaste != nil
 }
 
 // contentWidth returns a safe rendering width with fallback.
@@ -192,8 +204,12 @@ func (m Model) syncInputHeight() Model {
 // inputChromeHeight returns the total number of lines reserved below the transcript viewport.
 func (m Model) inputChromeHeight() int {
 	height := 1 // separator above input
-	height += m.Input.Height()
-	if m.Input.LineCount() > 1 {
+	height += m.primaryInputHeight()
+	if m.ChoiceCard.offlinePaste != nil {
+		if m.ChoiceCard.offlinePaste.Paste.LineCount() > 1 {
+			height += 1
+		}
+	} else if m.Input.LineCount() > 1 {
 		height += 1 // visual gap between multiline textarea and the below-input block
 	}
 	height += m.inputBelowHeight()
@@ -235,8 +251,36 @@ func (m Model) mainBodyView() string {
 	return ""
 }
 
+// primaryInputHeight returns the height of the active bottom text area (main input or offline paste).
+func (m Model) primaryInputHeight() int {
+	if m.ChoiceCard.offlinePaste != nil {
+		return m.ChoiceCard.offlinePaste.Paste.Height()
+	}
+	return m.Input.Height()
+}
+
+// primaryInputView renders the active bottom text area (main input or offline paste box).
+func (m Model) primaryInputView() string {
+	if m.ChoiceCard.offlinePaste != nil {
+		return m.ChoiceCard.offlinePaste.Paste.View()
+	}
+	return m.Input.View()
+}
+
+// primaryInputLineCount returns the line count of the active bottom text area.
+func (m Model) primaryInputLineCount() int {
+	if m.ChoiceCard.offlinePaste != nil {
+		return m.ChoiceCard.offlinePaste.Paste.LineCount()
+	}
+	return m.Input.LineCount()
+}
+
 func (m Model) pendingChoiceContent() string {
 	var b strings.Builder
+	if m.ChoiceCard.offlinePaste != nil {
+		m.appendOfflinePasteViewportContent(&b)
+		return b.String()
+	}
 	m.appendApprovalViewportContent(&b)
 	return b.String()
 }

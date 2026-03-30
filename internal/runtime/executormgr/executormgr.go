@@ -160,7 +160,7 @@ type ConnectResult struct {
 	Connected  bool
 	Label      string
 	Executor   execenv.CommandExecutor // non-nil when Connected
-	AuthPrompt *remoteauth.Prompt // when non-nil, UI should open auth prompt / show error
+	AuthPrompt *remoteauth.Prompt      // when non-nil, UI should open auth prompt / show error
 }
 
 // Connect attempts to switch to a remote SSH executor.

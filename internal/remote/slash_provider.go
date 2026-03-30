@@ -24,6 +24,7 @@ func remoteSlashOptionsProvider(
 			opts = append(opts, hostOpts...)
 			opts = append(opts, ui.SlashOption{Cmd: "/access New", Desc: i18n.T(lang, i18n.KeyDescRemoteOn)})
 			opts = append(opts, ui.SlashOption{Cmd: "/access Local", Desc: i18n.T(lang, i18n.KeyDescRemoteOff)})
+			opts = append(opts, ui.SlashOption{Cmd: "/access Offline", Desc: i18n.T(lang, i18n.KeyDescAccessOffline)})
 			return opts, true
 		}
 		return buildRemoteDropdownOptions(lang), true
@@ -83,5 +84,6 @@ func buildRemoteDropdownOptions(lang string) []ui.SlashOption {
 	}
 	push(ui.SlashOption{Cmd: "/access New", Desc: i18n.T(lang, i18n.KeyDescRemoteOn)})
 	push(ui.SlashOption{Cmd: "/access Local", Desc: i18n.T(lang, i18n.KeyDescRemoteOff)})
+	push(ui.SlashOption{Cmd: "/access Offline", Desc: i18n.T(lang, i18n.KeyDescAccessOffline)})
 	return opts
 }

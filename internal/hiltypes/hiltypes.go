@@ -45,3 +45,16 @@ type ExecEvent struct {
 	Suggested bool   // if true, command was only suggested (suggest mode), not executed
 }
 
+// OfflinePasteResponse is the user's submitted pasted output or cancellation for offline (manual) execution.
+type OfflinePasteResponse struct {
+	Text      string
+	Cancelled bool
+}
+
+// OfflinePasteRequest asks the UI to show the command and a paste area; blocks until the user submits or cancels.
+type OfflinePasteRequest struct {
+	Command    string
+	Reason     string
+	RiskLevel  string
+	ResponseCh chan OfflinePasteResponse
+}

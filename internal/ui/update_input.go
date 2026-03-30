@@ -172,6 +172,10 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 		return mm, tea.Quit
 	}
 
+	if mm.currentUIState() == uiStateOfflinePaste {
+		return mm.handleOfflinePasteKeyMsg(msg)
+	}
+
 	state := mm.currentUIState()
 	if state == uiStateChoiceCardAlt || state == uiStateChoiceCard {
 		if handledModel, handled := mm.handlePendingChoiceKey(key); handled {

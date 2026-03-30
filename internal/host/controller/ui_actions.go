@@ -44,6 +44,8 @@ func (c *Controller) handleCommand(command hostcmd.Command) {
 		c.bus.PublishBlocking(bus.Event{Kind: bus.KindRemoteOnRequested, RemoteTarget: cmd.Target})
 	case hostcmd.RemoteOff:
 		c.bus.PublishBlocking(bus.Event{Kind: bus.KindRemoteOffRequested})
+	case hostcmd.AccessOffline:
+		c.bus.PublishBlocking(bus.Event{Kind: bus.KindAccessOfflineRequested})
 	case hostcmd.RemoteAuthReply:
 		c.bus.PublishBlocking(bus.Event{Kind: bus.KindRemoteAuthResponseSubmitted, RemoteAuthResponse: cmd.Response})
 	}

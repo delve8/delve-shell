@@ -30,6 +30,7 @@ const (
 	KindExecDirectRequested            Kind = "exec_direct_requested"
 	KindRemoteOnRequested              Kind = "remote_on_requested"
 	KindRemoteOffRequested             Kind = "remote_off_requested"
+	KindAccessOfflineRequested         Kind = "access_offline_requested"
 	KindRemoteAuthResponseSubmitted    Kind = "remote_auth_response_submitted"
 	KindApprovalRequested              Kind = "approval_requested"
 	KindSensitiveConfirmationRequested Kind = "sensitive_confirmation_requested"
@@ -50,6 +51,7 @@ func AllKinds() []Kind {
 		KindExecDirectRequested,
 		KindRemoteOnRequested,
 		KindRemoteOffRequested,
+		KindAccessOfflineRequested,
 		KindRemoteAuthResponseSubmitted,
 		KindApprovalRequested,
 		KindSensitiveConfirmationRequested,

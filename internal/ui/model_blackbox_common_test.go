@@ -32,12 +32,14 @@ type blackboxFixture struct {
 	configUpdated  chan struct{}
 	remoteOn       chan string
 	remoteOff      chan struct{}
+	accessOffline  chan struct{}
 	remoteAuthResp chan remoteauth.Response
 	openConfigLLM  bool
 }
 
 type testReadModel struct {
 	openConfigLLM *bool
+	offline       bool
 }
 
 func (r testReadModel) TakeOpenConfigLLMOnFirstLayout() bool {
@@ -48,6 +50,8 @@ func (r testReadModel) TakeOpenConfigLLMOnFirstLayout() bool {
 	*r.openConfigLLM = false
 	return v
 }
+
+func (r testReadModel) OfflineExecutionMode() bool { return r.offline }
 
 type testCommandSender struct {
 	f *blackboxFixture
@@ -125,6 +129,13 @@ func (s testCommandSender) Send(cmd hostcmd.Command) bool {
 		default:
 			return false
 		}
+	case hostcmd.AccessOffline:
+		select {
+		case s.f.accessOffline <- struct{}{}:
+			return true
+		default:
+			return false
+		}
 	case hostcmd.RemoteAuthReply:
 		select {
 		case s.f.remoteAuthResp <- c.Response:
@@ -150,6 +161,7 @@ func newBlackboxFixture(t *testing.T) blackboxFixture {
 		configUpdated:  make(chan struct{}, 2),
 		remoteOn:       make(chan string, 2),
 		remoteOff:      make(chan struct{}, 2),
+		accessOffline:  make(chan struct{}, 2),
 		remoteAuthResp: make(chan remoteauth.Response, 2),
 	}
 	f.model = ui.NewModel(nil, testReadModel{openConfigLLM: &f.openConfigLLM})

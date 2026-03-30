@@ -184,3 +184,49 @@ func TestBlackboxSlashTabDoesNotSubmitExactCommand(t *testing.T) {
 		t.Fatalf("expected input unchanged, got %q", got.Input.Value())
 	}
 }
+
+func TestBlackboxSlashAccessOfflineSendsIntent(t *testing.T) {
+	f := newBlackboxFixture(t)
+	_ = enterText(f.model, "/access Offline")
+	select {
+	case <-f.accessOffline:
+	default:
+		t.Fatal("expected /access Offline to emit AccessOffline intent")
+	}
+}
+
+func TestBlackboxSlashBashOfflineAppendsErrorToTranscript(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("/bash is not available on Windows")
+	}
+	f := newBlackboxFixture(t)
+	f.model = ui.NewModel(nil, testReadModel{openConfigLLM: &f.openConfigLLM, offline: true})
+	f.model.CommandSender = testCommandSender{f: &f}
+	got := enterText(f.model, "/bash")
+	transcript := strings.Join(got.TranscriptLines(), "\n")
+	if !strings.Contains(transcript, "/bash") {
+		t.Fatalf("expected user echo for /bash, got %q", transcript)
+	}
+	if !strings.Contains(transcript, "Offline") {
+		t.Fatalf("expected offline /bash error in transcript, got %q", transcript)
+	}
+}
+
+func TestBlackboxSlashSkillOfflineShowsError(t *testing.T) {
+	f := newBlackboxFixture(t)
+	f.model = ui.NewModel(nil, testReadModel{openConfigLLM: &f.openConfigLLM, offline: true})
+	f.model.CommandSender = testCommandSender{f: &f}
+	got := enterText(f.model, "/skill someskill extra")
+	transcript := strings.Join(got.TranscriptLines(), "\n")
+	if !strings.Contains(transcript, "/skill") {
+		t.Fatalf("expected user echo for /skill, got %q", transcript)
+	}
+	if !strings.Contains(transcript, "Offline") {
+		t.Fatalf("expected offline /skill error in transcript, got %q", transcript)
+	}
+	select {
+	case sub := <-f.submissions:
+		t.Fatalf("did not expect chat submission in offline /skill, got %#v", sub)
+	default:
+	}
+}

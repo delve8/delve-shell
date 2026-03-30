@@ -10,9 +10,9 @@ import (
 
 func main() {
 	root := &cobra.Command{
-		Use:          "delve-shell",
-		Short:        "AI-assisted shell: run commands after your approval",
-		RunE:         func(cmd *cobra.Command, args []string) error {
+		Use:   "delve-shell",
+		Short: "AI-assisted shell: run commands after your approval",
+		RunE: func(cmd *cobra.Command, args []string) error {
 			_ = cmd
 			_ = args
 			return interactive.Run()

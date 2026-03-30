@@ -26,10 +26,10 @@ func (m Model) renderBaseScreen() string {
 
 	inChoice := m.hasPendingChoiceCard()
 	inputSeparator := ""
-	if m.Input.LineCount() > 1 {
+	if m.primaryInputLineCount() > 1 {
 		inputSeparator = "\n"
 	}
-	bottomBlock := sepLine + "\n" + m.Input.View() + inputSeparator + m.inputBelowBlock(lang, inChoice) + footer
+	bottomBlock := sepLine + "\n" + m.primaryInputView() + inputSeparator + m.inputBelowBlock(lang, inChoice) + footer
 	if !inChoice {
 		padLines := m.normalModeTopPaddingLines(bottomBlock)
 		if padLines <= 0 {
@@ -79,6 +79,8 @@ func (m Model) titleBarStatus() widget.TitleBarStatus {
 		return widget.TitleBarStatusIdle
 	case i18n.KeyStatusRunning:
 		return widget.TitleBarStatusRunning
+	case i18n.KeyStatusWaitingUserInput:
+		return widget.TitleBarStatusWaitingUserInput
 	case i18n.KeyStatusPendingApproval:
 		return widget.TitleBarStatusPendingApproval
 	case i18n.KeyStatusSuggest:
@@ -90,7 +92,10 @@ func (m Model) titleBarStatus() widget.TitleBarStatus {
 
 // statusKey returns the i18n key for current state: idle, running, or pending approval.
 func (m Model) statusKey() string {
-	if m.hasPendingChoiceCard() {
+	if m.ChoiceCard.offlinePaste != nil {
+		return i18n.KeyStatusWaitingUserInput
+	}
+	if m.ChoiceCard.pending != nil || m.ChoiceCard.pendingSensitive != nil {
 		return i18n.KeyStatusPendingApproval
 	}
 	if m.Interaction.WaitingForAI {
@@ -131,6 +136,7 @@ func footerStatusReserveWidth(lang string) int {
 	statuses := []string{
 		i18n.T(lang, i18n.KeyStatusIdle),
 		i18n.T(lang, i18n.KeyStatusRunning),
+		i18n.T(lang, i18n.KeyStatusWaitingUserInput),
 		i18n.T(lang, i18n.KeyStatusPendingApproval),
 		i18n.T(lang, i18n.KeyStatusSuggest),
 	}
@@ -174,6 +180,9 @@ func (m Model) renderOverlay(base string) string {
 // syncInputPlaceholder sets the input placeholder to selection hint (1/2 or 1/2/3) when waiting for choice, else normal placeholder.
 func (m *Model) syncInputPlaceholder() {
 	lang := m.getLang()
+	if m.ChoiceCard.offlinePaste != nil {
+		return
+	}
 	m.Input.Placeholder = approvalview.InputPlaceholder(lang, m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil)
 }
 

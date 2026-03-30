@@ -181,6 +181,21 @@ func (p *Presenter) ShowSensitiveConfirmation(req *hiltypes.SensitiveConfirmatio
 	}})
 }
 
+// ShowOfflinePaste opens the offline manual-relay paste dialog; response is sent on req.ResponseCh.
+func (p *Presenter) ShowOfflinePaste(req *hiltypes.OfflinePasteRequest) {
+	if req == nil || req.ResponseCh == nil {
+		return
+	}
+	p.Raw(ui.OfflinePasteShowMsg{Pending: &uivm.PendingOfflinePaste{
+		Command:   req.Command,
+		Reason:    req.Reason,
+		RiskLevel: req.RiskLevel,
+		Respond: func(text string, cancelled bool) {
+			req.ResponseCh <- hiltypes.OfflinePasteResponse{Text: text, Cancelled: cancelled}
+		},
+	}})
+}
+
 // DispatchAgentUI maps agent-side UIEvents payloads to TUI messages.
 func (p *Presenter) DispatchAgentUI(x any) {
 	switch v := x.(type) {
@@ -188,6 +203,8 @@ func (p *Presenter) DispatchAgentUI(x any) {
 		p.ShowApproval(v)
 	case *hiltypes.SensitiveConfirmationRequest:
 		p.ShowSensitiveConfirmation(v)
+	case *hiltypes.OfflinePasteRequest:
+		p.ShowOfflinePaste(v)
 	case hiltypes.ExecEvent:
 		p.CommandExecutedFromTool(v.Command, v.Allowed, v.Result, v.Sensitive, v.Suggested, false)
 	}
@@ -195,8 +212,8 @@ func (p *Presenter) DispatchAgentUI(x any) {
 
 // --- Remote / header ---
 
-func (p *Presenter) RemoteStatus(active bool, label string) {
-	p.Raw(remote.ExecutionChangedMsg{Active: active, Label: label})
+func (p *Presenter) RemoteStatus(active bool, label string, offline bool) {
+	p.Raw(remote.ExecutionChangedMsg{Active: active, Label: label, Offline: offline})
 }
 
 func (p *Presenter) RemoteConnectDone(success bool, label, errText string) {

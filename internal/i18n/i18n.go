@@ -78,6 +78,7 @@ const (
 	KeyStatusIdle            = "status_idle"
 	KeyStatusRunning         = "status_running"
 	KeyStatusPendingApproval = "status_pending_approval"
+	KeyStatusWaitingUserInput = "status_waiting_user_input"
 	KeyStatusSuggest         = "status_suggest"
 	KeyNeedConfirmationHint  = "need_confirmation_hint"
 
@@ -100,10 +101,10 @@ const (
 	KeySessionNew                    = "session_new"
 	KeySessionPrompt                 = "session_prompt"
 	KeySessionSwitched               = "session_switched"
-	KeySessionSwitchedTo             = "session_switched_to" // format: "Switched to session: %s" (session id; /new banner)
-	KeyHistorySwitchedTo             = "history_switched_to" // format: after /history <id>; transcript is not loaded
-	KeyHistoryPreviewTitle           = "history_preview_title" // format: overlay title, e.g. "History · %s"
-	KeyHistoryPreviewEmpty           = "history_preview_empty" // overlay body when file has no lines yet
+	KeySessionSwitchedTo             = "session_switched_to"    // format: "Switched to session: %s" (session id; /new banner)
+	KeyHistorySwitchedTo             = "history_switched_to"    // format: after /history <id>; transcript is not loaded
+	KeyHistoryPreviewTitle           = "history_preview_title"  // format: overlay title, e.g. "History · %s"
+	KeyHistoryPreviewEmpty           = "history_preview_empty"  // overlay body when file has no lines yet
 	KeyHistoryPreviewFooter          = "history_preview_footer" // hint under preview (Esc / scroll)
 	KeySessionSelect                 = "session_select"
 	KeyDescSessions                  = "desc_sessions" // slash: /history description
@@ -112,6 +113,17 @@ const (
 	KeyDelRemoteNoHosts              = "del_remote_no_hosts" // slash dropdown when no remotes to remove (Cmd-only row, like KeySkillNone)
 	KeyDescRemoteOn                  = "desc_remote_on"
 	KeyDescRemoteOff                 = "desc_remote_off"
+	KeyDescAccessOffline             = "desc_access_offline"
+	KeyOfflinePasteTitle             = "offline_paste_title"
+	KeyOfflinePasteIntro             = "offline_paste_intro"
+	KeyOfflinePasteReview            = "offline_paste_review"
+	KeyOfflinePasteHint              = "offline_paste_hint"
+	KeyOfflinePasteCopyFailed        = "offline_paste_copy_failed"
+	KeyOfflinePastePlaceholder       = "offline_paste_placeholder"
+	KeyOfflinePasteManualNote        = "offline_paste_manual_note"
+	KeyOfflineExecBashDisabled       = "offline_exec_bash_disabled"
+	KeyOfflineSlashExecDisabled      = "offline_slash_exec_disabled"
+	KeyOfflineSlashSkillDisabled     = "offline_slash_skill_disabled"
 	KeyRemoteManualHint              = "remote_manual_hint" // hint when no remotes or "or type user@host"
 	KeyHelpTitle                     = "help_title"
 	KeyAddRemoteTitle                = "add_remote_title"
@@ -297,6 +309,7 @@ Quit (Ctrl+C also works)`,
 		KeyStatusIdle:                    "[IDLE]",
 		KeyStatusRunning:                 "[PROCESSING]",
 		KeyStatusPendingApproval:         "[NEED APPROVAL]",
+		KeyStatusWaitingUserInput:        "[WAIT INPUT]",
 		KeyStatusSuggest:                 "[SUGGEST]",
 		KeyNeedConfirmationHint:          "Your confirmation required.",
 		KeyWizardTitle:                   "=== delve-shell first-time setup ===",
@@ -325,6 +338,17 @@ Quit (Ctrl+C also works)`,
 		KeyDelRemoteNoHosts:              "No hosts.",
 		KeyDescRemoteOn:                  "Connect to host",
 		KeyDescRemoteOff:                 "Disconnect from remote host",
+		KeyDescAccessOffline:             "Offline mode (copy command, run elsewhere, paste output)",
+		KeyOfflinePasteTitle:             "Offline — paste output in the box below",
+		KeyOfflinePasteIntro:             "This command is not run here. It is copied to the clipboard when this dialog opens; run it where you need to, then paste the result into the input box below.",
+		KeyOfflinePasteReview:            "Review the command before running it elsewhere. Allowlist does not apply in Offline mode.",
+		KeyOfflinePasteHint:              "Enter: submit · Esc: cancel",
+		KeyOfflinePasteCopyFailed:        "Could not copy to clipboard. Select the command line above or copy manually.",
+		KeyOfflinePastePlaceholder:       "Paste output",
+		KeyOfflinePasteManualNote:        "Manual paste — may be edited or mistaken.",
+		KeyOfflineExecBashDisabled:       "/bash is not available in Offline mode.",
+		KeyOfflineSlashExecDisabled:      "/exec is not available in Offline mode. Use the assistant to propose commands, then paste results in the dialog.",
+		KeyOfflineSlashSkillDisabled:     "/skill is not available in Offline mode. Skill tools are disabled; use execute_command and paste outputs back.",
 		KeyRemoteManualHint:              "Open remote connection dialog",
 		KeyHelpTitle:                     "Help",
 		KeyAddRemoteTitle:                "Add Remote",

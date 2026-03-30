@@ -65,8 +65,12 @@ func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 	}
 	if m.layout.Width > minInputLayoutWidth {
 		m.Input.SetWidth(m.layout.Width - minInputLayoutWidth)
+		if m.ChoiceCard.offlinePaste != nil {
+			m.ChoiceCard.offlinePaste.Paste.SetWidth(m.layout.Width - minInputLayoutWidth)
+		}
 	}
 	m = m.syncInputHeight()
+	m = m.syncOfflinePasteHeight()
 	if m.hasPendingChoiceCard() && m.layout.Height > minInputLayoutWidth {
 		m = m.syncChoiceViewport()
 	}
@@ -88,14 +92,20 @@ func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 
 func (m Model) handleBlurMsg() (Model, tea.Cmd) {
 	m.Input.Blur()
+	if m.ChoiceCard.offlinePaste != nil {
+		m.ChoiceCard.offlinePaste.Paste.Blur()
+	}
 	return m, nil
 }
 
 func (m Model) handleFocusMsg() (Model, tea.Cmd) {
-	if !m.Overlay.Active {
-		return m, m.Input.Focus()
+	if m.Overlay.Active {
+		return m, nil
 	}
-	return m, nil
+	if m.ChoiceCard.offlinePaste != nil {
+		return m, m.ChoiceCard.offlinePaste.Paste.Focus()
+	}
+	return m, m.Input.Focus()
 }
 
 func (m Model) handleMouseMsg(msg tea.MouseMsg) (Model, tea.Cmd) {

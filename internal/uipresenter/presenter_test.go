@@ -123,7 +123,7 @@ func TestPresenter_DispatchAgentUI(t *testing.T) {
 func TestPresenter_Remote(t *testing.T) {
 	var r recordSender
 	p := New(&r)
-	p.RemoteStatus(true, "dev")
+	p.RemoteStatus(true, "dev", false)
 	p.RemoteConnectDone(false, "", "nope")
 	p.RemoteAuthPrompt("h", "e", false)
 	if len(r.msgs) != 3 {

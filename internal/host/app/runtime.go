@@ -12,11 +12,12 @@ import (
 type Runtime struct {
 	mu sync.RWMutex
 	// send is the channel bundle installed by WireSend (nil when unwired).
-	send *Send
-	remoteActive  bool
-	remoteLabel   string
-	cfgLLMMu      sync.Mutex
-	cfgLLMFirst   bool
+	send         *Send
+	remoteActive bool
+	remoteLabel  string
+	offline      bool
+	cfgLLMMu     sync.Mutex
+	cfgLLMFirst  bool
 }
 
 // NewRuntime returns an empty runtime; call WireSend, then adapt *Runtime for the interactive UI loop.
@@ -43,6 +44,32 @@ func (r *Runtime) SetRemoteExecution(active bool, label string) {
 	defer r.mu.Unlock()
 	r.remoteActive = active
 	r.remoteLabel = label
+	if active {
+		r.offline = false
+	}
+}
+
+// SetOffline sets offline (manual relay) mode mirror for the UI; clears remote active.
+func (r *Runtime) SetOffline(v bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.offline = v
+	if v {
+		r.remoteActive = false
+		r.remoteLabel = ""
+	}
+}
+
+// Offline reports whether offline execution mode is active.
+func (r *Runtime) Offline() bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.offline
+}
+
+// OfflineExecutionMode implements Host.
+func (r *Runtime) OfflineExecutionMode() bool {
+	return r.Offline()
 }
 
 // RemoteActive reports whether the UI should treat execution as remote.
@@ -199,6 +226,7 @@ func (r *Runtime) Reset() {
 	r.send = nil
 	r.remoteActive = false
 	r.remoteLabel = ""
+	r.offline = false
 	r.mu.Unlock()
 	r.cfgLLMMu.Lock()
 	r.cfgLLMFirst = false

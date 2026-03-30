@@ -49,6 +49,13 @@ func (r hostReadModel) TakeOpenConfigLLMOnFirstLayout() bool {
 	return r.host.TakeOpenConfigLLMOnFirstLayout()
 }
 
+func (r hostReadModel) OfflineExecutionMode() bool {
+	if r.host == nil {
+		return false
+	}
+	return r.host.OfflineExecutionMode()
+}
+
 func newTuiRestartLoop(
 	controller *controller.Controller,
 	programPtr *atomic.Pointer[tea.Program],

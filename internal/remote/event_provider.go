@@ -15,6 +15,7 @@ func remoteStateProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 	case ExecutionChangedMsg:
 		m.Remote.Active = t.Active
 		m.Remote.Label = t.Label
+		m.Remote.Offline = t.Offline
 		clearCachedRunSuggestions()
 		return m, nil, true
 	case RunCompletionCacheMsg:

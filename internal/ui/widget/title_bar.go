@@ -13,6 +13,7 @@ type TitleBarStatus int
 const (
 	TitleBarStatusIdle TitleBarStatus = iota
 	TitleBarStatusRunning
+	TitleBarStatusWaitingUserInput
 	TitleBarStatusPendingApproval
 	TitleBarStatusSuggest
 	// TitleBarStatusOther renders autoRunPart and statusStr with Base only (default / unknown key).
@@ -146,6 +147,8 @@ func RenderTitleLine(autoRunPart, statusStr string, st TitleBarStatus, s TitleLi
 		return base + s.StatusIdle.Render(statusStr)
 	case TitleBarStatusRunning:
 		return base + s.StatusRunning.Render(statusStr)
+	case TitleBarStatusWaitingUserInput:
+		return base + s.StatusRunning.Render(statusStr)
 	case TitleBarStatusPendingApproval:
 		return base + s.StatusPending.Render(statusStr)
 	case TitleBarStatusSuggest:
@@ -160,6 +163,8 @@ func statusStyleFor(st TitleBarStatus, s TitleLineStyles) lipgloss.Style {
 	case TitleBarStatusIdle:
 		return s.StatusIdle
 	case TitleBarStatusRunning:
+		return s.StatusRunning
+	case TitleBarStatusWaitingUserInput:
 		return s.StatusRunning
 	case TitleBarStatusPendingApproval:
 		return s.StatusPending

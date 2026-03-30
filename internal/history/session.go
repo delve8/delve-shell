@@ -155,6 +155,36 @@ func (s *Session) AppendCommandResult(command string, stdout, stderr string, exi
 	})
 }
 
+const manualPasteNoteEN = "Pasted by user; may be edited or mistaken."
+
+// AppendOfflineCommandProposal records a command proposed in offline mode (not executed in this tool).
+func (s *Session) AppendOfflineCommandProposal(command, reason, riskLevel string) error {
+	payload := map[string]interface{}{
+		"command":      command,
+		"approved":     true,
+		"execution":    "offline_manual",
+		"offline_mode": true,
+	}
+	if reason != "" {
+		payload["reason"] = reason
+	}
+	if riskLevel != "" {
+		payload["risk_level"] = riskLevel
+	}
+	return s.append("command", payload)
+}
+
+// AppendOfflinePasteResult records user-pasted output for an offline command (no exit_code; not machine-verified).
+func (s *Session) AppendOfflinePasteResult(command, pasted string) error {
+	return s.append("command_result", map[string]interface{}{
+		"command":      command,
+		"stdout":       RedactText(pasted),
+		"manual_paste": true,
+		"offline_mode": true,
+		"note":         manualPasteNoteEN,
+	})
+}
+
 // Close closes the session file; no-op if never written.
 func (s *Session) Close() error {
 	s.mu.Lock()

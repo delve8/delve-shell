@@ -30,6 +30,11 @@ func registerSlashExecutionProvider() {
 				return inputlifecycletype.ProcessResult{}, true, nil
 			}
 			return inputlifecycletype.ConsumedResult(), true, nil
+		case text == "/access Offline":
+			if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.AccessOffline{}) {
+				return inputlifecycletype.ProcessResult{}, true, nil
+			}
+			return inputlifecycletype.ConsumedResult(), true, nil
 		case strings.HasPrefix(text, "/access "):
 			target := strings.TrimSpace(strings.TrimPrefix(text, "/access "))
 			if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.RemoteOnTarget{Target: target}) {

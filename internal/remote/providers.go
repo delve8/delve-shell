@@ -14,6 +14,9 @@ func registerProviders() {
 	ui.RegisterStateEventProvider(remoteStateProvider)
 
 	ui.RegisterTitleBarFragmentProvider(func(m ui.Model) (string, bool) {
+		if m.Remote.Offline {
+			return "Offline", true
+		}
 		if !m.Remote.Active {
 			return "", false
 		}

@@ -74,6 +74,11 @@ type RemoteOff struct{}
 
 func (RemoteOff) hostCommand() {}
 
+// AccessOffline selects offline (manual relay) mode: no in-process execution; execute_command uses paste-back HIL.
+type AccessOffline struct{}
+
+func (AccessOffline) hostCommand() {}
+
 type RemoteAuthReply struct {
 	Response remoteauth.Response
 }

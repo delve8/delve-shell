@@ -70,4 +70,3 @@ func EventsToTranscriptLines(events []history.Event) []uivm.Line {
 	}
 	return out
 }
-

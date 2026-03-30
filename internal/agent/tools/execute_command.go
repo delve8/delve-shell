@@ -10,8 +10,8 @@ import (
 	"github.com/cloudwego/eino/schema"
 
 	"delve-shell/internal/execenv"
-	"delve-shell/internal/hiltypes"
 	"delve-shell/internal/hil"
+	"delve-shell/internal/hiltypes"
 	"delve-shell/internal/history"
 )
 
@@ -28,6 +28,11 @@ type ExecuteCommandTool struct {
 
 	// ExecutorProvider returns the current executor (local or remote). When nil, a local executor is used.
 	ExecutorProvider func() execenv.CommandExecutor
+
+	// OfflineMode when true: skip allowlist and executor; use RequestOfflinePaste instead of approval+run.
+	OfflineMode func() bool
+	// RequestOfflinePaste blocks until the user pastes output or cancels (offline mode only).
+	RequestOfflinePaste func(command, reason, riskLevel string) hiltypes.OfflinePasteResponse
 }
 
 var _ tool.InvokableTool = (*ExecuteCommandTool)(nil)
@@ -81,6 +86,10 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 		riskLevel = "" // invalid value treated as not provided
 	}
 	sensitive := input.ResultContainsSecrets
+
+	if t.OfflineMode != nil && t.OfflineMode() {
+		return t.invokableRunOffline(ctx, command, reason, riskLevel, sensitive)
+	}
 
 	allowed := false
 	if t.Allowlist != nil {
@@ -156,4 +165,57 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 		msg += "\nerror: " + err.Error()
 	}
 	return msg, nil
+}
+
+const manualPasteNoteForUI = "Manual paste — may be edited or mistaken."
+
+func (t *ExecuteCommandTool) invokableRunOffline(ctx context.Context, command, reason, riskLevel string, resultContainsSecrets bool) (string, error) {
+	_ = ctx
+	sensitive := resultContainsSecrets
+	storeResult := true
+	if t.SensitiveMatcher != nil && t.SensitiveMatcher.MayAccessSensitivePath(command) && t.RequestSensitiveConfirmation != nil {
+		choice := t.RequestSensitiveConfirmation(command)
+		switch choice {
+		case hiltypes.SensitiveRefuse:
+			return "The user declined (sensitive path): " + command + ". Continue without this command.", nil
+		case hiltypes.SensitiveRunNoStore:
+			storeResult = false
+			sensitive = true
+		case hiltypes.SensitiveRunAndStore:
+			// storeResult = true
+		}
+	} else if resultContainsSecrets {
+		storeResult = false
+		sensitive = true
+	}
+	if t.RequestOfflinePaste == nil {
+		return "offline paste UI is not available", nil
+	}
+	paste := t.RequestOfflinePaste(command, reason, riskLevel)
+	if paste.Cancelled {
+		return "The user cancelled pasting output for: " + command + ". Continue without this result.", nil
+	}
+	pasted := strings.TrimSpace(paste.Text)
+	if t.Session != nil {
+		_ = t.Session.AppendOfflineCommandProposal(command, reason, riskLevel)
+		if storeResult {
+			_ = t.Session.AppendOfflinePasteResult(command, pasted)
+		}
+	}
+	resultForUI := pasted
+	if resultForUI != "" {
+		resultForUI += "\n\n" + manualPasteNoteForUI
+	} else {
+		resultForUI = manualPasteNoteForUI
+	}
+	if t.OnExec != nil {
+		t.OnExec(command, false, resultForUI, sensitive || !storeResult, false)
+	}
+	if sensitive {
+		return "done", nil
+	}
+	if pasted == "" {
+		return "The user submitted empty pasted output for: " + command + ".", nil
+	}
+	return "stdout:\n" + pasted, nil
 }

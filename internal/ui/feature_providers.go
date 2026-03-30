@@ -155,6 +155,8 @@ type SlashExecutionRequest struct {
 	InputLine     string
 	SelectedIndex int
 	CommandSender CommandSender
+	// OfflineExecutionMode when true: slash handlers should not start skill/remote execution flows that require in-process tools.
+	OfflineExecutionMode bool
 }
 
 // SlashExecutionProvider handles slash execution outside the ui package.

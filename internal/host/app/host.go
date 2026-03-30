@@ -23,6 +23,8 @@ type Host interface {
 	RemoteLabel() string
 	SetOpenConfigLLMOnFirstLayout(v bool)
 	TakeOpenConfigLLMOnFirstLayout() bool
+	// OfflineExecutionMode is true when /access Offline is active (no in-process command execution).
+	OfflineExecutionMode() bool
 }
 
 // nopHost is a safe no-op Host for tests and idle processes.
@@ -34,7 +36,7 @@ func (nopHost) TrySubmitSubmissionNonBlocking(inputlifecycletype.InputSubmission
 }
 func (nopHost) NotifyConfigUpdated()                               {}
 func (nopHost) PublishCancelRequest() bool                         { return false }
-func (nopHost) PublishShellSnapshot(hostcmd.ShellSnapshot) bool { return false }
+func (nopHost) PublishShellSnapshot(hostcmd.ShellSnapshot) bool    { return false }
 func (nopHost) PublishExecDirect(string)                           {}
 func (nopHost) PublishRemoteOnTarget(string) bool                  { return false }
 func (nopHost) PublishRemoteOff() bool                             { return false }
@@ -44,6 +46,7 @@ func (nopHost) RemoteActive() bool                                 { return fals
 func (nopHost) RemoteLabel() string                                { return "" }
 func (nopHost) SetOpenConfigLLMOnFirstLayout(bool)                 {}
 func (nopHost) TakeOpenConfigLLMOnFirstLayout() bool               { return false }
+func (nopHost) OfflineExecutionMode() bool                         { return false }
 
 var (
 	nopSingleton Host = nopHost{}

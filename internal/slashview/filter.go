@@ -45,8 +45,8 @@ func accessHostRowMatch(rest, hostSuffix string) bool {
 	if strings.ContainsAny(rest, " \t") {
 		return false
 	}
-	// Exact Title-case reserved tokens only match reserved rows, not a host named new/local.
-	if rest == "Local" || rest == "New" {
+	// Exact Title-case reserved tokens only match reserved rows, not a host named new/local/offline.
+	if rest == "Local" || rest == "New" || rest == "Offline" {
 		return false
 	}
 	restLower := strings.ToLower(rest)
@@ -72,6 +72,8 @@ func accessTargetMatch(input, inputLower, cmd string) bool {
 		return accessReservedRowMatch(rest, "Local", "local")
 	case "New":
 		return accessReservedRowMatch(rest, "New", "new")
+	case "Offline":
+		return accessReservedRowMatch(rest, "Offline", "offline")
 	default:
 		return accessHostRowMatch(rest, suffix)
 	}

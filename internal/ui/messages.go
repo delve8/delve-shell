@@ -9,6 +9,11 @@ type ChoiceCardShowMsg struct {
 	PendingSensitive *uivm.PendingSensitive
 }
 
+// OfflinePasteShowMsg asks the UI to show the offline paste-back dialog for a proposed command.
+type OfflinePasteShowMsg struct {
+	Pending *uivm.PendingOfflinePaste
+}
+
 // TranscriptAppendMsg appends semantic transcript lines.
 type TranscriptAppendMsg struct {
 	Lines []uivm.Line
@@ -39,3 +44,6 @@ type HistoryPreviewOverlayMsg struct {
 type transcriptPrintedMsg struct {
 	upTo int
 }
+
+// offlinePasteCopyAckClearMsg clears OfflinePasteState.copyFeedback after a short delay.
+type offlinePasteCopyAckClearMsg struct{}

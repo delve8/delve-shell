@@ -8,8 +8,8 @@ import (
 
 	"delve-shell/internal/cli/hostfsm"
 	"delve-shell/internal/execenv"
-	"delve-shell/internal/host/bus"
 	"delve-shell/internal/hiltypes"
+	"delve-shell/internal/host/bus"
 	"delve-shell/internal/ui"
 	"delve-shell/internal/uipresenter"
 )

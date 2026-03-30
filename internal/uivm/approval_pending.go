@@ -32,4 +32,3 @@ type PendingSensitive struct {
 	Command string
 	Respond func(SensitiveChoice)
 }
-

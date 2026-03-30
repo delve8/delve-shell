@@ -27,4 +27,3 @@ type Line struct {
 	Kind LineKind
 	Text string
 }
-

@@ -32,6 +32,9 @@ var hostEventHandlers = map[bus.Kind]func(*Controller, bus.Event){
 	bus.KindRemoteOffRequested: func(c *Controller, _ bus.Event) {
 		c.handleRemoteOff()
 	},
+	bus.KindAccessOfflineRequested: func(c *Controller, _ bus.Event) {
+		c.handleAccessOffline()
+	},
 	bus.KindRemoteAuthResponseSubmitted: func(c *Controller, e bus.Event) {
 		c.handleRemoteAuthResp(e.RemoteAuthResponse)
 	},

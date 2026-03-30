@@ -22,17 +22,20 @@ func TestRemoteSlashOptions_RootOrdersHostsThenActions(t *testing.T) {
 	if !handled {
 		t.Fatal("expected /access to be handled")
 	}
-	if len(opts) < 4 {
-		t.Fatalf("expected at least 4 options, got %d", len(opts))
+	if len(opts) < 5 {
+		t.Fatalf("expected at least 5 options, got %d", len(opts))
 	}
 	if opts[0].Cmd != "/access prod" || opts[1].Cmd != "/access db-bastion" {
 		t.Fatalf("expected host options first, got %#v", opts[:2])
 	}
-	if opts[len(opts)-2].Cmd != "/access New" {
-		t.Fatalf("expected /access New second-to-last, got %#v", opts[len(opts)-2])
+	if opts[len(opts)-3].Cmd != "/access New" {
+		t.Fatalf("expected /access New before Local/Offline, got %#v", opts[len(opts)-3])
 	}
-	if opts[len(opts)-1].Cmd != "/access Local" {
-		t.Fatalf("expected /access Local last, got %#v", opts[len(opts)-1])
+	if opts[len(opts)-2].Cmd != "/access Local" {
+		t.Fatalf("expected /access Local second-to-last, got %#v", opts[len(opts)-2])
+	}
+	if opts[len(opts)-1].Cmd != "/access Offline" {
+		t.Fatalf("expected /access Offline last, got %#v", opts[len(opts)-1])
 	}
 }
 
@@ -46,8 +49,8 @@ func TestRemoteSlashOptions_ProviderListsAllRemotesThenActions(t *testing.T) {
 	if !handled {
 		t.Fatal("expected /access zzz to be handled")
 	}
-	if len(opts) != 2 {
-		t.Fatalf("no remotes: want New+Local only, got %d", len(opts))
+	if len(opts) != 3 {
+		t.Fatalf("no remotes: want New+Local+Offline, got %d", len(opts))
 	}
 
 	if err := config.AddRemote("ops@prod", "Production", ""); err != nil {
@@ -57,7 +60,7 @@ func TestRemoteSlashOptions_ProviderListsAllRemotesThenActions(t *testing.T) {
 		t.Fatal(err)
 	}
 	full, handled := remoteSlashOptionsProvider("/access p", "en")
-	if !handled || len(full) != 4 {
-		t.Fatalf("want 2 hosts + New + Local from provider, got %d %#v", len(full), full)
+	if !handled || len(full) != 5 {
+		t.Fatalf("want 2 hosts + New + Local + Offline from provider, got %d %#v", len(full), full)
 	}
 }

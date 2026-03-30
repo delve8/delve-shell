@@ -40,16 +40,22 @@ func hasSlashPreInputState(m Model) bool {
 
 type slashRuntimeExecutor struct {
 	sender CommandSender
+	read   ReadModel
 }
 
 func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inputlifecycletype.ProcessResult, error) {
 	trimmed := strings.TrimSpace(req.RawText)
+	offline := false
+	if e.read != nil {
+		offline = e.read.OfflineExecutionMode()
+	}
 	for _, p := range slashExecutionProviderChain.List() {
 		if res, handled, err := p(SlashExecutionRequest{
-			RawText:       trimmed,
-			InputLine:     req.InputLine,
-			SelectedIndex: req.SelectedIndex,
-			CommandSender: e.sender,
+			RawText:              trimmed,
+			InputLine:            req.InputLine,
+			SelectedIndex:        req.SelectedIndex,
+			CommandSender:        e.sender,
+			OfflineExecutionMode: offline,
 		}); handled {
 			return res, err
 		}
@@ -76,6 +82,16 @@ func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inpu
 				Transcript: &inputlifecycletype.TranscriptPayload{
 					Lines: []inputlifecycletype.TranscriptLine{
 						{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.T("en", i18n.KeyUsageRun)},
+					},
+				},
+			}), nil
+		}
+		if e.read != nil && e.read.OfflineExecutionMode() {
+			return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+				Kind: inputlifecycletype.OutputTranscriptAppend,
+				Transcript: &inputlifecycletype.TranscriptPayload{
+					Lines: []inputlifecycletype.TranscriptLine{
+						{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.T("en", i18n.KeyOfflineSlashExecDisabled)},
 					},
 				},
 			}), nil
@@ -159,7 +175,7 @@ func (e uiControlActionExecutor) ExecuteControl(action inputlifecycletype.Contro
 func (m Model) lifecycleEngine() inputlifecycle.Engine {
 	router := inputlifecycle.NewRouter(
 		controlproc.New(uiControlContexts{m: m}, uiControlActionExecutor{sender: m.CommandSender}),
-		slashproc.New(slashRuntimeExecutor{sender: m.CommandSender}),
+		slashproc.New(slashRuntimeExecutor{sender: m.CommandSender, read: m.ReadModel}),
 		chatproc.New(uiChatSubmissionExecutor{sender: m.CommandSender}),
 	)
 	return inputlifecycle.NewEngine(inputpreflight.Engine{}, router)

@@ -101,6 +101,13 @@ func (m Model) EmitRemoteOffIntent() bool {
 	return m.CommandSender.Send(hostcmd.RemoteOff{})
 }
 
+func (m Model) EmitAccessOfflineIntent() bool {
+	if m.CommandSender == nil {
+		return false
+	}
+	return m.CommandSender.Send(hostcmd.AccessOffline{})
+}
+
 func (m Model) EmitRemoteAuthResponseIntent(resp remoteauth.Response) bool {
 	if m.CommandSender == nil {
 		return false

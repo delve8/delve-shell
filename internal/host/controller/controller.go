@@ -11,6 +11,7 @@ import (
 
 	"delve-shell/internal/cli/hostfsm"
 	"delve-shell/internal/execenv"
+	"delve-shell/internal/host/app"
 	"delve-shell/internal/host/bus"
 	"delve-shell/internal/hostcmd"
 	"delve-shell/internal/runtime/executormgr"
@@ -35,6 +36,9 @@ type Options struct {
 	GetExec   func() execenv.CommandExecutor
 
 	SyncSessionPath func(path string)
+
+	// Runtime mirrors access mode for offline checks (optional; nil skips mirror updates).
+	Runtime *app.Runtime
 
 	// OnEventDispatch is optional; invoked at the start of each dequeued event before the handler runs.
 	// Use bus.Event.RedactedSummary for logs (no secrets).
@@ -68,6 +72,8 @@ type Controller struct {
 	llmCancel  context.CancelFunc
 
 	onEventDispatch func(bus.Event)
+
+	runtime *app.Runtime
 }
 
 func New(opts Options) *Controller {
@@ -84,13 +90,14 @@ func New(opts Options) *Controller {
 		sessions: opts.Sessions,
 		runners:  opts.Runners,
 
-		executors: opts.Executors,
+		executors:       opts.Executors,
 		getExec:         opts.GetExec,
 		syncSessionPath: opts.SyncSessionPath,
 
 		fsm: hostfsm.NewMachine(hostfsm.StateIdle),
 
 		onEventDispatch: opts.OnEventDispatch,
+		runtime:         opts.Runtime,
 	}
 	bus.BridgeInputs(opts.Stop, opts.Bus, opts.Inputs)
 	bus.StartUIPump(opts.Stop, opts.Bus, opts.CurrentP)

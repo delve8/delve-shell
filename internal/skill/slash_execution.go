@@ -65,6 +65,9 @@ func parseAddSkillArgs(rest string) (url, ref, path string) {
 }
 
 func executeSkillInvocation(req ui.SlashExecutionRequest, rest string) inputlifecycletype.ProcessResult {
+	if req.OfflineExecutionMode {
+		return transcriptErrorResult(i18n.T("en", i18n.KeyOfflineSlashSkillDisabled))
+	}
 	fields := strings.Fields(rest)
 	if len(fields) < 1 {
 		return transcriptErrorResult(i18n.T("en", i18n.KeyUsageSkill))

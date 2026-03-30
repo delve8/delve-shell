@@ -17,8 +17,8 @@ import (
 	"delve-shell/internal/consts"
 	"delve-shell/internal/execenv"
 	"delve-shell/internal/hil"
-	"delve-shell/internal/history"
 	"delve-shell/internal/hiltypes"
+	"delve-shell/internal/history"
 )
 
 // RunnerHILInput is allowlist and sensitive matching for tools and approval flow.
@@ -47,6 +47,8 @@ type RunnerOptions struct {
 	HIL     RunnerHILInput
 	Session RunnerSessionInput
 	UILoop  RunnerUILoopInput
+	// Offline when true: omit skill tools and use offline execute_command + prompt appendix.
+	Offline bool
 }
 
 // Runner wraps the eino react agent; generates replies and runs commands via HIL approval.
@@ -69,6 +71,15 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 	}
 
 	uiEvents := opts.UILoop.UIEvents
+	offline := opts.Offline
+	requestOfflinePaste := func(cmd, reason, riskLevel string) hiltypes.OfflinePasteResponse {
+		if !offline || uiEvents == nil {
+			return hiltypes.OfflinePasteResponse{Cancelled: true}
+		}
+		ch := make(chan hiltypes.OfflinePasteResponse, 1)
+		uiEvents <- &hiltypes.OfflinePasteRequest{Command: cmd, Reason: reason, RiskLevel: riskLevel, ResponseCh: ch}
+		return <-ch
+	}
 	requestApproval := func(cmd, summary, reason, riskLevel, skillName string) hiltypes.ApprovalResponse {
 		if uiEvents == nil {
 			return hiltypes.ApprovalResponse{}
@@ -91,6 +102,8 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		SensitiveMatcher:             opts.HIL.SensitiveMatcher,
 		RequestApproval:              requestApproval,
 		RequestSensitiveConfirmation: requestSensitiveConfirmation,
+		RequestOfflinePaste:          requestOfflinePaste,
+		OfflineMode:                  func() bool { return offline },
 		Session:                      opts.Session.Session,
 		OnExec: func(cmd string, allowed bool, result string, sensitive bool, suggested bool) {
 			if uiEvents != nil {
@@ -106,19 +119,24 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 	if opts.Session.Session != nil {
 		viewTool.SessionPath = opts.Session.Session.Path()
 	}
-	listSkillsTool := &agenttools.ListSkillsTool{}
-	getSkillTool := &agenttools.GetSkillTool{}
-	runSkillTool := &agenttools.RunSkillTool{
-		RequestApproval:              requestApproval,
-		RequestSensitiveConfirmation: requestSensitiveConfirmation,
-		SensitiveMatcher:             opts.HIL.SensitiveMatcher,
-		Session:                      opts.Session.Session,
-		OnExec: func(cmd string, allowed bool, result string, sensitive bool, suggested bool) {
-			if uiEvents != nil {
-				uiEvents <- hiltypes.ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested}
-			}
-		},
-		ExecutorProvider: opts.UILoop.ExecutorProvider,
+	var tools []tool.BaseTool
+	tools = append(tools, execTool, viewTool)
+	if !offline {
+		listSkillsTool := &agenttools.ListSkillsTool{}
+		getSkillTool := &agenttools.GetSkillTool{}
+		runSkillTool := &agenttools.RunSkillTool{
+			RequestApproval:              requestApproval,
+			RequestSensitiveConfirmation: requestSensitiveConfirmation,
+			SensitiveMatcher:             opts.HIL.SensitiveMatcher,
+			Session:                      opts.Session.Session,
+			OnExec: func(cmd string, allowed bool, result string, sensitive bool, suggested bool) {
+				if uiEvents != nil {
+					uiEvents <- hiltypes.ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested}
+				}
+			},
+			ExecutorProvider: opts.UILoop.ExecutorProvider,
+		}
+		tools = append(tools, listSkillsTool, getSkillTool, runSkillTool)
 	}
 
 	sysPrompt := opts.Config.LLM.SystemPrompt
@@ -126,7 +144,11 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		sysPrompt = consts.DefaultSystemPrompt
 	}
 	sysPrompt = config.ExpandEnv(sysPrompt)
-	sysPrompt += "\n\n--- Allowlist execution ---\n" + allowlistExecutionParagraph()
+	if offline {
+		sysPrompt += consts.OfflineManualRelayAppend
+	} else {
+		sysPrompt += "\n\n--- Allowlist execution ---\n" + allowlistExecutionParagraph()
+	}
 	if opts.Session.RulesText != "" {
 		sysPrompt += "\n\n--- User rules (rules) ---\n" + opts.Session.RulesText
 	}
@@ -134,7 +156,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 	reactAgent, err := react.NewAgent(ctx, &react.AgentConfig{
 		ToolCallingModel: chatModel,
 		ToolsConfig: compose.ToolsNodeConfig{
-			Tools: []tool.BaseTool{execTool, viewTool, listSkillsTool, getSkillTool, runSkillTool},
+			Tools: tools,
 		},
 		// Limit total ReAct steps per turn to avoid infinite loops; default is node count + 2.
 		// 50 allows multiple tool calls (e.g. inspecting several pods) plus retries while still failing fast on loops.
@@ -154,7 +176,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 }
 
 func allowlistExecutionParagraph() string {
-	return `Commands that match the allowlist (and have no shell write redirection like > or >>) run without an approval card. All other commands show an approval card: Run, Dismiss (no execution), or Copy (clipboard, no execution). An empty allowlist means nothing matches, so every command shows the card. Prefer one combined command per task when the user must approve.`
+	return `When an allowlist is configured: commands that match it and contain no shell write redirection (e.g. > or >>) may run without an additional consent step. Other proposed commands are held until the session authorizes them under host rules. An empty allowlist matches nothing, so every command follows the non-allowlist path unless other policy applies. Prefer one combined command per execute_command when batching is acceptable.`
 }
 
 // MaxConversationEvents is the max number of session events to use when building conversation history (user_input + llm_response only).

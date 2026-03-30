@@ -41,6 +41,8 @@ func wireHostStack(
 	executors := executormgr.New()
 	getExecutor := func() execenv.CommandExecutor { return executors.Get() }
 
+	rt := app.NewRuntime()
+
 	runners := runnermgr.New(runnermgr.Options{
 		RulesText: pf.RulesText,
 		LoadConfig: func() (*config.Config, error) {
@@ -54,27 +56,28 @@ func wireHostStack(
 		},
 		SessionProvider:  func() *history.Session { return sessions.Current() },
 		ExecutorProvider: getExecutor,
+		OfflineMode:      func() bool { return rt.Offline() },
 		UIEvents:         ports.AgentUIChan,
 	})
 
 	shellRequestedChan := make(chan hostcmd.ShellSnapshot, 1)
-	rt := app.NewRuntime()
 	wiring.BindSendPorts(rt, ports, shellRequestedChan)
 
 	var currentP atomic.Pointer[tea.Program]
 	commands := make(chan hostcmd.Command, 128)
 	controller := controller.New(controller.Options{
-		Stop:                    stop,
-		Bus:                     hostBus,
-		Inputs:                  ports,
-		CurrentP:                &currentP,
-		Commands:                commands,
-		ShellSnapshot:           shellRequestedChan,
-		Sessions:                sessions,
-		Runners:                 runners,
-		Executors:               executors,
+		Stop:            stop,
+		Bus:             hostBus,
+		Inputs:          ports,
+		CurrentP:        &currentP,
+		Commands:        commands,
+		ShellSnapshot:   shellRequestedChan,
+		Sessions:        sessions,
+		Runners:         runners,
+		Executors:       executors,
 		GetExec:         getExecutor,
 		SyncSessionPath: syncSessionPath,
+		Runtime:         rt,
 	})
 	controller.Start()
 

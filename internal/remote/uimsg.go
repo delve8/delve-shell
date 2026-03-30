@@ -3,8 +3,9 @@ package remote
 // ExecutionChangedMsg mirrors host-side remote execution status into the TUI model.
 // It is consumed by remoteStateProvider and updates ui.Model remote state.
 type ExecutionChangedMsg struct {
-	Active bool   // true = remote, false = local
-	Label  string // e.g. "dev (root@1.2.3.4)" or "user@host"
+	Active  bool   // true = remote SSH executor, false = local executor
+	Label   string // e.g. "dev (root@1.2.3.4)" or "user@host"
+	Offline bool   // true = /access Offline (manual relay); Active is false when Offline is true
 }
 
 // ConnectDoneMsg notifies the TUI that a remote connection attempt finished (from controller), e.g. after /access <target>.

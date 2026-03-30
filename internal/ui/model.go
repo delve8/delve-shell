@@ -54,10 +54,22 @@ type InteractionState struct {
 	pendingHistorySwitchID string
 }
 
+// OfflinePasteState holds the paste textarea and callback for offline manual relay.
+type OfflinePasteState struct {
+	Command   string
+	Reason    string
+	RiskLevel string
+	Paste     textarea.Model
+	Respond   func(text string, cancelled bool)
+	// copyFeedback is a transient line under the command after auto-copy on dialog open; cleared by offlinePasteCopyAckClearMsg.
+	copyFeedback string
+}
+
 // ChoiceCardState stores current pending choice card (approval or sensitive confirmation).
 type ChoiceCardState struct {
 	pending          *uivm.PendingApproval
 	pendingSensitive *uivm.PendingSensitive
+	offlinePaste     *OfflinePasteState
 }
 
 // LayoutState stores terminal layout dimensions for rendering.
@@ -89,8 +101,9 @@ type OverlayState struct {
 }
 
 type RemoteState struct {
-	Active bool
-	Label  string
+	Active  bool
+	Offline bool
+	Label   string
 }
 
 // Init implements tea.Model.
@@ -160,6 +173,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m2, cmd := m.handleChoiceCardShowMsg(msg)
 		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
 
+	case OfflinePasteShowMsg:
+		m2, cmd := m.handleOfflinePasteShowMsg(msg)
+		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
+
 	case TranscriptAppendMsg:
 		m2, cmd := m.handleTranscriptAppendMsg(msg)
 		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
@@ -183,6 +200,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			msg.upTo = 0
 		}
 		m.printedMessages = msg.upTo
+		return m.finalizeUpdate(prevOverlayActive, m, nil)
+
+	case offlinePasteCopyAckClearMsg:
+		if m.ChoiceCard.offlinePaste != nil {
+			m.ChoiceCard.offlinePaste.copyFeedback = ""
+			m = m.syncChoiceViewport()
+		}
 		return m.finalizeUpdate(prevOverlayActive, m, nil)
 
 	}

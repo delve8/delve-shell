@@ -23,6 +23,7 @@ type Manager struct {
 	loadSensitivePatterns func() ([]string, error)
 	sessionProvider       func() *history.Session
 	executorProvider      func() execenv.CommandExecutor
+	offlineMode           func() bool
 
 	rulesText string
 
@@ -38,6 +39,8 @@ type Options struct {
 
 	SessionProvider  func() *history.Session
 	ExecutorProvider func() execenv.CommandExecutor
+	// OfflineMode when true builds a runner without skill tools and with offline execute_command behavior.
+	OfflineMode func() bool
 
 	UIEvents chan<- any // *ApprovalRequest | *SensitiveConfirmationRequest | ExecEvent
 }
@@ -49,6 +52,7 @@ func New(opts Options) *Manager {
 		loadSensitivePatterns: opts.LoadSensitivePatterns,
 		sessionProvider:       opts.SessionProvider,
 		executorProvider:      opts.ExecutorProvider,
+		offlineMode:           opts.OfflineMode,
 		rulesText:             opts.RulesText,
 		uiEvents:              opts.UIEvents,
 	}
@@ -81,6 +85,7 @@ func (m *Manager) Get(ctx context.Context) (*agent.Runner, error) {
 		return nil, fmt.Errorf("load allowlist: %w", err)
 	}
 	allowlist := hil.NewAllowlist(allowlistEntries)
+	offline := m.offlineMode != nil && m.offlineMode()
 	sensitivePatterns, err := m.loadSensitivePatterns()
 	if err != nil {
 		return nil, fmt.Errorf("load sensitive patterns: %w", err)
@@ -101,6 +106,7 @@ func (m *Manager) Get(ctx context.Context) (*agent.Runner, error) {
 			UIEvents:         m.uiEvents,
 			ExecutorProvider: m.executorProvider,
 		},
+		Offline: offline,
 	})
 	if err != nil {
 		return nil, err
