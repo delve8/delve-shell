@@ -165,18 +165,18 @@ const (
 
 var messages = map[string]map[string]string{
 	"en": {
-		KeyHelpText: `delve-shell — AI-assisted ops. Every command runs only after you approve.
+		KeyHelpText: `delve-shell — AI-assisted ops. Commands run only after HIL approval (cards or allowlist path).
 
 What it does:
-  Describe a task in natural language; the AI suggests commands. Commands that match the allowlist (and have no shell write redirection) run without a card; all others show a card (Run, Dismiss, or Copy). An empty allowlist matches nothing, so every command shows the card. All runs are recorded in session history for audit.
+  Natural-language tasks drive suggested commands. Allowlisted commands with no shell write redirection run without a card; others show a card (Run, Dismiss, or Copy). An empty allowlist matches nothing, so every command shows the card. Runs are recorded in session history for audit.
 
 Quick start:
-  1. Type your task and press Enter.
-  2. Multi-line messages: Shift+Enter, Alt+Enter, or Ctrl+J inserts a newline; Enter sends. Many terminals treat Shift+Enter the same as Enter—Alt+Enter or Ctrl+J remains reliable.
-  3. When a command card appears, press 1 to run, 2 to dismiss without running, 3 to copy the command.
-  4. Up/Down recall recent submitted lines (chat and slash). While a recalled line starts with /, keep using Up/Down to walk history; slash completion applies after you edit (any non–↑/↓ key) or finish browsing.
-  5. Type / for slash suggestions (Up/Down while editing a / line; Tab or Enter inserts the highlight; Enter submits a complete command).
-  6. Scroll the log with PgUp/PgDown when needed; /help opens this panel.
+  1. Enter a task in the input line and press Enter to send.
+  2. Multi-line input: Shift+Enter, Alt+Enter, or Ctrl+J inserts a newline; Enter sends. Many terminals map Shift+Enter like Enter—Alt+Enter or Ctrl+J is the reliable newline.
+  3. On a command card: 1 runs, 2 dismisses without running, 3 copies the command.
+  4. Up/Down recall recent submitted lines (chat and slash). While a recalled line starts with /, Up/Down continues history; slash completion resumes after any non–↑/↓ key or after leaving history browse.
+  5. / opens slash suggestions (Up/Down on a / line; Tab or Enter inserts the highlighted row; Enter submits a complete slash command).
+  6. PgUp/PgDown scrolls the log; /help opens this panel.
 
 Slash commands (command line, then description; blank line between entries):
 
@@ -220,7 +220,7 @@ Connect to a saved host or enter user@host
 Start a new session
 
 /history
-List and switch conversation history: submit /history <id> to open a read-only preview; press Enter in the dialog to switch, or Esc to cancel without switching. After choosing a row, only /history <id> is required; extra text on the line is ignored. Menu descriptions show the first turn as one line (line breaks shown as \n; long text ends with ...).
+List and switch history sessions. Flow: /history → pick a row (Tab/Enter fills /history <id>) → submit opens a read-only preview → Enter in the dialog switches the active session; Esc closes without switching. Only the first word after /history is the session id (trailing text is ignored). Dropdown lines show a one-line summary of the first turn (line breaks as \n; long text ends with ...).
 
 /skill <name> [detail]
 Use skill; optional detail for the AI
@@ -319,7 +319,7 @@ Quit (Ctrl+C also works)`,
 		KeyHistoryPreviewEmpty:           "(No messages in this history yet.)",
 		KeyHistoryPreviewFooter:          "Enter to switch · PgUp/PgDn to scroll · Esc to cancel",
 		KeySessionSelect:                 "Up/Down select, Enter switch",
-		KeyDescSessions:                  "List and switch history",
+		KeyDescSessions:                  "List and switch history sessions",
 		KeySessionNone:                   "No previous history.",
 		KeyRemoteNone:                    "No remotes configured.",
 		KeyDelRemoteNoHosts:              "No hosts.",
