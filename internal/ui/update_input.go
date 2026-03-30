@@ -186,6 +186,11 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 				return m2, cmd
 			}
 		}
+		if key == "tab" {
+			if m2, cmd, handled := mm.handleSlashTabKey(inputVal); handled {
+				return m2, cmd
+			}
+		}
 	}
 
 	if key == "esc" {
@@ -269,6 +274,27 @@ func (m Model) clearSlashInput() Model {
 	m.Interaction.inputHistIndex = -1
 	m.Interaction.inputHistScratch = ""
 	return m.syncInputHeight()
+}
+
+// handleSlashTabKey applies slash completion fill when Tab is pressed; it never submits.
+// When no fill applies, the key is still consumed so a literal tab is not inserted.
+func (m Model) handleSlashTabKey(inputVal string) (Model, tea.Cmd, bool) {
+	if strings.TrimSpace(inputVal) == "" {
+		return m, nil, false
+	}
+	if m.Input.LineCount() > 1 {
+		return m, nil, false
+	}
+	_, vis, viewOpts := m.slashSuggestionContext(inputVal)
+	selected, ok := slashview.SelectedByVisibleIndex(viewOpts, vis, m.Interaction.slashSuggestIndex)
+	plan := inputpreflight.PlanSlashEnter(inputVal, selected, ok, m.Interaction.slashSuggestIndex)
+	if plan.Kind == inputpreflight.EnterPlanFillOnly {
+		m.Input.SetValue(plan.FillValue)
+		m.Input.CursorEnd()
+		m.Interaction.slashSuggestIndex = 0
+		return m.syncInputHeight(), nil, true
+	}
+	return m, nil, true
 }
 
 // handleSlashEnterKey handles Enter when input starts with "/".

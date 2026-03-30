@@ -151,3 +151,36 @@ func TestBlackboxSlashDropdownUpDownAndEnterFill(t *testing.T) {
 		t.Fatalf("expected filled value to start with '/', got %q", m3.Input.Value())
 	}
 }
+
+func TestBlackboxSlashDropdownTabFillsLikeEnter(t *testing.T) {
+	f := newBlackboxFixture(t)
+	m := f.model
+	m.Input.SetValue("/")
+	m.Input.CursorEnd()
+
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m2 := next.(ui.Model)
+	next2, _ := m2.Update(tea.KeyMsg{Type: tea.KeyTab})
+	m3 := next2.(ui.Model)
+	if strings.TrimSpace(m3.Input.Value()) == "/" {
+		t.Fatalf("expected tab to fill a concrete slash option, got %q", m3.Input.Value())
+	}
+	if v := strings.TrimSpace(m3.Input.Value()); v != "" && !strings.HasPrefix(v, "/") {
+		t.Fatalf("expected filled value to start with '/', got %q", m3.Input.Value())
+	}
+}
+
+func TestBlackboxSlashTabDoesNotSubmitExactCommand(t *testing.T) {
+	f := newBlackboxFixture(t)
+	m := f.model
+	m.Input.SetValue("/help")
+	m.Input.CursorEnd()
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	got := next.(ui.Model)
+	if got.Overlay.Active {
+		t.Fatalf("expected tab not to submit /help (no overlay)")
+	}
+	if strings.TrimSpace(got.Input.Value()) != "/help" {
+		t.Fatalf("expected input unchanged, got %q", got.Input.Value())
+	}
+}
