@@ -3,8 +3,8 @@ package remote
 import (
 	"strings"
 
-	"delve-shell/internal/hostcmd"
-	"delve-shell/internal/inputlifecycletype"
+	"delve-shell/internal/host/cmd"
+	"delve-shell/internal/input/lifecycletype"
 	"delve-shell/internal/ui"
 )
 

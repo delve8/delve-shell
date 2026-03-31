@@ -2,7 +2,7 @@ package controller
 
 import (
 	"delve-shell/internal/host/bus"
-	"delve-shell/internal/hostcmd"
+	"delve-shell/internal/host/cmd"
 )
 
 func (c *Controller) handleCommand(command hostcmd.Command) {

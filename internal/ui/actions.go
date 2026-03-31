@@ -1,9 +1,9 @@
 package ui
 
 import (
-	"delve-shell/internal/hostcmd"
-	"delve-shell/internal/inputlifecycletype"
-	"delve-shell/internal/remoteauth"
+	"delve-shell/internal/host/cmd"
+	"delve-shell/internal/input/lifecycletype"
+	"delve-shell/internal/remote/auth"
 )
 
 type CommandSender interface {

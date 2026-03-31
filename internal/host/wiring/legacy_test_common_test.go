@@ -5,7 +5,7 @@ import (
 
 	"delve-shell/internal/host/app"
 	"delve-shell/internal/host/bus"
-	"delve-shell/internal/hostcmd"
+	"delve-shell/internal/host/cmd"
 )
 
 // bindTestPorts wires hostapp send endpoints. Do not use t.Parallel().

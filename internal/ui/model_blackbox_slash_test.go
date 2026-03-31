@@ -8,7 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/config"
-	"delve-shell/internal/hostcmd"
+	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/remote"
 	"delve-shell/internal/ui"
 )

@@ -5,7 +5,7 @@ package bootstrap
 import (
 	"sync"
 
-	"delve-shell/internal/configllm"
+	"delve-shell/internal/config/llm"
 	"delve-shell/internal/remote"
 	"delve-shell/internal/run"
 	"delve-shell/internal/session"

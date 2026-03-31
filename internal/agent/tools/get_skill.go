@@ -10,7 +10,7 @@ import (
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
 
-	"delve-shell/internal/skillstore"
+	"delve-shell/internal/skill/store"
 )
 
 // GetSkillTool returns one skill's full detail and SKILL.md content so the AI can learn how to call run_skill.

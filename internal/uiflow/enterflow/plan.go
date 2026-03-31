@@ -1,8 +1,8 @@
 package enterflow
 
 import (
-	"delve-shell/internal/maininput"
-	"delve-shell/internal/slashview"
+	"delve-shell/internal/input/maininput"
+	"delve-shell/internal/slash/view"
 )
 
 // PlanAfterSlashDispatches classifies the main Enter path after exact/prefix slash dispatch missed,

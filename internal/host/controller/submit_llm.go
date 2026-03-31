@@ -11,7 +11,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 
 	"delve-shell/internal/agent"
-	"delve-shell/internal/agentctx"
+	"delve-shell/internal/agent/ctx"
 	"delve-shell/internal/cli/hostfsm"
 	"delve-shell/internal/config"
 	"delve-shell/internal/history"

@@ -10,10 +10,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/cli/hostfsm"
-	"delve-shell/internal/execenv"
 	"delve-shell/internal/host/app"
 	"delve-shell/internal/host/bus"
-	"delve-shell/internal/hostcmd"
+	"delve-shell/internal/host/cmd"
+	"delve-shell/internal/remote/execenv"
 	"delve-shell/internal/runtime/executormgr"
 	"delve-shell/internal/runtime/runnermgr"
 	"delve-shell/internal/runtime/sessionmgr"

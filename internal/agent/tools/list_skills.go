@@ -7,7 +7,7 @@ import (
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
 
-	"delve-shell/internal/skillstore"
+	"delve-shell/internal/skill/store"
 )
 
 // ListSkillsTool lists all installed skills (name, description only). Use get_skill to read one skill's full SKILL.md.

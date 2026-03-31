@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"delve-shell/internal/remoteauth"
+	"delve-shell/internal/remote/auth"
 )
 
 func TestSemanticLabel_MapsDraftNames(t *testing.T) {

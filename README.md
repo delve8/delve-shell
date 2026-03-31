@@ -61,23 +61,23 @@ This means chat, slash, and control now share one submission model and one outpu
 - `internal/host/bus`: event kinds, event payloads, UI pump, and input bridges.
 - `internal/host/controller`: event handlers and command handling.
 - `internal/host/wiring`: runtime/bus/controller binding helpers.
-- `internal/hostcmd`: structured commands emitted by UI and consumed by controller.
+- `internal/host/cmd`: structured commands emitted by UI and consumed by controller.
 
 ### Input lifecycle
 
-- `internal/inputlifecycle`: submit router and lifecycle engine.
-- `internal/inputpreflight`: pre-submit classification and slash-enter planning.
-- `internal/inputprocess/*`: chat, slash, and control processors.
-- `internal/inputlifecycletype`: shared lifecycle types, outputs, and payloads.
-- `internal/inputoutput`: applies lifecycle results back into UI-facing state.
+- `internal/input/lifecycle`: submit router and lifecycle engine.
+- `internal/input/preflight`: pre-submit classification and slash-enter planning.
+- `internal/input/process/*`: chat, slash, and control processors.
+- `internal/input/lifecycletype`: shared lifecycle types, outputs, and payloads.
+- `internal/input/output`: applies lifecycle results back into UI-facing state.
 
 ### Feature Modules
 
 - `internal/run`: direct `/exec`, `/bash`, allowlist config helpers, local command completion.
 - `internal/remote`: remote config, connect/disconnect, auth, and remote-specific UI state/events.
 - `internal/skill`: skill install/update/remove, skill invocation, skill overlays.
-- `internal/skillstore`: skill discovery, manifest parsing, install/update/remove, and source management.
-- `internal/configllm`: LLM config overlay and config slash handling.
+- `internal/skill/store`: skill discovery, manifest parsing, install/update/remove, and source management.
+- `internal/config/llm`: LLM config overlay and config slash handling.
 - `internal/session`: session switching and session-derived UI lines.
 - `internal/bootstrap`: single explicit registration entrypoint for feature modules.
 
@@ -85,7 +85,7 @@ This means chat, slash, and control now share one submission model and one outpu
 
 - `internal/agent`: LLM runner and tools.
 - `internal/hil` and `internal/hiltypes`: approval, allowlist, sensitive command checks, and related UI payloads.
-- `internal/execenv`: local and SSH executors.
+- `internal/remote/execenv`: local and SSH executors.
 - `internal/history`: session history storage and replay.
 - `internal/config`: config loading, writing, defaults, and path resolution.
 

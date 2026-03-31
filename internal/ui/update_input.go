@@ -7,10 +7,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/i18n"
-	"delve-shell/internal/inputlifecycletype"
-	"delve-shell/internal/inputpreflight"
-	"delve-shell/internal/maininput"
-	"delve-shell/internal/slashview"
+	"delve-shell/internal/input/lifecycletype"
+	"delve-shell/internal/input/maininput"
+	"delve-shell/internal/input/preflight"
+	"delve-shell/internal/slash/view"
 )
 
 // keySession narrows keyboard handling for [Model.handleKeyMsg] so update_input does not

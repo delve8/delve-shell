@@ -2,9 +2,9 @@ package run
 
 import (
 	"delve-shell/internal/config"
-	"delve-shell/internal/hostcmd"
+	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/i18n"
-	"delve-shell/internal/inputlifecycletype"
+	"delve-shell/internal/input/lifecycletype"
 	"delve-shell/internal/ui"
 )
 

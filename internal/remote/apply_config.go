@@ -5,7 +5,7 @@ import (
 
 	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
-	"delve-shell/internal/inputlifecycletype"
+	"delve-shell/internal/input/lifecycletype"
 )
 
 func applyConfigRemoveRemote(nameOrTarget string) inputlifecycletype.ProcessResult {

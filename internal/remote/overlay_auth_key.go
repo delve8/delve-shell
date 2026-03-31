@@ -7,7 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/pathcomplete"
-	"delve-shell/internal/remoteauth"
+	"delve-shell/internal/remote/auth"
 	"delve-shell/internal/ui"
 )
 

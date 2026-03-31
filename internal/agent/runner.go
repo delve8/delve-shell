@@ -15,10 +15,10 @@ import (
 	agenttools "delve-shell/internal/agent/tools"
 	"delve-shell/internal/config"
 	"delve-shell/internal/consts"
-	"delve-shell/internal/execenv"
 	"delve-shell/internal/hil"
 	"delve-shell/internal/hiltypes"
 	"delve-shell/internal/history"
+	"delve-shell/internal/remote/execenv"
 )
 
 // RunnerHILInput is allowlist and sensitive matching for tools and approval flow.

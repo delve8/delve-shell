@@ -8,8 +8,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/host/bus"
-	"delve-shell/internal/hostcmd"
-	"delve-shell/internal/inputlifecycletype"
+	"delve-shell/internal/host/cmd"
+	"delve-shell/internal/input/lifecycletype"
 )
 
 func TestNew_WiresBusAndPump(t *testing.T) {

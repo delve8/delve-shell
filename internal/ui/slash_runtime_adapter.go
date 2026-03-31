@@ -6,9 +6,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/i18n"
-	"delve-shell/internal/inputlifecycletype"
-	"delve-shell/internal/slashdispatch"
-	"delve-shell/internal/slashview"
+	"delve-shell/internal/input/lifecycletype"
+	"delve-shell/internal/slash/dispatch"
+	"delve-shell/internal/slash/view"
 )
 
 func (m Model) slashRuntimeDeps() slashdispatch.ExecDeps[Model, tea.Cmd] {

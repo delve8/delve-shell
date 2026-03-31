@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"delve-shell/internal/execenv"
+	"delve-shell/internal/remote/execenv"
 )
 
 // syncSkillScriptsToRemote ensures that the local scriptsDir contents are present on the remote host under remoteScriptsDir.

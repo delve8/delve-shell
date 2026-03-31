@@ -6,8 +6,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/hiltypes"
-	"delve-shell/internal/inputlifecycletype"
-	"delve-shell/internal/remoteauth"
+	"delve-shell/internal/input/lifecycletype"
+	"delve-shell/internal/remote/auth"
 )
 
 // Kind identifies one domain event category on host bus.

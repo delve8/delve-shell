@@ -1,9 +1,9 @@
 package app
 
 import (
-	"delve-shell/internal/hostcmd"
-	"delve-shell/internal/inputlifecycletype"
-	"delve-shell/internal/remoteauth"
+	"delve-shell/internal/host/cmd"
+	"delve-shell/internal/input/lifecycletype"
+	"delve-shell/internal/remote/auth"
 )
 
 // Send is the narrowed send-side view of channels that feed bus.BridgeInputs.

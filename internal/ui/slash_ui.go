@@ -7,9 +7,9 @@ import (
 
 	"delve-shell/internal/approvalview"
 	"delve-shell/internal/i18n"
-	"delve-shell/internal/maininput"
-	"delve-shell/internal/slashdispatch"
-	"delve-shell/internal/slashview"
+	"delve-shell/internal/input/maininput"
+	"delve-shell/internal/slash/dispatch"
+	"delve-shell/internal/slash/view"
 	"delve-shell/internal/ui/widget"
 	"delve-shell/internal/uiregistry"
 )

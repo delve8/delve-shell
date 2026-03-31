@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	"delve-shell/internal/i18n"
-	"delve-shell/internal/inputlifecycletype"
-	"delve-shell/internal/skillstore"
+	"delve-shell/internal/input/lifecycletype"
+	"delve-shell/internal/skill/store"
 )
 
 func handleSlashConfigDelSkillPrefix(rest string) inputlifecycletype.ProcessResult {

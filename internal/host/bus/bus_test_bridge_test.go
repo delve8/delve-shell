@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"delve-shell/internal/hiltypes"
-	"delve-shell/internal/inputlifecycletype"
-	"delve-shell/internal/remoteauth"
+	"delve-shell/internal/input/lifecycletype"
+	"delve-shell/internal/remote/auth"
 )
 
 func TestBridgeInputs_Submit(t *testing.T) {

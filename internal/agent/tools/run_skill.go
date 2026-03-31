@@ -11,12 +11,12 @@ import (
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
 
-	"delve-shell/internal/agentctx"
-	"delve-shell/internal/execenv"
+	"delve-shell/internal/agent/ctx"
 	"delve-shell/internal/hil"
 	"delve-shell/internal/hiltypes"
 	"delve-shell/internal/history"
-	"delve-shell/internal/skillstore"
+	"delve-shell/internal/remote/execenv"
+	"delve-shell/internal/skill/store"
 )
 
 // RunSkillTool runs a skill script via HIL approval by default; when the LLM context is a /skill <name> turn

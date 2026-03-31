@@ -3,8 +3,8 @@ package enterflow
 import (
 	"testing"
 
-	"delve-shell/internal/maininput"
-	"delve-shell/internal/slashview"
+	"delve-shell/internal/input/maininput"
+	"delve-shell/internal/slash/view"
 )
 
 func TestPlanAfterSlashDispatches_nonSlashPassesThrough(t *testing.T) {

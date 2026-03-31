@@ -2,7 +2,7 @@
 package uiregistry
 
 import (
-	"delve-shell/internal/slashreg"
+	"delve-shell/internal/slash/reg"
 )
 
 // SlashOption is one row in the slash command list (command + description).

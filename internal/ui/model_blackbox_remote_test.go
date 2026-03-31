@@ -6,7 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/configllm"
+	"delve-shell/internal/config/llm"
 	"delve-shell/internal/ui"
 )
 

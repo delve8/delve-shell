@@ -3,8 +3,8 @@ package ui
 import (
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/inputlifecycletype"
-	"delve-shell/internal/slashreg"
+	"delve-shell/internal/input/lifecycletype"
+	"delve-shell/internal/slash/reg"
 	"delve-shell/internal/uiregistry"
 )
 

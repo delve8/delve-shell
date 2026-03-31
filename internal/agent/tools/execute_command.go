@@ -9,10 +9,10 @@ import (
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
 
-	"delve-shell/internal/execenv"
 	"delve-shell/internal/hil"
 	"delve-shell/internal/hiltypes"
 	"delve-shell/internal/history"
+	"delve-shell/internal/remote/execenv"
 )
 
 // ExecuteCommandTool runs a command/script; blocks on requestApproval until user chooses Run or Reject when the command is not allowlisted (or has write redirection).

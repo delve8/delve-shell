@@ -7,9 +7,9 @@ import (
 
 	"delve-shell/internal/host/app"
 	"delve-shell/internal/host/bus"
-	"delve-shell/internal/hostcmd"
-	"delve-shell/internal/inputlifecycletype"
-	"delve-shell/internal/remoteauth"
+	"delve-shell/internal/host/cmd"
+	"delve-shell/internal/input/lifecycletype"
+	"delve-shell/internal/remote/auth"
 )
 
 func TestBindSendPorts_SubmissionDelivered(t *testing.T) {

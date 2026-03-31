@@ -5,7 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/hostcmd"
+	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/textwrap"
 	"delve-shell/internal/uivm"

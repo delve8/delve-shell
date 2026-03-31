@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"delve-shell/internal/config"
-	"delve-shell/internal/execenv"
-	"delve-shell/internal/remoteauth"
+	"delve-shell/internal/remote/auth"
+	"delve-shell/internal/remote/execenv"
 )
 
 type sshNewFunc func(target, identityFile string) (execenv.CommandExecutor, string, error)

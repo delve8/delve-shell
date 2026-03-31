@@ -7,8 +7,8 @@ import (
 	"errors"
 	"testing"
 
-	"delve-shell/internal/execenv"
-	"delve-shell/internal/remoteauth"
+	"delve-shell/internal/remote/auth"
+	"delve-shell/internal/remote/execenv"
 	"golang.org/x/crypto/ssh"
 )
 

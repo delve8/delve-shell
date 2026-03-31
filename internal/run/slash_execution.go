@@ -3,7 +3,7 @@ package run
 import (
 	"strings"
 
-	"delve-shell/internal/inputlifecycletype"
+	"delve-shell/internal/input/lifecycletype"
 	"delve-shell/internal/ui"
 )
 

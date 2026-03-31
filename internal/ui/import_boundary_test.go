@@ -10,7 +10,7 @@ import (
 
 // Feature modules register into ui via bootstrap; ui should not take a direct dependency on them.
 var forbiddenUIDirectImports = []string{
-	"delve-shell/internal/configllm",
+	"delve-shell/internal/config/llm",
 	"delve-shell/internal/remote",
 	"delve-shell/internal/run",
 	"delve-shell/internal/session",

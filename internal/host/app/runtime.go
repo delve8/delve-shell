@@ -3,9 +3,9 @@ package app
 import (
 	"sync"
 
-	"delve-shell/internal/hostcmd"
-	"delve-shell/internal/inputlifecycletype"
-	"delve-shell/internal/remoteauth"
+	"delve-shell/internal/host/cmd"
+	"delve-shell/internal/input/lifecycletype"
+	"delve-shell/internal/remote/auth"
 )
 
 // Runtime holds host wiring and UI mirrors for one process (or one test fixture).

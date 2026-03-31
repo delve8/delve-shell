@@ -3,7 +3,7 @@ package wiring
 import (
 	"delve-shell/internal/host/app"
 	"delve-shell/internal/host/bus"
-	"delve-shell/internal/hostcmd"
+	"delve-shell/internal/host/cmd"
 )
 
 // BindSendPorts wires host bus input ports and the /bash snapshot channel onto r.

@@ -9,10 +9,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/execenv"
 	"delve-shell/internal/host/app"
+	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/host/controller"
-	"delve-shell/internal/hostcmd"
+	"delve-shell/internal/remote/execenv"
 	"delve-shell/internal/ui"
 )
 

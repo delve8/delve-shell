@@ -7,9 +7,9 @@ import (
 
 	"delve-shell/internal/agent"
 	"delve-shell/internal/config"
-	"delve-shell/internal/execenv"
 	"delve-shell/internal/hil"
 	"delve-shell/internal/history"
+	"delve-shell/internal/remote/execenv"
 )
 
 // Manager owns the Runner cache and rebuild logic.
