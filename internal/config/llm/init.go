@@ -35,7 +35,6 @@ func Register() {
 		st.ApiKeyInput.SetValue(cfg.LLM.APIKey)
 		st.ApiKeyInput.Blur()
 		st.ModelInput = textinput.New()
-		st.ModelInput.Placeholder = "gpt-4o-mini (optional)"
 		st.ModelInput.SetValue(cfg.LLM.Model)
 		st.ModelInput.Blur()
 		st.MaxMessagesInput = textinput.New()
