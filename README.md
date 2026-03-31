@@ -34,27 +34,36 @@ The interactive runtime is split into a few stable layers:
 5. `internal/host/bus`
    Domain event transport between input ports, controller, and UI presenter.
 6. `internal/agent` and `internal/runtime/*`
-   LLM/tool execution, executor management, runner management, and session/runtime coordination.
+   LLM/tool execution, executor management, runner management, and session coordination (`executormgr`, `runnermgr`, `sessionmgr`).
+7. `internal/run`
+   Registers `/exec`, `/bash`, and related slash/UI hooks into `internal/ui` via `bootstrap` (feature wiring, not the process managers above).
 
 ## Input And Command Flow
 
 - User typing stays in `internal/ui`.
-- Enter produces a structured `InputSubmission` through the unified input lifecycle.
-- Chat submissions become `hostcmd.Submission` and are published as host bus events.
-- Slash submissions go through the same lifecycle, then dispatch into feature-provided slash execution handlers.
-- Control actions such as cancel, quit, and overlay close are handled as explicit control signals.
+- Enter yields a structured `InputSubmission` from `internal/input/lifecycletype`, routed by `internal/input/lifecycle` and processors under `internal/input/process/*`.
+- Chat lines are sent to the host as `hostcmd.Submission` (package `hostcmd`, import path `internal/host/cmd`) on the command channel and become bus events.
+- Slash lines share the same lifecycle, then run through registered execution handlers; `internal/slash/dispatch` covers behavior after exact/prefix routing misses.
+- Cancel, quit, and overlay-close paths use explicit control signals from the lifecycle types.
 
-This means chat, slash, and control now share one submission model and one output model, instead of separate historical paths.
+Chat, slash, and control share one submission model and one output-application path (`internal/input/output`), instead of separate legacy pipelines.
 
 ## Module Map
+
+### CLI
+
+- `internal/cli/interactive`: wires the Bubble Tea program, preflight, host stack, and shutdown.
+- `internal/cli/hostfsm`: finite state machine for interactive startup transitions.
 
 ### UI and interaction
 
 - `internal/ui`: Bubble Tea model, view, update routing, overlays, title bar, transcript rendering, and lifecycle result application.
+- `internal/ui/widget`: reusable TUI widgets (e.g. approval card, title bar, lists).
 - `internal/ui/uivm`: transcript-oriented view-model types shared with host and presenter layers.
 - `internal/ui/presenter`: host-to-UI presenter boundary.
 - `internal/ui/flow/*`: small interaction helpers for approval execution mapping and enter-flow planning.
 - `internal/ui/registry`: slash option providers that do not depend on `ui.Model`.
+- `internal/i18n`: localized copy and help strings for the shell.
 
 ### Host orchestration
 
@@ -71,6 +80,16 @@ This means chat, slash, and control now share one submission model and one outpu
 - `internal/input/process/*`: chat, slash, and control processors.
 - `internal/input/lifecycletype`: shared lifecycle types, outputs, and payloads.
 - `internal/input/output`: applies lifecycle results back into UI-facing state.
+- `internal/input/maininput`: main Enter planning for slash-aware lines (package `maininput`).
+
+### Slash and small utilities
+
+- `internal/slash/view`: slash suggestion rows, selection, and prefix filtering.
+- `internal/slash/flow`: main Enter and early-Enter behavior for `/…` lines.
+- `internal/slash/dispatch`: glue after exact/prefix slash routing misses.
+- `internal/slash/reg`: generic ordered provider chain helper.
+- `internal/pathcomplete`: TAB-completion state for overlay path fields (remote and skill overlays).
+- `internal/textwrap`: width-aware wrapping for transcript and related UI.
 
 ### Feature Modules
 
@@ -86,6 +105,9 @@ This means chat, slash, and control now share one submission model and one outpu
 ### Execution, Safety, and Persistence
 
 - `internal/agent`: LLM runner and tools.
+- `internal/runtime/executormgr`: current local or SSH executor and remote credential flow.
+- `internal/runtime/runnermgr`: agent runner wiring (config, HIL, history, executor provider).
+- `internal/runtime/sessionmgr`: session coordination helpers used by the controller.
 - `internal/hil`: allowlist and sensitive-command checks (core HIL helpers).
 - `internal/hil/approvalflow`: maps approval-card keyboard input to decisions.
 - `internal/hil/approvalview`: choice metadata, placeholders, and transcript line models for approval UI.
@@ -123,6 +145,7 @@ Main files:
 
 - Config: `<root>/config.yaml`
 - Allowlist: `<root>/allowlist.yaml`
+- Rules (optional markdown snippets concatenated for prompts): `<root>/rules/`
 - Sessions: `<root>/sessions`
 - Skill store: `<root>/skills`
 
