@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"delve-shell/internal/cli/hostfsm"
-	"delve-shell/internal/hiltypes"
+	"delve-shell/internal/hil/types"
 	"delve-shell/internal/host/bus"
 	"delve-shell/internal/remote/execenv"
 	"delve-shell/internal/ui"

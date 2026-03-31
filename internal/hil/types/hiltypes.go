@@ -1,5 +1,6 @@
 // Package hiltypes defines messages exchanged between the agent runner and the host UI (approval, sensitive
 // confirmation, exec notifications). It is orthogonal to package hil (allowlist and sensitive-path policy).
+// Import path: delve-shell/internal/hil/types.
 //
 // This package is intentionally kept free of Bubble Tea and UI styling so host bus and runtime packages do not
 // depend on internal/ui.

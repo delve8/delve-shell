@@ -16,7 +16,7 @@ import (
 	"delve-shell/internal/config"
 	"delve-shell/internal/consts"
 	"delve-shell/internal/hil"
-	"delve-shell/internal/hiltypes"
+	"delve-shell/internal/hil/types"
 	"delve-shell/internal/history"
 	"delve-shell/internal/remote/execenv"
 )

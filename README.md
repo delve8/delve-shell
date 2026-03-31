@@ -88,7 +88,7 @@ This means chat, slash, and control now share one submission model and one outpu
 - `internal/hil`: allowlist and sensitive-command checks (core HIL helpers).
 - `internal/hil/approvalflow`: maps approval-card keyboard input to decisions.
 - `internal/hil/approvalview`: choice metadata, placeholders, and transcript line models for approval UI.
-- `internal/hiltypes`: structured payloads for pending approvals and sensitive confirmations.
+- `internal/hil/types`: structured payloads for pending approvals and sensitive confirmations (`package hiltypes`).
 - `internal/remote/execenv`: local and SSH executors.
 - `internal/history`: session history storage and replay.
 - `internal/config`: config loading, writing, defaults, and path resolution.

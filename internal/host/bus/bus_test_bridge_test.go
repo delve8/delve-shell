@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"delve-shell/internal/hiltypes"
+	"delve-shell/internal/hil/types"
 	"delve-shell/internal/input/lifecycletype"
 	"delve-shell/internal/remote/auth"
 )

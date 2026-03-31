@@ -6,7 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/hiltypes"
+	"delve-shell/internal/hil/types"
 	"delve-shell/internal/remote"
 	"delve-shell/internal/ui"
 	"delve-shell/internal/ui/uivm"

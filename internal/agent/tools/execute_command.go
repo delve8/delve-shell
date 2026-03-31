@@ -10,7 +10,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 
 	"delve-shell/internal/hil"
-	"delve-shell/internal/hiltypes"
+	"delve-shell/internal/hil/types"
 	"delve-shell/internal/history"
 	"delve-shell/internal/remote/execenv"
 )

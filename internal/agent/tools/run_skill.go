@@ -13,7 +13,7 @@ import (
 
 	"delve-shell/internal/agent/ctx"
 	"delve-shell/internal/hil"
-	"delve-shell/internal/hiltypes"
+	"delve-shell/internal/hil/types"
 	"delve-shell/internal/history"
 	"delve-shell/internal/remote/execenv"
 	"delve-shell/internal/skill/store"

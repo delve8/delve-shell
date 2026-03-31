@@ -5,7 +5,7 @@ package approvalexec
 import (
 	"delve-shell/internal/hil/approvalflow"
 	"delve-shell/internal/hil/approvalview"
-	"delve-shell/internal/hiltypes"
+	"delve-shell/internal/hil/types"
 )
 
 // Outcome describes what ui should do after a pending approval/sensitive decision.

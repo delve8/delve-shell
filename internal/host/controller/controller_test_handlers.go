@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"delve-shell/internal/hiltypes"
+	"delve-shell/internal/hil/types"
 	"delve-shell/internal/remote/execenv"
 	"delve-shell/internal/ui"
 )

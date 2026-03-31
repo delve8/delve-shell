@@ -5,7 +5,7 @@ import (
 
 	"delve-shell/internal/hil/approvalflow"
 	"delve-shell/internal/hil/approvalview"
-	"delve-shell/internal/hiltypes"
+	"delve-shell/internal/hil/types"
 )
 
 func TestOutcomeForDecision_sensitiveRefuse(t *testing.T) {
