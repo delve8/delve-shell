@@ -11,7 +11,6 @@ import (
 	"delve-shell/internal/host/bus"
 	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/host/controller"
-	"delve-shell/internal/host/wiring"
 	"delve-shell/internal/remote/execenv"
 	"delve-shell/internal/runtime/executormgr"
 	"delve-shell/internal/runtime/runnermgr"
@@ -61,7 +60,16 @@ func wireHostStack(
 	})
 
 	shellRequestedChan := make(chan hostcmd.ShellSnapshot, 1)
-	wiring.BindSendPorts(rt, ports, shellRequestedChan)
+	rt.WireSend(&app.Send{
+		Submission:     ports.SubmissionChan,
+		ConfigUpdated:  ports.ConfigUpdatedChan,
+		CancelRequest:  ports.CancelRequestChan,
+		ExecDirect:     ports.ExecDirectChan,
+		RemoteOn:       ports.RemoteOnChan,
+		RemoteOff:      ports.RemoteOffChan,
+		RemoteAuthResp: ports.RemoteAuthRespChan,
+		ShellSnapshot:  shellRequestedChan,
+	})
 
 	var currentP atomic.Pointer[tea.Program]
 	commands := make(chan hostcmd.Command, 128)

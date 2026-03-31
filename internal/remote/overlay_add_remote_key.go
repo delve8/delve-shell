@@ -6,6 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/config"
+	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/pathcomplete"
 	"delve-shell/internal/teakey"
@@ -139,7 +140,9 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			state.AddRemote.Error = ""
 			state.AddRemote.OfferOverwrite = false
 			m.Input.Focus()
-			m.EmitConfigUpdatedIntent()
+			if m.CommandSender != nil {
+				_ = m.CommandSender.Send(hostcmd.ConfigUpdated{})
+			}
 			return ret(m, nil, true)
 		}
 
@@ -203,11 +206,13 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 				ui.SuggestStyleRender(delvPrefix+i18n.Tf(i18n.KeyConfigRemoteAdded, display)),
 				"",
 			)
-			m.EmitConfigUpdatedIntent()
+			if m.CommandSender != nil {
+				_ = m.CommandSender.Send(hostcmd.ConfigUpdated{})
+			}
 		}
 		state.AddRemote.Connecting = true
 		state.AddRemote.Error = ""
-		if !m.EmitRemoteOnTargetIntent(target) {
+		if m.CommandSender == nil || !m.CommandSender.Send(hostcmd.RemoteOnTarget{Target: target}) {
 			state.AddRemote.Connecting = false
 		}
 		return ret(m, nil, true)

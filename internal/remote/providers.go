@@ -12,19 +12,7 @@ import (
 func registerProviders() {
 	ui.RegisterSlashOptionsProvider(remoteSlashOptionsProvider)
 	ui.RegisterStateEventProvider(remoteStateProvider)
-
-	ui.RegisterTitleBarFragmentProvider(func(m ui.Model) (string, bool) {
-		if m.Remote.Offline {
-			return "Offline", true
-		}
-		if !m.Remote.Active {
-			return "", false
-		}
-		if lbl := m.Remote.Label; lbl != "" {
-			return "Remote " + lbl, true
-		}
-		return "Remote", true
-	})
+	ui.RegisterTitleBarFragmentProvider(remoteTitleBarFragment)
 
 	ui.RegisterOverlayFeature(ui.OverlayFeature{
 		KeyID: OverlayFeatureKey,
@@ -71,4 +59,17 @@ func registerProviders() {
 			return m
 		},
 	})
+}
+
+func remoteTitleBarFragment(m ui.Model) (string, bool) {
+	if m.Remote.Offline {
+		return "Offline", true
+	}
+	if !m.Remote.Active {
+		return "", false
+	}
+	if lbl := m.Remote.Label; lbl != "" {
+		return "Remote " + lbl, true
+	}
+	return "Remote", true
 }

@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/skill/git"
 	"delve-shell/internal/skill/store"
 	"delve-shell/internal/teakey"
@@ -77,7 +78,9 @@ func handleUpdateSkillOverlayKey(m ui.Model, key string) (ui.Model, tea.Cmd, boo
 		}
 		m = m.AppendTranscriptLines("")
 		m.Input.Focus()
-		m.EmitConfigUpdatedIntent()
+		if m.CommandSender != nil {
+			_ = m.CommandSender.Send(hostcmd.ConfigUpdated{})
+		}
 		return ret(m, nil, true)
 	}
 

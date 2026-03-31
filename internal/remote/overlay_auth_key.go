@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/pathcomplete"
 	"delve-shell/internal/remote/auth"
 	"delve-shell/internal/teakey"
@@ -28,16 +29,20 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 		switch key {
 		case "1":
 			state.RemoteAuth.Connecting = true
-			_ = m.EmitRemoteAuthResponseIntent(remoteauth.Response{
-				Target: state.RemoteAuth.Target,
-				Kind:   remoteauth.ResponseKindHostKeyAccept,
-			})
+			if m.CommandSender != nil {
+				_ = m.CommandSender.Send(hostcmd.RemoteAuthReply{Response: remoteauth.Response{
+					Target: state.RemoteAuth.Target,
+					Kind:   remoteauth.ResponseKindHostKeyAccept,
+				}})
+			}
 			return ret(m, nil, true)
 		case "2":
-			_ = m.EmitRemoteAuthResponseIntent(remoteauth.Response{
-				Target: state.RemoteAuth.Target,
-				Kind:   remoteauth.ResponseKindHostKeyReject,
-			})
+			if m.CommandSender != nil {
+				_ = m.CommandSender.Send(hostcmd.RemoteAuthReply{Response: remoteauth.Response{
+					Target: state.RemoteAuth.Target,
+					Kind:   remoteauth.ResponseKindHostKeyReject,
+				}})
+			}
 			m = m.CloseOverlayVisual()
 			state.RemoteAuth = RemoteAuthOverlayState{}
 			return ret(m, nil, true)
@@ -95,12 +100,14 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			}
 
 			state.RemoteAuth.Connecting = true
-			_ = m.EmitRemoteAuthResponseIntent(remoteauth.Response{
-				Target:   state.RemoteAuth.Target,
-				Username: state.RemoteAuth.Username,
-				Kind:     remoteauth.ResponseKindPassword,
-				Password: input,
-			})
+			if m.CommandSender != nil {
+				_ = m.CommandSender.Send(hostcmd.RemoteAuthReply{Response: remoteauth.Response{
+					Target:   state.RemoteAuth.Target,
+					Username: state.RemoteAuth.Username,
+					Kind:     remoteauth.ResponseKindPassword,
+					Password: input,
+				}})
+			}
 			return ret(m, nil, true)
 		}
 
@@ -158,12 +165,14 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 				return ret(m, nil, true)
 			}
 			state.RemoteAuth.Connecting = true
-			_ = m.EmitRemoteAuthResponseIntent(remoteauth.Response{
-				Target:   state.RemoteAuth.Target,
-				Username: state.RemoteAuth.Username,
-				Kind:     remoteauth.ResponseKindIdentity,
-				Password: input,
-			})
+			if m.CommandSender != nil {
+				_ = m.CommandSender.Send(hostcmd.RemoteAuthReply{Response: remoteauth.Response{
+					Target:   state.RemoteAuth.Target,
+					Username: state.RemoteAuth.Username,
+					Kind:     remoteauth.ResponseKindIdentity,
+					Password: input,
+				}})
+			}
 			return ret(m, nil, true)
 		}
 

@@ -26,6 +26,9 @@ func trySlashBashQuit(m Model, text string) (Model, tea.Cmd, bool) {
 	if m.Remote.Active {
 		mode = hostcmd.SubshellModeRemoteSSH
 	}
-	_ = m.EmitShellSnapshotIntentWithMode(m.TranscriptLines(), mode)
+	if m.CommandSender != nil {
+		msgs := append([]string(nil), m.TranscriptLines()...)
+		_ = m.CommandSender.Send(hostcmd.ShellSnapshot{Messages: msgs, Mode: mode})
+	}
 	return m.clearSlashInput(), tea.Quit, true
 }

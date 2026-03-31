@@ -15,22 +15,21 @@ const maxSessionsInSlash = 20
 
 // Register wires the /history slash option provider and related UI hooks. Call from [bootstrap.Install].
 func Register() {
-	ui.RegisterSlashOptionsProvider(func(
-		inputVal string,
-		lang string,
-	) ([]ui.SlashOption, bool) {
-		normalized := strings.TrimPrefix(inputVal, "/")
-		normalized = strings.TrimSpace(normalized)
-		normalizedLower := strings.ToLower(normalized)
+	ui.RegisterSlashOptionsProvider(historySlashOptionsProvider)
+}
 
-		if normalizedLower == "history" || strings.HasPrefix(normalizedLower, "history ") {
-			filter := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "history"))
-			return getSessionSlashOptions(filter), true
-		}
+func historySlashOptionsProvider(inputVal string, lang string) ([]ui.SlashOption, bool) {
+	normalized := strings.TrimPrefix(inputVal, "/")
+	normalized = strings.TrimSpace(normalized)
+	normalizedLower := strings.ToLower(normalized)
 
-		_ = lang
-		return nil, false
-	})
+	if normalizedLower == "history" || strings.HasPrefix(normalizedLower, "history ") {
+		filter := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "history"))
+		return getSessionSlashOptions(filter), true
+	}
+
+	_ = lang
+	return nil, false
 }
 
 func getSessionSlashOptions(filter string) []ui.SlashOption {

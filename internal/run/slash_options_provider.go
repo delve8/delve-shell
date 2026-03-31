@@ -18,7 +18,7 @@ func registerSlashOptionsProviders() {
 		normalized = strings.TrimSpace(normalized)
 		normalizedLower := strings.ToLower(normalized)
 		if normalizedLower == "config" || strings.HasPrefix(normalizedLower, "config ") {
-			return configSlashOptions(lang), true
+			return configSlashOptions(), true
 		}
 		if normalizedLower != "exec" && !strings.HasPrefix(normalizedLower, "exec ") {
 			return nil, false
@@ -46,9 +46,7 @@ func registerSlashOptionsProviders() {
 		return opts, true
 	})
 
-	ui.RegisterRootSlashOptionProvider(func(lang string) []ui.SlashOption {
-		return rootSlashOptions(lang)
-	})
+	ui.RegisterRootSlashOptionProvider(rootSlashOptions)
 }
 
 func rootSlashOptions(lang string) []ui.SlashOption {
@@ -68,7 +66,7 @@ func rootSlashOptions(lang string) []ui.SlashOption {
 	return opts
 }
 
-func configSlashOptions(lang string) []ui.SlashOption {
+func configSlashOptions() []ui.SlashOption {
 	return []ui.SlashOption{
 		{Cmd: "/config del-remote", Desc: i18n.T(i18n.KeyDescConfigRemoveRemote)},
 		{Cmd: "/config add-skill", Desc: i18n.T(i18n.KeyDescSkillInstall)},

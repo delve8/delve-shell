@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/config"
+	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/ui"
 	"delve-shell/internal/ui/uivm"
@@ -91,7 +92,9 @@ func Register() {
 			st = getOverlayState()
 			st.Active = false
 			setOverlayState(st)
-			m.EmitConfigUpdatedIntent()
+			if m.CommandSender != nil {
+				_ = m.CommandSender.Send(hostcmd.ConfigUpdated{})
+			}
 			return m, nil, true
 		},
 		Content: func(m ui.Model) (string, bool) {

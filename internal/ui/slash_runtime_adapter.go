@@ -5,6 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/input/lifecycletype"
 	"delve-shell/internal/slash/dispatch"
@@ -43,7 +44,13 @@ func (m Model) slashRuntimeDeps() slashdispatch.ExecDeps[Model, tea.Cmd] {
 			return mm.appendUserSubmittedEcho(text)
 		},
 		EmitChat: func(mm Model, text string) Model {
-			if mm.EmitChatSubmitIntent(text, inputlifecycletype.SourceMainEnter) {
+			if mm.CommandSender != nil && mm.CommandSender.Send(hostcmd.Submission{
+				Submission: inputlifecycletype.InputSubmission{
+					Kind:    inputlifecycletype.SubmissionChat,
+					Source:  inputlifecycletype.SourceMainEnter,
+					RawText: text,
+				},
+			}) {
 				mm.Interaction.WaitingForAI = true
 			}
 			return mm
