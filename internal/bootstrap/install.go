@@ -6,9 +6,9 @@ import (
 	"sync"
 
 	"delve-shell/internal/config/llm"
+	"delve-shell/internal/history/tui"
 	"delve-shell/internal/remote"
 	"delve-shell/internal/run"
-	"delve-shell/internal/session"
 	"delve-shell/internal/skill"
 )
 
@@ -21,6 +21,6 @@ func Install() {
 		skill.Register()
 		remote.Register()
 		run.Register()
-		session.Register()
+		historytui.Register()
 	})
 }

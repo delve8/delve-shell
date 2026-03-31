@@ -9,7 +9,7 @@ import (
 )
 
 // TestGetSlashOptionsForInput_history_returnsHistoryCommands asserts that
-// /history suggestions are returned as command text owned by session module.
+// /history suggestions are returned as command text owned by internal/history/tui.
 func TestGetSlashOptionsForInput_history_returnsHistoryCommands(t *testing.T) {
 	dir := t.TempDir()
 	sessionsDir := filepath.Join(dir, "sessions")

@@ -1,4 +1,4 @@
-package session
+package historytui
 
 import "sync"
 
@@ -19,7 +19,7 @@ func getCurrentSessionPath() string {
 	return currentSessionState.path
 }
 
-// SetCurrentSessionPath is used by host loop to update session module state.
+// SetCurrentSessionPath is used by the host loop so /history slash options can exclude the active session file.
 func SetCurrentSessionPath(path string) {
 	setCurrentSessionPath(path)
 }

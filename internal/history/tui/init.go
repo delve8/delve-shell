@@ -1,4 +1,7 @@
-package session
+// Package historytui bridges persisted session history to the Bubble Tea shell: /history slash
+// suggestions, transcript line shaping for previews and switches, and the active session path
+// used to filter picker rows. Core jsonl read/write remains in package history.
+package historytui
 
 import (
 	"strings"
@@ -10,7 +13,7 @@ import (
 
 const maxSessionsInSlash = 20
 
-// Register wires the session slash provider. Call from [bootstrap.Install].
+// Register wires the /history slash option provider and related UI hooks. Call from [bootstrap.Install].
 func Register() {
 	ui.RegisterSlashOptionsProvider(func(
 		inputVal string,

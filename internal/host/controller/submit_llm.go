@@ -16,9 +16,9 @@ import (
 	"delve-shell/internal/config"
 	configllm "delve-shell/internal/config/llm"
 	"delve-shell/internal/history"
+	"delve-shell/internal/history/tui"
 	"delve-shell/internal/host/bus"
 	"delve-shell/internal/i18n"
-	"delve-shell/internal/session"
 	"delve-shell/internal/ui/uivm"
 )
 
@@ -50,7 +50,7 @@ func (c *Controller) handleHistoryPreviewOpen(sessionID string) {
 		lang = cfg.Language
 	}
 	events, _ := history.ReadRecent(sessionPath, agent.MaxConversationEvents)
-	vmLines := session.EventsToTranscriptLines(events)
+	vmLines := historytui.EventsToTranscriptLines(events)
 	c.ui.ShowHistoryPreviewDialog(vmLines, sessionID, lang)
 }
 
@@ -151,7 +151,7 @@ func (c *Controller) handleSubmitSwitchSession(sessionID string) {
 // publishSessionTranscript loads recent events into the transcript, then appends a session banner (used for /new).
 func (c *Controller) publishSessionTranscript(path string) {
 	events, _ := history.ReadRecent(path, agent.MaxConversationEvents)
-	lines := session.EventsToTranscriptLines(events)
+	lines := historytui.EventsToTranscriptLines(events)
 	sessionID := strings.TrimSuffix(filepath.Base(path), ".jsonl")
 	lang := "en"
 	if cfg, err := config.Load(); err == nil && cfg != nil && cfg.Language != "" {

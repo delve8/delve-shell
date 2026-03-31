@@ -1,4 +1,4 @@
-package session
+package historytui
 
 import (
 	"encoding/json"

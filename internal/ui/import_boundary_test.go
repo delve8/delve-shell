@@ -13,7 +13,7 @@ var forbiddenUIDirectImports = []string{
 	"delve-shell/internal/config/llm",
 	"delve-shell/internal/remote",
 	"delve-shell/internal/run",
-	"delve-shell/internal/session",
+	"delve-shell/internal/history/tui",
 	"delve-shell/internal/skill",
 }
 

@@ -2,8 +2,8 @@ package interactive
 
 import (
 	"delve-shell/internal/bootstrap"
+	"delve-shell/internal/history/tui"
 	"delve-shell/internal/runtime/sessionmgr"
-	"delve-shell/internal/session"
 )
 
 // Run starts the interactive TUI loop, host controller, and optional subshell return path.
@@ -19,7 +19,7 @@ func Run() error {
 	}
 
 	sessions := sessionmgr.New(pf.InitialSession)
-	syncSessionPath := func(path string) { session.SetCurrentSessionPath(path) }
+	syncSessionPath := func(path string) { historytui.SetCurrentSessionPath(path) }
 	syncSessionPath(pf.InitialSession.Path())
 	defer sessions.CloseAll()
 
