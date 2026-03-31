@@ -78,7 +78,8 @@ This means chat, slash, and control now share one submission model and one outpu
 - `internal/remote`: remote config, connect/disconnect, auth, and remote-specific UI state/events.
 - `internal/skill`: skill install/update/remove, skill invocation, skill overlays.
 - `internal/skill/store`: skill discovery, manifest parsing, install/update/remove, and source management.
-- `internal/config/llm`: LLM config overlay and config slash handling.
+- `internal/skill/git`: shallow clone/fetch helpers for skill installs from git remotes (`package git`).
+- `internal/config/llm`: LLM config overlay, default system/offline prompt text, OpenAI-compatible model context lookup, and config slash handling.
 - `internal/session`: session switching and session-derived UI lines.
 - `internal/bootstrap`: single explicit registration entrypoint for feature modules.
 
@@ -91,7 +92,7 @@ This means chat, slash, and control now share one submission model and one outpu
 - `internal/hil/types`: structured payloads for pending approvals and sensitive confirmations (`package hiltypes`).
 - `internal/remote/execenv`: local and SSH executors.
 - `internal/history`: session history storage and replay.
-- `internal/config`: config loading, writing, defaults, and path resolution.
+- `internal/config`: config loading, writing, defaults, path resolution, and rules-dir text aggregation for prompts (`LoadRules`).
 
 ## Slash And Overlay Design
 

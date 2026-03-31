@@ -8,7 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"delve-shell/internal/git"
+	"delve-shell/internal/skill/git"
 	"delve-shell/internal/skill/store"
 	"delve-shell/internal/ui"
 )

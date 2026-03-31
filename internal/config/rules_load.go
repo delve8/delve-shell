@@ -1,17 +1,16 @@
-package rules
+package config
 
 import (
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
-
-	"delve-shell/internal/config"
 )
 
-// Load reads all rule file contents from config.RulesDir(), sorts by filename, and concatenates for LLM system prompt or context.
-func Load() (string, error) {
-	dir := config.RulesDir()
+// LoadRules reads all rule file contents from RulesDir(), sorts by filename, and concatenates
+// for LLM system prompt or context.
+func LoadRules() (string, error) {
+	dir := RulesDir()
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if os.IsNotExist(err) {

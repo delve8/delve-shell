@@ -14,10 +14,10 @@ import (
 	"delve-shell/internal/agent/ctx"
 	"delve-shell/internal/cli/hostfsm"
 	"delve-shell/internal/config"
+	configllm "delve-shell/internal/config/llm"
 	"delve-shell/internal/history"
 	"delve-shell/internal/host/bus"
 	"delve-shell/internal/i18n"
-	"delve-shell/internal/modelinfo"
 	"delve-shell/internal/session"
 	"delve-shell/internal/ui/uivm"
 )
@@ -97,7 +97,7 @@ func (c *Controller) handleUserChat(e bus.Event) {
 				if maxChars == 0 {
 					// Best-effort context budget: model context length * 4 chars/token * 0.5 safety.
 					baseURL, apiKey, modelName := cfg.LLMResolved()
-					ctxTokens := modelinfo.FetchModelContextLength(baseURL, apiKey, modelName)
+					ctxTokens := configllm.FetchModelContextLength(baseURL, apiKey, modelName)
 					if ctxTokens > 0 {
 						maxChars = int(float64(ctxTokens) * 4 * 0.5)
 					}

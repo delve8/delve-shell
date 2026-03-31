@@ -1,4 +1,4 @@
-package consts
+package configllm
 
 // DefaultSystemPrompt is the built-in system prompt when config leaves LLM system prompt empty.
 // Describe tool contracts, policy framing, and model obligations; do not document host UI or HIL mechanics.

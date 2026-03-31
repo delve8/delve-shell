@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"delve-shell/internal/config"
-	"delve-shell/internal/git"
+	"delve-shell/internal/skill/git"
 	"gopkg.in/yaml.v3"
 )
 

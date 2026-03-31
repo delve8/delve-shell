@@ -14,7 +14,7 @@ import (
 
 	agenttools "delve-shell/internal/agent/tools"
 	"delve-shell/internal/config"
-	"delve-shell/internal/consts"
+	configllm "delve-shell/internal/config/llm"
 	"delve-shell/internal/hil"
 	"delve-shell/internal/hil/types"
 	"delve-shell/internal/history"
@@ -141,11 +141,11 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 
 	sysPrompt := opts.Config.LLM.SystemPrompt
 	if sysPrompt == "" {
-		sysPrompt = consts.DefaultSystemPrompt
+		sysPrompt = configllm.DefaultSystemPrompt
 	}
 	sysPrompt = config.ExpandEnv(sysPrompt)
 	if offline {
-		sysPrompt += consts.OfflineManualRelayAppend
+		sysPrompt += configllm.OfflineManualRelayAppend
 	} else {
 		sysPrompt += "\n\n--- Allowlist execution ---\n" + allowlistExecutionParagraph()
 	}

@@ -1,4 +1,4 @@
-package modelinfo
+package configllm
 
 import (
 	"encoding/json"
@@ -9,21 +9,17 @@ import (
 )
 
 // Cache TTL so we re-fetch occasionally (e.g. after provider update).
-const cacheTTL = 30 * time.Minute
+const modelContextCacheTTL = 30 * time.Minute
 
-type cacheEntry struct {
+type modelContextCacheEntry struct {
 	contextLength int
 	expiresAt     time.Time
 }
 
 var (
-	mu    sync.Mutex
-	cache map[string]cacheEntry
+	modelContextMu    sync.Mutex
+	modelContextCache = make(map[string]modelContextCacheEntry)
 )
-
-func init() {
-	cache = make(map[string]cacheEntry)
-}
 
 // knownModelContextTokens is a fallback when the provider does not return context_length (e.g. OpenAI official).
 // Keys are model id prefixes or full ids; value is max context in tokens.
@@ -40,31 +36,30 @@ var knownModelContextTokens = map[string]int{
 // FetchModelContextLength calls GET baseURL/v1/models, finds the model by id, and returns
 // context_length if the provider includes it (many OpenAI-compatible APIs do). If the API
 // does not return it, checks knownModelContextTokens by model name prefix. Returns 0 if
-// not found. Results are cached per (baseURL, model) for cacheTTL.
+// not found. Results are cached per (baseURL, model) for modelContextCacheTTL.
 func FetchModelContextLength(baseURL, apiKey, model string) int {
 	if model == "" {
 		return 0
 	}
 	key := strings.TrimRight(baseURL, "/") + "\t" + model
-	mu.Lock()
-	if e, ok := cache[key]; ok && time.Now().Before(e.expiresAt) {
-		mu.Unlock()
+	modelContextMu.Lock()
+	if e, ok := modelContextCache[key]; ok && time.Now().Before(e.expiresAt) {
+		modelContextMu.Unlock()
 		return e.contextLength
 	}
-	mu.Unlock()
+	modelContextMu.Unlock()
 
 	n := fetchModelContextLengthNoCache(baseURL, apiKey, model)
 	if n == 0 {
 		n = knownModelContextTokensByPrefix(strings.TrimSpace(model))
 	}
-	mu.Lock()
-	cache[key] = cacheEntry{contextLength: n, expiresAt: time.Now().Add(cacheTTL)}
-	mu.Unlock()
+	modelContextMu.Lock()
+	modelContextCache[key] = modelContextCacheEntry{contextLength: n, expiresAt: time.Now().Add(modelContextCacheTTL)}
+	modelContextMu.Unlock()
 	return n
 }
 
 func knownModelContextTokensByPrefix(model string) int {
-	// Prefer exact match, then longest prefix match
 	if n, ok := knownModelContextTokens[model]; ok {
 		return n
 	}

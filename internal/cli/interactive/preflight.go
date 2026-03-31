@@ -7,7 +7,6 @@ import (
 
 	"delve-shell/internal/config"
 	"delve-shell/internal/history"
-	"delve-shell/internal/rules"
 )
 
 // PreflightResult holds early startup outputs shared by the interactive loop.
@@ -31,7 +30,7 @@ func RunPreflight() (*PreflightResult, error) {
 			log.Printf("[warn] history prune: %v", err)
 		}
 	}
-	rulesText, err := rules.Load()
+	rulesText, err := config.LoadRules()
 	if err != nil {
 		return nil, fmt.Errorf("load rules: %w", err)
 	}
