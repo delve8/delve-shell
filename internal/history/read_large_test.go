@@ -16,7 +16,7 @@ func TestReadRecent_LongLineDoesNotBreak(t *testing.T) {
 	long := strings.Repeat("x", 200_000)
 	ev := Event{
 		Time:    time.Now().UTC(),
-		Type:    "llm_response",
+		Type:    EventTypeLLMResponse,
 		Payload: json.RawMessage(`{"reply":"` + long + `"}`),
 	}
 	b, err := json.Marshal(ev)
@@ -34,7 +34,7 @@ func TestReadRecent_LongLineDoesNotBreak(t *testing.T) {
 	if len(out) != 1 {
 		t.Fatalf("expected 1 event, got %d", len(out))
 	}
-	if out[0].Type != "llm_response" {
+	if out[0].Type != EventTypeLLMResponse {
 		t.Fatalf("unexpected type: %q", out[0].Type)
 	}
 }
@@ -45,7 +45,7 @@ func TestReadRecent_MaxLinesKeepsTail(t *testing.T) {
 
 	var sb strings.Builder
 	for i := 0; i < 5; i++ {
-		ev := Event{Time: time.Now().UTC(), Type: "user_input", Payload: json.RawMessage(`{"text":"` + string(rune('a'+i)) + `"}`)}
+		ev := Event{Time: time.Now().UTC(), Type: EventTypeUserInput, Payload: json.RawMessage(`{"text":"` + string(rune('a'+i)) + `"}`)}
 		b, err := json.Marshal(ev)
 		if err != nil {
 			t.Fatalf("marshal: %v", err)

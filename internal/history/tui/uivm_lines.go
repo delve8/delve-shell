@@ -14,7 +14,7 @@ func EventsToTranscriptLines(events []history.Event) []uivm.Line {
 	out := make([]uivm.Line, 0, len(events)*2)
 	for _, ev := range events {
 		switch ev.Type {
-		case "user_input":
+		case history.EventTypeUserInput:
 			var p struct {
 				Text string `json:"text"`
 			}
@@ -22,14 +22,14 @@ func EventsToTranscriptLines(events []history.Event) []uivm.Line {
 				out = append(out, uivm.Line{Kind: uivm.LineUser, Text: p.Text})
 				out = append(out, uivm.Line{Kind: uivm.LineBlank})
 			}
-		case "llm_response":
+		case history.EventTypeLLMResponse:
 			var p struct {
 				Reply string `json:"reply"`
 			}
 			if json.Unmarshal(ev.Payload, &p) == nil && strings.TrimSpace(p.Reply) != "" {
 				out = append(out, uivm.Line{Kind: uivm.LineAI, Text: p.Reply})
 			}
-		case "command":
+		case history.EventTypeCommand:
 			var p struct {
 				Command   string `json:"command"`
 				Suggested bool   `json:"suggested"`
@@ -39,7 +39,7 @@ func EventsToTranscriptLines(events []history.Event) []uivm.Line {
 			if json.Unmarshal(ev.Payload, &p) != nil || strings.TrimSpace(p.Command) == "" {
 				continue
 			}
-			if p.Kind == "skill" && strings.TrimSpace(p.SkillName) != "" {
+			if p.Kind == history.CommandPayloadKindSkill && strings.TrimSpace(p.SkillName) != "" {
 				out = append(out, uivm.Line{Kind: uivm.LineSystemSuggest, Text: "Skill: " + strings.TrimSpace(p.SkillName)})
 			}
 			tag := "approved"
@@ -47,7 +47,7 @@ func EventsToTranscriptLines(events []history.Event) []uivm.Line {
 				tag = "suggested"
 			}
 			out = append(out, uivm.Line{Kind: uivm.LineExec, Text: "Run: " + p.Command + " (" + tag + ")"})
-		case "command_result":
+		case history.EventTypeCommandResult:
 			var p struct {
 				Stdout string `json:"stdout"`
 				Stderr string `json:"stderr"`

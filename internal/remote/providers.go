@@ -27,12 +27,12 @@ func registerProviders() {
 	})
 
 	ui.RegisterOverlayFeature(ui.OverlayFeature{
-		KeyID: "remote",
+		KeyID: OverlayFeatureKey,
 		Open: func(m ui.Model, req ui.OverlayOpenRequest) (ui.Model, tea.Cmd, bool) {
-			if req.Key != "remote_add" {
+			if req.Key != OverlayOpenKeyAddRemote {
 				return m, nil, false
 			}
-			m = m.OpenOverlayFeature("remote", i18n.T(i18n.KeyAddRemoteTitle), "")
+			m = m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyAddRemoteTitle), "")
 			state := getRemoteOverlayState()
 			state.AddRemote.Active = true
 			state.RemoteAuth = RemoteAuthOverlayState{}
@@ -63,7 +63,7 @@ func registerProviders() {
 			return buildRemoteOverlayContent(m)
 		},
 		Close: func(m ui.Model, activeKey string) ui.Model {
-			if activeKey != "remote" {
+			if activeKey != OverlayFeatureKey {
 				return m
 			}
 			resetRemoteOverlayState()

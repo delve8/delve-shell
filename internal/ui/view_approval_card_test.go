@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"delve-shell/internal/hil/types"
 	"delve-shell/internal/ui/uivm"
 )
 
@@ -32,7 +33,7 @@ func TestAppendApprovalViewportContent_pendingRisk(t *testing.T) {
 		ChoiceCard: ChoiceCardState{
 			pending: &uivm.PendingApproval{
 				Command:   "kubectl get pods",
-				RiskLevel: "read_only",
+				RiskLevel: hiltypes.RiskLevelReadOnly,
 				SkillName: "k8s",
 				Summary:   "list pods",
 				Reason:    "debug",

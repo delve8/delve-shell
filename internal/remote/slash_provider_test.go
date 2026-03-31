@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"delve-shell/internal/config"
+	"delve-shell/internal/slash/access"
 )
 
 func TestRemoteSlashOptions_RootOrdersHostsThenActions(t *testing.T) {
@@ -28,13 +29,13 @@ func TestRemoteSlashOptions_RootOrdersHostsThenActions(t *testing.T) {
 	if opts[0].Cmd != "/access prod" || opts[1].Cmd != "/access db-bastion" {
 		t.Fatalf("expected host options first, got %#v", opts[:2])
 	}
-	if opts[len(opts)-3].Cmd != "/access New" {
+	if opts[len(opts)-3].Cmd != slashaccess.Command(slashaccess.ReservedNew) {
 		t.Fatalf("expected /access New before Local/Offline, got %#v", opts[len(opts)-3])
 	}
-	if opts[len(opts)-2].Cmd != "/access Local" {
+	if opts[len(opts)-2].Cmd != slashaccess.Command(slashaccess.ReservedLocal) {
 		t.Fatalf("expected /access Local second-to-last, got %#v", opts[len(opts)-2])
 	}
-	if opts[len(opts)-1].Cmd != "/access Offline" {
+	if opts[len(opts)-1].Cmd != slashaccess.Command(slashaccess.ReservedOffline) {
 		t.Fatalf("expected /access Offline last, got %#v", opts[len(opts)-1])
 	}
 }

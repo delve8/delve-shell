@@ -3,6 +3,7 @@ package ui
 import (
 	"strings"
 
+	"delve-shell/internal/hil/types"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/textwrap"
 )
@@ -22,11 +23,11 @@ func (m Model) appendOfflinePasteViewportContent(b *strings.Builder) {
 	b.WriteString("\n\n")
 	if rl := strings.TrimSpace(s.RiskLevel); rl != "" {
 		switch rl {
-		case "read_only":
+		case hiltypes.RiskLevelReadOnly:
 			b.WriteString(riskReadOnlyStyle.Render(textwrap.WrapString(i18n.T(i18n.KeyRiskReadOnly), w)))
-		case "low":
+		case hiltypes.RiskLevelLow:
 			b.WriteString(riskLowStyle.Render(textwrap.WrapString(i18n.T(i18n.KeyRiskLow), w)))
-		case "high":
+		case hiltypes.RiskLevelHigh:
 			b.WriteString(riskHighStyle.Render(textwrap.WrapString(i18n.T(i18n.KeyRiskHigh), w)))
 		default:
 			b.WriteString(textwrap.WrapString(rl, w))

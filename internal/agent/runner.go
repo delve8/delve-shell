@@ -187,14 +187,14 @@ func BuildConversationMessages(events []history.Event) []*schema.Message {
 	var out []*schema.Message
 	for _, ev := range events {
 		switch ev.Type {
-		case "user_input":
+		case history.EventTypeUserInput:
 			var p struct {
 				Text string `json:"text"`
 			}
 			if json.Unmarshal(ev.Payload, &p) == nil && p.Text != "" {
 				out = append(out, schema.UserMessage(p.Text))
 			}
-		case "llm_response":
+		case history.EventTypeLLMResponse:
 			var p struct {
 				Reply string `json:"reply"`
 			}

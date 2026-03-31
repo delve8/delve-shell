@@ -121,7 +121,7 @@ func getSessionSummary(path string, mtime time.Time) SessionSummary {
 	}
 	for _, ev := range events {
 		switch ev.Type {
-		case "user_input":
+		case EventTypeUserInput:
 			var payload struct {
 				Text string `json:"text"`
 			}
@@ -129,14 +129,14 @@ func getSessionSummary(path string, mtime time.Time) SessionSummary {
 				snippet = FormatSessionSnippetForDisplay(payload.Text, sessionSnippetMaxRunes)
 				return SessionSummary{Path: path, ID: id, DisplayTime: displayTime, Snippet: snippet}
 			}
-		case "command":
+		case EventTypeCommand:
 			var payload struct {
 				Command   string `json:"command"`
 				Kind      string `json:"kind"`
 				SkillName string `json:"skill_name"`
 			}
 			if json.Unmarshal(ev.Payload, &payload) == nil && payload.Command != "" {
-				if payload.Kind == "skill" && strings.TrimSpace(payload.SkillName) != "" {
+				if payload.Kind == CommandPayloadKindSkill && strings.TrimSpace(payload.SkillName) != "" {
 					snippet = "Skill: " + strings.TrimSpace(payload.SkillName)
 				} else {
 					snippet = payload.Command

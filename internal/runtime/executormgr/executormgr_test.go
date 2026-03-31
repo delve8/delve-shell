@@ -31,7 +31,7 @@ func TestConnect_UsesCachedCredential_First(t *testing.T) {
 			return nil, "", nil
 		},
 	)
-	m.PutCachedCred("example.com", "identity", "root", "/tmp/id_rsa")
+	m.PutCachedCred("example.com", remoteauth.ResponseKindIdentity, "root", "/tmp/id_rsa")
 
 	res := m.Connect("example.com", "lbl", "")
 	if !res.Connected || res.Executor == nil {
@@ -52,7 +52,7 @@ func TestConnect_CachedCredentialFailure_DropsCache(t *testing.T) {
 			return nil, "", errors.New("fail")
 		},
 	)
-	m.PutCachedCred("example.com", "password", "root", "pw")
+	m.PutCachedCred("example.com", remoteauth.ResponseKindPassword, "root", "pw")
 	res := m.Connect("example.com", "", "")
 	if res.Connected {
 		t.Fatalf("expected not connected")
@@ -95,7 +95,7 @@ func TestHandleRemoteAuthResponse_Success_CachesAndSetsExecutor(t *testing.T) {
 	label, err := m.HandleRemoteAuthResponse(remoteauth.Response{
 		Target:   "root@example.com",
 		Username: "root",
-		Kind:     "password",
+		Kind:     remoteauth.ResponseKindPassword,
 		Password: "pw",
 	})
 	if err != nil {

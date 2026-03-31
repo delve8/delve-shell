@@ -5,6 +5,7 @@ import (
 
 	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/input/lifecycletype"
+	"delve-shell/internal/slash/access"
 	"delve-shell/internal/ui"
 )
 
@@ -15,22 +16,22 @@ func registerSlashExecutionProvider() {
 		case strings.HasPrefix(text, "/config del-remote "):
 			nameOrTarget := strings.TrimSpace(strings.TrimPrefix(text, "/config del-remote "))
 			return applyConfigRemoveRemote(nameOrTarget), true, nil
-		case text == "/access New":
+		case text == slashaccess.Command(slashaccess.ReservedNew):
 			return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 				Kind: inputlifecycletype.OutputOverlayOpen,
 				Overlay: &inputlifecycletype.OverlayPayload{
-					Key: "remote_add",
+					Key: OverlayOpenKeyAddRemote,
 					Params: map[string]string{
 						"save": "false",
 					},
 				},
 			}), true, nil
-		case text == "/access Local":
+		case text == slashaccess.Command(slashaccess.ReservedLocal):
 			if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.RemoteOff{}) {
 				return inputlifecycletype.ProcessResult{}, true, nil
 			}
 			return inputlifecycletype.ConsumedResult(), true, nil
-		case text == "/access Offline":
+		case text == slashaccess.Command(slashaccess.ReservedOffline):
 			if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.AccessOffline{}) {
 				return inputlifecycletype.ProcessResult{}, true, nil
 			}

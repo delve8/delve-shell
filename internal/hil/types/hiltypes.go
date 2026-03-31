@@ -17,7 +17,7 @@ type ApprovalRequest struct {
 	Command    string // command to run
 	Summary    string // optional short summary (e.g. from SKILL.md); shown separately from Reason
 	Reason     string // AI explanation (why, expected effect); may be empty
-	RiskLevel  string // read_only | low | high; empty if not provided
+	RiskLevel  string // RiskLevel* constants; empty if not provided
 	SkillName  string // non-empty when pending command is from run_skill (shown on approval card)
 	ResponseCh chan ApprovalResponse
 }

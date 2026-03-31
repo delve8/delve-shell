@@ -1,6 +1,10 @@
 package slashview
 
-import "strings"
+import (
+	"strings"
+
+	"delve-shell/internal/slash/access"
+)
 
 // parseAccessRest returns text after "/access " (input without leading slash). ok is false if input is not an /access command.
 func parseAccessRest(input string) (rest string, ok bool) {
@@ -46,7 +50,7 @@ func accessHostRowMatch(rest, hostSuffix string) bool {
 		return false
 	}
 	// Exact Title-case reserved tokens only match reserved rows, not a host named new/local/offline.
-	if rest == "Local" || rest == "New" || rest == "Offline" {
+	if rest == slashaccess.ReservedLocal || rest == slashaccess.ReservedNew || rest == slashaccess.ReservedOffline {
 		return false
 	}
 	restLower := strings.ToLower(rest)
@@ -68,12 +72,12 @@ func accessTargetMatch(input, inputLower, cmd string) bool {
 		return false
 	}
 	switch suffix {
-	case "Local":
-		return accessReservedRowMatch(rest, "Local", "local")
-	case "New":
-		return accessReservedRowMatch(rest, "New", "new")
-	case "Offline":
-		return accessReservedRowMatch(rest, "Offline", "offline")
+	case slashaccess.ReservedLocal:
+		return accessReservedRowMatch(rest, slashaccess.ReservedLocal, slashaccess.FilterLocal)
+	case slashaccess.ReservedNew:
+		return accessReservedRowMatch(rest, slashaccess.ReservedNew, slashaccess.FilterNew)
+	case slashaccess.ReservedOffline:
+		return accessReservedRowMatch(rest, slashaccess.ReservedOffline, slashaccess.FilterOffline)
 	default:
 		return accessHostRowMatch(rest, suffix)
 	}

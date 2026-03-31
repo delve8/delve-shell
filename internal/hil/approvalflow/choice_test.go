@@ -7,7 +7,7 @@ import (
 )
 
 func TestEvaluatePendingThreeOptions(t *testing.T) {
-	r := Evaluate("1", true, false, 0, 3)
+	r := Evaluate(ChoiceKey1, true, false, 0, 3)
 	if !r.Handled || r.Decision != DecisionApprove {
 		t.Fatalf("unexpected result: %#v", r)
 	}
@@ -15,14 +15,14 @@ func TestEvaluatePendingThreeOptions(t *testing.T) {
 	if r.Decision != DecisionDismiss {
 		t.Fatalf("expected dismiss, got %#v", r)
 	}
-	r = Evaluate("3", true, false, 0, 3)
+	r = Evaluate(ChoiceKey3, true, false, 0, 3)
 	if r.Decision != DecisionCopy {
 		t.Fatalf("expected copy, got %#v", r)
 	}
 }
 
 func TestEvaluateSensitive(t *testing.T) {
-	r := Evaluate("3", false, true, 0, 3)
+	r := Evaluate(ChoiceKey3, false, true, 0, 3)
 	if r.Decision != DecisionSensitiveRunNoStore {
 		t.Fatalf("unexpected sensitive decision: %#v", r)
 	}

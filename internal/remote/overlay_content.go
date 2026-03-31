@@ -130,17 +130,17 @@ func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 	}
 
 	switch state.RemoteAuth.Step {
-	case "hostkey":
+	case AuthStepHostKey:
 		return buildRemoteAuthHostKeyContent(state), true
-	case "username":
+	case AuthStepUsername:
 		return buildRemoteAuthUsernameContent(state), true
-	case "choose":
+	case AuthStepChoose:
 		return buildRemoteAuthChoiceContent(state), true
-	case "password":
+	case AuthStepPassword:
 		return buildRemoteAuthPasswordContent(state), true
-	case "identity":
+	case AuthStepIdentity:
 		return buildRemoteAuthIdentityContent(state, pcState), true
-	case "auto_identity":
+	case AuthStepAutoIdentity:
 		return buildRemoteAuthAutoIdentityContent(state), true
 	default:
 		return "", false

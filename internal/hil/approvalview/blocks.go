@@ -3,6 +3,7 @@ package approvalview
 import (
 	"strings"
 
+	"delve-shell/internal/hil/types"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/ui/uivm"
 )
@@ -73,11 +74,11 @@ func Build(
 		lines = append(lines, Line{Kind: LineSuggest, Text: w(i18n.Tf(i18n.KeySkillLine, sn))})
 	}
 	switch pending.RiskLevel {
-	case "read_only":
+	case hiltypes.RiskLevelReadOnly:
 		lines = append(lines, Line{Kind: LineRiskReadOnly, Text: w("[" + i18n.T(i18n.KeyRiskReadOnly) + "] " + pending.Command)})
-	case "low":
+	case hiltypes.RiskLevelLow:
 		lines = append(lines, Line{Kind: LineRiskLow, Text: w("[" + i18n.T(i18n.KeyRiskLow) + "] " + pending.Command)})
-	case "high":
+	case hiltypes.RiskLevelHigh:
 		lines = append(lines, Line{Kind: LineRiskHigh, Text: w("[" + i18n.T(i18n.KeyRiskHigh) + "] " + pending.Command)})
 	default:
 		lines = append(lines, Line{Kind: LineExec, Text: w(pending.Command)})

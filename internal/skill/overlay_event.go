@@ -7,7 +7,7 @@ import (
 )
 
 func handleSkillOverlayEvent(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
-	if m.Overlay.Key != "skill" {
+	if m.Overlay.Key != OverlayFeatureKey {
 		return m, nil, false
 	}
 

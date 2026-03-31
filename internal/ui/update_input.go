@@ -8,10 +8,10 @@ import (
 
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/input/lifecycletype"
-	"delve-shell/internal/teakey"
 	"delve-shell/internal/input/maininput"
 	"delve-shell/internal/input/preflight"
 	"delve-shell/internal/slash/view"
+	"delve-shell/internal/teakey"
 )
 
 // keySession narrows keyboard handling for [Model.handleKeyMsg] so update_input does not

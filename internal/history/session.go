@@ -17,7 +17,7 @@ import (
 // Event is one history event for audit and LLM context.
 type Event struct {
 	Time    time.Time       `json:"time"`
-	Type    string          `json:"type"` // "user_input" | "llm_response" | "tool_call" | "command" | "command_result"
+	Type    string          `json:"type"` // EventType* constants
 	Payload json.RawMessage `json:"payload"`
 }
 
@@ -98,16 +98,16 @@ func (s *Session) append(typ string, payload interface{}) error {
 
 // AppendUserInput records user input.
 func (s *Session) AppendUserInput(text string) error {
-	return s.append("user_input", map[string]string{"text": text})
+	return s.append(EventTypeUserInput, map[string]string{"text": text})
 }
 
 // AppendLLMResponse records LLM response (caller passes serialized or structured content).
 func (s *Session) AppendLLMResponse(payload interface{}) error {
-	return s.append("llm_response", payload)
+	return s.append(EventTypeLLMResponse, payload)
 }
 
 // AppendCommand records a command about to run; reason and riskLevel are optional, for audit.
-// kind is empty for shell (execute_command); use "skill" for run_skill. skillName is set when kind is "skill".
+// kind is empty for shell (execute_command); use [CommandPayloadKindSkill] for run_skill. skillName is set when kind is skill.
 func (s *Session) AppendCommand(command string, approved bool, reason, riskLevel, kind, skillName string) error {
 	payload := map[string]interface{}{"command": command, "approved": approved}
 	if reason != "" {
@@ -122,7 +122,7 @@ func (s *Session) AppendCommand(command string, approved bool, reason, riskLevel
 	if skillName != "" {
 		payload["skill_name"] = skillName
 	}
-	return s.append("command", payload)
+	return s.append(EventTypeCommand, payload)
 }
 
 // AppendSuggestedCommand records a command that was only suggested (not executed), e.g. in suggest mode.
@@ -140,14 +140,14 @@ func (s *Session) AppendSuggestedCommand(command, reason, riskLevel, kind, skill
 	if skillName != "" {
 		payload["skill_name"] = skillName
 	}
-	return s.append("command", payload)
+	return s.append(EventTypeCommand, payload)
 }
 
 // AppendCommandResult records command execution result.
 func (s *Session) AppendCommandResult(command string, stdout, stderr string, exitCode int) error {
 	redactedStdout := RedactText(stdout)
 	redactedStderr := RedactText(stderr)
-	return s.append("command_result", map[string]interface{}{
+	return s.append(EventTypeCommandResult, map[string]interface{}{
 		"command":   command,
 		"stdout":    redactedStdout,
 		"stderr":    redactedStderr,
@@ -171,12 +171,12 @@ func (s *Session) AppendOfflineCommandProposal(command, reason, riskLevel string
 	if riskLevel != "" {
 		payload["risk_level"] = riskLevel
 	}
-	return s.append("command", payload)
+	return s.append(EventTypeCommand, payload)
 }
 
 // AppendOfflinePasteResult records user-pasted output for an offline command (no exit_code; not machine-verified).
 func (s *Session) AppendOfflinePasteResult(command, pasted string) error {
-	return s.append("command_result", map[string]interface{}{
+	return s.append(EventTypeCommandResult, map[string]interface{}{
 		"command":      command,
 		"stdout":       RedactText(pasted),
 		"manual_paste": true,

@@ -82,7 +82,7 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 	}
 	reason := strings.TrimSpace(input.Reason)
 	riskLevel := strings.TrimSpace(strings.ToLower(input.RiskLevel))
-	if riskLevel != "" && riskLevel != "read_only" && riskLevel != "low" && riskLevel != "high" {
+	if riskLevel != "" && riskLevel != hiltypes.RiskLevelReadOnly && riskLevel != hiltypes.RiskLevelLow && riskLevel != hiltypes.RiskLevelHigh {
 		riskLevel = "" // invalid value treated as not provided
 	}
 	sensitive := input.ResultContainsSecrets

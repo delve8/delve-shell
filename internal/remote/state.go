@@ -7,7 +7,7 @@ import (
 )
 
 // RemoteAuthOverlayState stores overlay-only state for remote authentication prompts.
-// Step: "" = inactive, "choose" = selecting auth method, "password" = entering password, "identity" = entering key path.
+// Step: "" = inactive; otherwise AuthStep* constants (choose/password/identity/...).
 type RemoteAuthOverlayState struct {
 	Step          string
 	Target        string

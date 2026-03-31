@@ -44,11 +44,11 @@ func Evaluate(key string, hasPending bool, hasSensitive bool, choiceIndex int, c
 
 	if hasSensitive {
 		switch key {
-		case "1":
+		case ChoiceKey1:
 			r.Decision = DecisionSensitiveRefuse
-		case "2":
+		case ChoiceKey2:
 			r.Decision = DecisionSensitiveRunStore
-		case "3":
+		case ChoiceKey3:
 			r.Decision = DecisionSensitiveRunNoStore
 		}
 		return r
@@ -56,11 +56,11 @@ func Evaluate(key string, hasPending bool, hasSensitive bool, choiceIndex int, c
 
 	if hasPending {
 		switch key {
-		case "1":
+		case ChoiceKey1:
 			r.Decision = DecisionApprove
-		case "2":
+		case ChoiceKey2:
 			r.Decision = DecisionDismiss
-		case "3":
+		case ChoiceKey3:
 			r.Decision = DecisionCopy
 		}
 	}

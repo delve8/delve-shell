@@ -106,8 +106,8 @@ func (c *Controller) handleAccessOffline() {
 }
 
 func (c *Controller) handleRemoteAuthResp(resp remoteauth.Response) {
-	if resp.Kind == "hostkey_accept" || resp.Kind == "hostkey_reject" {
-		res := c.executors.ResolveHostKeyDecision(resp.Target, resp.Kind == "hostkey_accept")
+	if resp.Kind == remoteauth.ResponseKindHostKeyAccept || resp.Kind == remoteauth.ResponseKindHostKeyReject {
+		res := c.executors.ResolveHostKeyDecision(resp.Target, resp.Kind == remoteauth.ResponseKindHostKeyAccept)
 		if res.AuthPrompt != nil {
 			c.ui.Raw(remote.AuthPromptMsg{
 				Target:                res.AuthPrompt.Target,
@@ -119,7 +119,7 @@ func (c *Controller) handleRemoteAuthResp(resp remoteauth.Response) {
 			})
 		}
 		if !res.Connected {
-			if resp.Kind == "hostkey_reject" {
+			if resp.Kind == remoteauth.ResponseKindHostKeyReject {
 				label := strings.TrimSpace(res.Label)
 				if label == "" {
 					label = config.HostFromTarget(resp.Target)

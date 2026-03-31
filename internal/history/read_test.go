@@ -58,7 +58,7 @@ func TestReadRecent_maxLinesKeepsLast(t *testing.T) {
 	}
 	enc := json.NewEncoder(f)
 	for i := 0; i < 10; i++ {
-		ev := Event{Type: "user_input", Payload: json.RawMessage(`{"text":"` + string(rune('0'+i)) + `"}`)}
+		ev := Event{Type: EventTypeUserInput, Payload: json.RawMessage(`{"text":"` + string(rune('0'+i)) + `"}`)}
 		if err := enc.Encode(ev); err != nil {
 			f.Close()
 			t.Fatal(err)
@@ -103,11 +103,11 @@ func TestListSessionsWithSummary_sortedByMtimeDesc(t *testing.T) {
 	// create two session files with different mtimes
 	p1 := filepath.Join(sessionsDir, "old.jsonl")
 	p2 := filepath.Join(sessionsDir, "new.jsonl")
-	if err := os.WriteFile(p1, []byte(`{"type":"user_input","payload":{"text":"old"}}`+"\n"), 0600); err != nil {
+	if err := os.WriteFile(p1, []byte(`{"type":"`+EventTypeUserInput+`","payload":{"text":"old"}}`+"\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	time.Sleep(10 * time.Millisecond)
-	if err := os.WriteFile(p2, []byte(`{"type":"user_input","payload":{"text":"new"}}`+"\n"), 0600); err != nil {
+	if err := os.WriteFile(p2, []byte(`{"type":"`+EventTypeUserInput+`","payload":{"text":"new"}}`+"\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 

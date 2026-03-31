@@ -28,7 +28,7 @@ type Manager struct {
 }
 
 type remoteCred struct {
-	Kind     string // "password" or "identity"
+	Kind     string // remoteauth.ResponseKindPassword or ResponseKindIdentity
 	Username string
 	Secret   string // password or identity file path
 }
@@ -91,8 +91,8 @@ func (m *Manager) PutCachedCred(hostOnly, kind, username, secret string) {
 	if hostOnly == "" || secret == "" {
 		return
 	}
-	if kind != "identity" {
-		kind = "password"
+	if kind != remoteauth.ResponseKindIdentity {
+		kind = remoteauth.ResponseKindPassword
 	}
 	m.remoteCredMu.Lock()
 	m.remoteCreds[hostOnly] = remoteCred{Kind: kind, Username: username, Secret: secret}
@@ -135,7 +135,7 @@ func (m *Manager) HandleRemoteAuthResponse(resp remoteauth.Response) (label stri
 
 	var sshExec execenv.CommandExecutor
 	switch resp.Kind {
-	case "identity":
+	case remoteauth.ResponseKindIdentity:
 		sshExec, _, err = m.newSSH(targetForSSH, resp.Password)
 	default:
 		sshExec, _, err = m.newSSHWithPassword(targetForSSH, "", resp.Password)
@@ -145,8 +145,8 @@ func (m *Manager) HandleRemoteAuthResponse(resp remoteauth.Response) (label stri
 	}
 
 	kind := resp.Kind
-	if kind != "identity" {
-		kind = "password"
+	if kind != remoteauth.ResponseKindIdentity {
+		kind = remoteauth.ResponseKindPassword
 	}
 	m.remoteCredMu.Lock()
 	m.remoteCreds[hostOnly] = remoteCred{Kind: kind, Username: resp.Username, Secret: resp.Password}
@@ -189,7 +189,7 @@ func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 		}
 		var exec execenv.CommandExecutor
 		var err error
-		if kind == "identity" {
+		if kind == remoteauth.ResponseKindIdentity {
 			exec, _, err = m.newSSH(targetForSSH, cachedSecret)
 		} else {
 			exec, _, err = m.newSSHWithPassword(targetForSSH, "", cachedSecret)

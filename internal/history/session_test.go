@@ -5,13 +5,15 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"delve-shell/internal/hil/types"
 )
 
 func TestSession_AppendCommand_SkillAuditPayload(t *testing.T) {
 	dir := t.TempDir()
 	s := &Session{id: "skill-audit", path: filepath.Join(dir, "skill-audit.jsonl")}
 	defer s.Close()
-	if err := s.AppendCommand("./run.sh", true, "why", "low", "skill", "my-skill"); err != nil {
+	if err := s.AppendCommand("./run.sh", true, "why", hiltypes.RiskLevelLow, CommandPayloadKindSkill, "my-skill"); err != nil {
 		t.Fatal(err)
 	}
 	data, err := os.ReadFile(s.path)
@@ -22,14 +24,14 @@ func TestSession_AppendCommand_SkillAuditPayload(t *testing.T) {
 	if err := json.Unmarshal([]byte(firstLine(string(data))), &ev); err != nil {
 		t.Fatal(err)
 	}
-	if ev.Type != "command" {
+	if ev.Type != EventTypeCommand {
 		t.Errorf("type: %q", ev.Type)
 	}
 	var payload map[string]interface{}
 	if err := json.Unmarshal(ev.Payload, &payload); err != nil {
 		t.Fatal(err)
 	}
-	if payload["kind"] != "skill" {
+	if payload["kind"] != CommandPayloadKindSkill {
 		t.Errorf("kind: %v", payload["kind"])
 	}
 	if payload["skill_name"] != "my-skill" {

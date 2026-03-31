@@ -13,9 +13,9 @@ import (
 
 func openSkillOverlay(m ui.Model, req ui.OverlayOpenRequest) (ui.Model, tea.Cmd, bool) {
 	switch req.Key {
-	case "skill_add":
+	case OverlayOpenKeyAdd:
 		return openAddSkillOverlay(m, req.Params["url"], req.Params["ref"], req.Params["path"]), nil, true
-	case "skill_update":
+	case OverlayOpenKeyUpdate:
 		return openUpdateSkillOverlay(m, req.Params["name"]), nil, true
 	default:
 		return m, nil, false
@@ -23,7 +23,7 @@ func openSkillOverlay(m ui.Model, req ui.OverlayOpenRequest) (ui.Model, tea.Cmd,
 }
 
 func openAddSkillOverlay(m ui.Model, url, ref, path string) ui.Model {
-	m = m.OpenOverlayFeature("skill", i18n.T(i18n.KeyAddSkillTitle), "")
+	m = m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyAddSkillTitle), "")
 	state := getSkillOverlayState()
 	state.AddSkill.Active = true
 	state.UpdateSkill = UpdateSkillOverlayState{}

@@ -139,11 +139,11 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 	if meta != nil {
 		scope := strings.TrimSpace(strings.ToLower(meta.Scope))
 		switch scope {
-		case "local":
+		case skillstore.ScopeLocal:
 			if isRemote {
 				return "Skill " + skillName + " is local-only (scope=local); connect locally and retry.", nil
 			}
-		case "remote":
+		case skillstore.ScopeRemote:
 			if !isRemote {
 				return "Skill " + skillName + " is remote-only (scope=remote); connect to a remote host and retry.", nil
 			}
@@ -190,11 +190,11 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 		resp = t.RequestApproval(cmd, summary, reason, riskLevel, skillName)
 	}
 	if t.Session != nil {
-		_ = t.Session.AppendCommand(cmd, resp.Approved, reason, riskLevel, "skill", skillName)
+		_ = t.Session.AppendCommand(cmd, resp.Approved, reason, riskLevel, history.CommandPayloadKindSkill, skillName)
 	}
 	if resp.CopyRequested {
 		if t.Session != nil {
-			_ = t.Session.AppendSuggestedCommand(cmd, reason, riskLevel, "skill", skillName)
+			_ = t.Session.AppendSuggestedCommand(cmd, reason, riskLevel, history.CommandPayloadKindSkill, skillName)
 		}
 		return "The user copied the command and did not run it. Continue with your reply or suggest next steps.", nil
 	}

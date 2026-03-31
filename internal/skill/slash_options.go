@@ -22,8 +22,8 @@ func registerSlashOptionsProvider() {
 		normalized = strings.TrimSpace(normalized)
 		normalizedLower := strings.ToLower(normalized)
 
-		if normalizedLower == "skill" || strings.HasPrefix(normalizedLower, "skill ") {
-			filter := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "skill"))
+		if normalizedLower == SlashSubcommand || strings.HasPrefix(normalizedLower, SlashSubcommand+" ") {
+			filter := strings.TrimSpace(strings.TrimPrefix(normalizedLower, SlashSubcommand))
 			return getSkillSlashOptions(lang, filter), true
 		}
 

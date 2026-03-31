@@ -17,10 +17,10 @@ func registerSlashExecutionProvider() {
 		text := strings.TrimSpace(req.RawText)
 		switch {
 		case text == "/config add-skill":
-			return overlayOpenResult("skill_add", nil), true, nil
+			return overlayOpenResult(OverlayOpenKeyAdd, nil), true, nil
 		case strings.HasPrefix(text, "/config add-skill"):
 			url, ref, path := parseAddSkillArgs(strings.TrimSpace(strings.TrimPrefix(text, "/config add-skill")))
-			return overlayOpenResult("skill_add", map[string]string{
+			return overlayOpenResult(OverlayOpenKeyAdd, map[string]string{
 				"url":  url,
 				"ref":  ref,
 				"path": path,
@@ -30,12 +30,12 @@ func registerSlashExecutionProvider() {
 			if name == "" {
 				return transcriptErrorResult(i18n.T(i18n.KeyDescConfigUpdateSkill)), true, nil
 			}
-			return overlayOpenResult("skill_update", map[string]string{"name": name}), true, nil
+			return overlayOpenResult(OverlayOpenKeyUpdate, map[string]string{"name": name}), true, nil
 		case strings.HasPrefix(text, "/config del-skill "):
 			name := strings.TrimSpace(strings.TrimPrefix(text, "/config del-skill "))
 			return handleSlashConfigDelSkillPrefix(name), true, nil
-		case strings.HasPrefix(text, "/skill "):
-			return executeSkillInvocation(req, strings.TrimSpace(strings.TrimPrefix(text, "/skill "))), true, nil
+		case strings.HasPrefix(text, "/"+SlashSubcommand+" "):
+			return executeSkillInvocation(req, strings.TrimSpace(strings.TrimPrefix(text, "/"+SlashSubcommand+" "))), true, nil
 		default:
 			return inputlifecycletype.ProcessResult{}, false, nil
 		}

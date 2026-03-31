@@ -69,26 +69,26 @@ func remoteConnectUIHandler(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 	case AuthPromptMsg:
 		state.AddRemote.Connecting = false
 		state.AddRemote.Active = false
-		m = m.OpenOverlayFeature("remote", "Remote Auth", "")
+		m = m.OpenOverlayFeature(OverlayFeatureKey, "Remote Auth", "")
 		state.RemoteAuth.Target = t.Target
 		state.RemoteAuth.Error = t.Err
 		state.RemoteAuth.HostKeyHost = t.HostKeyHost
 		state.RemoteAuth.HostKeyFP = t.HostKeyFingerprint
 		m.Interaction.ChoiceIndex = 0
 		if t.HostKeyVerify {
-			state.RemoteAuth.Step = "hostkey"
+			state.RemoteAuth.Step = AuthStepHostKey
 			state.RemoteAuth.Connecting = false
 			setRemoteOverlayState(state)
 			return m, nil, true
 		}
 		if t.UseConfiguredIdentity {
-			state.RemoteAuth.Step = "auto_identity"
+			state.RemoteAuth.Step = AuthStepAutoIdentity
 			state.RemoteAuth.Connecting = true
 			setRemoteOverlayState(state)
 			return m, nil, true
 		}
 		state.RemoteAuth.Connecting = false
-		state.RemoteAuth.Step = "username"
+		state.RemoteAuth.Step = AuthStepUsername
 		state.RemoteAuth.UsernameInput = textinput.New()
 		state.RemoteAuth.UsernameInput.Placeholder = "root"
 		if i := strings.Index(t.Target, "@"); i > 0 && i < len(t.Target)-1 {

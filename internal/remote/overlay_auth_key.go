@@ -21,7 +21,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 	}
 
 	switch state.RemoteAuth.Step {
-	case "hostkey":
+	case AuthStepHostKey:
 		if state.RemoteAuth.Connecting {
 			return ret(m, nil, true)
 		}
@@ -30,13 +30,13 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			state.RemoteAuth.Connecting = true
 			_ = m.EmitRemoteAuthResponseIntent(remoteauth.Response{
 				Target: state.RemoteAuth.Target,
-				Kind:   "hostkey_accept",
+				Kind:   remoteauth.ResponseKindHostKeyAccept,
 			})
 			return ret(m, nil, true)
 		case "2":
 			_ = m.EmitRemoteAuthResponseIntent(remoteauth.Response{
 				Target: state.RemoteAuth.Target,
-				Kind:   "hostkey_reject",
+				Kind:   remoteauth.ResponseKindHostKeyReject,
 			})
 			m = m.CloseOverlayVisual()
 			state.RemoteAuth = RemoteAuthOverlayState{}
@@ -44,33 +44,33 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 		}
 		return ret(m, nil, true)
 
-	case "auto_identity":
+	case AuthStepAutoIdentity:
 		return ret(m, nil, true)
 
-	case "username":
+	case AuthStepUsername:
 		if key == teakey.Enter {
 			state.RemoteAuth.Username = strings.TrimSpace(state.RemoteAuth.UsernameInput.Value())
 			if state.RemoteAuth.Username == "" {
 				state.RemoteAuth.Username = "root"
 			}
-			state.RemoteAuth.Step = "choose"
+			state.RemoteAuth.Step = AuthStepChoose
 			return ret(m, nil, true)
 		}
 		var cmd tea.Cmd
 		state.RemoteAuth.UsernameInput, cmd = state.RemoteAuth.UsernameInput.Update(msg)
 		return ret(m, cmd, true)
 
-	case "choose":
+	case AuthStepChoose:
 		switch key {
 		case "1":
-			state.RemoteAuth.Step = "password"
+			state.RemoteAuth.Step = AuthStepPassword
 			state.RemoteAuth.Input = textinput.New()
 			state.RemoteAuth.Input.Placeholder = "SSH password"
 			state.RemoteAuth.Input.EchoMode = textinput.EchoPassword
 			state.RemoteAuth.Input.Focus()
 			return ret(m, nil, true)
 		case "2":
-			state.RemoteAuth.Step = "identity"
+			state.RemoteAuth.Step = AuthStepIdentity
 			state.RemoteAuth.Input = textinput.New()
 			state.RemoteAuth.Input.Placeholder = "~/.ssh/id_rsa"
 			state.RemoteAuth.Input.EchoMode = textinput.EchoNormal
@@ -82,14 +82,14 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 		}
 		return ret(m, nil, true)
 
-	case "password":
+	case AuthStepPassword:
 		if state.RemoteAuth.Connecting {
 			return ret(m, nil, true)
 		}
 		if key == teakey.Enter {
 			input := state.RemoteAuth.Input.Value()
 			if input == "" {
-				state.RemoteAuth.Step = "choose"
+				state.RemoteAuth.Step = AuthStepChoose
 				m.Interaction.ChoiceIndex = 0
 				return ret(m, nil, true)
 			}
@@ -98,7 +98,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			_ = m.EmitRemoteAuthResponseIntent(remoteauth.Response{
 				Target:   state.RemoteAuth.Target,
 				Username: state.RemoteAuth.Username,
-				Kind:     state.RemoteAuth.Step,
+				Kind:     remoteauth.ResponseKindPassword,
 				Password: input,
 			})
 			return ret(m, nil, true)
@@ -108,7 +108,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 		state.RemoteAuth.Input, cmd = state.RemoteAuth.Input.Update(msg)
 		return ret(m, cmd, true)
 
-	case "identity":
+	case AuthStepIdentity:
 		if state.RemoteAuth.Connecting {
 			return ret(m, nil, true)
 		}
@@ -150,7 +150,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 		if key == teakey.Enter {
 			input := state.RemoteAuth.Input.Value()
 			if input == "" {
-				state.RemoteAuth.Step = "choose"
+				state.RemoteAuth.Step = AuthStepChoose
 				m.Interaction.ChoiceIndex = 0
 				pcState.Candidates = nil
 				pcState.Index = -1
@@ -161,7 +161,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			_ = m.EmitRemoteAuthResponseIntent(remoteauth.Response{
 				Target:   state.RemoteAuth.Target,
 				Username: state.RemoteAuth.Username,
-				Kind:     state.RemoteAuth.Step,
+				Kind:     remoteauth.ResponseKindIdentity,
 				Password: input,
 			})
 			return ret(m, nil, true)
