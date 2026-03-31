@@ -78,8 +78,8 @@ func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 	if state.AddRemote.Active {
 		var b strings.Builder
 		if state.AddRemote.Connecting {
-			b.WriteString("Add remote\n\n")
-			b.WriteString(ui.SuggestStyleRender("Connecting...") + "\n\n")
+			b.WriteString(i18n.T(i18n.KeyAddRemoteScreenTitle) + "\n\n")
+			b.WriteString(ui.SuggestStyleRender(i18n.T(i18n.KeyAddRemoteConnecting)) + "\n\n")
 			b.WriteString(ui.RenderOverlayHintLine(i18n.KeyOverlayEscCancel))
 			return b.String(), true
 		}
@@ -87,16 +87,16 @@ func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 		if state.AddRemote.Error != "" {
 			b.WriteString(ui.ErrStyleRender(state.AddRemote.Error) + "\n\n")
 			if state.AddRemote.OfferOverwrite {
-				b.WriteString("Press y to overwrite, or change host/username and try again.\n\n")
+				b.WriteString(i18n.T(i18n.KeyAddRemoteOverwriteHint) + "\n\n")
 			}
 		}
-		b.WriteString("Host (address or host:port):\n")
+		b.WriteString(i18n.T(i18n.KeyAddRemoteHostLabel) + "\n")
 		b.WriteString(state.AddRemote.HostInput.View())
 		b.WriteString("\n\n")
-		b.WriteString("Username:\n")
+		b.WriteString(i18n.T(i18n.KeyAddRemoteUserLabel) + "\n")
 		b.WriteString(state.AddRemote.UserInput.View())
 		b.WriteString("\n\n")
-		b.WriteString("Key path (optional):\n")
+		b.WriteString(i18n.T(i18n.KeyAddRemoteKeyLabel) + "\n")
 		b.WriteString(state.AddRemote.KeyInput.View())
 		b.WriteString("\n\n")
 		// Fixed total height: title line only when Key path is focused; blank line otherwise; 4 rows below.
@@ -113,7 +113,7 @@ func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 		if state.AddRemote.Save {
 			saveLabel = "[X]"
 		}
-		saveLine := saveLabel + " Save as remote (Space to toggle)"
+		saveLine := saveLabel + " " + i18n.T(i18n.KeyAddRemoteSaveLabel)
 		if state.AddRemote.FieldIndex == 3 {
 			b.WriteString(ui.SuggestHiRender(saveLine) + "\n")
 		} else {
@@ -121,7 +121,7 @@ func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 		}
 		if state.AddRemote.Save {
 			b.WriteString("\n")
-			b.WriteString("Name (optional):\n")
+			b.WriteString(i18n.T(i18n.KeyAddRemoteNameLabel) + "\n")
 			b.WriteString(state.AddRemote.NameInput.View())
 		}
 		b.WriteString("\n\n")
@@ -150,8 +150,8 @@ func buildRemoteOverlayContent(m ui.Model) (string, bool) {
 func buildRemoteAuthUsernameContent(state remoteOverlayState) string {
 	var b strings.Builder
 	appendRemoteAuthError(&b, state.RemoteAuth.Error)
-	b.WriteString("SSH auth for " + remoteAuthHostLabel(state) + "\n\n")
-	b.WriteString("Username:\n")
+	b.WriteString(i18n.Tf(i18n.KeyRemoteAuthUsernameTitle, remoteAuthHostLabel(state)) + "\n\n")
+	b.WriteString(i18n.T(i18n.KeyAddRemoteUserLabel) + "\n")
 	b.WriteString(state.RemoteAuth.UsernameInput.View())
 	b.WriteString("\n\n")
 	b.WriteString(ui.RenderOverlayHintLine(i18n.KeyOverlayEnterContinueEsc))
@@ -161,9 +161,9 @@ func buildRemoteAuthUsernameContent(state remoteOverlayState) string {
 func buildRemoteAuthChoiceContent(state remoteOverlayState) string {
 	var b strings.Builder
 	appendRemoteAuthError(&b, state.RemoteAuth.Error)
-	b.WriteString("Choose authentication method:\n")
-	b.WriteString("  1. Password\n")
-	b.WriteString("  2. Key file (identity file)\n\n")
+	b.WriteString(i18n.T(i18n.KeyRemoteAuthMethodTitle) + "\n")
+	b.WriteString("  " + i18n.T(i18n.KeyRemoteAuthPasswordChoice) + "\n")
+	b.WriteString("  " + i18n.T(i18n.KeyRemoteAuthIdentityChoice) + "\n\n")
 	b.WriteString(ui.RenderOverlayHintLine(i18n.KeyOverlay12SelectEsc))
 	return b.String()
 }
@@ -171,9 +171,9 @@ func buildRemoteAuthChoiceContent(state remoteOverlayState) string {
 func buildRemoteAuthPasswordContent(state remoteOverlayState) string {
 	var b strings.Builder
 	appendRemoteAuthError(&b, state.RemoteAuth.Error)
-	b.WriteString("SSH password for " + remoteAuthHostLabel(state) + "\n")
+	b.WriteString(i18n.Tf(i18n.KeyRemoteAuthPasswordTitle, remoteAuthHostLabel(state)) + "\n")
 	if state.RemoteAuth.Connecting {
-		b.WriteString(ui.SuggestStyleRender("Connecting...") + "\n\n")
+		b.WriteString(ui.SuggestStyleRender(i18n.T(i18n.KeyRemoteAuthConnecting)) + "\n\n")
 		b.WriteString(ui.RenderOverlayHintLine(i18n.KeyOverlayEscCancel))
 	} else {
 		b.WriteString(ui.RenderOverlayHintLine(i18n.KeyOverlayEnterSubmitEsc))
@@ -186,9 +186,9 @@ func buildRemoteAuthPasswordContent(state remoteOverlayState) string {
 func buildRemoteAuthIdentityContent(state remoteOverlayState, pcState pathcomplete.State) string {
 	var b strings.Builder
 	appendRemoteAuthError(&b, state.RemoteAuth.Error)
-	b.WriteString("SSH key file path for " + remoteAuthHostLabel(state) + "\n")
+	b.WriteString(i18n.Tf(i18n.KeyRemoteAuthIdentityTitle, remoteAuthHostLabel(state)) + "\n")
 	if state.RemoteAuth.Connecting {
-		b.WriteString(ui.SuggestStyleRender("Connecting...") + "\n\n")
+		b.WriteString(ui.SuggestStyleRender(i18n.T(i18n.KeyRemoteAuthConnecting)) + "\n\n")
 		b.WriteString(ui.RenderOverlayHintLine(i18n.KeyOverlayEscCancel))
 	} else {
 		b.WriteString(ui.RenderOverlayHintLine(i18n.KeyOverlayEnterSubmitEsc))
@@ -203,8 +203,8 @@ func buildRemoteAuthIdentityContent(state remoteOverlayState, pcState pathcomple
 func buildRemoteAuthAutoIdentityContent(state remoteOverlayState) string {
 	var b strings.Builder
 	appendRemoteAuthError(&b, state.RemoteAuth.Error)
-	b.WriteString("SSH auth for " + remoteAuthHostLabel(state) + "\n\n")
-	b.WriteString(ui.SuggestStyleRender("Connecting with configured SSH key...") + "\n\n")
+	b.WriteString(i18n.Tf(i18n.KeyRemoteAuthAutoIdentityTitle, remoteAuthHostLabel(state)) + "\n\n")
+	b.WriteString(ui.SuggestStyleRender(i18n.T(i18n.KeyRemoteAuthConfiguredKey)) + "\n\n")
 	b.WriteString(ui.RenderOverlayHintLine(i18n.KeyOverlayEscCancel))
 	return b.String()
 }
@@ -216,19 +216,19 @@ func buildRemoteAuthHostKeyContent(state remoteOverlayState) string {
 	if strings.TrimSpace(host) == "" {
 		host = remoteAuthHostLabel(state)
 	}
-	b.WriteString("Host key verification\n\n")
-	b.WriteString("Target: " + host + "\n")
+	b.WriteString(i18n.T(i18n.KeyRemoteAuthHostKeyTitle) + "\n\n")
+	b.WriteString(i18n.Tf(i18n.KeyRemoteAuthTargetLabel, host) + "\n")
 	if strings.TrimSpace(state.RemoteAuth.HostKeyFP) != "" {
-		b.WriteString("Fingerprint: " + state.RemoteAuth.HostKeyFP + "\n")
+		b.WriteString(i18n.Tf(i18n.KeyRemoteAuthFingerprintLabel, state.RemoteAuth.HostKeyFP) + "\n")
 	}
 	b.WriteString("\n")
 	if state.RemoteAuth.Connecting {
-		b.WriteString(ui.SuggestStyleRender("Updating known_hosts and reconnecting...") + "\n\n")
+		b.WriteString(ui.SuggestStyleRender(i18n.T(i18n.KeyRemoteAuthKnownHostsUpdate)) + "\n\n")
 		b.WriteString(ui.RenderOverlayHintLine(i18n.KeyOverlayEscCancel))
 		return b.String()
 	}
-	b.WriteString("1. Accept and update known_hosts\n")
-	b.WriteString("2. Reject and abort\n\n")
+	b.WriteString(i18n.T(i18n.KeyRemoteAuthAcceptKnownHosts) + "\n")
+	b.WriteString(i18n.T(i18n.KeyRemoteAuthRejectKnownHosts) + "\n\n")
 	b.WriteString(ui.RenderOverlayHintLine(i18n.KeyOverlay12SelectEsc))
 	return b.String()
 }

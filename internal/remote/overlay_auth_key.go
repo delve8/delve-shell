@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/host/cmd"
+	"delve-shell/internal/i18n"
 	"delve-shell/internal/pathcomplete"
 	"delve-shell/internal/remote/auth"
 	"delve-shell/internal/teakey"
@@ -70,14 +71,14 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 		case "1":
 			state.RemoteAuth.Step = AuthStepPassword
 			state.RemoteAuth.Input = textinput.New()
-			state.RemoteAuth.Input.Placeholder = "SSH password"
+			state.RemoteAuth.Input.Placeholder = i18n.T(i18n.KeyRemoteAuthPasswordPlaceholder)
 			state.RemoteAuth.Input.EchoMode = textinput.EchoPassword
 			state.RemoteAuth.Input.Focus()
 			return ret(m, nil, true)
 		case "2":
 			state.RemoteAuth.Step = AuthStepIdentity
 			state.RemoteAuth.Input = textinput.New()
-			state.RemoteAuth.Input.Placeholder = "~/.ssh/id_rsa"
+			state.RemoteAuth.Input.Placeholder = i18n.T(i18n.KeyRemoteAuthIdentityPlaceholder)
 			state.RemoteAuth.Input.EchoMode = textinput.EchoNormal
 			state.RemoteAuth.Input.Focus()
 			pcState.Candidates = nil

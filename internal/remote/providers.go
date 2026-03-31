@@ -30,15 +30,15 @@ func registerProviders() {
 			pathcomplete.SetState(pathcomplete.State{Index: -1})
 			state.AddRemote.FieldIndex = 0
 			state.AddRemote.HostInput = textinput.New()
-			state.AddRemote.HostInput.Placeholder = "host or host:22"
+			state.AddRemote.HostInput.Placeholder = i18n.T(i18n.KeyAddRemoteHostPlaceholder)
 			state.AddRemote.HostInput.Focus()
 			state.AddRemote.UserInput = textinput.New()
-			state.AddRemote.UserInput.Placeholder = "e.g. root"
+			state.AddRemote.UserInput.Placeholder = i18n.T(i18n.KeyAddRemoteUserPlaceholder)
 			state.AddRemote.UserInput.SetValue("root")
 			state.AddRemote.NameInput = textinput.New()
-			state.AddRemote.NameInput.Placeholder = "name (optional)"
+			state.AddRemote.NameInput.Placeholder = i18n.T(i18n.KeyAddRemoteNamePlaceholder)
 			state.AddRemote.KeyInput = textinput.New()
-			state.AddRemote.KeyInput.Placeholder = "~/.ssh/id_rsa (optional)"
+			state.AddRemote.KeyInput.Placeholder = i18n.T(i18n.KeyAddRemoteKeyPlaceholder)
 			setRemoteOverlayState(state)
 			return m, nil, true
 		},
@@ -63,13 +63,13 @@ func registerProviders() {
 
 func remoteTitleBarFragment(m ui.Model) (string, bool) {
 	if m.Remote.Offline {
-		return "Offline", true
+		return i18n.T(i18n.KeyRemoteTitleBarOffline), true
 	}
 	if !m.Remote.Active {
 		return "", false
 	}
 	if lbl := m.Remote.Label; lbl != "" {
-		return "Remote " + lbl, true
+		return i18n.T(i18n.KeyRemoteTitleBarRemote) + " " + lbl, true
 	}
-	return "Remote", true
+	return i18n.T(i18n.KeyRemoteTitleBarRemote), true
 }

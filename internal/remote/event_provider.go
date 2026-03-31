@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/i18n"
 	"delve-shell/internal/pathcomplete"
 	"delve-shell/internal/ui"
 )
@@ -69,7 +70,7 @@ func remoteConnectUIHandler(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 	case AuthPromptMsg:
 		state.AddRemote.Connecting = false
 		state.AddRemote.Active = false
-		m = m.OpenOverlayFeature(OverlayFeatureKey, "Remote Auth", "")
+		m = m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyRemoteAuthTitle), "")
 		state.RemoteAuth.Target = t.Target
 		state.RemoteAuth.Error = t.Err
 		state.RemoteAuth.HostKeyHost = t.HostKeyHost
@@ -90,7 +91,7 @@ func remoteConnectUIHandler(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 		state.RemoteAuth.Connecting = false
 		state.RemoteAuth.Step = AuthStepUsername
 		state.RemoteAuth.UsernameInput = textinput.New()
-		state.RemoteAuth.UsernameInput.Placeholder = "root"
+		state.RemoteAuth.UsernameInput.Placeholder = i18n.T(i18n.KeyAddRemoteUserPlaceholder)
 		if i := strings.Index(t.Target, "@"); i > 0 && i < len(t.Target)-1 {
 			state.RemoteAuth.UsernameInput.SetValue(t.Target[:i])
 		} else {

@@ -9,7 +9,7 @@ import (
 
 	"delve-shell/internal/config"
 	"delve-shell/internal/remote"
-	"delve-shell/internal/remote/auth"
+	remoteauth "delve-shell/internal/remote/auth"
 	"delve-shell/internal/remote/execenv"
 	"delve-shell/internal/ui/uivm"
 )
@@ -102,7 +102,7 @@ func (c *Controller) handleAccessOffline() {
 		c.runners.Invalidate()
 	}
 	c.ui.RemoteStatus(false, "", true)
-	c.ui.SystemNotify("Offline mode: commands are not executed here—copy to your environment, paste output in the dialog. Review each command; allowlist is not used.")
+	c.ui.SystemNotify("Offline mode: commands are shown only, not executed here. Paste the results back and review them before running them elsewhere.")
 }
 
 func (c *Controller) handleRemoteAuthResp(resp remoteauth.Response) {

@@ -1,7 +1,6 @@
 package skill
 
 import (
-	"fmt"
 	"strings"
 
 	"delve-shell/internal/i18n"
@@ -60,14 +59,14 @@ func buildSkillOverlayContent(m ui.Model) (string, bool) {
 		if state.UpdateSkill.Error != "" {
 			b.WriteString(ui.ErrStyleRender(state.UpdateSkill.Error) + "\n\n")
 		}
-		b.WriteString("Update skill\n\n")
-		b.WriteString("Skill: " + state.UpdateSkill.Name + "\n")
-		b.WriteString("URL:   " + state.UpdateSkill.URL + "\n")
+		b.WriteString(i18n.T(i18n.KeyUpdateSkillTitle) + "\n\n")
+		b.WriteString(i18n.Tf(i18n.KeyUpdateSkillSkillLabel, state.UpdateSkill.Name) + "\n")
+		b.WriteString(i18n.Tf(i18n.KeyUpdateSkillURLLabel, state.UpdateSkill.URL) + "\n")
 		path := state.UpdateSkill.Path
 		if strings.TrimSpace(path) == "" {
 			path = "."
 		}
-		b.WriteString("Path:  " + path + "\n\n")
+		b.WriteString(i18n.Tf(i18n.KeyUpdateSkillPathLabel, path) + "\n\n")
 		b.WriteString(ui.RenderOverlayUpdateSkillRefTitleLine())
 		for i, r := range state.UpdateSkill.Refs {
 			line := "  " + r
@@ -90,8 +89,8 @@ func buildSkillOverlayContent(m ui.Model) (string, bool) {
 		} else if len(latest) > 7 {
 			latest = latest[:7]
 		}
-		b.WriteString(fmt.Sprintf("Current commit: %s\n", current))
-		b.WriteString(fmt.Sprintf("Latest commit:  %s\n\n", latest))
+		b.WriteString(i18n.Tf(i18n.KeyUpdateSkillCurrentCommitLabel, current) + "\n")
+		b.WriteString(i18n.Tf(i18n.KeyUpdateSkillLatestCommitLabel, latest) + "\n\n")
 		b.WriteString(i18n.T(i18n.KeyDescConfigUpdateSkill))
 		return b.String(), true
 	}

@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"delve-shell/internal/config"
+	"delve-shell/internal/i18n"
 	"delve-shell/internal/remote/auth"
 	"delve-shell/internal/remote/execenv"
 )
@@ -271,9 +272,9 @@ func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 
 func hostKeyDecisionPrompt(mismatch *execenv.HostKeyMismatchError) string {
 	if mismatch != nil && mismatch.UnknownHost {
-		return "Host key is not trusted yet. Accept to add/update known_hosts or reject to abort."
+		return i18n.T(i18n.KeyRemoteAuthHostKeyUnknown)
 	}
-	return "Host key mismatch detected. Accept to update known_hosts or reject to abort."
+	return i18n.T(i18n.KeyRemoteAuthHostKeyMismatch)
 }
 
 // ResolveHostKeyDecision resolves a pending host-key mismatch decision and retries connection on accept.

@@ -27,11 +27,11 @@ func Register() {
 		st.Error = ""
 		st.FieldIndex = 0
 		st.BaseURLInput = textinput.New()
-		st.BaseURLInput.Placeholder = "https://api.openai.com/v1 (optional)"
+		st.BaseURLInput.Placeholder = i18n.T(i18n.KeyConfigLLMBaseURLPlaceholder)
 		st.BaseURLInput.SetValue(cfg.LLM.BaseURL)
 		st.BaseURLInput.Focus()
 		st.ApiKeyInput = textinput.New()
-		st.ApiKeyInput.Placeholder = "sk-... or $API_KEY"
+		st.ApiKeyInput.Placeholder = i18n.T(i18n.KeyConfigLLMApiKeyPlaceholder)
 		st.ApiKeyInput.EchoMode = textinput.EchoPassword
 		st.ApiKeyInput.SetValue(cfg.LLM.APIKey)
 		st.ApiKeyInput.Blur()

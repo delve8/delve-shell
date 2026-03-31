@@ -31,22 +31,22 @@ func openAddSkillOverlay(m ui.Model, url, ref, path string) ui.Model {
 	state.AddSkill.FieldIndex = 0
 
 	state.AddSkill.URLInput = textinput.New()
-	state.AddSkill.URLInput.Placeholder = "https://github.com/owner/repo or owner/repo"
+	state.AddSkill.URLInput.Placeholder = i18n.T(i18n.KeyAddSkillURLPlaceholder)
 	state.AddSkill.URLInput.SetValue(url)
 	state.AddSkill.URLInput.Focus()
 
 	state.AddSkill.RefInput = textinput.New()
-	state.AddSkill.RefInput.Placeholder = "main"
+	state.AddSkill.RefInput.Placeholder = i18n.T(i18n.KeyAddSkillRefPlaceholder)
 	state.AddSkill.RefInput.SetValue(ref)
 	state.AddSkill.RefInput.Blur()
 
 	state.AddSkill.PathInput = textinput.New()
-	state.AddSkill.PathInput.Placeholder = "skills/foo"
+	state.AddSkill.PathInput.Placeholder = i18n.T(i18n.KeyAddSkillPathPlaceholder)
 	state.AddSkill.PathInput.SetValue(path)
 	state.AddSkill.PathInput.Blur()
 
 	state.AddSkill.NameInput = textinput.New()
-	state.AddSkill.NameInput.Placeholder = "local skill name"
+	state.AddSkill.NameInput.Placeholder = i18n.T(i18n.KeyAddSkillNamePlaceholder)
 	if p := strings.TrimSpace(path); p != "" {
 		if idx := strings.LastIndex(p, "/"); idx >= 0 && idx < len(p)-1 {
 			p = p[idx+1:]

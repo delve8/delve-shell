@@ -15,7 +15,7 @@ func openUpdateSkillOverlay(m ui.Model, name string) ui.Model {
 	url, ref, commitID, path, _, ok := skillstore.GetSkillSource(name)
 	state := getSkillOverlayState()
 	if !ok || strings.TrimSpace(url) == "" {
-		m = m.OpenOverlayFeature(OverlayFeatureKey, "Update skill", "")
+		m = m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyUpdateSkillTitle), "")
 		state.UpdateSkill.Active = true
 		state.AddSkill = AddSkillOverlayState{}
 		state.UpdateSkill.Name = strings.TrimSpace(name)
@@ -59,7 +59,7 @@ func openUpdateSkillOverlay(m ui.Model, name string) ui.Model {
 		}
 	}
 
-	m = m.OpenOverlayFeature(OverlayFeatureKey, "Update skill", "")
+	m = m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyUpdateSkillTitle), "")
 	state.UpdateSkill.Active = true
 	state.AddSkill = AddSkillOverlayState{}
 	state.UpdateSkill.Error = ""

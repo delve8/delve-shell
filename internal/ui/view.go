@@ -110,7 +110,7 @@ func (m Model) titleBarLeadingSegment() string {
 			return seg
 		}
 	}
-	return "Local"
+	return i18n.T(i18n.KeyTitleBarLocal)
 }
 
 // footerLine returns the fixed status line (status + remote) for display below the input; does not scroll.
