@@ -50,18 +50,18 @@ func Register() {
 		}
 		st.MaxCharsInput.Blur()
 		setOverlayState(st)
-		return m.OpenOverlayFeature("config_llm", i18n.T("en", i18n.KeyConfigLLMTitle), "")
+		return m.OpenOverlayFeature(OverlayFeatureKey, i18n.T("en", i18n.KeyConfigLLMTitle), "")
 	}
 	ui.RegisterOverlayFeature(ui.OverlayFeature{
-		KeyID: "config_llm",
+		KeyID: OverlayFeatureKey,
 		Open: func(m ui.Model, req ui.OverlayOpenRequest) (ui.Model, tea.Cmd, bool) {
-			if req.Key != "config_llm" {
+			if req.Key != OverlayFeatureKey {
 				return m, nil, false
 			}
 			return openOverlay(m), nil, true
 		},
 		Event: func(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
-			if m.Overlay.Key != "config_llm" {
+			if m.Overlay.Key != OverlayFeatureKey {
 				return m, nil, false
 			}
 			done, ok := msg.(CheckDoneMsg)
@@ -105,7 +105,7 @@ func Register() {
 			return openOverlay(m), nil, true
 		},
 		Close: func(m ui.Model, activeKey string) ui.Model {
-			if activeKey != "config_llm" {
+			if activeKey != OverlayFeatureKey {
 				return m
 			}
 			ResetOnOverlayClose()

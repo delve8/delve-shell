@@ -14,7 +14,7 @@ func registerSlashExecutionProvider() {
 			return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 				Kind: inputlifecycletype.OutputOverlayOpen,
 				Overlay: &inputlifecycletype.OverlayPayload{
-					Key: "config_llm",
+					Key: OverlayFeatureKey,
 				},
 			}), true, nil
 		}
