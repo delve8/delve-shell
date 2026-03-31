@@ -132,12 +132,6 @@ func (m Model) withTranscriptReplaced(lines []string) Model {
 	return m
 }
 
-// RefreshViewport is kept as a compatibility shim for feature modules.
-// In normal log-stream mode it is a no-op; in choice-card mode it syncs the controlled viewport.
-func (m Model) RefreshViewport() Model {
-	return m.syncChoiceViewport()
-}
-
 func (m Model) syncChoiceViewport() Model {
 	if !m.hasPendingChoiceCard() {
 		return m

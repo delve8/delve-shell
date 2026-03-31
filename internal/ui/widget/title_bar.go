@@ -139,25 +139,6 @@ func RenderFooterBar(width int, parts FooterBarParts, st TitleBarStatus, s Title
 	return renderStatus(statusText)
 }
 
-// RenderTitleLine is kept as a thin compatibility wrapper for the older two-segment footer shape.
-func RenderTitleLine(autoRunPart, statusStr string, st TitleBarStatus, s TitleLineStyles) string {
-	base := s.Base.Render(autoRunPart)
-	switch st {
-	case TitleBarStatusIdle:
-		return base + s.StatusIdle.Render(statusStr)
-	case TitleBarStatusRunning:
-		return base + s.StatusRunning.Render(statusStr)
-	case TitleBarStatusWaitingUserInput:
-		return base + s.StatusRunning.Render(statusStr)
-	case TitleBarStatusPendingApproval:
-		return base + s.StatusPending.Render(statusStr)
-	case TitleBarStatusSuggest:
-		return base + s.StatusSuggest.Render(statusStr)
-	default:
-		return s.Base.Render(autoRunPart + statusStr)
-	}
-}
-
 func statusStyleFor(st TitleBarStatus, s TitleLineStyles) lipgloss.Style {
 	switch st {
 	case TitleBarStatusIdle:

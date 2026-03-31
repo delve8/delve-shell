@@ -151,10 +151,14 @@ func TestRenderFooterBar_keepsShortAutoRunWhileRemoteShrinks(t *testing.T) {
 	}
 }
 
-func TestRenderTitleLine_otherUsesBaseOnly(t *testing.T) {
+func TestRenderFooterBar_statusOtherUsesBaseForStatusAndAuto(t *testing.T) {
 	mark := lipgloss.NewStyle().Bold(true)
 	s := TitleLineStyles{Base: mark}
-	out := RenderTitleLine("x", "y", TitleBarStatusOther, s)
+	out := RenderFooterBar(100, FooterBarParts{
+		Status:              "y",
+		AutoRunFull:         "x",
+		AutoRunReserveWidth: 1,
+	}, TitleBarStatusOther, s)
 	if out == "" || !strings.Contains(out, "x") || !strings.Contains(out, "y") {
 		t.Fatalf("unexpected: %q", out)
 	}

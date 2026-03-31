@@ -181,20 +181,6 @@ func (m Model) lifecycleEngine() inputlifecycle.Engine {
 	return inputlifecycle.NewEngine(inputpreflight.Engine{}, router)
 }
 
-func (m Model) submitLifecycleSlash(rawText, inputLine string, selectedIndex int, source inputlifecycletype.SubmissionSource) (inputlifecycletype.ProcessResult, bool, error) {
-	trimmed := strings.TrimSpace(rawText)
-	if trimmed == "" {
-		return inputlifecycletype.ProcessResult{}, false, nil
-	}
-	return m.lifecycleEngine().RouteSubmission(inputlifecycletype.InputSubmission{
-		Kind:          inputlifecycletype.SubmissionSlash,
-		Source:        source,
-		RawText:       trimmed,
-		InputLine:     inputLine,
-		SelectedIndex: selectedIndex,
-	})
-}
-
 func (m Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (Model, tea.Cmd) {
 	for _, out := range res.Outputs {
 		switch out.Kind {

@@ -16,11 +16,3 @@ func bindTestPorts(t *testing.T, ports bus.InputPorts, shell chan<- hostcmd.Shel
 	BindSendPorts(rt, ports, shell)
 	return rt
 }
-
-// installTestRuntime returns an empty *Runtime for allowlist-only tests. Resets on cleanup.
-func installTestRuntime(t *testing.T) *app.Runtime {
-	t.Helper()
-	rt := app.NewRuntime()
-	t.Cleanup(func() { rt.Reset() })
-	return rt
-}

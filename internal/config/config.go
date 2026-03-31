@@ -121,13 +121,6 @@ func ExpandEnv(s string) string {
 	return os.Expand(s, func(key string) string { return os.Getenv(key) })
 }
 
-func (c *Config) languageResolved() string {
-	if c.Language != "" {
-		return c.Language
-	}
-	return "en"
-}
-
 // LLMResolved returns LLM config with env vars expanded for actual requests. Empty base_url defaults to OpenAI.
 // Trims base_url, api_key, model to avoid 401 from leading/trailing spaces when pasting.
 func (c *Config) LLMResolved() (baseURL, apiKey, model string) {

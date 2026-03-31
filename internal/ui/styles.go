@@ -20,10 +20,9 @@ var (
 
 var (
 	// General secondary text and lists
-	suggestStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))                                    // secondary: help, config success, approval reason, unselected list row
-	suggestHi      = lipgloss.NewStyle().Foreground(lipgloss.Color("13")).Bold(true)                        // highlighted list row (choice 1/2/3, slash options)
-	selectionStyle = lipgloss.NewStyle().Background(lipgloss.Color("238")).Foreground(lipgloss.Color("15")) // mouse-selected rows
-	hintStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Italic(true)                       // tertiary hint: copy hint, "Copied"
+	suggestStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))              // secondary: help, config success, approval reason, unselected list row
+	suggestHi    = lipgloss.NewStyle().Foreground(lipgloss.Color("13")).Bold(true)  // highlighted list row (choice 1/2/3, slash options)
+	hintStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Italic(true) // tertiary hint: copy hint, "Copied"
 	// Input-history browse chrome: dimmer than suggest list rows (7) and input text so it reads as UI, not typed content.
 	inputHistBrowsingHintStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Italic(true)
 	sessionSwitchedStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Italic(true) // "Switched to session: xxx" hint at bottom

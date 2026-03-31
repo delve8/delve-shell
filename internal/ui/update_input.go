@@ -265,12 +265,6 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 	return mm, cmd
 }
 
-func (m Model) openHelpOverlay() Model {
-	m = m.OpenOverlayFeature("", i18n.T(m.getLang(), i18n.KeyHelpTitle), i18n.T(m.getLang(), i18n.KeyHelpText))
-	m = m.InitOverlayViewport()
-	return m
-}
-
 func (m Model) clearSlashInput() Model {
 	m.Input.SetValue("")
 	m.Input.CursorEnd()
