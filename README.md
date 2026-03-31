@@ -85,7 +85,10 @@ This means chat, slash, and control now share one submission model and one outpu
 ### Execution, Safety, and Persistence
 
 - `internal/agent`: LLM runner and tools.
-- `internal/hil` and `internal/hiltypes`: approval, allowlist, sensitive command checks, and related UI payloads.
+- `internal/hil`: allowlist and sensitive-command checks (core HIL helpers).
+- `internal/hil/approvalflow`: maps approval-card keyboard input to decisions.
+- `internal/hil/approvalview`: choice metadata, placeholders, and transcript line models for approval UI.
+- `internal/hiltypes`: structured payloads for pending approvals and sensitive confirmations.
 - `internal/remote/execenv`: local and SSH executors.
 - `internal/history`: session history storage and replay.
 - `internal/config`: config loading, writing, defaults, and path resolution.

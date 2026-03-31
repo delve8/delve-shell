@@ -5,7 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/approvalview"
+	"delve-shell/internal/hil/approvalview"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/input/maininput"
 	"delve-shell/internal/slash/dispatch"

@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
-	"delve-shell/internal/approvalview"
+	"delve-shell/internal/hil/approvalview"
 )
 
 func TestRenderPendingApprovalLines_empty(t *testing.T) {

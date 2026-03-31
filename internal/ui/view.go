@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"delve-shell/internal/approvalview"
+	"delve-shell/internal/hil/approvalview"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/textwrap"
 	"delve-shell/internal/ui/widget"

@@ -5,8 +5,8 @@ import (
 
 	"github.com/atotto/clipboard"
 
-	"delve-shell/internal/approvalflow"
-	"delve-shell/internal/approvalview"
+	"delve-shell/internal/hil/approvalflow"
+	"delve-shell/internal/hil/approvalview"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/textwrap"
 	"delve-shell/internal/ui/uivm"

@@ -5,7 +5,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
-	"delve-shell/internal/approvalview"
+	"delve-shell/internal/hil/approvalview"
 )
 
 // PendingCardStyles maps choice-card line kinds to lipgloss styles for the pending card in the viewport.
