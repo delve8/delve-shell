@@ -10,7 +10,7 @@ import (
 	"delve-shell/internal/cli/hostfsm"
 	"delve-shell/internal/host/bus"
 	"delve-shell/internal/runtime/sessionmgr"
-	"delve-shell/internal/uipresenter"
+	"delve-shell/internal/ui/presenter"
 )
 
 type recordSender struct {

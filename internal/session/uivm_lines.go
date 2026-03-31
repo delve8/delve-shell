@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"delve-shell/internal/history"
-	"delve-shell/internal/uivm"
+	"delve-shell/internal/ui/uivm"
 )
 
 // EventsToTranscriptLines converts session history events into semantic transcript lines.

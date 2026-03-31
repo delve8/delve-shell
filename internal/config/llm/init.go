@@ -9,7 +9,7 @@ import (
 	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/ui"
-	"delve-shell/internal/uivm"
+	"delve-shell/internal/ui/uivm"
 )
 
 // Register wires config-LLM slash routes and overlay providers into the UI. Call from [bootstrap.Install].

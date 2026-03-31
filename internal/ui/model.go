@@ -4,7 +4,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/i18n"
-	"delve-shell/internal/uivm"
+	"delve-shell/internal/ui/uivm"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"

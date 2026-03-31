@@ -17,7 +17,7 @@ import (
 	"delve-shell/internal/runtime/executormgr"
 	"delve-shell/internal/runtime/runnermgr"
 	"delve-shell/internal/runtime/sessionmgr"
-	"delve-shell/internal/uipresenter"
+	"delve-shell/internal/ui/presenter"
 )
 
 type Options struct {

@@ -11,7 +11,7 @@ import (
 	"delve-shell/internal/remote"
 	"delve-shell/internal/remote/auth"
 	"delve-shell/internal/remote/execenv"
-	"delve-shell/internal/uivm"
+	"delve-shell/internal/ui/uivm"
 )
 
 func (c *Controller) handleExecDirect(cmd string) {

@@ -6,7 +6,7 @@ import (
 	"delve-shell/internal/input/maininput"
 	"delve-shell/internal/slash/flow"
 	"delve-shell/internal/slash/view"
-	"delve-shell/internal/uiflow/enterflow"
+	"delve-shell/internal/ui/flow/enterflow"
 )
 
 type Runtime[M any, C any] struct {

@@ -12,7 +12,7 @@ import (
 	"delve-shell/internal/input/lifecycletype"
 	"delve-shell/internal/remote/auth"
 	"delve-shell/internal/ui"
-	"delve-shell/internal/uivm"
+	"delve-shell/internal/ui/uivm"
 )
 
 func TestMain(m *testing.M) {

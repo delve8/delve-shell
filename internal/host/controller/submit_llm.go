@@ -19,7 +19,7 @@ import (
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/modelinfo"
 	"delve-shell/internal/session"
-	"delve-shell/internal/uivm"
+	"delve-shell/internal/ui/uivm"
 )
 
 // publishHistorySwitchDone sets the main transcript to a short switch line after a confirmed /history switch.

@@ -5,7 +5,7 @@ import (
 
 	"delve-shell/internal/input/lifecycletype"
 	"delve-shell/internal/slash/reg"
-	"delve-shell/internal/uiregistry"
+	"delve-shell/internal/ui/registry"
 )
 
 // SlashOptionsProvider can provide slash suggestion options for a given input.

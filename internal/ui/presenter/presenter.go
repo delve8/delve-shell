@@ -11,7 +11,7 @@ import (
 	"delve-shell/internal/hiltypes"
 	"delve-shell/internal/remote"
 	"delve-shell/internal/ui"
-	"delve-shell/internal/uivm"
+	"delve-shell/internal/ui/uivm"
 )
 
 // Sender delivers a message to the active tea.Program (typically via bus UI queue).

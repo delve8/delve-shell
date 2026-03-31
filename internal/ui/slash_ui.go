@@ -10,8 +10,8 @@ import (
 	"delve-shell/internal/input/maininput"
 	"delve-shell/internal/slash/dispatch"
 	"delve-shell/internal/slash/view"
+	"delve-shell/internal/ui/registry"
 	"delve-shell/internal/ui/widget"
-	"delve-shell/internal/uiregistry"
 )
 
 // SlashOption is one row in the slash command list (command + description).

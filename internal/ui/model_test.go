@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"delve-shell/internal/uivm"
+	"delve-shell/internal/ui/uivm"
 )
 
 // TUI (Bubble Tea) tests: do not run tea.Program; unit-test the Model by sending messages and asserting state/output.

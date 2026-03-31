@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"delve-shell/internal/uivm"
+	"delve-shell/internal/ui/uivm"
 )
 
 func TestAppendApprovalViewportContent_sensitive(t *testing.T) {

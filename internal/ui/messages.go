@@ -1,6 +1,6 @@
 package ui
 
-import "delve-shell/internal/uivm"
+import "delve-shell/internal/ui/uivm"
 
 // ChoiceCardShowMsg asks the UI to show a pending choice card (approval or sensitive confirmation).
 // Exactly one of PendingApproval/PendingSensitive should be non-nil.

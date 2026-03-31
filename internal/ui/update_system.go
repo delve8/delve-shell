@@ -8,7 +8,7 @@ import (
 	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/textwrap"
-	"delve-shell/internal/uivm"
+	"delve-shell/internal/ui/uivm"
 )
 
 func (m Model) closeOverlayCommon(refocusInput bool) (Model, tea.Cmd) {

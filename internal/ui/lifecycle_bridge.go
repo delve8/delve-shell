@@ -15,7 +15,7 @@ import (
 	"delve-shell/internal/input/process/controlproc"
 	"delve-shell/internal/input/process/slashproc"
 
-	"delve-shell/internal/uivm"
+	"delve-shell/internal/ui/uivm"
 	tea "github.com/charmbracelet/bubbletea"
 )
 

@@ -11,7 +11,7 @@ import (
 	"delve-shell/internal/host/bus"
 	"delve-shell/internal/remote/execenv"
 	"delve-shell/internal/ui"
-	"delve-shell/internal/uipresenter"
+	"delve-shell/internal/ui/presenter"
 )
 
 func TestHandleLLMRunCompleted_Success(t *testing.T) {

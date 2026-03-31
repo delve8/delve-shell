@@ -6,7 +6,7 @@ import (
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/textwrap"
 	"delve-shell/internal/ui"
-	"delve-shell/internal/uivm"
+	"delve-shell/internal/ui/uivm"
 )
 
 const historyPreviewWrapWidth = 72

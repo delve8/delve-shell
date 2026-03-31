@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"delve-shell/internal/i18n"
-	"delve-shell/internal/uivm"
+	"delve-shell/internal/ui/uivm"
 )
 
 type LineKind int

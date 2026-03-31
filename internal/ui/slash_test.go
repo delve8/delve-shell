@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"delve-shell/internal/uiregistry"
+	"delve-shell/internal/ui/registry"
 )
 
 // TestGetSlashOptionsForInput_history_returnsHistoryCommands asserts that

@@ -51,9 +51,10 @@ This means chat, slash, and control now share one submission model and one outpu
 ### UI and interaction
 
 - `internal/ui`: Bubble Tea model, view, update routing, overlays, title bar, transcript rendering, and lifecycle result application.
-- `internal/uipresenter`: host-to-UI presenter boundary.
-- `internal/uiflow/*`: small interaction helpers for approval and enter-flow behavior.
-- `internal/uiregistry`: slash option providers that do not depend on `ui.Model`.
+- `internal/ui/uivm`: transcript-oriented view-model types shared with host and presenter layers.
+- `internal/ui/presenter`: host-to-UI presenter boundary.
+- `internal/ui/flow/*`: small interaction helpers for approval execution mapping and enter-flow planning.
+- `internal/ui/registry`: slash option providers that do not depend on `ui.Model`.
 
 ### Host orchestration
 
