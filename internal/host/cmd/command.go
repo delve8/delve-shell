@@ -64,15 +64,15 @@ type ShellSnapshot struct {
 
 func (ShellSnapshot) hostCommand() {}
 
-type RemoteOnTarget struct {
+type AccessRemote struct {
 	Target string
 }
 
-func (RemoteOnTarget) hostCommand() {}
+func (AccessRemote) hostCommand() {}
 
-type RemoteOff struct{}
+type AccessLocal struct{}
 
-func (RemoteOff) hostCommand() {}
+func (AccessLocal) hostCommand() {}
 
 // AccessOffline selects offline (manual relay) mode: no in-process execution; execute_command uses paste-back HIL.
 type AccessOffline struct{}

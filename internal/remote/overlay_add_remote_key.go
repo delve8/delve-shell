@@ -212,7 +212,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 		}
 		state.AddRemote.Connecting = true
 		state.AddRemote.Error = ""
-		if m.CommandSender == nil || !m.CommandSender.Send(hostcmd.RemoteOnTarget{Target: target}) {
+		if m.CommandSender == nil || !m.CommandSender.Send(hostcmd.AccessRemote{Target: target}) {
 			state.AddRemote.Connecting = false
 		}
 		return ret(m, nil, true)

@@ -27,7 +27,7 @@ func registerSlashExecutionProvider() {
 				},
 			}), true, nil
 		case text == slashaccess.Command(slashaccess.ReservedLocal):
-			if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.RemoteOff{}) {
+			if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.AccessLocal{}) {
 				return inputlifecycletype.ProcessResult{}, true, nil
 			}
 			return inputlifecycletype.ConsumedResult(), true, nil
@@ -38,7 +38,7 @@ func registerSlashExecutionProvider() {
 			return inputlifecycletype.ConsumedResult(), true, nil
 		case strings.HasPrefix(text, "/access "):
 			target := strings.TrimSpace(strings.TrimPrefix(text, "/access "))
-			if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.RemoteOnTarget{Target: target}) {
+			if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.AccessRemote{Target: target}) {
 				return inputlifecycletype.ProcessResult{}, true, nil
 			}
 			return inputlifecycletype.ConsumedResult(), true, nil

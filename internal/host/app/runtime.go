@@ -178,8 +178,8 @@ func (r *Runtime) PublishExecDirect(cmd string) {
 	s.ExecDirect <- cmd
 }
 
-// PublishRemoteOnTarget forwards a remote connect target.
-func (r *Runtime) PublishRemoteOnTarget(target string) bool {
+// PublishAccessRemote forwards a remote connect target.
+func (r *Runtime) PublishAccessRemote(target string) bool {
 	s := r.currentSend()
 	if s == nil || s.RemoteOn == nil {
 		return false
@@ -192,8 +192,8 @@ func (r *Runtime) PublishRemoteOnTarget(target string) bool {
 	}
 }
 
-// PublishRemoteOff requests switching back to the local executor.
-func (r *Runtime) PublishRemoteOff() bool {
+// PublishAccessLocal requests switching back to the local executor.
+func (r *Runtime) PublishAccessLocal() bool {
 	s := r.currentSend()
 	if s == nil || s.RemoteOff == nil {
 		return false

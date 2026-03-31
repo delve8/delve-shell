@@ -24,10 +24,10 @@ func (k Kind) SemanticLabel() string {
 		return "CancelRequested"
 	case KindExecDirectRequested:
 		return "ExecDirectRequested"
-	case KindRemoteOnRequested:
-		return "RemoteConnectRequested"
-	case KindRemoteOffRequested:
-		return "RemoteDisconnectRequested"
+	case KindAccessRemoteRequested:
+		return "AccessRemoteRequested"
+	case KindAccessLocalRequested:
+		return "AccessLocalRequested"
 	case KindAccessOfflineRequested:
 		return "AccessOfflineRequested"
 	case KindRemoteAuthResponseSubmitted:
@@ -52,7 +52,7 @@ func (e Event) RedactedSummary() string {
 	k := e.Kind
 	label := k.SemanticLabel()
 	switch k {
-	case KindSessionNewRequested, KindRemoteOffRequested, KindAccessOfflineRequested, KindCancelRequested, KindConfigUpdated:
+	case KindSessionNewRequested, KindAccessLocalRequested, KindAccessOfflineRequested, KindCancelRequested, KindConfigUpdated:
 		return label
 	case KindSessionSwitchRequested:
 		return fmt.Sprintf("%s session_id=%s", label, clipOneLine(e.SessionID, 64))
@@ -62,7 +62,7 @@ func (e Event) RedactedSummary() string {
 		return fmt.Sprintf("%s text=%q", label, clipOneLine(e.UserText, 80))
 	case KindExecDirectRequested:
 		return fmt.Sprintf("%s command=%q", label, clipOneLine(e.Command, 120))
-	case KindRemoteOnRequested:
+	case KindAccessRemoteRequested:
 		return fmt.Sprintf("%s target=%q", label, clipOneLine(e.RemoteTarget, 120))
 	case KindRemoteAuthResponseSubmitted:
 		r := e.RemoteAuthResponse

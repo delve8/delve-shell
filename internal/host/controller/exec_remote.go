@@ -38,7 +38,7 @@ func (c *Controller) handleExecDirect(cmd string) {
 	c.ui.CommandExecutedDirect(cmd, result)
 }
 
-func (c *Controller) handleRemoteOn(target string) {
+func (c *Controller) handleAccessRemote(target string) {
 	if c.runtime != nil {
 		c.runtime.SetOffline(false)
 	}
@@ -81,7 +81,7 @@ func (c *Controller) handleRemoteOn(target string) {
 	c.ui.RemoteConnectDone(true, res.Label, "")
 }
 
-func (c *Controller) handleRemoteOff() {
+func (c *Controller) handleAccessLocal() {
 	if c.runtime != nil {
 		c.runtime.SetOffline(false)
 	}

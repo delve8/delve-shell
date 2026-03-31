@@ -28,8 +28,8 @@ const (
 	KindConfigUpdated                  Kind = "config_updated"
 	KindCancelRequested                Kind = "cancel_requested"
 	KindExecDirectRequested            Kind = "exec_direct_requested"
-	KindRemoteOnRequested              Kind = "remote_on_requested"
-	KindRemoteOffRequested             Kind = "remote_off_requested"
+	KindAccessRemoteRequested          Kind = "access_remote_requested"
+	KindAccessLocalRequested           Kind = "access_local_requested"
 	KindAccessOfflineRequested         Kind = "access_offline_requested"
 	KindRemoteAuthResponseSubmitted    Kind = "remote_auth_response_submitted"
 	KindApprovalRequested              Kind = "approval_requested"
@@ -49,8 +49,8 @@ func AllKinds() []Kind {
 		KindConfigUpdated,
 		KindCancelRequested,
 		KindExecDirectRequested,
-		KindRemoteOnRequested,
-		KindRemoteOffRequested,
+		KindAccessRemoteRequested,
+		KindAccessLocalRequested,
 		KindAccessOfflineRequested,
 		KindRemoteAuthResponseSubmitted,
 		KindApprovalRequested,
@@ -193,9 +193,9 @@ func BridgeInputs(stop <-chan struct{}, b *Bus, in InputPorts) {
 			case cmd := <-in.ExecDirectChan:
 				b.PublishBlocking(Event{Kind: KindExecDirectRequested, Command: cmd})
 			case target := <-in.RemoteOnChan:
-				b.PublishBlocking(Event{Kind: KindRemoteOnRequested, RemoteTarget: target})
+				b.PublishBlocking(Event{Kind: KindAccessRemoteRequested, RemoteTarget: target})
 			case <-in.RemoteOffChan:
-				b.PublishBlocking(Event{Kind: KindRemoteOffRequested})
+				b.PublishBlocking(Event{Kind: KindAccessLocalRequested})
 			case resp := <-in.RemoteAuthRespChan:
 				b.PublishBlocking(Event{Kind: KindRemoteAuthResponseSubmitted, RemoteAuthResponse: resp})
 			case x := <-in.AgentUIChan:

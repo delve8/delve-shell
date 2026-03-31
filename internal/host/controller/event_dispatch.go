@@ -26,11 +26,11 @@ var hostEventHandlers = map[bus.Kind]func(*Controller, bus.Event){
 	bus.KindExecDirectRequested: func(c *Controller, e bus.Event) {
 		c.handleExecDirect(e.Command)
 	},
-	bus.KindRemoteOnRequested: func(c *Controller, e bus.Event) {
-		c.handleRemoteOn(e.RemoteTarget)
+	bus.KindAccessRemoteRequested: func(c *Controller, e bus.Event) {
+		c.handleAccessRemote(e.RemoteTarget)
 	},
-	bus.KindRemoteOffRequested: func(c *Controller, _ bus.Event) {
-		c.handleRemoteOff()
+	bus.KindAccessLocalRequested: func(c *Controller, _ bus.Event) {
+		c.handleAccessLocal()
 	},
 	bus.KindAccessOfflineRequested: func(c *Controller, _ bus.Event) {
 		c.handleAccessOffline()

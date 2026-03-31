@@ -115,14 +115,14 @@ func (s testCommandSender) Send(cmd hostcmd.Command) bool {
 		default:
 			return false
 		}
-	case hostcmd.RemoteOnTarget:
+	case hostcmd.AccessRemote:
 		select {
 		case s.f.remoteOn <- c.Target:
 			return true
 		default:
 			return false
 		}
-	case hostcmd.RemoteOff:
+	case hostcmd.AccessLocal:
 		select {
 		case s.f.remoteOff <- struct{}{}:
 			return true

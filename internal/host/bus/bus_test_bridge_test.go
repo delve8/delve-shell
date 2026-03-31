@@ -83,7 +83,7 @@ func TestBridgeInputs_RemoteOn(t *testing.T) {
 
 	in.RemoteOnChan <- "prod"
 	ev := mustRecvEvent(t, b.Events())
-	if ev.Kind != KindRemoteOnRequested || ev.RemoteTarget != "prod" {
+	if ev.Kind != KindAccessRemoteRequested || ev.RemoteTarget != "prod" {
 		t.Fatalf("unexpected event: %+v", ev)
 	}
 }
@@ -98,7 +98,7 @@ func TestBridgeInputs_RemoteOff(t *testing.T) {
 
 	in.RemoteOffChan <- struct{}{}
 	ev := mustRecvEvent(t, b.Events())
-	if ev.Kind != KindRemoteOffRequested {
+	if ev.Kind != KindAccessLocalRequested {
 		t.Fatalf("unexpected event: %+v", ev)
 	}
 }
