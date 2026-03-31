@@ -11,19 +11,18 @@ import (
 func buildSkillOverlayContent(m ui.Model) (string, bool) {
 	state := getSkillOverlayState()
 	if state.AddSkill.Active {
-		lang := m.GetLang()
 		var b strings.Builder
 		if state.AddSkill.Error != "" {
 			b.WriteString(ui.ErrStyleRender(state.AddSkill.Error) + "\n\n")
 		}
-		b.WriteString(i18n.T(lang, i18n.KeyAddSkillURLLabel) + "\n")
+		b.WriteString(i18n.T(i18n.KeyAddSkillURLLabel) + "\n")
 		b.WriteString(state.AddSkill.URLInput.View())
 		b.WriteString("\n\n")
-		b.WriteString(i18n.T(lang, i18n.KeyAddSkillRefLabel) + "\n")
+		b.WriteString(i18n.T(i18n.KeyAddSkillRefLabel) + "\n")
 		b.WriteString(state.AddSkill.RefInput.View())
 		if state.AddSkill.FieldIndex == 1 && len(state.AddSkill.RefCandidates) > 0 {
 			b.WriteString("\n")
-			b.WriteString(ui.RenderOverlayPicklistHintLine(lang))
+			b.WriteString(ui.RenderOverlayPicklistHintLine())
 			for i, c := range state.AddSkill.RefCandidates {
 				line := "  " + c
 				if i == state.AddSkill.RefIndex {
@@ -34,11 +33,11 @@ func buildSkillOverlayContent(m ui.Model) (string, bool) {
 			}
 		}
 		b.WriteString("\n\n")
-		b.WriteString(i18n.T(lang, i18n.KeyAddSkillPathLabel) + "\n")
+		b.WriteString(i18n.T(i18n.KeyAddSkillPathLabel) + "\n")
 		b.WriteString(state.AddSkill.PathInput.View())
 		if state.AddSkill.FieldIndex == 2 && len(state.AddSkill.PathCandidates) > 0 {
 			b.WriteString("\n")
-			b.WriteString(ui.RenderOverlayPicklistHintLine(lang))
+			b.WriteString(ui.RenderOverlayPicklistHintLine())
 			for i, c := range state.AddSkill.PathCandidates {
 				line := "  " + c
 				if i == state.AddSkill.PathIndex {
@@ -49,15 +48,14 @@ func buildSkillOverlayContent(m ui.Model) (string, bool) {
 			}
 		}
 		b.WriteString("\n\n")
-		b.WriteString(i18n.T(lang, i18n.KeyAddSkillNameLabel) + "\n")
+		b.WriteString(i18n.T(i18n.KeyAddSkillNameLabel) + "\n")
 		b.WriteString(state.AddSkill.NameInput.View())
 		b.WriteString("\n\n")
-		b.WriteString(ui.RenderOverlayFormFooterHint(lang))
+		b.WriteString(ui.RenderOverlayFormFooterHint())
 		return b.String(), true
 	}
 
 	if state.UpdateSkill.Active {
-		lang := m.GetLang()
 		var b strings.Builder
 		if state.UpdateSkill.Error != "" {
 			b.WriteString(ui.ErrStyleRender(state.UpdateSkill.Error) + "\n\n")
@@ -70,7 +68,7 @@ func buildSkillOverlayContent(m ui.Model) (string, bool) {
 			path = "."
 		}
 		b.WriteString("Path:  " + path + "\n\n")
-		b.WriteString(ui.RenderOverlayUpdateSkillRefTitleLine(lang))
+		b.WriteString(ui.RenderOverlayUpdateSkillRefTitleLine())
 		for i, r := range state.UpdateSkill.Refs {
 			line := "  " + r
 			if i == state.UpdateSkill.RefIndex {
@@ -94,7 +92,7 @@ func buildSkillOverlayContent(m ui.Model) (string, bool) {
 		}
 		b.WriteString(fmt.Sprintf("Current commit: %s\n", current))
 		b.WriteString(fmt.Sprintf("Latest commit:  %s\n\n", latest))
-		b.WriteString(i18n.T(lang, i18n.KeyDescConfigUpdateSkill))
+		b.WriteString(i18n.T(i18n.KeyDescConfigUpdateSkill))
 		return b.String(), true
 	}
 

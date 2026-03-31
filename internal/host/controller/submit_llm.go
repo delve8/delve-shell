@@ -29,7 +29,8 @@ func (c *Controller) publishHistorySwitchDone(path string) {
 	if cfg, err := config.Load(); err == nil && cfg != nil && cfg.Language != "" {
 		lang = cfg.Language
 	}
-	c.ui.ApplyHistorySwitchBanner(sessionID, lang)
+	i18n.SetLang(lang)
+	c.ui.ApplyHistorySwitchBanner(sessionID)
 }
 
 func (c *Controller) handleHistoryPreviewOpen(sessionID string) {
@@ -51,7 +52,8 @@ func (c *Controller) handleHistoryPreviewOpen(sessionID string) {
 	}
 	events, _ := history.ReadRecent(sessionPath, agent.MaxConversationEvents)
 	vmLines := historytui.EventsToTranscriptLines(events)
-	c.ui.ShowHistoryPreviewDialog(vmLines, sessionID, lang)
+	i18n.SetLang(lang)
+	c.ui.ShowHistoryPreviewDialog(vmLines, sessionID)
 }
 
 func (c *Controller) handleUserChat(e bus.Event) {
@@ -157,7 +159,8 @@ func (c *Controller) publishSessionTranscript(path string) {
 	if cfg, err := config.Load(); err == nil && cfg != nil && cfg.Language != "" {
 		lang = cfg.Language
 	}
-	banner := i18n.Tf(lang, i18n.KeySessionSwitchedTo, sessionID)
+	i18n.SetLang(lang)
+	banner := i18n.Tf(i18n.KeySessionSwitchedTo, sessionID)
 	lines = append(lines, uivm.Line{Kind: uivm.LineSessionBanner, Text: banner})
 	lines = append(lines, uivm.Line{Kind: uivm.LineBlank})
 	c.ui.TranscriptReplace(lines)

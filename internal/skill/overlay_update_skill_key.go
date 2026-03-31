@@ -10,6 +10,7 @@ import (
 
 	"delve-shell/internal/skill/git"
 	"delve-shell/internal/skill/store"
+	"delve-shell/internal/teakey"
 	"delve-shell/internal/ui"
 )
 
@@ -24,15 +25,13 @@ func handleUpdateSkillOverlayKey(m ui.Model, key string) (ui.Model, tea.Cmd, boo
 	if !state.UpdateSkill.Active {
 		return m, nil, false
 	}
-	lang := "en"
-
 	switch key {
-	case "up", "down":
+	case teakey.Up, teakey.Down:
 		if len(state.UpdateSkill.Refs) == 0 {
 			return ret(m, nil, true)
 		}
 		dir := 1
-		if key == "up" {
+		if key == teakey.Up {
 			dir = -1
 		}
 		state.UpdateSkill.RefIndex = (state.UpdateSkill.RefIndex + dir + len(state.UpdateSkill.Refs)) % len(state.UpdateSkill.Refs)
@@ -45,7 +44,7 @@ func handleUpdateSkillOverlayKey(m ui.Model, key string) (ui.Model, tea.Cmd, boo
 			}
 		}
 		return ret(m, nil, true)
-	case "enter":
+	case teakey.Enter:
 		if len(state.UpdateSkill.Refs) == 0 || state.UpdateSkill.Name == "" {
 			return ret(m, nil, true)
 		}
@@ -63,14 +62,14 @@ func handleUpdateSkillOverlayKey(m ui.Model, key string) (ui.Model, tea.Cmd, boo
 			shortCommit = shortCommit[:7]
 		}
 		if shortCommit != "" {
-			m = m.AppendTranscriptLines(suggestStyleUpdate.Render(delveMsg(lang, fmt.Sprintf(
+			m = m.AppendTranscriptLines(suggestStyleUpdate.Render(delveMsg(fmt.Sprintf(
 				"Skill %s updated to %s@%s.",
 				state.UpdateSkill.Name,
 				selectedRef,
 				shortCommit,
 			))))
 		} else {
-			m = m.AppendTranscriptLines(suggestStyleUpdate.Render(delveMsg(lang, fmt.Sprintf(
+			m = m.AppendTranscriptLines(suggestStyleUpdate.Render(delveMsg(fmt.Sprintf(
 				"Skill %s updated to %s.",
 				state.UpdateSkill.Name,
 				selectedRef,

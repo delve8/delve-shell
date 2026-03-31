@@ -50,7 +50,7 @@ func Register() {
 		}
 		st.MaxCharsInput.Blur()
 		setOverlayState(st)
-		return m.OpenOverlayFeature(OverlayFeatureKey, i18n.T("en", i18n.KeyConfigLLMTitle), "")
+		return m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyConfigLLMTitle), "")
 	}
 	ui.RegisterOverlayFeature(ui.OverlayFeature{
 		KeyID: OverlayFeatureKey,
@@ -68,23 +68,22 @@ func Register() {
 			if !ok {
 				return m, nil, false
 			}
-			lang := "en"
 			st := getOverlayState()
 			st.Checking = false
 			if done.ErrText != "" {
-				st.Error = i18n.Tf(lang, i18n.KeyConfigLLMCheckFailed, done.ErrText)
+				st.Error = i18n.Tf(i18n.KeyConfigLLMCheckFailed, done.ErrText)
 				setOverlayState(st)
 				return m, nil, true
 			}
 			st.Error = ""
 			setOverlayState(st)
 			mm := ui.TranscriptAppendMsg{Lines: []uivm.Line{
-				{Kind: uivm.LineSystemSuggest, Text: i18n.T(lang, i18n.KeyConfigSavedLLM)},
+				{Kind: uivm.LineSystemSuggest, Text: i18n.T(i18n.KeyConfigSavedLLM)},
 			}}
 			if done.CorrectedBaseURL != "" {
-				mm.Lines = append(mm.Lines, uivm.Line{Kind: uivm.LineSystemSuggest, Text: i18n.Tf(lang, i18n.KeyConfigLLMBaseURLAutoCorrected, done.CorrectedBaseURL)})
+				mm.Lines = append(mm.Lines, uivm.Line{Kind: uivm.LineSystemSuggest, Text: i18n.Tf(i18n.KeyConfigLLMBaseURLAutoCorrected, done.CorrectedBaseURL)})
 			}
-			mm.Lines = append(mm.Lines, uivm.Line{Kind: uivm.LineSystemSuggest, Text: i18n.T(lang, i18n.KeyConfigLLMCheckOK)})
+			mm.Lines = append(mm.Lines, uivm.Line{Kind: uivm.LineSystemSuggest, Text: i18n.T(i18n.KeyConfigLLMCheckOK)})
 			mm.Lines = append(mm.Lines, uivm.Line{Kind: uivm.LineBlank})
 			next, _ := m.Update(mm)
 			m = next.(ui.Model)

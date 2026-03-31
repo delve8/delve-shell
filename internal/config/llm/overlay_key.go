@@ -10,6 +10,7 @@ import (
 
 	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/teakey"
 	"delve-shell/internal/ui"
 )
 
@@ -22,9 +23,9 @@ func handleOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd
 	}
 
 	switch key {
-	case "up", "down":
+	case teakey.Up, teakey.Down:
 		dir := 1
-		if key == "up" {
+		if key == teakey.Up {
 			dir = -1
 		}
 		st.FieldIndex = (st.FieldIndex + dir + configLLMFieldCount) % configLLMFieldCount
@@ -47,7 +48,7 @@ func handleOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd
 		}
 		setOverlayState(st)
 		return m, nil, true
-	case "enter":
+	case teakey.Enter:
 		if st.Checking {
 			return m, nil, true
 		}
@@ -57,7 +58,7 @@ func handleOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd
 		maxMessagesStr := strings.TrimSpace(st.MaxMessagesInput.Value())
 		maxCharsStr := strings.TrimSpace(st.MaxCharsInput.Value())
 		if model == "" {
-			st.Error = i18n.T("en", i18n.KeyConfigLLMModelRequired)
+			st.Error = i18n.T(i18n.KeyConfigLLMModelRequired)
 			setOverlayState(st)
 			return m, nil, true
 		}
@@ -65,7 +66,7 @@ func handleOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd
 		if err != nil || cfg == nil {
 			cfg = config.Default()
 			if err := config.EnsureRootDir(); err != nil {
-				m = m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T("en", i18n.KeyConfigPrefix) + err.Error()))
+				m = m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T(i18n.KeyConfigPrefix) + err.Error()))
 				return m, nil, true
 			}
 		}
@@ -89,7 +90,7 @@ func handleOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd
 			cfg.LLM.MaxContextChars = 0
 		}
 		if err := config.Write(cfg); err != nil {
-			m = m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T("en", i18n.KeyConfigPrefix) + err.Error()))
+			m = m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T(i18n.KeyConfigPrefix) + err.Error()))
 			return m, nil, true
 		}
 		st = getOverlayState()

@@ -12,6 +12,7 @@ import (
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/skill/git"
 	"delve-shell/internal/skill/store"
+	"delve-shell/internal/teakey"
 	"delve-shell/internal/ui"
 )
 
@@ -19,8 +20,8 @@ var suggestStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
 
 const addSkillFieldCount = 4
 
-func delveMsg(lang, msg string) string {
-	return i18n.T(lang, i18n.KeyDelveLabel) + " " + msg
+func delveMsg(msg string) string {
+	return i18n.T(i18n.KeyDelveLabel) + " " + msg
 }
 
 func filterByPrefix(s []string, prefix string) []string {
@@ -70,9 +71,8 @@ func handleAddSkillOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model,
 	if !state.AddSkill.Active {
 		return m, nil, false
 	}
-	lang := "en"
 	switch key {
-	case "tab":
+	case teakey.Tab:
 		if state.AddSkill.FieldIndex == 1 && len(state.AddSkill.RefCandidates) > 0 && state.AddSkill.RefIndex >= 0 && state.AddSkill.RefIndex < len(state.AddSkill.RefCandidates) {
 			state.AddSkill.RefInput.SetValue(state.AddSkill.RefCandidates[state.AddSkill.RefIndex])
 			state.AddSkill.RefInput.CursorEnd()
@@ -87,9 +87,9 @@ func handleAddSkillOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model,
 			state.AddSkill.PathIndex = 0
 			return ret(m, nil, true)
 		}
-	case "up", "down":
+	case teakey.Up, teakey.Down:
 		dir := 1
-		if key == "up" {
+		if key == teakey.Up {
 			dir = -1
 		}
 		if state.AddSkill.FieldIndex == 1 && len(state.AddSkill.RefCandidates) > 0 {
@@ -128,7 +128,7 @@ func handleAddSkillOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model,
 			state.AddSkill.NameInput.Focus()
 		}
 		return ret(m, nil, true)
-	case "enter":
+	case teakey.Enter:
 		// In Ref field with ref candidates: pick selected and fill
 		if state.AddSkill.FieldIndex == 1 && len(state.AddSkill.RefCandidates) > 0 {
 			if state.AddSkill.RefIndex >= 0 && state.AddSkill.RefIndex < len(state.AddSkill.RefCandidates) {
@@ -168,23 +168,23 @@ func handleAddSkillOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model,
 			path = ""
 		}
 		if url == "" {
-			state.AddSkill.Error = i18n.T(lang, i18n.KeyAddSkillURLRequired)
+			state.AddSkill.Error = i18n.T(i18n.KeyAddSkillURLRequired)
 			return ret(m, nil, true)
 		}
 		state.AddSkill.Error = ""
 		name, err := skillstore.InstallFromGit(url, ref, nameInput, path)
 		if err != nil {
 			if errors.Is(err, os.ErrExist) {
-				state.AddSkill.Error = i18n.T(lang, i18n.KeySkillAlreadyExists)
+				state.AddSkill.Error = i18n.T(i18n.KeySkillAlreadyExists)
 			} else {
-				state.AddSkill.Error = i18n.Tf(lang, i18n.KeySkillInstallFailed, err)
+				state.AddSkill.Error = i18n.Tf(i18n.KeySkillInstallFailed, err)
 			}
 			return ret(m, nil, true)
 		}
 		m = m.CloseOverlayVisual()
 		state.AddSkill.Active = false
 		m.Input.Focus()
-		m = m.AppendTranscriptLines(suggestStyle.Render(delveMsg(lang, i18n.Tf(lang, i18n.KeySkillInstalled, name))))
+		m = m.AppendTranscriptLines(suggestStyle.Render(delveMsg(i18n.Tf(i18n.KeySkillInstalled, name))))
 		return ret(m, nil, true)
 	}
 

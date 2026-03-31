@@ -8,5 +8,5 @@ import (
 )
 
 func bashRootSlashOptions(lang string) []ui.SlashOption {
-	return []ui.SlashOption{{Cmd: "/bash", Desc: i18n.T(lang, i18n.KeyDescSh)}}
+	return []ui.SlashOption{{Cmd: "/bash", Desc: i18n.T(i18n.KeyDescSh)}}
 }

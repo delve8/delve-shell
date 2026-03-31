@@ -16,7 +16,6 @@ func (m Model) View() string {
 }
 
 func (m Model) renderBaseScreen() string {
-	lang := m.getLang()
 	sepW := m.layout.Width
 	if sepW <= 0 {
 		sepW = 40
@@ -29,7 +28,7 @@ func (m Model) renderBaseScreen() string {
 	if m.primaryInputLineCount() > 1 {
 		inputSeparator = "\n"
 	}
-	bottomBlock := sepLine + "\n" + m.primaryInputView() + inputSeparator + m.inputBelowBlock(lang, inChoice) + footer
+	bottomBlock := sepLine + "\n" + m.primaryInputView() + inputSeparator + m.inputBelowBlock(inChoice) + footer
 	if !inChoice {
 		padLines := m.normalModeTopPaddingLines(bottomBlock)
 		if padLines <= 0 {
@@ -54,6 +53,7 @@ func (m Model) renderBaseScreen() string {
 }
 
 func (m Model) renderScreenSnapshot() string {
+	i18n.SetLang(m.getLang())
 	out := m.renderBaseScreen()
 	if m.Overlay.Active {
 		return m.renderOverlay(out)
@@ -62,14 +62,14 @@ func (m Model) renderScreenSnapshot() string {
 }
 
 // appendSuggestedLine appends the run line and copy hint for a suggested command (when dismissing the card).
-func (m *Model) appendSuggestedLine(command, lang string) {
-	tag := i18n.T(lang, i18n.KeyRunTagSuggested)
-	line := i18n.T(lang, i18n.KeyRunLabel) + command + " (" + tag + ")"
+func (m *Model) appendSuggestedLine(command string) {
+	tag := i18n.T(i18n.KeyRunTagSuggested)
+	line := i18n.T(i18n.KeyRunLabel) + command + " (" + tag + ")"
 	w := m.contentWidth()
 	m.messages = append(
 		m.messages,
 		execStyle.Render(textwrap.WrapString(line, w)),
-		hintStyle.Render(i18n.T(lang, i18n.KeySuggestedCopyHint)),
+		hintStyle.Render(i18n.T(i18n.KeySuggestedCopyHint)),
 	)
 }
 
@@ -115,14 +115,13 @@ func (m Model) titleBarLeadingSegment() string {
 
 // footerLine returns the fixed status line (status + remote) for display below the input; does not scroll.
 func (m Model) footerLine() string {
-	lang := m.getLang()
 	remotePart := m.titleBarLeadingSegment()
-	statusStr := i18n.T(lang, m.statusKey())
+	statusStr := i18n.T(m.statusKey())
 	return widget.RenderFooterBar(m.layout.Width, widget.FooterBarParts{
 		Remote:              remotePart,
 		AutoRunReserveWidth: 0,
 		Status:              statusStr,
-		StatusReserveWidth:  footerStatusReserveWidth(lang),
+		StatusReserveWidth:  footerStatusReserveWidth(),
 	}, m.titleBarStatus(), widget.TitleLineStyles{
 		Base:          titleStyle,
 		StatusIdle:    statusIdleStyle,
@@ -132,13 +131,13 @@ func (m Model) footerLine() string {
 	})
 }
 
-func footerStatusReserveWidth(lang string) int {
+func footerStatusReserveWidth() int {
 	statuses := []string{
-		i18n.T(lang, i18n.KeyStatusIdle),
-		i18n.T(lang, i18n.KeyStatusRunning),
-		i18n.T(lang, i18n.KeyStatusWaitingUserInput),
-		i18n.T(lang, i18n.KeyStatusPendingApproval),
-		i18n.T(lang, i18n.KeyStatusSuggest),
+		i18n.T(i18n.KeyStatusIdle),
+		i18n.T(i18n.KeyStatusRunning),
+		i18n.T(i18n.KeyStatusWaitingUserInput),
+		i18n.T(i18n.KeyStatusPendingApproval),
+		i18n.T(i18n.KeyStatusSuggest),
 	}
 	maxW := 0
 	for _, s := range statuses {
@@ -179,18 +178,16 @@ func (m Model) renderOverlay(base string) string {
 
 // syncInputPlaceholder sets the input placeholder to selection hint (1/2 or 1/2/3) when waiting for choice, else normal placeholder.
 func (m *Model) syncInputPlaceholder() {
-	lang := m.getLang()
 	if m.ChoiceCard.offlinePaste != nil {
 		return
 	}
-	m.Input.Placeholder = approvalview.InputPlaceholder(lang, m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil)
+	m.Input.Placeholder = approvalview.InputPlaceholder(m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil)
 }
 
 // appendApprovalViewportContent appends sensitive or standard approval blocks to the viewport.
 // Returns true if the viewport body is complete (caller should return b.String()).
 func (m Model) appendApprovalViewportContent(b *strings.Builder) bool {
 	lines, ok := approvalview.Build(
-		m.getLang(),
 		m.contentWidth(),
 		m.ChoiceCard.pending,
 		m.ChoiceCard.pendingSensitive,

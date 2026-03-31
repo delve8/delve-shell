@@ -65,8 +65,8 @@ func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inpu
 		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 			Kind: inputlifecycletype.OutputOverlayOpen,
 			Overlay: &inputlifecycletype.OverlayPayload{
-				Title:   i18n.T("en", i18n.KeyHelpTitle),
-				Content: i18n.T("en", i18n.KeyHelpText),
+				Title:   i18n.T(i18n.KeyHelpTitle),
+				Content: i18n.T(i18n.KeyHelpText),
 			},
 		}), nil
 	case trimmed == "/new":
@@ -81,7 +81,7 @@ func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inpu
 				Kind: inputlifecycletype.OutputTranscriptAppend,
 				Transcript: &inputlifecycletype.TranscriptPayload{
 					Lines: []inputlifecycletype.TranscriptLine{
-						{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.T("en", i18n.KeyUsageRun)},
+						{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.T(i18n.KeyUsageRun)},
 					},
 				},
 			}), nil
@@ -91,7 +91,7 @@ func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inpu
 				Kind: inputlifecycletype.OutputTranscriptAppend,
 				Transcript: &inputlifecycletype.TranscriptPayload{
 					Lines: []inputlifecycletype.TranscriptLine{
-						{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.T("en", i18n.KeyOfflineSlashExecDisabled)},
+						{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.T(i18n.KeyOfflineSlashExecDisabled)},
 					},
 				},
 			}), nil

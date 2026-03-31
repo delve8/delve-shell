@@ -24,8 +24,12 @@ var (
 // knownModelContextTokens is a fallback when the provider does not return context_length (e.g. OpenAI official).
 // Keys are model id prefixes or full ids; value is max context in tokens (approximate; providers change limits).
 // Longest matching prefix wins in [knownModelContextTokensByPrefix].
+// Figures below are aligned with vendor docs as of 2026-03 (OpenAI platform models page, Anthropic models overview,
+// Google Gemini docs, Alibaba Model Studio, DeepSeek pricing, xAI models). Prefer GET /v1/models context_length when present.
 var knownModelContextTokens = map[string]int{
-	// OpenAI / ChatGPT-class
+	// OpenAI / ChatGPT-class (gpt-5.4 mini & nano: 400K; flagship gpt-5.4: 1M per platform.openai.com/docs/models)
+	"gpt-5.4-nano":  400000,
+	"gpt-5.4-mini":  400000,
 	"gpt-5.4":       1000000,
 	"gpt-5.3":       400000,
 	"gpt-5.2":       250000,
@@ -45,20 +49,34 @@ var knownModelContextTokens = map[string]int{
 	"o1-mini":       128000,
 	"o1":            200000,
 
-	// Anthropic (OpenAI-compatible gateways often expose these ids)
-	"claude-opus-4":     200000,
-	"claude-sonnet-4":   200000,
-	"claude-3-5-sonnet": 200000,
-	"claude-3-5-haiku":  200000,
-	"claude-3-opus":     200000,
-	"claude-3-sonnet":   200000,
-	"claude-3-haiku":    200000,
-	"claude-3":          200000,
+	// Anthropic — API ids (docs.anthropic.com models overview); Bedrock anthropic.claude-* prefixes
+	"anthropic.claude-opus-4-6":   1000000,
+	"anthropic.claude-sonnet-4-6": 1000000,
+	"anthropic.claude-haiku-4-5":  200000,
+	"anthropic.claude-opus-4-5":   200000,
+	"anthropic.claude-sonnet-4-5": 200000,
+	"anthropic.claude-opus-4-1":   200000,
+	"anthropic.claude-opus-4":     200000,
+	"anthropic.claude-sonnet-4":   200000,
+	"claude-opus-4-6":             1000000,
+	"claude-sonnet-4-6":           1000000,
+	"claude-haiku-4-5":            200000,
+	"claude-opus-4-5":             200000,
+	"claude-sonnet-4-5":           200000,
+	"claude-opus-4-1":             200000,
+	"claude-opus-4":               200000,
+	"claude-sonnet-4":             200000,
+	"claude-3-5-sonnet":           200000,
+	"claude-3-5-haiku":            200000,
+	"claude-3-opus":               200000,
+	"claude-3-sonnet":             200000,
+	"claude-3-haiku":              200000,
+	"claude-3":                    200000,
 
-	// Google Gemini
-	"gemini-2.5-pro":   1000000,
-	"gemini-2.5-flash": 1000000,
-	"gemini-2.5":       1000000,
+	// Google Gemini (2.5 pro/flash: 1,048,576 context per ai.google.dev)
+	"gemini-2.5-pro":   1048576,
+	"gemini-2.5-flash": 1048576,
+	"gemini-2.5":       1048576,
 	"gemini-2.0":       1000000,
 	"gemini-1.5-pro":   2000000,
 	"gemini-1.5-flash": 1000000,
@@ -67,29 +85,40 @@ var knownModelContextTokens = map[string]int{
 	"gemini-pro":       32000,
 	"gemini":           32000,
 
-	// Alibaba Qwen / DashScope
-	"qwen3-max":     256000,
-	"qwen3-coder":   256000,
-	"qwen3":         128000,
-	"qwen2.5-max":   128000,
-	"qwen2.5-coder": 128000,
-	"qwen2.5":       128000,
-	"qwen2":         131072,
-	"qwen-long":     10000000,
-	"qwen-max":      32000,
-	"qwen-plus":     128000,
-	"qwen-turbo":    8000,
-	"qwen":          8192,
+	// Alibaba Qwen / DashScope (Model Studio flagship table: qwen3-max 262,144; qwen3.5-plus/flash 1M; qwen3-coder-plus 1M)
+	"qwen3-coder-flash": 1000000,
+	"qwen3-coder-plus":  1000000,
+	"qwen3-coder":       1000000,
+	"qwen3.5-plus":      1000000,
+	"qwen3.5-flash":     1000000,
+	"qwen3.5":           1000000,
+	"qwen3-max":         262144,
+	"qwen3":             128000,
+	"qwen2.5-max":       128000,
+	"qwen2.5-coder":     128000,
+	"qwen2.5":           128000,
+	"qwen2":             131072,
+	"qwen-long":         10000000,
+	"qwen-max":          32000,
+	"qwen-plus":         1000000,
+	"qwen-turbo":        8000,
+	"qwen":              8192,
 
-	// Moonshot / Kimi
-	"kimi-k2":          128000,
-	"moonshot-v1-128k": 128000,
-	"moonshot-v1-32k":  32000,
-	"moonshot-v1-8k":   8000,
-	"moonshot-v1":      128000,
-	"kimi":             128000,
+	// Moonshot / Kimi (platform.moonshot.ai Kimi K2.5 guide: kimi-k2.5 and listed kimi-k2-* snapshots/thinking/turbo = 256K)
+	"kimi-k2.5":              256000,
+	"kimi-k2-thinking-turbo": 256000,
+	"kimi-k2-thinking":       256000,
+	"kimi-k2-turbo-preview":  256000,
+	"kimi-k2-0905":           256000,
+	"kimi-k2":                128000,
+	"moonshot-v1-128k":       128000,
+	"moonshot-v1-32k":        32000,
+	"moonshot-v1-8k":         8000,
+	"moonshot-v1":            128000,
+	"kimi":                   128000,
 
-	// Zhipu GLM
+	// Zhipu GLM (docs.z.ai GLM-5: 200K context, 128K max output)
+	"glm-5":       200000,
 	"glm-4.6":     200000,
 	"glm-4.5":     128000,
 	"glm-4-air":   128000,
@@ -109,21 +138,23 @@ var knownModelContextTokens = map[string]int{
 	"minimax-text-01": 400000,
 	"minimax":         8192,
 
-	// xAI Grok
-	"grok-4":      256000,
+	// xAI Grok (docs.x.ai models table: grok-4.20 / grok-4-1-fast — 2M context)
+	"grok-4.20":   2000000,
+	"grok-4-1":    2000000,
+	"grok-4":      2000000,
 	"grok-3-mini": 131072,
 	"grok-3":      131072,
 	"grok-2":      131072,
 	"grok":        8192,
 
-	// DeepSeek
+	// DeepSeek (api-docs.deepseek.com: deepseek-chat / deepseek-reasoner = V3.2, 128K)
 	"deepseek-r1":       64000,
 	"deepseek-v3.2":     128000,
 	"deepseek-v3.1":     128000,
 	"deepseek-v3":       64000,
-	"deepseek-chat":     64000,
+	"deepseek-chat":     128000,
 	"deepseek-coder":    64000,
-	"deepseek-reasoner": 64000,
+	"deepseek-reasoner": 128000,
 
 	// Meta Llama (common local / hosted ids)
 	"llama-3.3": 128000,

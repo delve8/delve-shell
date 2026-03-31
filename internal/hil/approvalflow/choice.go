@@ -1,5 +1,7 @@
 package approvalflow
 
+import "delve-shell/internal/teakey"
+
 type Decision int
 
 const (
@@ -27,10 +29,10 @@ func Evaluate(key string, hasPending bool, hasSensitive bool, choiceIndex int, c
 	}
 	r := Result{Handled: true, ChoiceIndex: choiceIndex}
 	if choiceCount > 0 {
-		if key == "enter" {
+		if key == teakey.Enter {
 			key = string(rune('1' + choiceIndex))
-		} else if key == "up" || key == "down" {
-			if key == "down" {
+		} else if key == teakey.Up || key == teakey.Down {
+			if key == teakey.Down {
 				r.ChoiceIndex = (choiceIndex + 1) % choiceCount
 			} else {
 				r.ChoiceIndex = (choiceIndex - 1 + choiceCount) % choiceCount

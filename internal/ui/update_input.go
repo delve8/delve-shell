@@ -8,6 +8,7 @@ import (
 
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/input/lifecycletype"
+	"delve-shell/internal/teakey"
 	"delve-shell/internal/input/maininput"
 	"delve-shell/internal/input/preflight"
 	"delve-shell/internal/slash/view"
@@ -64,7 +65,7 @@ func (s *keySession) handleSlashUpDown(key string, inputVal string) bool {
 	if s.m.Interaction.inputHistIndex >= 0 {
 		return false
 	}
-	if !strings.HasPrefix(inputVal, "/") || s.m.Input.LineCount() > 1 || (key != "up" && key != "down") {
+	if !strings.HasPrefix(inputVal, "/") || s.m.Input.LineCount() > 1 || (key != teakey.Up && key != teakey.Down) {
 		return false
 	}
 	_, vis, _ := s.slashSuggestionTriple(inputVal)
@@ -79,7 +80,7 @@ func (s *keySession) handleSlashUpDown(key string, inputVal string) bool {
 // multiline or starts with / (textarea line nav and slash completion stay disabled until browsing ends).
 // When not browsing, multiline drafts keep native Up/Down for moving between lines.
 func (s *keySession) handleInputHistoryNav(key string, inputVal string) bool {
-	if key != "up" && key != "down" {
+	if key != teakey.Up && key != teakey.Down {
 		return false
 	}
 	if s.m.Input.LineCount() > 1 && s.m.Interaction.inputHistIndex < 0 {
@@ -92,7 +93,7 @@ func (s *keySession) handleInputHistoryNav(key string, inputVal string) bool {
 	if len(h) == 0 {
 		return false
 	}
-	if key == "up" {
+	if key == teakey.Up {
 		if s.m.Interaction.inputHistIndex < 0 {
 			s.m.Interaction.inputHistScratch = s.m.Input.Value()
 			s.m.Interaction.inputHistIndex = len(h) - 1
@@ -145,7 +146,7 @@ func (m Model) appendUserSubmittedEcho(text string) Model {
 	m = m.withInputHistoryCommitted(text)
 	w := m.contentWidth()
 	sepLine := renderSeparator(w)
-	m.messages = maininput.AppendUserInputLines(m.messages, i18n.T(m.getLang(), i18n.KeyUserLabel), text, w, sepLine)
+	m.messages = maininput.AppendUserInputLines(m.messages, i18n.T(i18n.KeyUserLabel), text, w, sepLine)
 	return m
 }
 
@@ -185,19 +186,19 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 
 	inputVal := ks.inputValue()
 	if strings.HasPrefix(inputVal, "/") && mm.Input.LineCount() == 1 {
-		if key == "enter" {
+		if key == teakey.Enter {
 			if m2, cmd, handled := mm.handleSlashEnterKey(inputVal); handled {
 				return m2, cmd
 			}
 		}
-		if key == "tab" {
+		if key == teakey.Tab {
 			if m2, cmd, handled := mm.handleSlashTabKey(inputVal); handled {
 				return m2, cmd
 			}
 		}
 	}
 
-	if key == "esc" {
+	if key == teakey.Esc {
 		res, err := mm.lifecycleEngine().SubmitControl(inputlifecycletype.ControlSignalEsc, inputlifecycletype.SourceKeyboardSignal)
 		if err == nil {
 			mm, cmd := mm.applyLifecycleResult(res)
@@ -216,7 +217,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 		return mm, nil
 	}
 
-	if key == "enter" {
+	if key == teakey.Enter {
 		text := strings.TrimSpace(inputVal)
 		if text == "" {
 			return mm, nil
@@ -255,7 +256,7 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 		return mm, printCmd
 	}
 
-	if mm.Interaction.inputHistIndex >= 0 && key != "up" && key != "down" {
+	if mm.Interaction.inputHistIndex >= 0 && key != teakey.Up && key != teakey.Down {
 		mm.Interaction.inputHistIndex = -1
 		mm.Interaction.inputHistScratch = ""
 	}

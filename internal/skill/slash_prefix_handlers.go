@@ -9,13 +9,12 @@ import (
 )
 
 func handleSlashConfigDelSkillPrefix(rest string) inputlifecycletype.ProcessResult {
-	lang := "en"
 	name := strings.TrimSpace(rest)
 	if name == "" {
 		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 			Kind: inputlifecycletype.OutputTranscriptAppend,
 			Transcript: &inputlifecycletype.TranscriptPayload{Lines: []inputlifecycletype.TranscriptLine{
-				{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.T(lang, i18n.KeyUsageSkillRemove)},
+				{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.T(i18n.KeyUsageSkillRemove)},
 			}},
 		})
 	}
@@ -24,14 +23,14 @@ func handleSlashConfigDelSkillPrefix(rest string) inputlifecycletype.ProcessResu
 		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 			Kind: inputlifecycletype.OutputTranscriptAppend,
 			Transcript: &inputlifecycletype.TranscriptPayload{Lines: []inputlifecycletype.TranscriptLine{
-				{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.Tf(lang, i18n.KeySkillRemoveFailed, err)},
+				{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.Tf(i18n.KeySkillRemoveFailed, err)},
 			}},
 		})
 	}
 	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 		Kind: inputlifecycletype.OutputTranscriptAppend,
 		Transcript: &inputlifecycletype.TranscriptPayload{Lines: []inputlifecycletype.TranscriptLine{
-			{Kind: inputlifecycletype.TranscriptLineSystemSuggest, Text: i18n.Tf(lang, i18n.KeySkillRemoved, name)},
+			{Kind: inputlifecycletype.TranscriptLineSystemSuggest, Text: i18n.Tf(i18n.KeySkillRemoved, name)},
 		}},
 	})
 }

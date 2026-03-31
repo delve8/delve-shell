@@ -8,6 +8,7 @@ import (
 
 	"delve-shell/internal/pathcomplete"
 	"delve-shell/internal/remote/auth"
+	"delve-shell/internal/teakey"
 	"delve-shell/internal/ui"
 )
 
@@ -47,7 +48,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 		return ret(m, nil, true)
 
 	case "username":
-		if key == "enter" {
+		if key == teakey.Enter {
 			state.RemoteAuth.Username = strings.TrimSpace(state.RemoteAuth.UsernameInput.Value())
 			if state.RemoteAuth.Username == "" {
 				state.RemoteAuth.Username = "root"
@@ -85,7 +86,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 		if state.RemoteAuth.Connecting {
 			return ret(m, nil, true)
 		}
-		if key == "enter" {
+		if key == teakey.Enter {
 			input := state.RemoteAuth.Input.Value()
 			if input == "" {
 				state.RemoteAuth.Step = "choose"
@@ -113,7 +114,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 		}
 
 		cands := pcState.Candidates
-		if key == "up" && len(cands) > 0 {
+		if key == teakey.Up && len(cands) > 0 {
 			pcState.Index--
 			if pcState.Index < 0 {
 				pcState.Index = len(cands) - 1
@@ -121,7 +122,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			pathcomplete.SetState(pcState)
 			return ret(m, nil, true)
 		}
-		if key == "down" && len(cands) > 0 {
+		if key == teakey.Down && len(cands) > 0 {
 			pcState.Index = (pcState.Index + 1) % len(cands)
 			pathcomplete.SetState(pcState)
 			return ret(m, nil, true)
@@ -130,7 +131,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 		pickIdentityCandidate := len(cands) > 0 &&
 			pcState.Index >= 0 &&
 			pcState.Index < len(cands) &&
-			(key == "enter" || key == "tab")
+			(key == teakey.Enter || key == teakey.Tab)
 		if pickIdentityCandidate {
 			chosen := cands[pcState.Index]
 			state.RemoteAuth.Input.SetValue(chosen)
@@ -146,7 +147,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			return ret(m, nil, true)
 		}
 
-		if key == "enter" {
+		if key == teakey.Enter {
 			input := state.RemoteAuth.Input.Value()
 			if input == "" {
 				state.RemoteAuth.Step = "choose"
@@ -166,7 +167,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 			return ret(m, nil, true)
 		}
 
-		if key == "tab" {
+		if key == teakey.Tab {
 			pcState.Candidates = pathcomplete.Candidates(state.RemoteAuth.Input.Value())
 			if len(pcState.Candidates) > 0 {
 				pcState.Index = (pcState.Index + 1) % len(pcState.Candidates)

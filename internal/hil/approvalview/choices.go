@@ -18,32 +18,32 @@ func ChoiceCount(hasPending bool, hasPendingSensitive bool) int {
 	}
 }
 
-func ChoiceOptions(lang string, hasPending bool, hasPendingSensitive bool) []ChoiceOption {
+func ChoiceOptions(hasPending bool, hasPendingSensitive bool) []ChoiceOption {
 	switch {
 	case hasPending:
 		return []ChoiceOption{
-			{1, i18n.T(lang, i18n.KeyChoiceApprove)},
-			{2, i18n.T(lang, i18n.KeyChoiceDismiss)},
-			{3, i18n.T(lang, i18n.KeyChoiceCopy)},
+			{1, i18n.T(i18n.KeyChoiceApprove)},
+			{2, i18n.T(i18n.KeyChoiceDismiss)},
+			{3, i18n.T(i18n.KeyChoiceCopy)},
 		}
 	case hasPendingSensitive:
 		return []ChoiceOption{
-			{1, i18n.T(lang, i18n.KeyChoiceRefuse)},
-			{2, i18n.T(lang, i18n.KeyChoiceRunStore)},
-			{3, i18n.T(lang, i18n.KeyChoiceRunNoStore)},
+			{1, i18n.T(i18n.KeyChoiceRefuse)},
+			{2, i18n.T(i18n.KeyChoiceRunStore)},
+			{3, i18n.T(i18n.KeyChoiceRunNoStore)},
 		}
 	default:
 		return nil
 	}
 }
 
-func InputPlaceholder(lang string, hasPending bool, hasPendingSensitive bool) string {
+func InputPlaceholder(hasPending bool, hasPendingSensitive bool) string {
 	switch {
 	case hasPending:
-		return i18n.T(lang, i18n.KeyInputHintApproveThree)
+		return i18n.T(i18n.KeyInputHintApproveThree)
 	case hasPendingSensitive:
-		return i18n.T(lang, i18n.KeyInputHintSensitive)
+		return i18n.T(i18n.KeyInputHintSensitive)
 	default:
-		return i18n.T(lang, i18n.KeyPlaceholderInput)
+		return i18n.T(i18n.KeyPlaceholderInput)
 	}
 }

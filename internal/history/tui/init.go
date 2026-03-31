@@ -36,7 +36,7 @@ func Register() {
 func getSessionSlashOptions(filter string) []ui.SlashOption {
 	summaries, err := history.ListSessionsWithSummary(maxSessionsInSlash)
 	if err != nil || len(summaries) == 0 {
-		return []ui.SlashOption{{Cmd: i18n.T("en", i18n.KeySessionNone), Desc: ""}}
+		return []ui.SlashOption{{Cmd: i18n.T(i18n.KeySessionNone), Desc: ""}}
 	}
 
 	filterLower := strings.ToLower(filter)
@@ -61,7 +61,7 @@ func getSessionSlashOptions(filter string) []ui.SlashOption {
 		opts = append(opts, ui.SlashOption{Cmd: cmd, Desc: desc})
 	}
 	if len(opts) == 0 {
-		return []ui.SlashOption{{Cmd: i18n.T("en", i18n.KeySessionNone), Desc: ""}}
+		return []ui.SlashOption{{Cmd: i18n.T(i18n.KeySessionNone), Desc: ""}}
 	}
 	return opts
 }

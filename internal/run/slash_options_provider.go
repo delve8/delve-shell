@@ -7,6 +7,8 @@ import (
 	"delve-shell/internal/ui"
 )
 
+const slashExecUsageOption = "/exec <cmd>"
+
 func registerSlashOptionsProviders() {
 	ui.RegisterSlashOptionsProvider(func(
 		inputVal string,
@@ -22,7 +24,7 @@ func registerSlashOptionsProviders() {
 			return nil, false
 		}
 		if normalizedLower == "exec" {
-			return []ui.SlashOption{{Cmd: slashExecUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun)}}, true
+			return []ui.SlashOption{{Cmd: slashExecUsageOption, Desc: i18n.T(i18n.KeyDescRun)}}, true
 		}
 		rest := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "exec"))
 		if strings.Contains(rest, " ") || strings.Contains(rest, "\t") {
@@ -51,28 +53,28 @@ func registerSlashOptionsProviders() {
 
 func rootSlashOptions(lang string) []ui.SlashOption {
 	opts := []ui.SlashOption{
-		{Cmd: "/access", Desc: i18n.T(lang, i18n.KeyDescRemoteOn)},
-		{Cmd: "/skill <name> [detail]", Desc: i18n.T(lang, i18n.KeyDescSkill)},
-		{Cmd: slashExecUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun)},
+		{Cmd: "/access", Desc: i18n.T(i18n.KeyDescRemoteOn)},
+		{Cmd: "/skill <name> [detail]", Desc: i18n.T(i18n.KeyDescSkill)},
+		{Cmd: slashExecUsageOption, Desc: i18n.T(i18n.KeyDescRun)},
 	}
 	opts = append(opts, bashRootSlashOptions(lang)...)
 	opts = append(opts, []ui.SlashOption{
-		{Cmd: "/config", Desc: i18n.T(lang, i18n.KeyDescConfig)},
-		{Cmd: "/new", Desc: i18n.T(lang, i18n.KeySessionNew)},
-		{Cmd: "/history", Desc: i18n.T(lang, i18n.KeyDescSessions)},
-		{Cmd: "/help", Desc: i18n.T(lang, i18n.KeyDescHelp)},
-		{Cmd: "/quit", Desc: i18n.T(lang, i18n.KeyDescExit)},
+		{Cmd: "/config", Desc: i18n.T(i18n.KeyDescConfig)},
+		{Cmd: "/new", Desc: i18n.T(i18n.KeySessionNew)},
+		{Cmd: "/history", Desc: i18n.T(i18n.KeyDescSessions)},
+		{Cmd: "/help", Desc: i18n.T(i18n.KeyDescHelp)},
+		{Cmd: "/quit", Desc: i18n.T(i18n.KeyDescExit)},
 	}...)
 	return opts
 }
 
 func configSlashOptions(lang string) []ui.SlashOption {
 	return []ui.SlashOption{
-		{Cmd: "/config del-remote", Desc: i18n.T(lang, i18n.KeyDescConfigRemoveRemote)},
-		{Cmd: "/config add-skill", Desc: i18n.T(lang, i18n.KeyDescSkillInstall)},
-		{Cmd: "/config del-skill", Desc: i18n.T(lang, i18n.KeyDescSkillRemove)},
-		{Cmd: "/config update-skill", Desc: i18n.T(lang, i18n.KeyDescConfigUpdateSkill)},
-		{Cmd: "/config update auto-run list", Desc: i18n.T(lang, i18n.KeyDescConfigAllowlistUpdate)},
-		{Cmd: "/config model", Desc: i18n.T(lang, i18n.KeyDescConfigLLM)},
+		{Cmd: "/config del-remote", Desc: i18n.T(i18n.KeyDescConfigRemoveRemote)},
+		{Cmd: "/config add-skill", Desc: i18n.T(i18n.KeyDescSkillInstall)},
+		{Cmd: "/config del-skill", Desc: i18n.T(i18n.KeyDescSkillRemove)},
+		{Cmd: "/config update-skill", Desc: i18n.T(i18n.KeyDescConfigUpdateSkill)},
+		{Cmd: "/config update auto-run list", Desc: i18n.T(i18n.KeyDescConfigAllowlistUpdate)},
+		{Cmd: "/config model", Desc: i18n.T(i18n.KeyDescConfigLLM)},
 	}
 }

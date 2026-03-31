@@ -1,6 +1,32 @@
 package i18n
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
+
+var (
+	langMu      sync.RWMutex
+	currentLang = "en"
+)
+
+// SetLang sets the active locale for [T] and [Tf]. Empty lang defaults to "en".
+func SetLang(lang string) {
+	langMu.Lock()
+	defer langMu.Unlock()
+	if lang == "" {
+		currentLang = "en"
+		return
+	}
+	currentLang = lang
+}
+
+// Lang returns the active locale set by [SetLang].
+func Lang() string {
+	langMu.RLock()
+	defer langMu.RUnlock()
+	return currentLang
+}
 
 // Msg keys for user-facing strings. Code error messages stay in English in callers.
 const (
@@ -322,8 +348,11 @@ Quit (Ctrl+C also works)`,
 	},
 }
 
-// T returns the message for lang and key. If lang or key is missing, falls back to "en" then key as-is.
-func T(lang, key string) string {
+// T returns the message for key in the active language ([SetLang]). If the locale or key is missing, falls back to "en" then key as-is.
+func T(key string) string {
+	langMu.RLock()
+	lang := currentLang
+	langMu.RUnlock()
 	if lang == "" {
 		lang = "en"
 	}
@@ -342,7 +371,7 @@ func T(lang, key string) string {
 	return key
 }
 
-// Tf returns fmt.Sprintf(T(lang, key), a...). Use only when the message for key is a format string.
-func Tf(lang, key string, a ...interface{}) string {
-	return fmt.Sprintf(T(lang, key), a...)
+// Tf returns fmt.Sprintf(T(key), a...). Use only when the message for key is a format string.
+func Tf(key string, a ...interface{}) string {
+	return fmt.Sprintf(T(key), a...)
 }

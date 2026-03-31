@@ -7,6 +7,7 @@ import (
 
 	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/teakey"
 	"delve-shell/internal/textwrap"
 	"delve-shell/internal/ui/uivm"
 )
@@ -29,7 +30,7 @@ func (m Model) handleOverlayKey(key string, msg tea.KeyMsg) (Model, tea.Cmd, boo
 	if m.currentUIState() != uiStateOverlay {
 		return m, nil, false
 	}
-	if m.Overlay.Key == HistoryPreviewOverlayKey && key == "enter" {
+	if m.Overlay.Key == HistoryPreviewOverlayKey && key == teakey.Enter {
 		id := m.Interaction.pendingHistorySwitchID
 		if id != "" && m.CommandSender != nil && m.CommandSender.Send(hostcmd.SessionSwitch{SessionID: id}) {
 			m, cmd := m.closeOverlayCommon(true)
@@ -44,7 +45,7 @@ func (m Model) handleOverlayKey(key string, msg tea.KeyMsg) (Model, tea.Cmd, boo
 	}
 
 	switch key {
-	case "esc":
+	case teakey.Esc:
 		m, cmd := m.closeOverlayCommon(true)
 		return m, cmd, true
 	default:
@@ -176,7 +177,6 @@ func (m Model) handleChoiceCardShowMsg(msg ChoiceCardShowMsg) (Model, tea.Cmd) {
 }
 
 func (m Model) renderTranscriptLines(lines []uivm.Line) []string {
-	lang := m.getLang()
 	w := m.contentWidth()
 	rendered := make([]string, 0, len(lines))
 	for _, l := range lines {
@@ -186,13 +186,13 @@ func (m Model) renderTranscriptLines(lines []uivm.Line) []string {
 		case uivm.LineSeparator:
 			rendered = append(rendered, renderSeparator(w))
 		case uivm.LineUser:
-			rendered = append(rendered, textwrap.WrapString(i18n.T(lang, i18n.KeyUserLabel)+l.Text, w))
+			rendered = append(rendered, textwrap.WrapString(i18n.T(i18n.KeyUserLabel)+l.Text, w))
 		case uivm.LineAI:
-			rendered = append(rendered, textwrap.WrapString(i18n.T(lang, i18n.KeyAILabel)+l.Text, w))
+			rendered = append(rendered, textwrap.WrapString(i18n.T(i18n.KeyAILabel)+l.Text, w))
 		case uivm.LineSystemSuggest:
 			rendered = append(rendered, suggestStyle.Render(m.delveMsg(textwrap.WrapString(l.Text, w))))
 		case uivm.LineSystemError:
-			rendered = append(rendered, errStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeyErrorPrefix)+l.Text)))
+			rendered = append(rendered, errStyle.Render(m.delveMsg(i18n.T(i18n.KeyErrorPrefix)+l.Text)))
 		case uivm.LineExec:
 			rendered = append(rendered, execStyle.Render(textwrap.WrapString(l.Text, w)))
 		case uivm.LineResult:

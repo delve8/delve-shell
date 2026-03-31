@@ -23,8 +23,7 @@ func openSkillOverlay(m ui.Model, req ui.OverlayOpenRequest) (ui.Model, tea.Cmd,
 }
 
 func openAddSkillOverlay(m ui.Model, url, ref, path string) ui.Model {
-	lang := "en"
-	m = m.OpenOverlayFeature("skill", i18n.T(lang, i18n.KeyAddSkillTitle), "")
+	m = m.OpenOverlayFeature("skill", i18n.T(i18n.KeyAddSkillTitle), "")
 	state := getSkillOverlayState()
 	state.AddSkill.Active = true
 	state.UpdateSkill = UpdateSkillOverlayState{}

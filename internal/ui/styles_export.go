@@ -7,8 +7,8 @@ import (
 )
 
 // RenderOverlayHintLine renders one dim italic hint line from a full-line i18n key (word order stays per locale).
-func RenderOverlayHintLine(lang, key string) string {
-	s := strings.TrimSpace(i18n.T(lang, key))
+func RenderOverlayHintLine(key string) string {
+	s := strings.TrimSpace(i18n.T(key))
 	if s == "" {
 		return ""
 	}
@@ -16,18 +16,18 @@ func RenderOverlayHintLine(lang, key string) string {
 }
 
 // RenderOverlayFormFooterHint renders the standard multi-field form footer (same copy for add-remote, config LLM, add-skill).
-func RenderOverlayFormFooterHint(lang string) string {
-	return RenderOverlayHintLine(lang, i18n.KeyOverlayFormFooter)
+func RenderOverlayFormFooterHint() string {
+	return RenderOverlayHintLine(i18n.KeyOverlayFormFooter)
 }
 
 // RenderOverlayPicklistHintLine is the line above inline pick lists (ref/path/path completion).
-func RenderOverlayPicklistHintLine(lang string) string {
-	return RenderOverlayHintLine(lang, i18n.KeyOverlayPicklistHint)
+func RenderOverlayPicklistHintLine() string {
+	return RenderOverlayHintLine(i18n.KeyOverlayPicklistHint)
 }
 
 // RenderOverlayUpdateSkillRefTitleLine is the title line above the ref list in update-skill.
-func RenderOverlayUpdateSkillRefTitleLine(lang string) string {
-	return hintStyle.Render(i18n.T(lang, i18n.KeyOverlayUpdateSkillRefTitle)) + "\n"
+func RenderOverlayUpdateSkillRefTitleLine() string {
+	return hintStyle.Render(i18n.T(i18n.KeyOverlayUpdateSkillRefTitle)) + "\n"
 }
 
 // SuggestStyleRender renders text using suggestion style.

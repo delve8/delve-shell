@@ -8,6 +8,7 @@ import (
 	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/pathcomplete"
+	"delve-shell/internal/teakey"
 	"delve-shell/internal/ui"
 )
 
@@ -48,7 +49,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 	}
 
 	switch key {
-	case "tab":
+	case teakey.Tab:
 		if state.AddRemote.FieldIndex == 2 {
 			cands := pcState.Candidates
 			if len(cands) > 0 && pcState.Index >= 0 && pcState.Index < len(cands) {
@@ -67,10 +68,10 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			}
 		}
 
-	case "up", "down":
+	case teakey.Up, teakey.Down:
 		if state.AddRemote.FieldIndex == 2 && len(pcState.Candidates) > 0 {
 			cands := pcState.Candidates
-			if key == "up" {
+			if key == teakey.Up {
 				pcState.Index--
 				if pcState.Index < 0 {
 					pcState.Index = len(cands) - 1
@@ -78,7 +79,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 				pathcomplete.SetState(pcState)
 				return ret(m, nil, true)
 			}
-			if key == "down" {
+			if key == teakey.Down {
 				pcState.Index = (pcState.Index + 1) % len(cands)
 				pathcomplete.SetState(pcState)
 				return ret(m, nil, true)
@@ -86,7 +87,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 		}
 
 		dir := 1
-		if key == "up" {
+		if key == teakey.Up {
 			dir = -1
 		}
 		fieldCount := addRemoteFieldCount(state.AddRemote)
@@ -128,10 +129,9 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			if name != "" {
 				display = name + " (" + host + ")"
 			}
-			lang := "en"
-			delvPrefix := i18n.T(lang, i18n.KeyDelveLabel) + " "
+			delvPrefix := i18n.T(i18n.KeyDelveLabel) + " "
 			m = m.AppendTranscriptLines(
-				ui.SuggestStyleRender(delvPrefix+i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display)),
+				ui.SuggestStyleRender(delvPrefix+i18n.Tf(i18n.KeyConfigRemoteAdded, display)),
 				"",
 			)
 			m = m.CloseOverlayVisual()
@@ -150,7 +150,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			return ret(m, nil, true)
 		}
 
-	case "enter":
+	case teakey.Enter:
 		if state.AddRemote.FieldIndex == 2 {
 			cands := pcState.Candidates
 			if len(cands) > 0 && pcState.Index >= 0 && pcState.Index < len(cands) {
@@ -198,10 +198,9 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 			if name != "" {
 				display = name + " (" + host + ")"
 			}
-			lang := "en"
-			delvPrefix := i18n.T(lang, i18n.KeyDelveLabel) + " "
+			delvPrefix := i18n.T(i18n.KeyDelveLabel) + " "
 			m = m.AppendTranscriptLines(
-				ui.SuggestStyleRender(delvPrefix+i18n.Tf(lang, i18n.KeyConfigRemoteAdded, display)),
+				ui.SuggestStyleRender(delvPrefix+i18n.Tf(i18n.KeyConfigRemoteAdded, display)),
 				"",
 			)
 			m.EmitConfigUpdatedIntent()

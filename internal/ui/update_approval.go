@@ -30,8 +30,8 @@ func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
 	return m.applyApprovalDecision(res.Decision)
 }
 
-func (m *Model) appendDecisionLines(decision approvalview.DecisionKind, lang string) {
-	lines, ok := approvalview.BuildDecision(lang, m.contentWidth(), m.ChoiceCard.pending, m.ChoiceCard.pendingSensitive, decision, textwrap.WrapString)
+func (m *Model) appendDecisionLines(decision approvalview.DecisionKind) {
+	lines, ok := approvalview.BuildDecision(m.contentWidth(), m.ChoiceCard.pending, m.ChoiceCard.pendingSensitive, decision, textwrap.WrapString)
 	if !ok {
 		return
 	}
@@ -45,27 +45,27 @@ func (m *Model) appendDecisionLines(decision approvalview.DecisionKind, lang str
 		case approvalview.LineSuggest:
 			switch decision {
 			case approvalview.DecisionApprove:
-				if line.Text == i18n.T(lang, i18n.KeyApprovalDecisionApproved) {
+				if line.Text == i18n.T(i18n.KeyApprovalDecisionApproved) {
 					rendered = approvalDecisionApprovedStyle.Render(line.Text)
 				} else {
 					rendered = suggestStyle.Render(line.Text)
 				}
 			case approvalview.DecisionReject:
-				if line.Text == i18n.T(lang, i18n.KeyApprovalDecisionRejected) {
+				if line.Text == i18n.T(i18n.KeyApprovalDecisionRejected) {
 					rendered = approvalDecisionRejectedStyle.Render(line.Text)
 				} else {
 					rendered = suggestStyle.Render(line.Text)
 				}
 			case approvalview.DecisionDismiss:
-				if line.Text == i18n.T(lang, i18n.KeyChoiceDismiss) {
+				if line.Text == i18n.T(i18n.KeyChoiceDismiss) {
 					rendered = approvalDecisionDismissStyle.Render(line.Text)
 				} else {
 					rendered = suggestStyle.Render(line.Text)
 				}
 			case approvalview.DecisionSensitiveRefuse, approvalview.DecisionSensitiveRunStore, approvalview.DecisionSensitiveRunNoStore:
-				if strings.HasPrefix(line.Text, i18n.T(lang, i18n.KeySensitiveChoice1)) ||
-					strings.HasPrefix(line.Text, i18n.T(lang, i18n.KeySensitiveChoice2)) ||
-					strings.HasPrefix(line.Text, i18n.T(lang, i18n.KeySensitiveChoice3)) {
+				if strings.HasPrefix(line.Text, i18n.T(i18n.KeySensitiveChoice1)) ||
+					strings.HasPrefix(line.Text, i18n.T(i18n.KeySensitiveChoice2)) ||
+					strings.HasPrefix(line.Text, i18n.T(i18n.KeySensitiveChoice3)) {
 					rendered = suggestHi.Render(line.Text)
 				} else {
 					rendered = suggestStyle.Render(line.Text)
@@ -85,7 +85,6 @@ func (m *Model) appendDecisionLines(decision approvalview.DecisionKind, lang str
 }
 
 func (m Model) applyApprovalDecision(d approvalflow.Decision) (Model, bool) {
-	lang := m.getLang()
 	switch d {
 	case approvalflow.DecisionSensitiveRefuse, approvalflow.DecisionSensitiveRunStore, approvalflow.DecisionSensitiveRunNoStore:
 		if m.ChoiceCard.pendingSensitive == nil {
@@ -104,7 +103,7 @@ func (m Model) applyApprovalDecision(d approvalflow.Decision) (Model, bool) {
 			kind = approvalview.DecisionSensitiveRefuse
 			choice = uivm.SensitiveRefuse
 		}
-		m.appendDecisionLines(kind, lang)
+		m.appendDecisionLines(kind)
 		if m.ChoiceCard.pendingSensitive.Respond != nil {
 			m.ChoiceCard.pendingSensitive.Respond(choice)
 		}
@@ -134,11 +133,11 @@ func (m Model) applyApprovalDecision(d approvalflow.Decision) (Model, bool) {
 			resp.CopyRequested = true
 			doCopy = true
 		}
-		m.appendDecisionLines(kind, lang)
+		m.appendDecisionLines(kind)
 		if doCopy {
 			_ = clipboard.WriteAll(m.ChoiceCard.pending.Command)
-			m.appendSuggestedLine(m.ChoiceCard.pending.Command, lang)
-			m.messages = append(m.messages, hintStyle.Render(m.delveMsg(i18n.T(lang, i18n.KeySuggestedCopied))))
+			m.appendSuggestedLine(m.ChoiceCard.pending.Command)
+			m.messages = append(m.messages, hintStyle.Render(m.delveMsg(i18n.T(i18n.KeySuggestedCopied))))
 		}
 		if m.ChoiceCard.pending.Respond != nil {
 			m.ChoiceCard.pending.Respond(resp)

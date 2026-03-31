@@ -9,15 +9,14 @@ import (
 )
 
 func applyConfigRemoveRemote(nameOrTarget string) inputlifecycletype.ProcessResult {
-	lang := "en"
 	nameOrTarget = strings.TrimSpace(nameOrTarget)
 	if nameOrTarget == "" {
-		return remoteTranscriptErrorResult(i18n.T(lang, i18n.KeyConfigPrefix) + "Usage: select a remote from /config del-remote list")
+		return remoteTranscriptErrorResult(i18n.T(i18n.KeyConfigPrefix) + "Usage: select a remote from /config del-remote list")
 	}
 	if err := config.RemoveRemoteByName(nameOrTarget); err != nil {
-		return remoteTranscriptErrorResult(i18n.T(lang, i18n.KeyConfigPrefix) + err.Error())
+		return remoteTranscriptErrorResult(i18n.T(i18n.KeyConfigPrefix) + err.Error())
 	}
-	return remoteTranscriptSuggestResult(i18n.Tf(lang, i18n.KeyConfigRemoteRemoved, nameOrTarget), true)
+	return remoteTranscriptSuggestResult(i18n.Tf(i18n.KeyConfigRemoteRemoved, nameOrTarget), true)
 }
 
 func remoteTranscriptSuggestResult(text string, trailingBlank bool) inputlifecycletype.ProcessResult {

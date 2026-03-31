@@ -14,7 +14,7 @@ func applyConfigAllowlistUpdate(sender ui.CommandSender) inputlifecycletype.Proc
 		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 			Kind: inputlifecycletype.OutputTranscriptAppend,
 			Transcript: &inputlifecycletype.TranscriptPayload{Lines: []inputlifecycletype.TranscriptLine{
-				{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.T("en", i18n.KeyConfigPrefix) + err.Error()},
+				{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.T(i18n.KeyConfigPrefix) + err.Error()},
 			}},
 		})
 	}
@@ -24,7 +24,7 @@ func applyConfigAllowlistUpdate(sender ui.CommandSender) inputlifecycletype.Proc
 	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 		Kind: inputlifecycletype.OutputTranscriptAppend,
 		Transcript: &inputlifecycletype.TranscriptPayload{Lines: []inputlifecycletype.TranscriptLine{
-			{Kind: inputlifecycletype.TranscriptLineSystemSuggest, Text: i18n.Tf("en", i18n.KeyAllowlistUpdateDone, added)},
+			{Kind: inputlifecycletype.TranscriptLineSystemSuggest, Text: i18n.Tf(i18n.KeyAllowlistUpdateDone, added)},
 			{Kind: inputlifecycletype.TranscriptLineBlank},
 		}},
 	})

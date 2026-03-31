@@ -1,6 +1,10 @@
 package approvalview
 
-import "testing"
+import (
+	"testing"
+
+	"delve-shell/internal/i18n"
+)
 
 func TestChoiceCount(t *testing.T) {
 	if got := ChoiceCount(true, false); got != 3 {
@@ -15,13 +19,14 @@ func TestChoiceCount(t *testing.T) {
 }
 
 func TestInputPlaceholder(t *testing.T) {
-	if got := InputPlaceholder("en", true, false); got == "" {
+	i18n.SetLang("en")
+	if got := InputPlaceholder(true, false); got == "" {
 		t.Fatal("expected non-empty placeholder for pending")
 	}
-	if got := InputPlaceholder("en", false, true); got == "" {
+	if got := InputPlaceholder(false, true); got == "" {
 		t.Fatal("expected non-empty placeholder for sensitive")
 	}
-	if got := InputPlaceholder("en", false, false); got == "" {
+	if got := InputPlaceholder(false, false); got == "" {
 		t.Fatal("expected default placeholder")
 	}
 }

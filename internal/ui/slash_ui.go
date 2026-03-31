@@ -58,20 +58,20 @@ func (m Model) slashSuggestionContextWithLang(inputVal, lang string) (opts []Sla
 }
 
 // waitingLineText returns the waiting hint text without layout padding.
-func (m Model) waitingLineText(lang string) string {
+func (m Model) waitingLineText() string {
 	inChoice := m.hasPendingChoiceCard()
 	if m.Interaction.WaitingForAI && !inChoice {
-		return suggestStyle.Render(i18n.T(lang, i18n.KeyWaitOrCancel))
+		return suggestStyle.Render(i18n.T(i18n.KeyWaitOrCancel))
 	}
 	return ""
 }
 
 // inputBelowBlock reserves the fixed-height block below the input so the footer position stays stable.
-func (m Model) inputBelowBlock(lang string, inChoice bool) string {
+func (m Model) inputBelowBlock(inChoice bool) string {
 	// Multiline: skip choice list / slash / fixed block unless walking input history (need hint + layout).
 	if m.Input.LineCount() > 1 && !inChoice && m.Interaction.inputHistIndex < 0 {
 		if m.Interaction.WaitingForAI {
-			text := m.waitingLineText(lang)
+			text := m.waitingLineText()
 			if text == "" {
 				return "\n"
 			}
@@ -83,10 +83,10 @@ func (m Model) inputBelowBlock(lang string, inChoice bool) string {
 	reserveRows := inputBelowStableRows
 	if inChoice {
 		if m.ChoiceCard.offlinePaste != nil {
-			hint := suggestStyle.Render(i18n.T(lang, i18n.KeyOfflinePasteHint))
+			hint := suggestStyle.Render(i18n.T(i18n.KeyOfflinePasteHint))
 			rows = []widget.ListRow{{Text: hint, PreRendered: true}}
 		} else {
-			opts := approvalview.ChoiceOptions(lang, m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil)
+			opts := approvalview.ChoiceOptions(m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil)
 			adapted := make([]maininput.ChoiceOption, 0, len(opts))
 			for _, o := range opts {
 				adapted = append(adapted, maininput.ChoiceOption{Num: o.Num, Label: o.Label})
@@ -98,11 +98,11 @@ func (m Model) inputBelowBlock(lang string, inChoice bool) string {
 			}
 		}
 	} else if m.Interaction.inputHistIndex >= 0 {
-		hint := i18n.T(lang, i18n.KeyInputHistBrowsingHint)
+		hint := i18n.T(i18n.KeyInputHistBrowsingHint)
 		styled := inputHistBrowsingHintStyle.Render("   — " + hint)
 		rows = []widget.ListRow{{Text: styled, PreRendered: true}}
 	} else if strings.HasPrefix(m.Input.Value(), "/") {
-		_, vis, viewOpts := m.slashSuggestionContextWithLang(m.Input.Value(), lang)
+		_, vis, viewOpts := m.slashSuggestionContextWithLang(m.Input.Value(), m.getLang())
 		if len(vis) > 0 {
 			const maxSlashVisible = inputBelowReserveRows
 			rowsRaw := slashview.BuildDropdownRows(viewOpts, vis, m.Interaction.slashSuggestIndex, m.layout.Width, maxSlashVisible)
@@ -114,7 +114,7 @@ func (m Model) inputBelowBlock(lang string, inChoice bool) string {
 	}
 	block := widget.RenderFixedLinesBelowInput("   ", rows, reserveRows, suggestStyle, suggestHi)
 	if m.Interaction.WaitingForAI && !inChoice && !strings.HasPrefix(m.Input.Value(), "/") {
-		waiting := i18n.T(lang, i18n.KeyWaitOrCancel)
+		waiting := i18n.T(i18n.KeyWaitOrCancel)
 		block = widget.RenderFixedLinesBelowInput("   ", []widget.ListRow{{Text: waiting}}, reserveRows, suggestStyle, suggestHi)
 	}
 	return block

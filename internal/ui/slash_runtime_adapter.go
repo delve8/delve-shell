@@ -28,15 +28,15 @@ func (m Model) slashRuntimeDeps() slashdispatch.ExecDeps[Model, tea.Cmd] {
 			return mm
 		},
 		AppendSessionNone: func(mm Model) Model {
-			mm = mm.AppendTranscriptLines(suggestStyle.Render(mm.delveMsg(i18n.T(mm.getLang(), i18n.KeySessionNone))))
+			mm = mm.AppendTranscriptLines(suggestStyle.Render(mm.delveMsg(i18n.T(i18n.KeySessionNone))))
 			return mm.clearSlashInput()
 		},
 		AppendDelRemoteNone: func(mm Model) Model {
-			mm = mm.AppendTranscriptLines(suggestStyle.Render(mm.delveMsg(i18n.T(mm.getLang(), i18n.KeyDelRemoteNoHosts))))
+			mm = mm.AppendTranscriptLines(suggestStyle.Render(mm.delveMsg(i18n.T(i18n.KeyDelRemoteNoHosts))))
 			return mm.clearSlashInput()
 		},
 		AppendUnknownSlash: func(mm Model) Model {
-			mm = mm.AppendTranscriptLines(errStyle.Render(mm.delveMsg(i18n.T(mm.getLang(), i18n.KeyUnknownCmd))))
+			mm = mm.AppendTranscriptLines(errStyle.Render(mm.delveMsg(i18n.T(i18n.KeyUnknownCmd))))
 			return mm
 		},
 		EchoSubmitted: func(mm Model, text string) Model {
@@ -48,8 +48,8 @@ func (m Model) slashRuntimeDeps() slashdispatch.ExecDeps[Model, tea.Cmd] {
 			}
 			return mm
 		},
-		SessionNoneMsg:   i18n.T(m.getLang(), i18n.KeySessionNone),
-		DelRemoteNoneMsg: i18n.T(m.getLang(), i18n.KeyDelRemoteNoHosts),
+		SessionNoneMsg:   i18n.T(i18n.KeySessionNone),
+		DelRemoteNoneMsg: i18n.T(i18n.KeyDelRemoteNoHosts),
 	}
 }
 

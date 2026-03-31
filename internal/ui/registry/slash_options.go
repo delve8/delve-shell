@@ -2,6 +2,7 @@
 package uiregistry
 
 import (
+	"delve-shell/internal/i18n"
 	"delve-shell/internal/slash/reg"
 )
 
@@ -44,6 +45,7 @@ func RegisterRootSlashOptionProvider(p RootSlashOptionProvider) {
 
 // RootSlashOptions returns merged top-level slash rows from registered root providers.
 func RootSlashOptions(lang string) []SlashOption {
+	i18n.SetLang(lang)
 	opts := make([]SlashOption, 0, 16)
 	for _, p := range rootSlashOptionProviderChain.List() {
 		opts = append(opts, p(lang)...)
@@ -53,6 +55,7 @@ func RootSlashOptions(lang string) []SlashOption {
 
 // SlashOptionsForInput returns slash options for the current input buffer.
 func SlashOptionsForInput(inputVal, lang string) []SlashOption {
+	i18n.SetLang(lang)
 	for _, p := range slashOptionsProviderChain.List() {
 		if o, handled := p(inputVal, lang); handled {
 			return o

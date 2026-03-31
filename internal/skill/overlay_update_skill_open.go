@@ -12,7 +12,6 @@ import (
 
 // openUpdateSkillOverlay initializes update-skill overlay state.
 func openUpdateSkillOverlay(m ui.Model, name string) ui.Model {
-	lang := "en"
 	url, ref, commitID, path, _, ok := skillstore.GetSkillSource(name)
 	state := getSkillOverlayState()
 	if !ok || strings.TrimSpace(url) == "" {
@@ -26,7 +25,7 @@ func openUpdateSkillOverlay(m ui.Model, name string) ui.Model {
 		state.UpdateSkill.Refs = nil
 		state.UpdateSkill.RefIndex = 0
 		state.UpdateSkill.LatestCommit = ""
-		state.UpdateSkill.Error = i18n.T(lang, i18n.KeySkillNotFound)
+		state.UpdateSkill.Error = i18n.T(i18n.KeySkillNotFound)
 		setSkillOverlayState(state)
 		return m
 	}

@@ -22,9 +22,9 @@ func remoteSlashOptionsProvider(
 			hostOpts := getRemoteSlashOptions()
 			opts := make([]ui.SlashOption, 0, len(hostOpts)+2)
 			opts = append(opts, hostOpts...)
-			opts = append(opts, ui.SlashOption{Cmd: "/access New", Desc: i18n.T(lang, i18n.KeyDescRemoteOn)})
-			opts = append(opts, ui.SlashOption{Cmd: "/access Local", Desc: i18n.T(lang, i18n.KeyDescRemoteOff)})
-			opts = append(opts, ui.SlashOption{Cmd: "/access Offline", Desc: i18n.T(lang, i18n.KeyDescAccessOffline)})
+			opts = append(opts, ui.SlashOption{Cmd: "/access New", Desc: i18n.T(i18n.KeyDescRemoteOn)})
+			opts = append(opts, ui.SlashOption{Cmd: "/access Local", Desc: i18n.T(i18n.KeyDescRemoteOff)})
+			opts = append(opts, ui.SlashOption{Cmd: "/access Offline", Desc: i18n.T(i18n.KeyDescAccessOffline)})
 			return opts, true
 		}
 		return buildRemoteDropdownOptions(lang), true
@@ -44,7 +44,7 @@ func remoteSlashOptionsProvider(
 			return nil, false
 		}
 		if normalizedLower == "exec" {
-			return []ui.SlashOption{{Cmd: remoteExecUsageOption, Desc: i18n.T(lang, i18n.KeyDescRun)}}, true
+			return []ui.SlashOption{{Cmd: remoteExecUsageOption, Desc: i18n.T(i18n.KeyDescRun)}}, true
 		}
 		rest := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "exec"))
 		if strings.Contains(rest, " ") || strings.Contains(rest, "\t") {
@@ -82,8 +82,8 @@ func buildRemoteDropdownOptions(lang string) []ui.SlashOption {
 	for _, opt := range getRemoteSlashOptions() {
 		push(opt)
 	}
-	push(ui.SlashOption{Cmd: "/access New", Desc: i18n.T(lang, i18n.KeyDescRemoteOn)})
-	push(ui.SlashOption{Cmd: "/access Local", Desc: i18n.T(lang, i18n.KeyDescRemoteOff)})
-	push(ui.SlashOption{Cmd: "/access Offline", Desc: i18n.T(lang, i18n.KeyDescAccessOffline)})
+	push(ui.SlashOption{Cmd: "/access New", Desc: i18n.T(i18n.KeyDescRemoteOn)})
+	push(ui.SlashOption{Cmd: "/access Local", Desc: i18n.T(i18n.KeyDescRemoteOff)})
+	push(ui.SlashOption{Cmd: "/access Offline", Desc: i18n.T(i18n.KeyDescAccessOffline)})
 	return opts
 }

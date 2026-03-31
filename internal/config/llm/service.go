@@ -49,15 +49,12 @@ func CheckLLMAndMaybeAutoCorrect(ctx context.Context) (correctedBaseURL string, 
 }
 
 // TestConnection sends a minimal "hello" request to the LLM and returns nil if the response is received.
-// baseURL, apiKey, model are used as-is after env expansion and trim; empty baseURL is left empty (client default).
+// baseURL, apiKey, model are used as-is after env expansion and trim; empty baseURL is left empty (client default); empty model is not substituted.
 func TestConnection(ctx context.Context, baseURL, apiKey, model string) error {
 	baseURL = strings.TrimSpace(config.ExpandEnv(baseURL))
 	baseURL = strings.TrimRight(baseURL, "/")
 	apiKey = strings.TrimSpace(config.ExpandEnv(apiKey))
 	model = strings.TrimSpace(config.ExpandEnv(model))
-	if model == "" {
-		model = "gpt-4o-mini"
-	}
 	if baseURL == "" && apiKey != "" {
 		baseURL = "https://api.openai.com/v1"
 	}

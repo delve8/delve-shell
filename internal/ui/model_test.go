@@ -119,7 +119,7 @@ func TestMainTopPaddingLinesShrinksAsTranscriptPrints(t *testing.T) {
 	m := NewModel(nil, nil)
 	m.layout.Width = 80
 	m.layout.Height = 24
-	bottom := renderSeparator(m.layout.Width) + "\n" + m.Input.View() + m.inputBelowBlock(m.getLang(), false) + m.footerLine()
+	bottom := renderSeparator(m.layout.Width) + "\n" + m.Input.View() + m.inputBelowBlock(false) + m.footerLine()
 
 	initialPad := m.normalModeTopPaddingLines(bottom)
 	if initialPad <= 0 {
@@ -141,11 +141,11 @@ func TestMainTopPaddingLinesAccountsForTerminalWidth(t *testing.T) {
 	// Replace default startup banner so printed line count stays small (padding math test).
 	wide = wide.WithTranscriptLines([]string{strings.Repeat("x", 60)})
 	wide.printedMessages = len(wide.messages)
-	wideBottom := renderSeparator(wide.layout.Width) + "\n" + wide.Input.View() + wide.inputBelowBlock(wide.getLang(), false) + wide.footerLine()
+	wideBottom := renderSeparator(wide.layout.Width) + "\n" + wide.Input.View() + wide.inputBelowBlock(false) + wide.footerLine()
 
 	narrow := wide
 	narrow.layout.Width = 20
-	narrowBottom := renderSeparator(narrow.layout.Width) + "\n" + narrow.Input.View() + narrow.inputBelowBlock(narrow.getLang(), false) + narrow.footerLine()
+	narrowBottom := renderSeparator(narrow.layout.Width) + "\n" + narrow.Input.View() + narrow.inputBelowBlock(false) + narrow.footerLine()
 
 	if narrow.normalModeTopPaddingLines(narrowBottom) >= wide.normalModeTopPaddingLines(wideBottom) {
 		t.Fatalf("expected narrower terminal to leave less top padding, wide=%d narrow=%d", wide.normalModeTopPaddingLines(wideBottom), narrow.normalModeTopPaddingLines(narrowBottom))

@@ -4,11 +4,13 @@ import (
 	"strings"
 	"testing"
 
+	"delve-shell/internal/i18n"
 	"delve-shell/internal/ui/uivm"
 )
 
 func TestBuildSensitive(t *testing.T) {
-	lines, ok := Build("en", 80, nil, &uivm.PendingSensitive{Command: "rm -rf /"}, nil)
+	i18n.SetLang("en")
+	lines, ok := Build(80, nil, &uivm.PendingSensitive{Command: "rm -rf /"}, nil)
 	if !ok {
 		t.Fatal("expected sensitive block")
 	}
@@ -21,7 +23,8 @@ func TestBuildSensitive(t *testing.T) {
 }
 
 func TestBuildApprovalRiskAndSummary(t *testing.T) {
-	lines, ok := Build("en", 80, &uivm.PendingApproval{
+	i18n.SetLang("en")
+	lines, ok := Build(80, &uivm.PendingApproval{
 		Command:   "kubectl get pods",
 		RiskLevel: "read_only",
 		SkillName: "k8s",

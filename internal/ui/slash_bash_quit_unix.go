@@ -16,7 +16,7 @@ func trySlashBashQuit(m Model, text string) (Model, tea.Cmd, bool) {
 	}
 	if m.offlineExecutionMode() {
 		m = m.appendUserSubmittedEcho(text)
-		m = m.AppendTranscriptLines(errStyle.Render(m.delveMsg(i18n.T(m.getLang(), i18n.KeyOfflineExecBashDisabled))))
+		m = m.AppendTranscriptLines(errStyle.Render(m.delveMsg(i18n.T(i18n.KeyOfflineExecBashDisabled))))
 		m = m.clearSlashInput()
 		m2, printCmd := m.printTranscriptCmd(false)
 		return m2, printCmd, true

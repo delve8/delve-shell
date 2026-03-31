@@ -151,7 +151,7 @@ Main files:
 
 ## Usage
 
-1. Start the `delve-shell` binary (for example after `go install ./cmd/delve-shell`, from `PATH`, or from whatever output directory the build uses).
+1. Start the `delve-shell` binary.
 2. Enter a natural-language task or a slash command.
 3. Approve non-allowlisted commands when prompted.
 4. Review transcript, tool output, and session history in the same TUI.

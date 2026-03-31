@@ -32,7 +32,7 @@ func registerProviders() {
 			if req.Key != "remote_add" {
 				return m, nil, false
 			}
-			m = m.OpenOverlayFeature("remote", i18n.T("en", i18n.KeyAddRemoteTitle), "")
+			m = m.OpenOverlayFeature("remote", i18n.T(i18n.KeyAddRemoteTitle), "")
 			state := getRemoteOverlayState()
 			state.AddRemote.Active = true
 			state.RemoteAuth = RemoteAuthOverlayState{}

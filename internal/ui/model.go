@@ -1,13 +1,17 @@
 package ui
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
+	"strings"
 
-	"delve-shell/internal/i18n"
-	"delve-shell/internal/ui/uivm"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
+	tea "github.com/charmbracelet/bubbletea"
+
+	"delve-shell/internal/config"
+	"delve-shell/internal/i18n"
+	"delve-shell/internal/teakey"
+	"delve-shell/internal/ui/uivm"
 )
 
 const (
@@ -111,9 +115,20 @@ func (m Model) Init() tea.Cmd {
 	return tea.Batch(m.Input.Cursor.BlinkCmd(), tea.WindowSize())
 }
 
-// getLang returns the UI language for i18n. Currently UI is English-only.
-func (m Model) getLang() string {
+func languageFromConfig() string {
+	cfg, err := config.Load()
+	if err != nil || cfg == nil {
+		return "en"
+	}
+	if s := strings.TrimSpace(cfg.Language); s != "" {
+		return s
+	}
 	return "en"
+}
+
+// getLang returns the UI language for i18n (config language, default en).
+func (m Model) getLang() string {
+	return languageFromConfig()
 }
 
 // GetLang returns the UI language code for i18n (e.g. "en"). Callers outside package ui use this.
@@ -123,7 +138,7 @@ func (m Model) GetLang() string {
 
 // delveMsg prefixes msg with "Delve: " for tool/system messages (config, session, notify, etc.).
 func (m Model) delveMsg(msg string) string {
-	return i18n.T(m.getLang(), i18n.KeyDelveLabel) + " " + msg
+	return i18n.T(i18n.KeyDelveLabel) + " " + msg
 }
 
 // Update implements tea.Model.
@@ -134,6 +149,7 @@ func (m Model) delveMsg(msg string) string {
 //   - update_overlay_key.go then update_keymsg.go, update_slash.go, update_approval.go — keyboard when overlay vs main input.
 //   - update_approval.go, update_events.go — agent approval and transcript events.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	i18n.SetLang(m.getLang())
 	prevOverlayActive := m.Overlay.Active
 	m.syncInputPlaceholder()
 
@@ -217,15 +233,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // NewModel creates a Model with default input (slash commands and viewport scrolling).
 // initialMessages if non-nil is used as existing conversation (e.g. after /bash return).
 func NewModel(initialMessages []string, readModel ReadModel) Model {
+	i18n.SetLang(languageFromConfig())
 	ti := textarea.New()
-	ti.Placeholder = i18n.T("en", i18n.KeyPlaceholderInput)
+	ti.Placeholder = i18n.T(i18n.KeyPlaceholderInput)
 	ti.Prompt = "> "
 	ti.ShowLineNumbers = false
 	// InsertNewline: shift+enter when the TTY distinguishes it; alt+enter often works on macOS/Linux
 	// (\e\r); ctrl+j is always distinct. Plain Enter and Shift+Enter are the same on many terminals.
 	ti.KeyMap.InsertNewline = key.NewBinding(
-		key.WithKeys("shift+enter", "alt+enter", "ctrl+j"),
-		key.WithHelp("shift+enter / alt+enter / ctrl+j", "new line"),
+		key.WithKeys(teakey.ShiftEnter, teakey.AltEnter, teakey.CtrlJ),
+		key.WithHelp(teakey.InsertNewlineBindingHelp, "new line"),
 	)
 	ti.CharLimit = 0
 	ti.SetHeight(inputTextareaMinHeight)

@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/hil/types"
+	"delve-shell/internal/i18n"
 	"delve-shell/internal/remote"
 	"delve-shell/internal/ui"
 	"delve-shell/internal/ui/uivm"
@@ -26,9 +27,10 @@ func (r *recordSender) Send(msg tea.Msg) {
 func TestPresenter_ShowHistoryPreviewDialog_emitsOverlayMsg(t *testing.T) {
 	var r recordSender
 	p := New(&r)
+	i18n.SetLang("en")
 	p.ShowHistoryPreviewDialog([]uivm.Line{
 		{Kind: uivm.LineUser, Text: "hi"},
-	}, "abc123", "en")
+	}, "abc123")
 	if len(r.msgs) != 1 {
 		t.Fatalf("want 1 msg, got %d", len(r.msgs))
 	}
@@ -41,7 +43,8 @@ func TestPresenter_ShowHistoryPreviewDialog_emitsOverlayMsg(t *testing.T) {
 func TestPresenter_ApplyHistorySwitchBanner_emitsReplace(t *testing.T) {
 	var r recordSender
 	p := New(&r)
-	p.ApplyHistorySwitchBanner("abc123", "en")
+	i18n.SetLang("en")
+	p.ApplyHistorySwitchBanner("abc123")
 	if len(r.msgs) != 1 {
 		t.Fatalf("want 1 msg, got %d", len(r.msgs))
 	}

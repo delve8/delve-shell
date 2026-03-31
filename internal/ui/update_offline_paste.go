@@ -10,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/teakey"
 )
 
 func (m Model) handleOfflinePasteShowMsg(msg OfflinePasteShowMsg) (Model, tea.Cmd) {
@@ -18,15 +19,14 @@ func (m Model) handleOfflinePasteShowMsg(msg OfflinePasteShowMsg) (Model, tea.Cm
 	}
 	m.ChoiceCard.pending = nil
 	m.ChoiceCard.pendingSensitive = nil
-	lang := m.getLang()
 	paste := textarea.New()
-	paste.Placeholder = i18n.T(lang, i18n.KeyOfflinePastePlaceholder)
+	paste.Placeholder = i18n.T(i18n.KeyOfflinePastePlaceholder)
 	paste.Prompt = "│ "
 	paste.ShowLineNumbers = false
 	// Enter submits (handled in handleOfflinePasteKeyMsg); Shift+Enter inserts a newline for manual multi-line input.
 	paste.KeyMap.InsertNewline = key.NewBinding(
-		key.WithKeys("shift+enter"),
-		key.WithHelp("shift+enter", "new line"),
+		key.WithKeys(teakey.ShiftEnter),
+		key.WithHelp(teakey.ShiftEnter, "new line"),
 	)
 	paste.CharLimit = 0
 	paste.SetHeight(inputTextareaMaxHeight)
@@ -64,11 +64,10 @@ func (m Model) offlinePasteWriteCommandToClipboard() (Model, tea.Cmd) {
 	if op == nil {
 		return m, nil
 	}
-	lang := m.getLang()
 	if err := clipboard.WriteAll(op.Command); err != nil {
-		op.copyFeedback = i18n.T(lang, i18n.KeyOfflinePasteCopyFailed)
+		op.copyFeedback = i18n.T(i18n.KeyOfflinePasteCopyFailed)
 	} else {
-		op.copyFeedback = i18n.T(lang, i18n.KeySuggestedCopied)
+		op.copyFeedback = i18n.T(i18n.KeySuggestedCopied)
 	}
 	m.ChoiceCard.offlinePaste = op
 	m = m.syncChoiceViewport()
@@ -113,12 +112,12 @@ func (m Model) handleOfflinePasteKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 	}
 
 	switch keyStr {
-	case "esc":
+	case teakey.Esc:
 		m = m.finishOfflinePaste("", true)
 		m = m.syncInputHeight()
 		m = m.syncChoiceViewport()
 		return m, nil
-	case "enter":
+	case teakey.Enter:
 		text := strings.TrimSpace(m.ChoiceCard.offlinePaste.Paste.Value())
 		m = m.finishOfflinePaste(text, false)
 		m = m.syncInputHeight()

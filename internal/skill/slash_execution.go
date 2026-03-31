@@ -28,7 +28,7 @@ func registerSlashExecutionProvider() {
 		case strings.HasPrefix(text, "/config update-skill"):
 			name := strings.TrimSpace(strings.TrimPrefix(text, "/config update-skill"))
 			if name == "" {
-				return transcriptErrorResult(i18n.T("en", i18n.KeyDescConfigUpdateSkill)), true, nil
+				return transcriptErrorResult(i18n.T(i18n.KeyDescConfigUpdateSkill)), true, nil
 			}
 			return overlayOpenResult("skill_update", map[string]string{"name": name}), true, nil
 		case strings.HasPrefix(text, "/config del-skill "):
@@ -66,11 +66,11 @@ func parseAddSkillArgs(rest string) (url, ref, path string) {
 
 func executeSkillInvocation(req ui.SlashExecutionRequest, rest string) inputlifecycletype.ProcessResult {
 	if req.OfflineExecutionMode {
-		return transcriptErrorResult(i18n.T("en", i18n.KeyOfflineSlashSkillDisabled))
+		return transcriptErrorResult(i18n.T(i18n.KeyOfflineSlashSkillDisabled))
 	}
 	fields := strings.Fields(rest)
 	if len(fields) < 1 {
-		return transcriptErrorResult(i18n.T("en", i18n.KeyUsageSkill))
+		return transcriptErrorResult(i18n.T(i18n.KeyUsageSkill))
 	}
 	skillName := fields[0]
 	naturalLanguage := strings.TrimSpace(strings.TrimPrefix(rest, skillName))
@@ -79,11 +79,11 @@ func executeSkillInvocation(req ui.SlashExecutionRequest, rest string) inputlife
 	}
 	skillDir := skillstore.SkillDir(skillName)
 	if _, err := os.Stat(filepath.Join(skillDir, "SKILL.md")); err != nil {
-		return transcriptErrorResult(i18n.T("en", i18n.KeySkillNotFound))
+		return transcriptErrorResult(i18n.T(i18n.KeySkillNotFound))
 	}
 	skillContent, err := skillstore.ReadSKILLContent(skillDir)
 	if err != nil {
-		return transcriptErrorResult(i18n.Tf("en", i18n.KeySkillInstallFailed, err))
+		return transcriptErrorResult(i18n.Tf(i18n.KeySkillInstallFailed, err))
 	}
 	payload := skillInvocationPrompt(skillName, skillContent, naturalLanguage)
 	userLine := strings.TrimSpace(req.RawText)
