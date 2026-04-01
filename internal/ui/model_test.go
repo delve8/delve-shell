@@ -18,7 +18,7 @@ func TestView_FooterAlwaysShown(t *testing.T) {
 	m := NewModel(nil, nil)
 	m.layout.Height = 24
 	m.layout.Width = 80
-	m = m.WithTranscriptLines([]string{"hello"})
+	m.WithTranscriptLines([]string{"hello"})
 	view := m.View()
 	lines := strings.Split(view, "\n")
 	if len(lines) > m.layout.Height {
@@ -50,7 +50,7 @@ func TestView_FooterAlwaysShown(t *testing.T) {
 	// With Pending, footer shows [NEED APPROVAL] or [待确认]
 	m.ChoiceCard.pending = &uivm.PendingApproval{Command: "ls"}
 	m.layout.Height = 24
-	m = m.syncChoiceViewport()
+	m.syncChoiceViewport()
 	viewPending := m.View()
 	if !strings.Contains(viewPending, "[NEED APPROVAL]") && !strings.Contains(viewPending, "[待确认]") {
 		t.Error("View() with Pending should show pending status in the footer")
@@ -101,16 +101,13 @@ func TestNewModelStartupTitleWhenEmpty(t *testing.T) {
 // Regression: two WindowSize (or similar) Updates before transcriptPrintedMsg must not enqueue a second print batch.
 func TestPrintTranscriptCmdSkipsSecondEnqueueBeforeTranscriptPrintedMsg(t *testing.T) {
 	m := NewModel(nil, nil)
-	m, cmd1 := m.printTranscriptCmd(false)
+	cmd1 := m.printTranscriptCmd(false)
 	if want := len(m.messages); m.printedMessages != want {
 		t.Fatalf("printedMessages=%d want %d after scheduling print", m.printedMessages, want)
 	}
-	m2, cmd2 := m.printTranscriptCmd(false)
+	cmd2 := m.printTranscriptCmd(false)
 	if cmd2 != nil {
 		t.Fatalf("expected nil second print cmd, got non-nil")
-	}
-	if m2.printedMessages != m.printedMessages {
-		t.Fatalf("printedMessages changed on no-op second call")
 	}
 	_ = cmd1
 }
@@ -126,7 +123,7 @@ func TestMainTopPaddingLinesShrinksAsTranscriptPrints(t *testing.T) {
 		t.Fatalf("expected positive initial top padding, got %d", initialPad)
 	}
 
-	m = m.AppendTranscriptLines("line1", "line2", "line3")
+	m.AppendTranscriptLines("line1", "line2", "line3")
 	m.printedMessages = len(m.messages)
 	afterPrintPad := m.normalModeTopPaddingLines(bottom)
 	if afterPrintPad >= initialPad {
@@ -139,12 +136,16 @@ func TestMainTopPaddingLinesAccountsForTerminalWidth(t *testing.T) {
 	wide.layout.Width = 80
 	wide.layout.Height = 24
 	// Replace default startup banner so printed line count stays small (padding math test).
-	wide = wide.WithTranscriptLines([]string{strings.Repeat("x", 60)})
+	line := strings.Repeat("x", 60)
+	wide.WithTranscriptLines([]string{line})
 	wide.printedMessages = len(wide.messages)
 	wideBottom := renderSeparator(wide.layout.Width) + "\n" + wide.Input.View() + wide.inputBelowBlock(false) + wide.footerLine()
 
-	narrow := wide
+	narrow := NewModel(nil, nil)
 	narrow.layout.Width = 20
+	narrow.layout.Height = 24
+	narrow.WithTranscriptLines([]string{line})
+	narrow.printedMessages = len(narrow.messages)
 	narrowBottom := renderSeparator(narrow.layout.Width) + "\n" + narrow.Input.View() + narrow.inputBelowBlock(false) + narrow.footerLine()
 
 	if narrow.normalModeTopPaddingLines(narrowBottom) >= wide.normalModeTopPaddingLines(wideBottom) {

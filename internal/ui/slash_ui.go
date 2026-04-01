@@ -22,7 +22,7 @@ type SlashOption struct {
 	FillValue string
 }
 
-var slashRuntime = slashdispatch.NewRuntime[Model, tea.Cmd]()
+var slashRuntime = slashdispatch.NewRuntime[*Model, tea.Cmd]()
 
 const inputBelowReserveRows = 4
 
@@ -41,12 +41,12 @@ func toSlashViewOptions(opts []SlashOption) []slashview.Option {
 
 // slashSuggestionContext returns options, visible indices, and slashview rows for the current input buffer
 // using Model.getLang. Use slashSuggestionContextWithLang when the view passes an explicit lang.
-func (m Model) slashSuggestionContext(inputVal string) (opts []SlashOption, vis []int, viewOpts []slashview.Option) {
+func (m *Model) slashSuggestionContext(inputVal string) (opts []SlashOption, vis []int, viewOpts []slashview.Option) {
 	return m.slashSuggestionContextWithLang(inputVal, m.getLang())
 }
 
 // slashSuggestionContextWithLang is the same as slashSuggestionContext but uses an explicit UI language.
-func (m Model) slashSuggestionContextWithLang(inputVal, lang string) (opts []SlashOption, vis []int, viewOpts []slashview.Option) {
+func (m *Model) slashSuggestionContextWithLang(inputVal, lang string) (opts []SlashOption, vis []int, viewOpts []slashview.Option) {
 	raw := uiregistry.SlashOptionsForInput(inputVal, lang)
 	opts = make([]SlashOption, 0, len(raw))
 	for _, o := range raw {
@@ -58,7 +58,7 @@ func (m Model) slashSuggestionContextWithLang(inputVal, lang string) (opts []Sla
 }
 
 // waitingLineText returns the waiting hint text without layout padding.
-func (m Model) waitingLineText() string {
+func (m *Model) waitingLineText() string {
 	inChoice := m.hasPendingChoiceCard()
 	if m.Interaction.WaitingForAI && !inChoice {
 		return suggestStyle.Render(i18n.T(i18n.KeyWaitOrCancel))
@@ -67,7 +67,7 @@ func (m Model) waitingLineText() string {
 }
 
 // inputBelowBlock reserves the fixed-height block below the input so the footer position stays stable.
-func (m Model) inputBelowBlock(inChoice bool) string {
+func (m *Model) inputBelowBlock(inChoice bool) string {
 	// Multiline: skip choice list / slash / fixed block unless walking input history (need hint + layout).
 	if m.Input.LineCount() > 1 && !inChoice && m.Interaction.inputHistIndex < 0 {
 		if m.Interaction.WaitingForAI {

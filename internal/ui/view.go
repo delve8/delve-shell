@@ -11,11 +11,11 @@ import (
 )
 
 // View implements tea.Model.
-func (m Model) View() string {
+func (m *Model) View() string {
 	return m.renderScreenSnapshot()
 }
 
-func (m Model) renderBaseScreen() string {
+func (m *Model) renderBaseScreen() string {
 	sepW := m.layout.Width
 	if sepW <= 0 {
 		sepW = 40
@@ -52,7 +52,7 @@ func (m Model) renderBaseScreen() string {
 	return out
 }
 
-func (m Model) renderScreenSnapshot() string {
+func (m *Model) renderScreenSnapshot() string {
 	i18n.SetLang(m.getLang())
 	out := m.renderBaseScreen()
 	if m.Overlay.Active {
@@ -73,7 +73,7 @@ func (m *Model) appendSuggestedLine(command string) {
 	)
 }
 
-func (m Model) titleBarStatus() widget.TitleBarStatus {
+func (m *Model) titleBarStatus() widget.TitleBarStatus {
 	switch m.statusKey() {
 	case i18n.KeyStatusIdle:
 		return widget.TitleBarStatusIdle
@@ -91,7 +91,7 @@ func (m Model) titleBarStatus() widget.TitleBarStatus {
 }
 
 // statusKey returns the i18n key for current state: idle, running, or pending approval.
-func (m Model) statusKey() string {
+func (m *Model) statusKey() string {
 	if m.ChoiceCard.offlinePaste != nil {
 		return i18n.KeyStatusWaitingUserInput
 	}
@@ -104,7 +104,7 @@ func (m Model) statusKey() string {
 	return i18n.KeyStatusIdle
 }
 
-func (m Model) titleBarLeadingSegment() string {
+func (m *Model) titleBarLeadingSegment() string {
 	for _, p := range titleBarFragmentProviderChain.List() {
 		if seg, ok := p(m); ok {
 			return seg
@@ -114,7 +114,7 @@ func (m Model) titleBarLeadingSegment() string {
 }
 
 // footerLine returns the fixed status line (status + remote) for display below the input; does not scroll.
-func (m Model) footerLine() string {
+func (m *Model) footerLine() string {
 	remotePart := m.titleBarLeadingSegment()
 	statusStr := i18n.T(m.statusKey())
 	return widget.RenderFooterBar(m.layout.Width, widget.FooterBarParts{
@@ -152,7 +152,7 @@ func footerStatusReserveWidth() int {
 const overlayBoxMaxWidth = widget.DefaultOverlayBoxMaxWidth
 
 // renderOverlay draws a centered modal box over the base content.
-func (m Model) renderOverlay(base string) string {
+func (m *Model) renderOverlay(base string) string {
 	w := m.layout.Width
 	h := m.layout.Height
 	if w < 20 || h < 6 {
@@ -186,7 +186,7 @@ func (m *Model) syncInputPlaceholder() {
 
 // appendApprovalViewportContent appends sensitive or standard approval blocks to the viewport.
 // Returns true if the viewport body is complete (caller should return b.String()).
-func (m Model) appendApprovalViewportContent(b *strings.Builder) bool {
+func (m *Model) appendApprovalViewportContent(b *strings.Builder) bool {
 	lines, ok := approvalview.Build(
 		m.contentWidth(),
 		m.ChoiceCard.pending,

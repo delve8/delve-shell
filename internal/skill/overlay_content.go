@@ -7,7 +7,7 @@ import (
 	"delve-shell/internal/ui"
 )
 
-func buildSkillOverlayContent(m ui.Model) (string, bool) {
+func buildSkillOverlayContent(m *ui.Model) (string, bool) {
 	state := getSkillOverlayState()
 	if state.AddSkill.Active {
 		var b strings.Builder

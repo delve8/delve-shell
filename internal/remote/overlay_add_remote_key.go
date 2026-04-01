@@ -41,10 +41,10 @@ func applyAddRemoteFieldFocus(state *AddRemoteOverlayState) {
 	}
 }
 
-func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
+func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Model, tea.Cmd, bool) {
 	state := getRemoteOverlayState()
 	pcState := pathcomplete.GetState()
-	ret := func(model ui.Model, cmd tea.Cmd, handled bool) (ui.Model, tea.Cmd, bool) {
+	ret := func(model *ui.Model, cmd tea.Cmd, handled bool) (*ui.Model, tea.Cmd, bool) {
 		setRemoteOverlayState(state)
 		return model, cmd, handled
 	}
@@ -131,11 +131,11 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 				display = name + " (" + host + ")"
 			}
 			delvPrefix := i18n.T(i18n.KeyDelveLabel) + " "
-			m = m.AppendTranscriptLines(
+			m.AppendTranscriptLines(
 				ui.SuggestStyleRender(delvPrefix+i18n.Tf(i18n.KeyConfigRemoteAdded, display)),
 				"",
 			)
-			m = m.CloseOverlayVisual()
+			m.CloseOverlayVisual()
 			state.AddRemote.Active = false
 			state.AddRemote.Error = ""
 			state.AddRemote.OfferOverwrite = false
@@ -202,7 +202,7 @@ func handleAddRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model
 				display = name + " (" + host + ")"
 			}
 			delvPrefix := i18n.T(i18n.KeyDelveLabel) + " "
-			m = m.AppendTranscriptLines(
+			m.AppendTranscriptLines(
 				ui.SuggestStyleRender(delvPrefix+i18n.Tf(i18n.KeyConfigRemoteAdded, display)),
 				"",
 			)

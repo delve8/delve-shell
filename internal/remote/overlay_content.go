@@ -72,7 +72,7 @@ func appendPathCompletionBlock(b *strings.Builder, showTitle bool, cands []strin
 	}
 }
 
-func buildRemoteOverlayContent(m ui.Model) (string, bool) {
+func buildRemoteOverlayContent(m *ui.Model) (string, bool) {
 	state := getRemoteOverlayState()
 	pcState := pathcomplete.GetState()
 	if state.AddRemote.Active {

@@ -16,11 +16,11 @@ func registerProviders() {
 
 	ui.RegisterOverlayFeature(ui.OverlayFeature{
 		KeyID: OverlayFeatureKey,
-		Open: func(m ui.Model, req ui.OverlayOpenRequest) (ui.Model, tea.Cmd, bool) {
+		Open: func(m *ui.Model, req ui.OverlayOpenRequest) (*ui.Model, tea.Cmd, bool) {
 			if req.Key != OverlayOpenKeyAddRemote {
 				return m, nil, false
 			}
-			m = m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyAddRemoteTitle), "")
+			m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyAddRemoteTitle), "")
 			state := getRemoteOverlayState()
 			state.AddRemote.Active = true
 			state.RemoteAuth = RemoteAuthOverlayState{}
@@ -42,26 +42,25 @@ func registerProviders() {
 			setRemoteOverlayState(state)
 			return m, nil, true
 		},
-		Key: func(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
+		Key: func(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Model, tea.Cmd, bool) {
 			return handleRemoteOverlayKey(m, key, msg)
 		},
 		// AuthPromptMsg / ConnectDoneMsg are handled in [remoteStateProvider] so they apply when
 		// no overlay is open yet (e.g. direct `/access <host>`).
-		Content: func(m ui.Model) (string, bool) {
+		Content: func(m *ui.Model) (string, bool) {
 			return buildRemoteOverlayContent(m)
 		},
-		Close: func(m ui.Model, activeKey string) ui.Model {
+		Close: func(m *ui.Model, activeKey string) {
 			if activeKey != OverlayFeatureKey {
-				return m
+				return
 			}
 			resetRemoteOverlayState()
 			pathcomplete.ResetState()
-			return m
 		},
 	})
 }
 
-func remoteTitleBarFragment(m ui.Model) (string, bool) {
+func remoteTitleBarFragment(m *ui.Model) (string, bool) {
 	if m.Remote.Offline {
 		return i18n.T(i18n.KeyRemoteTitleBarOffline), true
 	}

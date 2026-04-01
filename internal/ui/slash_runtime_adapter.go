@@ -12,38 +12,44 @@ import (
 	"delve-shell/internal/slash/view"
 )
 
-func (m Model) slashRuntimeDeps() slashdispatch.ExecDeps[Model, tea.Cmd] {
-	return slashdispatch.ExecDeps[Model, tea.Cmd]{
-		Hooks: slashdispatch.Hooks[Model, tea.Cmd]{
-			ClearInput: func(mm Model) Model { return mm.clearSlashInput() },
+func (m *Model) slashRuntimeDeps() slashdispatch.ExecDeps[*Model, tea.Cmd] {
+	return slashdispatch.ExecDeps[*Model, tea.Cmd]{
+		Hooks: slashdispatch.Hooks[*Model, tea.Cmd]{
+			ClearInput: func(mm *Model) *Model {
+				mm.clearSlashInput()
+				return mm
+			},
 		},
 		SuggestionContext: func(input string) ([]int, []slashview.Option) {
 			_, vis, viewOpts := m.slashSuggestionContext(input)
 			return vis, viewOpts
 		},
-		SlashSuggestIndex: func(mm Model) int { return mm.Interaction.slashSuggestIndex },
-		FillInput: func(mm Model, fill string) Model {
+		SlashSuggestIndex: func(mm *Model) int { return mm.Interaction.slashSuggestIndex },
+		FillInput: func(mm *Model, fill string) *Model {
 			mm.Input.SetValue(fill)
 			mm.Input.CursorEnd()
 			mm.Interaction.slashSuggestIndex = 0
 			return mm
 		},
-		AppendSessionNone: func(mm Model) Model {
-			mm = mm.AppendTranscriptLines(suggestStyle.Render(mm.delveMsg(i18n.T(i18n.KeySessionNone))))
-			return mm.clearSlashInput()
-		},
-		AppendDelRemoteNone: func(mm Model) Model {
-			mm = mm.AppendTranscriptLines(suggestStyle.Render(mm.delveMsg(i18n.T(i18n.KeyDelRemoteNoHosts))))
-			return mm.clearSlashInput()
-		},
-		AppendUnknownSlash: func(mm Model) Model {
-			mm = mm.AppendTranscriptLines(errStyle.Render(mm.delveMsg(i18n.T(i18n.KeyUnknownCmd))))
+		AppendSessionNone: func(mm *Model) *Model {
+			mm.AppendTranscriptLines(suggestStyle.Render(mm.delveMsg(i18n.T(i18n.KeySessionNone))))
+			mm.clearSlashInput()
 			return mm
 		},
-		EchoSubmitted: func(mm Model, text string) Model {
-			return mm.appendUserSubmittedEcho(text)
+		AppendDelRemoteNone: func(mm *Model) *Model {
+			mm.AppendTranscriptLines(suggestStyle.Render(mm.delveMsg(i18n.T(i18n.KeyDelRemoteNoHosts))))
+			mm.clearSlashInput()
+			return mm
 		},
-		EmitChat: func(mm Model, text string) Model {
+		AppendUnknownSlash: func(mm *Model) *Model {
+			mm.AppendTranscriptLines(errStyle.Render(mm.delveMsg(i18n.T(i18n.KeyUnknownCmd))))
+			return mm
+		},
+		EchoSubmitted: func(mm *Model, text string) *Model {
+			mm.appendUserSubmittedEcho(text)
+			return mm
+		},
+		EmitChat: func(mm *Model, text string) *Model {
 			if mm.CommandSender != nil && mm.CommandSender.Send(hostcmd.Submission{
 				Submission: inputlifecycletype.InputSubmission{
 					Kind:    inputlifecycletype.SubmissionChat,
@@ -61,7 +67,7 @@ func (m Model) slashRuntimeDeps() slashdispatch.ExecDeps[Model, tea.Cmd] {
 }
 
 // executeSlashSubmission runs one normalized slash submission against the shared slash runtime.
-func (m Model) executeSlashSubmission(rawText string, selectedIndex int) (Model, tea.Cmd) {
+func (m *Model) executeSlashSubmission(rawText string, selectedIndex int) (*Model, tea.Cmd) {
 	text := strings.TrimSpace(rawText)
 	if text == "" {
 		return m, nil
@@ -69,10 +75,8 @@ func (m Model) executeSlashSubmission(rawText string, selectedIndex int) (Model,
 	if m2, cmd, ok := trySlashBashQuit(m, text); ok {
 		return m2, cmd
 	}
-	m, cmd := slashRuntime.ExecuteSubmission(m, text, selectedIndex, m.slashRuntimeDeps())
-	// Transcript lines are scrollback via tea.Println; append-only slash outcomes (e.g. unknown command)
-	// must schedule a print so the PTY and tests see new text.
-	m2, printCmd := m.printTranscriptCmd(false)
+	m2, cmd := slashRuntime.ExecuteSubmission(m, text, selectedIndex, m.slashRuntimeDeps())
+	printCmd := m2.printTranscriptCmd(false)
 	if printCmd != nil {
 		if cmd != nil {
 			return m2, tea.Sequence(cmd, printCmd)
@@ -83,6 +87,6 @@ func (m Model) executeSlashSubmission(rawText string, selectedIndex int) (Model,
 }
 
 // executeSlashEarlySubmission runs slash-mode Enter after lifecycle submission routing.
-func (m Model) executeSlashEarlySubmission(inputLine string) (Model, tea.Cmd, bool) {
+func (m *Model) executeSlashEarlySubmission(inputLine string) (*Model, tea.Cmd, bool) {
 	return slashRuntime.ExecuteEarlySubmission(m, inputLine, m.slashRuntimeDeps())
 }

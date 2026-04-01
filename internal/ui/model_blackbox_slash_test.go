@@ -29,7 +29,7 @@ func TestBlackboxSlashBashSendsMessagesToShell(t *testing.T) {
 		t.Skip("/bash is not available on Windows")
 	}
 	f := newBlackboxFixture(t)
-	f.model = f.model.WithTranscriptLines([]string{"a", "b"})
+	f.model.WithTranscriptLines([]string{"a", "b"})
 
 	_ = enterText(f.model, "/bash")
 	select {
@@ -56,7 +56,7 @@ func TestBlackboxSlashBashRemoteModeWhenRemoteActive(t *testing.T) {
 	}
 	f := newBlackboxFixture(t)
 	next, _ := f.model.Update(remote.ExecutionChangedMsg{Active: true, Label: "r1"})
-	m := next.(ui.Model)
+	m := next.(*ui.Model)
 	_ = enterText(m, "/bash")
 	select {
 	case snap := <-f.shellRequested:
@@ -93,9 +93,9 @@ func TestBlackboxSlashRunDropdownUsesRemoteCachedSuggestionsWhenAvailable(t *tes
 	f := newBlackboxFixture(t)
 
 	next, _ := f.model.Update(remote.ExecutionChangedMsg{Active: true, Label: "r1"})
-	m1 := next.(ui.Model)
+	m1 := next.(*ui.Model)
 	next2, _ := m1.Update(remote.RunCompletionCacheMsg{RemoteLabel: "r1", Commands: []string{"busybox", "bzip2"}})
-	m2 := next2.(ui.Model)
+	m2 := next2.(*ui.Model)
 
 	m2.Input.SetValue("/exec b")
 	m2.Input.CursorEnd()
@@ -137,13 +137,13 @@ func TestBlackboxSlashDropdownUpDownAndEnterFill(t *testing.T) {
 	m.Input.CursorEnd()
 
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
-	m2 := next.(ui.Model)
+	m2 := next.(*ui.Model)
 	if m2.Input.Value() != "/" {
 		t.Fatalf("expected input to remain '/', got %q", m2.Input.Value())
 	}
 
 	next2, _ := m2.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m3 := next2.(ui.Model)
+	m3 := next2.(*ui.Model)
 	if strings.TrimSpace(m3.Input.Value()) == "/" {
 		t.Fatalf("expected enter to fill a concrete slash option, got %q", m3.Input.Value())
 	}
@@ -159,9 +159,9 @@ func TestBlackboxSlashDropdownTabFillsLikeEnter(t *testing.T) {
 	m.Input.CursorEnd()
 
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
-	m2 := next.(ui.Model)
+	m2 := next.(*ui.Model)
 	next2, _ := m2.Update(tea.KeyMsg{Type: tea.KeyTab})
-	m3 := next2.(ui.Model)
+	m3 := next2.(*ui.Model)
 	if strings.TrimSpace(m3.Input.Value()) == "/" {
 		t.Fatalf("expected tab to fill a concrete slash option, got %q", m3.Input.Value())
 	}
@@ -176,7 +176,7 @@ func TestBlackboxSlashTabDoesNotSubmitExactCommand(t *testing.T) {
 	m.Input.SetValue("/help")
 	m.Input.CursorEnd()
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyTab})
-	got := next.(ui.Model)
+	got := next.(*ui.Model)
 	if got.Overlay.Active {
 		t.Fatalf("expected tab not to submit /help (no overlay)")
 	}

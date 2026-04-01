@@ -51,11 +51,11 @@ func RegisterRootSlashOptionProvider(p func(lang string) []SlashOption) {
 
 // OverlayKeyProvider can handle key input when an overlay is active.
 // When handled==true, the returned model/cmd should be used by ui.
-type OverlayKeyProvider func(m Model, key string, msg tea.KeyMsg) (Model, tea.Cmd, bool)
+type OverlayKeyProvider func(m *Model, key string, msg tea.KeyMsg) (*Model, tea.Cmd, bool)
 
 // StateEventProvider handles non-overlay UI state synchronization events before the default update switch.
 // This is intended for global state mirroring, not arbitrary feature business logic.
-type StateEventProvider func(m Model, msg tea.Msg) (Model, tea.Cmd, bool)
+type StateEventProvider func(m *Model, msg tea.Msg) (*Model, tea.Cmd, bool)
 
 var stateEventProviderChain = slashreg.NewProviderChain[StateEventProvider]()
 
@@ -69,11 +69,11 @@ func RegisterStateEventProvider(p StateEventProvider) {
 
 // OverlayEventProvider handles asynchronous overlay events for the active overlay feature.
 // Providers should inspect m.Overlay.Key and return handled=true only for their own overlay key.
-type OverlayEventProvider func(m Model, msg tea.Msg) (Model, tea.Cmd, bool)
+type OverlayEventProvider func(m *Model, msg tea.Msg) (*Model, tea.Cmd, bool)
 
 // OverlayContentProvider can provide overlay content for a model.
 // When handled==true, returned content should be used by ui overlay renderer.
-type OverlayContentProvider func(m Model) (content string, handled bool)
+type OverlayContentProvider func(m *Model) (content string, handled bool)
 
 // OverlayOpenRequest describes a structured request to open an overlay feature.
 type OverlayOpenRequest struct {
@@ -84,7 +84,7 @@ type OverlayOpenRequest struct {
 }
 
 // OverlayOpenProvider handles a structured overlay-open request.
-type OverlayOpenProvider func(m Model, req OverlayOpenRequest) (Model, tea.Cmd, bool)
+type OverlayOpenProvider func(m *Model, req OverlayOpenRequest) (*Model, tea.Cmd, bool)
 
 // OverlayFeature groups the standard overlay-related integration points for one feature.
 // Features register once by stable key and may implement any subset of the lifecycle hooks.
@@ -115,12 +115,12 @@ func RegisterOverlayFeature(f OverlayFeature) {
 
 // OverlayCloseHook resets feature-specific model fields when an overlay is dismissed
 // (Esc or programmatic close).
-type OverlayCloseHook func(m Model, activeKey string) Model
+type OverlayCloseHook func(m *Model, activeKey string)
 
 // TitleBarFragmentProvider supplies the leading title-bar segment (remote / context label),
 // e.g. "Local" or "Remote" with an optional label. Providers run in registration order;
 // the first that returns ok=true wins. If none return ok, ui uses the default "Local" segment.
-type TitleBarFragmentProvider func(m Model) (segment string, ok bool)
+type TitleBarFragmentProvider func(m *Model) (segment string, ok bool)
 
 var titleBarFragmentProviderChain = slashreg.NewProviderChain[TitleBarFragmentProvider]()
 
@@ -134,7 +134,7 @@ func RegisterTitleBarFragmentProvider(p TitleBarFragmentProvider) {
 
 // StartupOverlayProvider can open a feature overlay on startup after first layout.
 // Providers run in registration order; the first one that returns handled=true wins.
-type StartupOverlayProvider func(m Model) (Model, tea.Cmd, bool)
+type StartupOverlayProvider func(m *Model) (*Model, tea.Cmd, bool)
 
 func overlayFeatures() []registeredOverlayFeature {
 	return overlayFeatureRegistry.List()

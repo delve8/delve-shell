@@ -10,18 +10,18 @@ import (
 )
 
 // trySlashBashQuit handles /bash: snapshot transcript and quit the TUI to spawn a shell.
-func trySlashBashQuit(m Model, text string) (Model, tea.Cmd, bool) {
+func trySlashBashQuit(m *Model, text string) (*Model, tea.Cmd, bool) {
 	if text != "/bash" {
 		return m, nil, false
 	}
 	if m.offlineExecutionMode() {
-		m = m.appendUserSubmittedEcho(text)
-		m = m.AppendTranscriptLines(errStyle.Render(m.delveMsg(i18n.T(i18n.KeyOfflineExecBashDisabled))))
-		m = m.clearSlashInput()
-		m2, printCmd := m.printTranscriptCmd(false)
-		return m2, printCmd, true
+		m.appendUserSubmittedEcho(text)
+		m.AppendTranscriptLines(errStyle.Render(m.delveMsg(i18n.T(i18n.KeyOfflineExecBashDisabled))))
+		m.clearSlashInput()
+		printCmd := m.printTranscriptCmd(false)
+		return m, printCmd, true
 	}
-	m = m.appendUserSubmittedEcho(text)
+	m.appendUserSubmittedEcho(text)
 	mode := hostcmd.SubshellModeLocalBash
 	if m.Remote.Active {
 		mode = hostcmd.SubshellModeRemoteSSH
@@ -30,5 +30,6 @@ func trySlashBashQuit(m Model, text string) (Model, tea.Cmd, bool) {
 		msgs := append([]string(nil), m.TranscriptLines()...)
 		_ = m.CommandSender.Send(hostcmd.ShellSnapshot{Messages: msgs, Mode: mode})
 	}
-	return m.clearSlashInput(), tea.Quit, true
+	m.clearSlashInput()
+	return m, tea.Quit, true
 }

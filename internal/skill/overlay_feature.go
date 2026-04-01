@@ -10,7 +10,7 @@ func registerOverlayFeature() {
 	ui.RegisterOverlayFeature(ui.OverlayFeature{
 		KeyID: OverlayFeatureKey,
 		Open:  openSkillOverlay,
-		Key: func(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
+		Key: func(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Model, tea.Cmd, bool) {
 			if m.Overlay.Key != OverlayFeatureKey {
 				return m, nil, false
 			}
@@ -24,15 +24,14 @@ func registerOverlayFeature() {
 			return m, nil, false
 		},
 		Event: handleSkillOverlayEvent,
-		Content: func(m ui.Model) (string, bool) {
+		Content: func(m *ui.Model) (string, bool) {
 			return buildSkillOverlayContent(m)
 		},
-		Close: func(m ui.Model, activeKey string) ui.Model {
+		Close: func(m *ui.Model, activeKey string) {
 			if activeKey != OverlayFeatureKey {
-				return m
+				return
 			}
 			resetSkillOverlayState()
-			return m
 		},
 	})
 }

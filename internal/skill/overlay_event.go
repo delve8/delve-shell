@@ -6,7 +6,7 @@ import (
 	"delve-shell/internal/ui"
 )
 
-func handleSkillOverlayEvent(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
+func handleSkillOverlayEvent(m *ui.Model, msg tea.Msg) (*ui.Model, tea.Cmd, bool) {
 	if m.Overlay.Key != OverlayFeatureKey {
 		return m, nil, false
 	}

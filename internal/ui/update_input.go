@@ -25,7 +25,7 @@ func (s *keySession) inputValue() string { return s.m.Input.Value() }
 func (s *keySession) setInputValue(v string) {
 	s.m.Input.SetValue(v)
 	s.m.Input.CursorEnd()
-	*s.m = s.m.syncInputHeight()
+	s.m.syncInputHeight()
 }
 
 func (s *keySession) slashSuggestIndex() int { return s.m.Interaction.slashSuggestIndex }
@@ -44,7 +44,7 @@ func (s *keySession) updateTextInput(msg tea.KeyMsg) tea.Cmd {
 	}
 	var cmd tea.Cmd
 	s.m.Input, cmd = s.m.Input.Update(msg)
-	*s.m = s.m.syncInputHeight()
+	s.m.syncInputHeight()
 	return cmd
 }
 
@@ -122,10 +122,10 @@ func (s *keySession) handleInputHistoryNav(key string, inputVal string) bool {
 	return true
 }
 
-func (m Model) withInputHistoryCommitted(line string) Model {
+func (m *Model) withInputHistoryCommitted(line string) {
 	line = strings.TrimSpace(line)
 	if line == "" {
-		return m
+		return
 	}
 	h := append(m.Interaction.inputHistory, line)
 	if len(h) > maxInputHistoryEntries {
@@ -134,96 +134,91 @@ func (m Model) withInputHistoryCommitted(line string) Model {
 	m.Interaction.inputHistory = h
 	m.Interaction.inputHistIndex = -1
 	m.Interaction.inputHistScratch = ""
-	return m
 }
 
 // appendUserSubmittedEcho appends the same "User: …" transcript line as the main Enter path.
-func (m Model) appendUserSubmittedEcho(text string) Model {
+func (m *Model) appendUserSubmittedEcho(text string) {
 	text = strings.TrimSpace(text)
 	if text == "" {
-		return m
+		return
 	}
-	m = m.withInputHistoryCommitted(text)
+	m.withInputHistoryCommitted(text)
 	w := m.contentWidth()
 	sepLine := renderSeparator(w)
 	m.messages = maininput.AppendUserInputLines(m.messages, i18n.T(i18n.KeyUserLabel), text, w, sepLine)
-	return m
 }
 
-func (m Model) appendSubmissionError(err error) (Model, tea.Cmd) {
+func (m *Model) appendSubmissionError(err error) (*Model, tea.Cmd) {
 	if err == nil {
 		return m, nil
 	}
 	m.Interaction.WaitingForAI = false
-	m = m.AppendTranscriptLines(errStyle.Render(m.delveMsg(err.Error())))
-	return m.printTranscriptCmd(false)
+	m.AppendTranscriptLines(errStyle.Render(m.delveMsg(err.Error())))
+	return m, m.printTranscriptCmd(false)
 }
 
-func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
-	mm := m
-	ks := keySession{m: &mm}
+func (m *Model) handleKeyMsg(msg tea.KeyMsg) (*Model, tea.Cmd) {
+	ks := keySession{m: m}
 	key := msg.String()
 
 	if key == "ctrl+c" {
-		res, err := mm.lifecycleEngine().SubmitControl(inputlifecycletype.ControlSignalInterrupt, inputlifecycletype.SourceKeyboardSignal)
+		res, err := m.lifecycleEngine().SubmitControl(inputlifecycletype.ControlSignalInterrupt, inputlifecycletype.SourceKeyboardSignal)
 		if err == nil {
-			mm, cmd := mm.applyLifecycleResult(res)
-			return mm, cmd
+			return m.applyLifecycleResult(res)
 		}
-		return mm, tea.Quit
+		return m, tea.Quit
 	}
 
-	if mm.currentUIState() == uiStateOfflinePaste {
-		return mm.handleOfflinePasteKeyMsg(msg)
+	if m.currentUIState() == uiStateOfflinePaste {
+		return m.handleOfflinePasteKeyMsg(msg)
 	}
 
-	state := mm.currentUIState()
+	state := m.currentUIState()
 	if state == uiStateChoiceCardAlt || state == uiStateChoiceCard {
-		if handledModel, handled := mm.handlePendingChoiceKey(key); handled {
+		if handledModel, handled := m.handlePendingChoiceKey(key); handled {
 			return handledModel, nil
 		}
 	}
 
 	inputVal := ks.inputValue()
-	if strings.HasPrefix(inputVal, "/") && mm.Input.LineCount() == 1 {
+	if strings.HasPrefix(inputVal, "/") && m.Input.LineCount() == 1 {
 		if key == teakey.Enter {
-			if m2, cmd, handled := mm.handleSlashEnterKey(inputVal); handled {
+			if m2, cmd, handled := m.handleSlashEnterKey(inputVal); handled {
 				return m2, cmd
 			}
 		}
 		if key == teakey.Tab {
-			if m2, cmd, handled := mm.handleSlashTabKey(inputVal); handled {
+			if m2, cmd, handled := m.handleSlashTabKey(inputVal); handled {
 				return m2, cmd
 			}
 		}
 	}
 
 	if key == teakey.Esc {
-		res, err := mm.lifecycleEngine().SubmitControl(inputlifecycletype.ControlSignalEsc, inputlifecycletype.SourceKeyboardSignal)
+		res, err := m.lifecycleEngine().SubmitControl(inputlifecycletype.ControlSignalEsc, inputlifecycletype.SourceKeyboardSignal)
 		if err == nil {
-			mm, cmd := mm.applyLifecycleResult(res)
-			return mm, cmd
+			return m.applyLifecycleResult(res)
 		}
 	}
-	if m2, cmd, handled := mm.handleOverlayKey(key, msg); handled {
+	if m2, cmd, handled := m.handleOverlayKey(key, msg); handled {
 		return m2, cmd
 	}
 
 	inputVal = ks.inputValue()
 	if ks.handleInputHistoryNav(key, inputVal) {
-		return mm, nil
+		return m, nil
 	}
 	if ks.handleSlashUpDown(key, inputVal) {
-		return mm, nil
+		return m, nil
 	}
 
 	if key == teakey.Enter {
 		text := strings.TrimSpace(inputVal)
 		if text == "" {
-			return mm, nil
+			return m, nil
 		}
 		if ks.waitingForAI() && !strings.HasPrefix(text, "/") {
-			return mm, nil
+			return m, nil
 		}
 		_, vis, viewOpts := ks.slashSuggestionTriple(inputVal)
 		selected, ok := slashview.SelectedByVisibleIndex(viewOpts, vis, ks.slashSuggestIndex())
@@ -237,47 +232,46 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 		if capture.FillOnly {
 			ks.setInputValue(capture.FillValue)
 			ks.setSlashSuggestIndex(0)
-			return mm, nil
+			return m, nil
 		}
-		mm = mm.appendUserSubmittedEcho(text)
-		var printCmd tea.Cmd
-		mm, printCmd = mm.printTranscriptCmd(false)
+		m.appendUserSubmittedEcho(text)
+		printCmd := m.printTranscriptCmd(false)
 		ks.setInputValue("")
 		ks.setSlashSuggestIndex(0)
-		if res, handled, err := mm.lifecycleEngine().SubmitEnter(text, capture.SelectedIndex); handled {
+		if res, handled, err := m.lifecycleEngine().SubmitEnter(text, capture.SelectedIndex); handled {
 			if err != nil {
 				var errCmd tea.Cmd
-				mm, errCmd = mm.appendSubmissionError(err)
-				return mm, tea.Sequence(printCmd, errCmd)
+				m, errCmd = m.appendSubmissionError(err)
+				return m, tea.Sequence(printCmd, errCmd)
 			}
-			mm, cmd := mm.applyLifecycleResult(res)
-			return mm, tea.Sequence(printCmd, cmd)
+			m2, cmd := m.applyLifecycleResult(res)
+			return m2, tea.Sequence(printCmd, cmd)
 		}
-		return mm, printCmd
+		return m, printCmd
 	}
 
-	if mm.Interaction.inputHistIndex >= 0 && key != teakey.Up && key != teakey.Down {
-		mm.Interaction.inputHistIndex = -1
-		mm.Interaction.inputHistScratch = ""
+	if m.Interaction.inputHistIndex >= 0 && key != teakey.Up && key != teakey.Down {
+		m.Interaction.inputHistIndex = -1
+		m.Interaction.inputHistScratch = ""
 	}
 
 	cmd := ks.updateTextInput(msg)
 	ks.syncSuggestAfterInputChange(ks.inputValue())
-	return mm, cmd
+	return m, cmd
 }
 
-func (m Model) clearSlashInput() Model {
+func (m *Model) clearSlashInput() {
 	m.Input.SetValue("")
 	m.Input.CursorEnd()
 	m.Interaction.slashSuggestIndex = 0
 	m.Interaction.inputHistIndex = -1
 	m.Interaction.inputHistScratch = ""
-	return m.syncInputHeight()
+	m.syncInputHeight()
 }
 
 // handleSlashTabKey applies slash completion fill when Tab is pressed; it never submits.
 // When no fill applies, the key is still consumed so a literal tab is not inserted.
-func (m Model) handleSlashTabKey(inputVal string) (Model, tea.Cmd, bool) {
+func (m *Model) handleSlashTabKey(inputVal string) (*Model, tea.Cmd, bool) {
 	if strings.TrimSpace(inputVal) == "" {
 		return m, nil, false
 	}
@@ -291,13 +285,14 @@ func (m Model) handleSlashTabKey(inputVal string) (Model, tea.Cmd, bool) {
 		m.Input.SetValue(plan.FillValue)
 		m.Input.CursorEnd()
 		m.Interaction.slashSuggestIndex = 0
-		return m.syncInputHeight(), nil, true
+		m.syncInputHeight()
+		return m, nil, true
 	}
 	return m, nil, true
 }
 
 // handleSlashEnterKey handles Enter when input starts with "/".
-func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
+func (m *Model) handleSlashEnterKey(inputVal string) (*Model, tea.Cmd, bool) {
 	if strings.TrimSpace(inputVal) == "" {
 		return m, nil, false
 	}
@@ -312,7 +307,8 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 		m.Input.SetValue(plan.FillValue)
 		m.Input.CursorEnd()
 		m.Interaction.slashSuggestIndex = 0
-		return m.syncInputHeight(), nil, true
+		m.syncInputHeight()
+		return m, nil, true
 	case inputpreflight.EnterPlanSubmit:
 		if res, handled, err := m.lifecycleEngine().RouteSubmission(plan.Submission); handled {
 			if err != nil {
@@ -326,13 +322,13 @@ func (m Model) handleSlashEnterKey(inputVal string) (Model, tea.Cmd, bool) {
 			// printedMessages stays aligned with tea.Println (fixes AI reply + footer drift).
 			var printCmd tea.Cmd
 			if strings.HasPrefix(trimmed, "/skill ") {
-				m = m.appendUserSubmittedEcho(trimmed)
-				m, printCmd = m.printTranscriptCmd(false)
+				m.appendUserSubmittedEcho(trimmed)
+				printCmd = m.printTranscriptCmd(false)
 			} else {
 				// Other slash submits: no user echo line here, but still record for Up/Down recall (incl. /help, /exec …).
-				m = m.withInputHistoryCommitted(trimmed)
+				m.withInputHistoryCommitted(trimmed)
 			}
-			m = m.clearSlashInput()
+			m.clearSlashInput()
 			returned, cmd := m.applyLifecycleResult(res)
 			if printCmd != nil {
 				return returned, tea.Sequence(printCmd, cmd), true

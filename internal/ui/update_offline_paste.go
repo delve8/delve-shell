@@ -13,7 +13,7 @@ import (
 	"delve-shell/internal/teakey"
 )
 
-func (m Model) handleOfflinePasteShowMsg(msg OfflinePasteShowMsg) (Model, tea.Cmd) {
+func (m *Model) handleOfflinePasteShowMsg(msg OfflinePasteShowMsg) (*Model, tea.Cmd) {
 	if msg.Pending == nil || msg.Pending.Respond == nil {
 		return m, nil
 	}
@@ -51,18 +51,18 @@ func (m Model) handleOfflinePasteShowMsg(msg OfflinePasteShowMsg) (Model, tea.Cm
 		Paste:     paste,
 		Respond:   msg.Pending.Respond,
 	}
-	m = m.syncOfflinePasteHeight()
-	m = m.syncChoiceViewport()
-	m, copyCmd := m.offlinePasteWriteCommandToClipboard()
+	m.syncOfflinePasteHeight()
+	m.syncChoiceViewport()
+	copyCmd := m.offlinePasteWriteCommandToClipboard()
 	return m, tea.Batch(paste.Focus(), copyCmd)
 }
 
 // offlinePasteWriteCommandToClipboard puts the pending command on the system clipboard and shows
 // brief success/failure feedback (cleared after a tick). Called when the offline paste dialog opens.
-func (m Model) offlinePasteWriteCommandToClipboard() (Model, tea.Cmd) {
+func (m *Model) offlinePasteWriteCommandToClipboard() tea.Cmd {
 	op := m.ChoiceCard.offlinePaste
 	if op == nil {
-		return m, nil
+		return nil
 	}
 	if err := clipboard.WriteAll(op.Command); err != nil {
 		op.copyFeedback = i18n.T(i18n.KeyOfflinePasteCopyFailed)
@@ -70,15 +70,15 @@ func (m Model) offlinePasteWriteCommandToClipboard() (Model, tea.Cmd) {
 		op.copyFeedback = i18n.T(i18n.KeySuggestedCopied)
 	}
 	m.ChoiceCard.offlinePaste = op
-	m = m.syncChoiceViewport()
-	return m, tea.Tick(2*time.Second, func(time.Time) tea.Msg {
+	m.syncChoiceViewport()
+	return tea.Tick(2*time.Second, func(time.Time) tea.Msg {
 		return offlinePasteCopyAckClearMsg{}
 	})
 }
 
-func (m Model) syncOfflinePasteHeight() Model {
+func (m *Model) syncOfflinePasteHeight() {
 	if m.ChoiceCard.offlinePaste == nil {
-		return m
+		return
 	}
 	p := &m.ChoiceCard.offlinePaste.Paste
 	target := inputTextareaMinHeight
@@ -88,13 +88,12 @@ func (m Model) syncOfflinePasteHeight() Model {
 	if p.Height() != target {
 		p.SetHeight(target)
 	}
-	return m
 }
 
 // finishOfflinePaste clears offline UI and invokes Respond; refocuses main input.
-func (m Model) finishOfflinePaste(text string, cancelled bool) Model {
+func (m *Model) finishOfflinePaste(text string, cancelled bool) {
 	if m.ChoiceCard.offlinePaste == nil {
-		return m
+		return
 	}
 	resp := m.ChoiceCard.offlinePaste.Respond
 	m.ChoiceCard.offlinePaste = nil
@@ -102,10 +101,9 @@ func (m Model) finishOfflinePaste(text string, cancelled bool) Model {
 		resp(text, cancelled)
 	}
 	m.Input.Focus()
-	return m
 }
 
-func (m Model) handleOfflinePasteKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
+func (m *Model) handleOfflinePasteKeyMsg(msg tea.KeyMsg) (*Model, tea.Cmd) {
 	keyStr := msg.String()
 	if m.ChoiceCard.offlinePaste == nil {
 		return m, nil
@@ -113,15 +111,15 @@ func (m Model) handleOfflinePasteKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 
 	switch keyStr {
 	case teakey.Esc:
-		m = m.finishOfflinePaste("", true)
-		m = m.syncInputHeight()
-		m = m.syncChoiceViewport()
+		m.finishOfflinePaste("", true)
+		m.syncInputHeight()
+		m.syncChoiceViewport()
 		return m, nil
 	case teakey.Enter:
 		text := strings.TrimSpace(m.ChoiceCard.offlinePaste.Paste.Value())
-		m = m.finishOfflinePaste(text, false)
-		m = m.syncInputHeight()
-		m = m.syncChoiceViewport()
+		m.finishOfflinePaste(text, false)
+		m.syncInputHeight()
+		m.syncChoiceViewport()
 		return m, nil
 	default:
 		op := m.ChoiceCard.offlinePaste
@@ -131,8 +129,8 @@ func (m Model) handleOfflinePasteKeyMsg(msg tea.KeyMsg) (Model, tea.Cmd) {
 		var cmd tea.Cmd
 		op.Paste, cmd = op.Paste.Update(msg)
 		m.ChoiceCard.offlinePaste = op
-		m = m.syncOfflinePasteHeight()
-		m = m.syncChoiceViewport()
+		m.syncOfflinePasteHeight()
+		m.syncChoiceViewport()
 		return m, cmd
 	}
 }

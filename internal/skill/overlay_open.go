@@ -11,19 +11,21 @@ import (
 	"delve-shell/internal/ui"
 )
 
-func openSkillOverlay(m ui.Model, req ui.OverlayOpenRequest) (ui.Model, tea.Cmd, bool) {
+func openSkillOverlay(m *ui.Model, req ui.OverlayOpenRequest) (*ui.Model, tea.Cmd, bool) {
 	switch req.Key {
 	case OverlayOpenKeyAdd:
-		return openAddSkillOverlay(m, req.Params["url"], req.Params["ref"], req.Params["path"]), nil, true
+		openAddSkillOverlay(m, req.Params["url"], req.Params["ref"], req.Params["path"])
+		return m, nil, true
 	case OverlayOpenKeyUpdate:
-		return openUpdateSkillOverlay(m, req.Params["name"]), nil, true
+		openUpdateSkillOverlay(m, req.Params["name"])
+		return m, nil, true
 	default:
 		return m, nil, false
 	}
 }
 
-func openAddSkillOverlay(m ui.Model, url, ref, path string) ui.Model {
-	m = m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyAddSkillTitle), "")
+func openAddSkillOverlay(m *ui.Model, url, ref, path string) {
+	m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyAddSkillTitle), "")
 	state := getSkillOverlayState()
 	state.AddSkill.Active = true
 	state.UpdateSkill = UpdateSkillOverlayState{}
@@ -66,5 +68,4 @@ func openAddSkillOverlay(m ui.Model, url, ref, path string) ui.Model {
 	state.AddSkill.PathIndex = 0
 	setSkillOverlayState(state)
 	pathcomplete.ResetState()
-	return m
 }

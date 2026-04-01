@@ -8,7 +8,7 @@ import (
 	"delve-shell/internal/textwrap"
 )
 
-func (m Model) appendOfflinePasteViewportContent(b *strings.Builder) {
+func (m *Model) appendOfflinePasteViewportContent(b *strings.Builder) {
 	s := m.ChoiceCard.offlinePaste
 	if s == nil {
 		return

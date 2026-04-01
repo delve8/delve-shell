@@ -26,14 +26,14 @@ type ReadModel interface {
 	OfflineExecutionMode() bool
 }
 
-func (m Model) takeOpenConfigLLMOnFirstLayout() bool {
+func (m *Model) takeOpenConfigLLMOnFirstLayout() bool {
 	if m.ReadModel == nil {
 		return false
 	}
 	return m.ReadModel.TakeOpenConfigLLMOnFirstLayout()
 }
 
-func (m Model) offlineExecutionMode() bool {
+func (m *Model) offlineExecutionMode() bool {
 	if m.ReadModel == nil {
 		return false
 	}
@@ -52,7 +52,7 @@ const (
 
 // currentUIState is a lightweight FSM view of current UI mode.
 // Priority follows interactive exclusivity: pending > overlay > main.
-func (m Model) currentUIState() uiState {
+func (m *Model) currentUIState() uiState {
 	if m.ChoiceCard.offlinePaste != nil {
 		return uiStateOfflinePaste
 	}
@@ -69,7 +69,7 @@ func (m Model) currentUIState() uiState {
 }
 
 // TranscriptLines returns a copy of the current transcript lines shown in the main viewport.
-func (m Model) TranscriptLines() []string {
+func (m *Model) TranscriptLines() []string {
 	if len(m.messages) == 0 {
 		return nil
 	}
@@ -79,35 +79,33 @@ func (m Model) TranscriptLines() []string {
 }
 
 // WithTranscriptLines replaces the transcript with the provided lines (copied).
-func (m Model) WithTranscriptLines(lines []string) Model {
+func (m *Model) WithTranscriptLines(lines []string) {
 	if len(lines) == 0 {
 		m.messages = nil
 		m.recenterStartupTitleOnce = false
-		return m
+		return
 	}
 	out := make([]string, len(lines))
 	copy(out, lines)
 	m.messages = out
 	m.recenterStartupTitleOnce = false
-	return m
 }
 
 // AppendTranscriptLines appends rendered transcript lines.
-func (m Model) AppendTranscriptLines(lines ...string) Model {
+func (m *Model) AppendTranscriptLines(lines ...string) {
 	if len(lines) == 0 {
-		return m
+		return
 	}
 	m.messages = append(m.messages, lines...)
-	return m
 }
 
 func teaCmdForMsg(msg tea.Msg) tea.Cmd {
 	return func() tea.Msg { return msg }
 }
 
-func (m Model) printTranscriptCmd(clearFirst bool) (Model, tea.Cmd) {
+func (m *Model) printTranscriptCmd(clearFirst bool) tea.Cmd {
 	if m.Overlay.Active || m.printedMessages >= len(m.messages) {
-		return m, nil
+		return nil
 	}
 	cmds := make([]tea.Cmd, 0, len(m.messages)-m.printedMessages+1)
 	if clearFirst {
@@ -123,59 +121,54 @@ func (m Model) printTranscriptCmd(clearFirst bool) (Model, tea.Cmd) {
 	cmds = append(cmds, func() tea.Msg {
 		return transcriptPrintedMsg{upTo: end}
 	})
-	return m, tea.Sequence(cmds...)
+	return tea.Sequence(cmds...)
 }
 
-func (m Model) withTranscriptReplaced(lines []string) Model {
-	m = m.WithTranscriptLines(lines)
+func (m *Model) withTranscriptReplaced(lines []string) {
+	m.WithTranscriptLines(lines)
 	m.printedMessages = 0
-	return m
 }
 
-func (m Model) syncChoiceViewport() Model {
+func (m *Model) syncChoiceViewport() {
 	if !m.hasPendingChoiceCard() {
-		return m
+		return
 	}
 	m.Viewport.Width = m.layout.Width
 	m.Viewport.Height = m.mainViewportHeight()
 	m.Viewport.SetContent(m.pendingChoiceContent())
 	m.Viewport.GotoBottom()
-	return m
 }
 
 // OpenOverlayFeature opens a feature-owned overlay and records its active key.
-func (m Model) OpenOverlayFeature(key, title, content string) Model {
+func (m *Model) OpenOverlayFeature(key, title, content string) {
 	m.Overlay.Active = true
 	m.Overlay.Key = key
 	m.Overlay.Title = title
 	m.Overlay.Content = content
-	return m
 }
 
 // CloseOverlayVisual closes overlay chrome only.
 // Feature-specific flags are still owned by each feature package.
-func (m Model) CloseOverlayVisual() Model {
+func (m *Model) CloseOverlayVisual() {
 	m.Overlay.Active = false
 	m.Overlay.Key = ""
 	m.Overlay.Title = ""
 	m.Overlay.Content = ""
-	return m
 }
 
 // InitOverlayViewport initializes the generic overlay viewport from current layout.
-func (m Model) InitOverlayViewport() Model {
+func (m *Model) InitOverlayViewport() {
 	m.Overlay.Viewport = viewport.New(m.layout.Width-minOverlayLayoutWidth, min(m.layout.Height-minOverlayLayoutHeight, maxOverlayViewportHeight))
 	m.Overlay.Viewport.SetContent(m.Overlay.Content)
-	return m
 }
 
 // hasPendingChoiceCard reports whether the UI is in approval, sensitive confirmation, or offline paste mode.
-func (m Model) hasPendingChoiceCard() bool {
+func (m *Model) hasPendingChoiceCard() bool {
 	return m.ChoiceCard.pending != nil || m.ChoiceCard.pendingSensitive != nil || m.ChoiceCard.offlinePaste != nil
 }
 
 // contentWidth returns a safe rendering width with fallback.
-func (m Model) contentWidth() int {
+func (m *Model) contentWidth() int {
 	w := m.layout.Width
 	if w <= 0 {
 		return minContentWidthFallback
@@ -184,7 +177,7 @@ func (m Model) contentWidth() int {
 }
 
 // syncInputHeight keeps the textarea height in step with the current content.
-func (m Model) syncInputHeight() Model {
+func (m *Model) syncInputHeight() {
 	target := inputTextareaMinHeight
 	if m.Input.LineCount() > 1 {
 		target = inputTextareaMaxHeight
@@ -192,11 +185,10 @@ func (m Model) syncInputHeight() Model {
 	if m.Input.Height() != target {
 		m.Input.SetHeight(target)
 	}
-	return m
 }
 
 // inputChromeHeight returns the total number of lines reserved below the transcript viewport.
-func (m Model) inputChromeHeight() int {
+func (m *Model) inputChromeHeight() int {
 	height := 1 // separator above input
 	height += m.primaryInputHeight()
 	if m.ChoiceCard.offlinePaste != nil {
@@ -212,7 +204,7 @@ func (m Model) inputChromeHeight() int {
 }
 
 // inputBelowHeight returns the number of lines reserved below the input box.
-func (m Model) inputBelowHeight() int {
+func (m *Model) inputBelowHeight() int {
 	if m.hasPendingChoiceCard() {
 		return inputBelowStableRows
 	}
@@ -229,7 +221,7 @@ func (m Model) inputBelowHeight() int {
 }
 
 // mainViewportHeight returns the viewport height used by main content.
-func (m Model) mainViewportHeight() int {
+func (m *Model) mainViewportHeight() int {
 	vh := m.layout.Height - m.inputChromeHeight()
 	if vh < 1 {
 		return 1
@@ -237,16 +229,16 @@ func (m Model) mainViewportHeight() int {
 	return vh
 }
 
-func (m Model) mainBodyView() string {
+func (m *Model) mainBodyView() string {
 	if m.hasPendingChoiceCard() {
-		m = m.syncChoiceViewport()
+		m.syncChoiceViewport()
 		return m.Viewport.View()
 	}
 	return ""
 }
 
 // primaryInputHeight returns the height of the active bottom text area (main input or offline paste).
-func (m Model) primaryInputHeight() int {
+func (m *Model) primaryInputHeight() int {
 	if m.ChoiceCard.offlinePaste != nil {
 		return m.ChoiceCard.offlinePaste.Paste.Height()
 	}
@@ -254,7 +246,7 @@ func (m Model) primaryInputHeight() int {
 }
 
 // primaryInputView renders the active bottom text area (main input or offline paste box).
-func (m Model) primaryInputView() string {
+func (m *Model) primaryInputView() string {
 	if m.ChoiceCard.offlinePaste != nil {
 		return m.ChoiceCard.offlinePaste.Paste.View()
 	}
@@ -262,14 +254,14 @@ func (m Model) primaryInputView() string {
 }
 
 // primaryInputLineCount returns the line count of the active bottom text area.
-func (m Model) primaryInputLineCount() int {
+func (m *Model) primaryInputLineCount() int {
 	if m.ChoiceCard.offlinePaste != nil {
 		return m.ChoiceCard.offlinePaste.Paste.LineCount()
 	}
 	return m.Input.LineCount()
 }
 
-func (m Model) pendingChoiceContent() string {
+func (m *Model) pendingChoiceContent() string {
 	var b strings.Builder
 	if m.ChoiceCard.offlinePaste != nil {
 		m.appendOfflinePasteViewportContent(&b)
@@ -279,7 +271,7 @@ func (m Model) pendingChoiceContent() string {
 	return b.String()
 }
 
-func (m Model) printedTranscriptLineCount() int {
+func (m *Model) printedTranscriptLineCount() int {
 	if m.printedMessages <= 0 || len(m.messages) == 0 {
 		return 0
 	}
@@ -294,7 +286,7 @@ func (m Model) printedTranscriptLineCount() int {
 	return total
 }
 
-func (m Model) normalModeTopPaddingLines(bottomBlock string) int {
+func (m *Model) normalModeTopPaddingLines(bottomBlock string) int {
 	if m.layout.Height <= 0 {
 		return 0
 	}
@@ -310,23 +302,23 @@ func (m Model) normalModeTopPaddingLines(bottomBlock string) int {
 	return pad
 }
 
-func (m Model) finalizeUpdate(prevOverlayActive bool, next Model, cmd tea.Cmd) (tea.Model, tea.Cmd) {
-	if !prevOverlayActive && next.Overlay.Active {
-		return next, tea.Sequence(
+func finalizeUpdate(prevOverlayActive bool, m *Model, cmd tea.Cmd) (tea.Model, tea.Cmd) {
+	if !prevOverlayActive && m.Overlay.Active {
+		return m, tea.Sequence(
 			teaCmdForMsg(tea.EnterAltScreen()),
 			teaCmdForMsg(tea.ClearScreen()),
 			cmd,
 		)
 	}
-	if prevOverlayActive && !next.Overlay.Active {
-		next, printCmd := next.printTranscriptCmd(false)
-		return next, tea.Sequence(
+	if prevOverlayActive && !m.Overlay.Active {
+		printCmd := m.printTranscriptCmd(false)
+		return m, tea.Sequence(
 			teaCmdForMsg(tea.ExitAltScreen()),
 			cmd,
 			printCmd,
 		)
 	}
-	return next, cmd
+	return m, cmd
 }
 
 // renderSeparator returns a horizontal separator with provided width.

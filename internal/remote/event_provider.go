@@ -11,7 +11,7 @@ import (
 	"delve-shell/internal/ui"
 )
 
-func remoteStateProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
+func remoteStateProvider(m *ui.Model, msg tea.Msg) (*ui.Model, tea.Cmd, bool) {
 	switch t := msg.(type) {
 	case ExecutionChangedMsg:
 		m.Remote.Active = t.Active
@@ -34,7 +34,7 @@ func remoteStateProvider(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 	}
 }
 
-func remoteConnectUIHandler(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
+func remoteConnectUIHandler(m *ui.Model, msg tea.Msg) (*ui.Model, tea.Cmd, bool) {
 	state := getRemoteOverlayState()
 	switch t := msg.(type) {
 	case ConnectDoneMsg:
@@ -45,7 +45,7 @@ func remoteConnectUIHandler(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 
 		if state.RemoteAuth.Step != "" {
 			if t.Success {
-				m = m.CloseOverlayVisual()
+				m.CloseOverlayVisual()
 				state.RemoteAuth.Step = ""
 				state.RemoteAuth.Target = ""
 				state.RemoteAuth.Error = ""
@@ -61,7 +61,7 @@ func remoteConnectUIHandler(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 
 		state.AddRemote.Active = false
 		if t.Success {
-			m = m.CloseOverlayVisual()
+			m.CloseOverlayVisual()
 			m.Input.Focus()
 		}
 		setRemoteOverlayState(state)
@@ -70,7 +70,7 @@ func remoteConnectUIHandler(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
 	case AuthPromptMsg:
 		state.AddRemote.Connecting = false
 		state.AddRemote.Active = false
-		m = m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyRemoteAuthTitle), "")
+		m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyRemoteAuthTitle), "")
 		state.RemoteAuth.Target = t.Target
 		state.RemoteAuth.Error = t.Err
 		state.RemoteAuth.HostKeyHost = t.HostKeyHost

@@ -17,9 +17,9 @@ import (
 
 var suggestStyleUpdate = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
 
-func handleUpdateSkillOverlayKey(m ui.Model, key string) (ui.Model, tea.Cmd, bool) {
+func handleUpdateSkillOverlayKey(m *ui.Model, key string) (*ui.Model, tea.Cmd, bool) {
 	state := getSkillOverlayState()
-	ret := func(model ui.Model, cmd tea.Cmd, handled bool) (ui.Model, tea.Cmd, bool) {
+	ret := func(model *ui.Model, cmd tea.Cmd, handled bool) (*ui.Model, tea.Cmd, bool) {
 		setSkillOverlayState(state)
 		return model, cmd, handled
 	}
@@ -55,7 +55,7 @@ func handleUpdateSkillOverlayKey(m ui.Model, key string) (ui.Model, tea.Cmd, boo
 			return ret(m, nil, true)
 		}
 		// On success, close overlay and show a short confirmation message.
-		m = m.CloseOverlayVisual()
+		m.CloseOverlayVisual()
 		state.UpdateSkill.Active = false
 		state.UpdateSkill.Error = ""
 		shortCommit := state.UpdateSkill.LatestCommit
@@ -63,20 +63,20 @@ func handleUpdateSkillOverlayKey(m ui.Model, key string) (ui.Model, tea.Cmd, boo
 			shortCommit = shortCommit[:7]
 		}
 		if shortCommit != "" {
-			m = m.AppendTranscriptLines(suggestStyleUpdate.Render(delveMsg(fmt.Sprintf(
+			m.AppendTranscriptLines(suggestStyleUpdate.Render(delveMsg(fmt.Sprintf(
 				"Skill %s updated to %s@%s.",
 				state.UpdateSkill.Name,
 				selectedRef,
 				shortCommit,
 			))))
 		} else {
-			m = m.AppendTranscriptLines(suggestStyleUpdate.Render(delveMsg(fmt.Sprintf(
+			m.AppendTranscriptLines(suggestStyleUpdate.Render(delveMsg(fmt.Sprintf(
 				"Skill %s updated to %s.",
 				state.UpdateSkill.Name,
 				selectedRef,
 			))))
 		}
-		m = m.AppendTranscriptLines("")
+		m.AppendTranscriptLines("")
 		m.Input.Focus()
 		if m.CommandSender != nil {
 			_ = m.CommandSender.Send(hostcmd.ConfigUpdated{})

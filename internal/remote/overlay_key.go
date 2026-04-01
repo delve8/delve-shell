@@ -7,7 +7,7 @@ import (
 	"delve-shell/internal/ui"
 )
 
-func handleRemoteOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
+func handleRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Model, tea.Cmd, bool) {
 	state := getRemoteOverlayState()
 	if key == teakey.Esc {
 		// Let internal/ui do overlay-close common behavior.

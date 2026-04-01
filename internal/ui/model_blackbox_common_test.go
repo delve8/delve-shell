@@ -21,7 +21,7 @@ func TestMain(m *testing.M) {
 }
 
 type blackboxFixture struct {
-	model          ui.Model
+	model          *ui.Model
 	submissions    chan inputlifecycletype.InputSubmission
 	sessionNew     chan struct{}
 	historyPreview chan string
@@ -169,11 +169,11 @@ func newBlackboxFixture(t *testing.T) blackboxFixture {
 	return f
 }
 
-func enterText(m ui.Model, text string) ui.Model {
+func enterText(m *ui.Model, text string) *ui.Model {
 	m.Input.SetValue(text)
 	m.Input.CursorEnd()
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	return next.(ui.Model)
+	return next.(*ui.Model)
 }
 
 func TestBlackboxMainEnterSubmitsUserText(t *testing.T) {
@@ -197,7 +197,7 @@ func TestBlackboxMainCtrlJInsertsNewline(t *testing.T) {
 	m.Input.SetValue("hello")
 	m.Input.CursorEnd()
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyCtrlJ})
-	got := next.(ui.Model)
+	got := next.(*ui.Model)
 	if got.Input.Value() != "hello\n" {
 		t.Fatalf("expected ctrl+j to insert newline, got %q", got.Input.Value())
 	}
@@ -215,7 +215,7 @@ func TestBlackboxAltEnterInsertsNewline(t *testing.T) {
 	m.Input.SetValue("hello")
 	m.Input.CursorEnd()
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter, Alt: true})
-	got := next.(ui.Model)
+	got := next.(*ui.Model)
 	if got.Input.Value() != "hello\n" {
 		t.Fatalf("expected alt+enter to insert newline, got %q", got.Input.Value())
 	}
@@ -228,7 +228,7 @@ func TestBlackboxSystemErrorClearsProcessingState(t *testing.T) {
 	f := newBlackboxFixture(t)
 	f.model.Interaction.WaitingForAI = true
 	nextModel, _ := f.model.Update(ui.TranscriptAppendMsg{Lines: []uivm.Line{{Kind: uivm.LineSystemError, Text: "backend failed"}}})
-	next := nextModel.(ui.Model)
+	next := nextModel.(*ui.Model)
 	if next.Interaction.WaitingForAI {
 		t.Fatal("expected system error to clear waiting state")
 	}

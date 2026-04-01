@@ -17,7 +17,7 @@ func TestBlackboxSlashUpdateSkillEnterDoesNotSilentlyDrop(t *testing.T) {
 	m.Input.CursorEnd()
 
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	got := next.(ui.Model)
+	got := next.(*ui.Model)
 	if got.Input.Value() == "" && !got.Overlay.Active {
 		t.Fatalf("expected either overlay opened or non-empty input after enter")
 	}
@@ -51,12 +51,12 @@ func TestBlackboxSlashHistoryPrefixPreviewThenEnterSwitches(t *testing.T) {
 		t.Fatalf("expected input cleared after prefix slash execution, got %q", got.Input.Value())
 	}
 	withOverlay, _ := got.Update(ui.HistoryPreviewOverlayMsg{SessionID: "demo", Title: "H", Content: "preview\n\nfooter"})
-	m2 := withOverlay.(ui.Model)
+	m2 := withOverlay.(*ui.Model)
 	if !m2.Overlay.Active {
 		t.Fatalf("expected overlay after HistoryPreviewOverlayMsg")
 	}
 	next, _ := m2.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m3 := next.(ui.Model)
+	m3 := next.(*ui.Model)
 	select {
 	case sessionID := <-f.sessionSwitch:
 		if sessionID != "demo" {
@@ -74,7 +74,7 @@ func TestBlackboxStartupOverlayProviderOpensConfigLLM(t *testing.T) {
 	open := true
 	m := ui.NewModel(nil, testReadModel{openConfigLLM: &open})
 	next, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
-	got := next.(ui.Model)
+	got := next.(*ui.Model)
 	if !got.Overlay.Active || !configllm.OverlayActive() {
 		t.Fatalf("expected startup overlay provider to open config model overlay")
 	}

@@ -14,10 +14,10 @@ import (
 	"delve-shell/internal/ui"
 )
 
-func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
+func handleRemoteAuthOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Model, tea.Cmd, bool) {
 	state := getRemoteOverlayState()
 	pcState := pathcomplete.GetState()
-	ret := func(model ui.Model, cmd tea.Cmd, handled bool) (ui.Model, tea.Cmd, bool) {
+	ret := func(model *ui.Model, cmd tea.Cmd, handled bool) (*ui.Model, tea.Cmd, bool) {
 		setRemoteOverlayState(state)
 		return model, cmd, handled
 	}
@@ -44,7 +44,7 @@ func handleRemoteAuthOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Mode
 					Kind:   remoteauth.ResponseKindHostKeyReject,
 				}})
 			}
-			m = m.CloseOverlayVisual()
+			m.CloseOverlayVisual()
 			state.RemoteAuth = RemoteAuthOverlayState{}
 			return ret(m, nil, true)
 		}

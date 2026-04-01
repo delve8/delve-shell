@@ -83,15 +83,15 @@ type LayoutState struct {
 }
 
 // Layout returns a copy of the current layout dimensions.
-func (m Model) Layout() LayoutState {
+func (m *Model) Layout() LayoutState {
 	return m.layout
 }
 
-func (m Model) LayoutWidth() int {
+func (m *Model) LayoutWidth() int {
 	return m.layout.Width
 }
 
-func (m Model) LayoutHeight() int {
+func (m *Model) LayoutHeight() int {
 	return m.layout.Height
 }
 
@@ -111,7 +111,7 @@ type RemoteState struct {
 }
 
 // Init implements tea.Model.
-func (m Model) Init() tea.Cmd {
+func (m *Model) Init() tea.Cmd {
 	return tea.Batch(m.Input.Cursor.BlinkCmd(), tea.WindowSize())
 }
 
@@ -127,17 +127,17 @@ func languageFromConfig() string {
 }
 
 // getLang returns the UI language for i18n (config language, default en).
-func (m Model) getLang() string {
+func (m *Model) getLang() string {
 	return languageFromConfig()
 }
 
 // GetLang returns the UI language code for i18n (e.g. "en"). Callers outside package ui use this.
-func (m Model) GetLang() string {
+func (m *Model) GetLang() string {
 	return m.getLang()
 }
 
 // delveMsg prefixes msg with "Delve: " for tool/system messages (config, session, notify, etc.).
-func (m Model) delveMsg(msg string) string {
+func (m *Model) delveMsg(msg string) string {
 	return i18n.T(i18n.KeyDelveLabel) + " " + msg
 }
 
@@ -148,7 +148,7 @@ func (m Model) delveMsg(msg string) string {
 //   - update_lifecycle.go — WindowSize, Blur, Focus, overlay open/close, mouse / viewport.
 //   - update_overlay_key.go then update_keymsg.go, update_slash.go, update_approval.go — keyboard when overlay vs main input.
 //   - update_approval.go, update_events.go — agent approval and transcript events.
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	i18n.SetLang(m.getLang())
 	prevOverlayActive := m.Overlay.Active
 	m.syncInputPlaceholder()
@@ -156,57 +156,58 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.Overlay.Active {
 		if feature, ok := overlayFeatureByKey(m.Overlay.Key); ok && feature.Event != nil {
 			if m2, cmd, handled := feature.Event(m, msg); handled {
-				return m2, cmd
+				// Must match other overlay transitions: ExitAltScreen / print batch run in finalizeUpdate.
+				return finalizeUpdate(prevOverlayActive, m2, cmd)
 			}
 		}
 	}
 
 	for _, p := range stateEventProviderChain.List() {
 		if m2, cmd, handled := p(m, msg); handled {
-			return m.finalizeUpdate(prevOverlayActive, m2, cmd)
+			return finalizeUpdate(prevOverlayActive, m2, cmd)
 		}
 	}
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m2, cmd := m.handleWindowSizeMsg(msg)
-		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
+		return finalizeUpdate(prevOverlayActive, m2, cmd)
 
 	case tea.BlurMsg:
 		m2, cmd := m.handleBlurMsg()
-		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
+		return finalizeUpdate(prevOverlayActive, m2, cmd)
 	case tea.FocusMsg:
 		m2, cmd := m.handleFocusMsg()
-		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
+		return finalizeUpdate(prevOverlayActive, m2, cmd)
 	case tea.KeyMsg:
 		m2, cmd := m.handleKeyMsg(msg)
-		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
+		return finalizeUpdate(prevOverlayActive, m2, cmd)
 
 	case tea.MouseMsg:
 		m2, cmd := m.handleMouseMsg(msg)
-		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
+		return finalizeUpdate(prevOverlayActive, m2, cmd)
 
 	case ChoiceCardShowMsg:
 		m2, cmd := m.handleChoiceCardShowMsg(msg)
-		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
+		return finalizeUpdate(prevOverlayActive, m2, cmd)
 
 	case OfflinePasteShowMsg:
 		m2, cmd := m.handleOfflinePasteShowMsg(msg)
-		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
+		return finalizeUpdate(prevOverlayActive, m2, cmd)
 
 	case TranscriptAppendMsg:
 		m2, cmd := m.handleTranscriptAppendMsg(msg)
-		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
+		return finalizeUpdate(prevOverlayActive, m2, cmd)
 	case TranscriptReplaceMsg:
 		m2, cmd := m.handleTranscriptReplaceMsg(msg)
-		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
+		return finalizeUpdate(prevOverlayActive, m2, cmd)
 
 	case OverlayShowMsg:
 		m2, cmd := m.handleOverlayShowMsg(msg)
-		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
+		return finalizeUpdate(prevOverlayActive, m2, cmd)
 
 	case HistoryPreviewOverlayMsg:
 		m2, cmd := m.handleHistoryPreviewOverlayMsg(msg)
-		return m.finalizeUpdate(prevOverlayActive, m2, cmd)
+		return finalizeUpdate(prevOverlayActive, m2, cmd)
 
 	case transcriptPrintedMsg:
 		if msg.upTo > len(m.messages) {
@@ -216,23 +217,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			msg.upTo = 0
 		}
 		m.printedMessages = msg.upTo
-		return m.finalizeUpdate(prevOverlayActive, m, nil)
+		return finalizeUpdate(prevOverlayActive, m, nil)
 
 	case offlinePasteCopyAckClearMsg:
 		if m.ChoiceCard.offlinePaste != nil {
 			m.ChoiceCard.offlinePaste.copyFeedback = ""
-			m = m.syncChoiceViewport()
+			m.syncChoiceViewport()
 		}
-		return m.finalizeUpdate(prevOverlayActive, m, nil)
+		return finalizeUpdate(prevOverlayActive, m, nil)
 
 	}
 
-	return m.finalizeUpdate(prevOverlayActive, m, nil)
+	return finalizeUpdate(prevOverlayActive, m, nil)
 }
 
 // NewModel creates a Model with default input (slash commands and viewport scrolling).
 // initialMessages if non-nil is used as existing conversation (e.g. after /bash return).
-func NewModel(initialMessages []string, readModel ReadModel) Model {
+func NewModel(initialMessages []string, readModel ReadModel) *Model {
 	i18n.SetLang(languageFromConfig())
 	ti := textarea.New()
 	ti.Placeholder = i18n.T(i18n.KeyPlaceholderInput)
@@ -265,7 +266,7 @@ func NewModel(initialMessages []string, readModel ReadModel) Model {
 		msgs = []string{startupTitleLine(defaultWidth)}
 	}
 	recenter := len(initialMessages) == 0
-	return Model{
+	return &Model{
 		Input:                    ti,
 		Viewport:                 vp,
 		messages:                 msgs,

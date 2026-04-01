@@ -12,7 +12,7 @@ import (
 	"delve-shell/internal/ui/uivm"
 )
 
-func (m Model) handlePendingChoiceKey(key string) (Model, bool) {
+func (m *Model) handlePendingChoiceKey(key string) (*Model, bool) {
 	res := approvalflow.Evaluate(
 		key,
 		m.ChoiceCard.pending != nil,
@@ -84,7 +84,7 @@ func (m *Model) appendDecisionLines(decision approvalview.DecisionKind) {
 	}
 }
 
-func (m Model) applyApprovalDecision(d approvalflow.Decision) (Model, bool) {
+func (m *Model) applyApprovalDecision(d approvalflow.Decision) (*Model, bool) {
 	switch d {
 	case approvalflow.DecisionSensitiveRefuse, approvalflow.DecisionSensitiveRunStore, approvalflow.DecisionSensitiveRunNoStore:
 		if m.ChoiceCard.pendingSensitive == nil {

@@ -12,12 +12,12 @@ import (
 	"delve-shell/internal/ui/uivm"
 )
 
-func (m Model) closeOverlayCommon(refocusInput bool) (Model, tea.Cmd) {
+func (m *Model) closeOverlayCommon(refocusInput bool) (*Model, tea.Cmd) {
 	activeKey := m.Overlay.Key
 	m.Interaction.pendingHistorySwitchID = ""
-	m = m.CloseOverlayVisual()
+	m.CloseOverlayVisual()
 	if feature, ok := overlayFeatureByKey(activeKey); ok && feature.Close != nil {
-		m = feature.Close(m, activeKey)
+		feature.Close(m, activeKey)
 	}
 	if refocusInput {
 		m.Input.Focus()
@@ -26,15 +26,15 @@ func (m Model) closeOverlayCommon(refocusInput bool) (Model, tea.Cmd) {
 }
 
 // handleOverlayKey routes key input when overlay is active.
-func (m Model) handleOverlayKey(key string, msg tea.KeyMsg) (Model, tea.Cmd, bool) {
+func (m *Model) handleOverlayKey(key string, msg tea.KeyMsg) (*Model, tea.Cmd, bool) {
 	if m.currentUIState() != uiStateOverlay {
 		return m, nil, false
 	}
 	if m.Overlay.Key == HistoryPreviewOverlayKey && key == teakey.Enter {
 		id := m.Interaction.pendingHistorySwitchID
 		if id != "" && m.CommandSender != nil && m.CommandSender.Send(hostcmd.SessionSwitch{SessionID: id}) {
-			m, cmd := m.closeOverlayCommon(true)
-			return m, cmd, true
+			m2, cmd := m.closeOverlayCommon(true)
+			return m2, cmd, true
 		}
 		return m, nil, true
 	}
@@ -46,8 +46,8 @@ func (m Model) handleOverlayKey(key string, msg tea.KeyMsg) (Model, tea.Cmd, boo
 
 	switch key {
 	case teakey.Esc:
-		m, cmd := m.closeOverlayCommon(true)
-		return m, cmd, true
+		m2, cmd := m.closeOverlayCommon(true)
+		return m2, cmd, true
 	default:
 		var cmd tea.Cmd
 		m.Overlay.Viewport, cmd = m.Overlay.Viewport.Update(msg)
@@ -55,7 +55,7 @@ func (m Model) handleOverlayKey(key string, msg tea.KeyMsg) (Model, tea.Cmd, boo
 	}
 }
 
-func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
+func (m *Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (*Model, tea.Cmd) {
 	m.layout.Width = msg.Width
 	m.layout.Height = msg.Height
 	if m.recenterStartupTitleOnce {
@@ -70,13 +70,13 @@ func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 			m.ChoiceCard.offlinePaste.Paste.SetWidth(m.layout.Width - minInputLayoutWidth)
 		}
 	}
-	m = m.syncInputHeight()
-	m = m.syncOfflinePasteHeight()
+	m.syncInputHeight()
+	m.syncOfflinePasteHeight()
 	if m.hasPendingChoiceCard() && m.layout.Height > minInputLayoutWidth {
-		m = m.syncChoiceViewport()
+		m.syncChoiceViewport()
 	}
 	if m.Overlay.Active {
-		m = m.InitOverlayViewport()
+		m.InitOverlayViewport()
 	}
 	if m.takeOpenConfigLLMOnFirstLayout() {
 		for _, entry := range overlayFeatures() {
@@ -88,10 +88,10 @@ func (m Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 			}
 		}
 	}
-	return m.printTranscriptCmd(false)
+	return m, m.printTranscriptCmd(false)
 }
 
-func (m Model) handleBlurMsg() (Model, tea.Cmd) {
+func (m *Model) handleBlurMsg() (*Model, tea.Cmd) {
 	m.Input.Blur()
 	if m.ChoiceCard.offlinePaste != nil {
 		m.ChoiceCard.offlinePaste.Paste.Blur()
@@ -99,7 +99,7 @@ func (m Model) handleBlurMsg() (Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) handleFocusMsg() (Model, tea.Cmd) {
+func (m *Model) handleFocusMsg() (*Model, tea.Cmd) {
 	if m.Overlay.Active {
 		return m, nil
 	}
@@ -109,7 +109,7 @@ func (m Model) handleFocusMsg() (Model, tea.Cmd) {
 	return m, m.Input.Focus()
 }
 
-func (m Model) handleMouseMsg(msg tea.MouseMsg) (Model, tea.Cmd) {
+func (m *Model) handleMouseMsg(msg tea.MouseMsg) (*Model, tea.Cmd) {
 	if m.Overlay.Active {
 		var cmd tea.Cmd
 		m.Overlay.Viewport, cmd = m.Overlay.Viewport.Update(msg)
@@ -118,7 +118,7 @@ func (m Model) handleMouseMsg(msg tea.MouseMsg) (Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) handleTranscriptAppendMsg(msg TranscriptAppendMsg) (Model, tea.Cmd) {
+func (m *Model) handleTranscriptAppendMsg(msg TranscriptAppendMsg) (*Model, tea.Cmd) {
 	if msg.ClearWaitingForAI || (m.Interaction.WaitingForAI && transcriptHasSystemError(msg.Lines)) {
 		m.Interaction.WaitingForAI = false
 	}
@@ -126,41 +126,41 @@ func (m Model) handleTranscriptAppendMsg(msg TranscriptAppendMsg) (Model, tea.Cm
 		return m, nil
 	}
 	rendered := m.renderTranscriptLines(msg.Lines)
-	m = m.AppendTranscriptLines(rendered...)
-	return m.printTranscriptCmd(false)
+	m.AppendTranscriptLines(rendered...)
+	return m, m.printTranscriptCmd(false)
 }
 
-func (m Model) handleTranscriptReplaceMsg(msg TranscriptReplaceMsg) (Model, tea.Cmd) {
+func (m *Model) handleTranscriptReplaceMsg(msg TranscriptReplaceMsg) (*Model, tea.Cmd) {
 	if len(msg.Lines) == 0 {
-		m = m.withTranscriptReplaced(nil)
+		m.withTranscriptReplaced(nil)
 		return m, nil
 	}
 	rendered := m.renderTranscriptLines(msg.Lines)
-	m = m.withTranscriptReplaced(rendered)
-	return m.printTranscriptCmd(true)
+	m.withTranscriptReplaced(rendered)
+	return m, m.printTranscriptCmd(true)
 }
 
-func (m Model) handleOverlayShowMsg(msg OverlayShowMsg) (Model, tea.Cmd) {
+func (m *Model) handleOverlayShowMsg(msg OverlayShowMsg) (*Model, tea.Cmd) {
 	if msg.Title == "" && strings.TrimSpace(msg.Content) == "" {
 		return m, nil
 	}
-	m = m.OpenOverlayFeature("", msg.Title, msg.Content)
-	m = m.InitOverlayViewport()
+	m.OpenOverlayFeature("", msg.Title, msg.Content)
+	m.InitOverlayViewport()
 	return m, nil
 }
 
-func (m Model) handleHistoryPreviewOverlayMsg(msg HistoryPreviewOverlayMsg) (Model, tea.Cmd) {
+func (m *Model) handleHistoryPreviewOverlayMsg(msg HistoryPreviewOverlayMsg) (*Model, tea.Cmd) {
 	fields := strings.Fields(strings.TrimSpace(msg.SessionID))
 	if len(fields) == 0 || (msg.Title == "" && strings.TrimSpace(msg.Content) == "") {
 		return m, nil
 	}
 	m.Interaction.pendingHistorySwitchID = fields[0]
-	m = m.OpenOverlayFeature(HistoryPreviewOverlayKey, msg.Title, msg.Content)
-	m = m.InitOverlayViewport()
+	m.OpenOverlayFeature(HistoryPreviewOverlayKey, msg.Title, msg.Content)
+	m.InitOverlayViewport()
 	return m, nil
 }
 
-func (m Model) handleChoiceCardShowMsg(msg ChoiceCardShowMsg) (Model, tea.Cmd) {
+func (m *Model) handleChoiceCardShowMsg(msg ChoiceCardShowMsg) (*Model, tea.Cmd) {
 	if msg.PendingSensitive != nil {
 		m.ChoiceCard.pendingSensitive = msg.PendingSensitive
 		m.ChoiceCard.pending = nil
@@ -172,11 +172,11 @@ func (m Model) handleChoiceCardShowMsg(msg ChoiceCardShowMsg) (Model, tea.Cmd) {
 	}
 	m.Interaction.ChoiceIndex = 0
 	m.syncInputPlaceholder()
-	m = m.syncChoiceViewport()
+	m.syncChoiceViewport()
 	return m, nil
 }
 
-func (m Model) renderTranscriptLines(lines []uivm.Line) []string {
+func (m *Model) renderTranscriptLines(lines []uivm.Line) []string {
 	w := m.contentWidth()
 	rendered := make([]string, 0, len(lines))
 	for _, l := range lines {

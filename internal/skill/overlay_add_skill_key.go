@@ -62,9 +62,9 @@ func updateAddSkillPathCandidates(state skillOverlayState) skillOverlayState {
 }
 
 // handleAddSkillOverlayKey implements keyboard interactions for the Add-skill overlay.
-func handleAddSkillOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
+func handleAddSkillOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Model, tea.Cmd, bool) {
 	state := getSkillOverlayState()
-	ret := func(model ui.Model, cmd tea.Cmd, handled bool) (ui.Model, tea.Cmd, bool) {
+	ret := func(model *ui.Model, cmd tea.Cmd, handled bool) (*ui.Model, tea.Cmd, bool) {
 		setSkillOverlayState(state)
 		return model, cmd, handled
 	}
@@ -181,10 +181,10 @@ func handleAddSkillOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model,
 			}
 			return ret(m, nil, true)
 		}
-		m = m.CloseOverlayVisual()
+		m.CloseOverlayVisual()
 		state.AddSkill.Active = false
 		m.Input.Focus()
-		m = m.AppendTranscriptLines(suggestStyle.Render(delveMsg(i18n.Tf(i18n.KeySkillInstalled, name))))
+		m.AppendTranscriptLines(suggestStyle.Render(delveMsg(i18n.Tf(i18n.KeySkillInstalled, name))))
 		return ret(m, nil, true)
 	}
 

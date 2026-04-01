@@ -16,7 +16,7 @@ import (
 // Register wires config-LLM slash routes and overlay providers into the UI. Call from [bootstrap.Install].
 func Register() {
 	registerSlashExecutionProvider()
-	openOverlay := func(m ui.Model) ui.Model {
+	openOverlay := func(m *ui.Model) {
 		cfg, err := config.Load()
 		if err != nil || cfg == nil {
 			cfg = config.Default()
@@ -51,17 +51,18 @@ func Register() {
 		}
 		st.MaxCharsInput.Blur()
 		setOverlayState(st)
-		return m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyConfigLLMTitle), "")
+		m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyConfigLLMTitle), "")
 	}
 	ui.RegisterOverlayFeature(ui.OverlayFeature{
 		KeyID: OverlayFeatureKey,
-		Open: func(m ui.Model, req ui.OverlayOpenRequest) (ui.Model, tea.Cmd, bool) {
+		Open: func(m *ui.Model, req ui.OverlayOpenRequest) (*ui.Model, tea.Cmd, bool) {
 			if req.Key != OverlayFeatureKey {
 				return m, nil, false
 			}
-			return openOverlay(m), nil, true
+			openOverlay(m)
+			return m, nil, true
 		},
-		Event: func(m ui.Model, msg tea.Msg) (ui.Model, tea.Cmd, bool) {
+		Event: func(m *ui.Model, msg tea.Msg) (*ui.Model, tea.Cmd, bool) {
 			if m.Overlay.Key != OverlayFeatureKey {
 				return m, nil, false
 			}
@@ -87,8 +88,8 @@ func Register() {
 			mm.Lines = append(mm.Lines, uivm.Line{Kind: uivm.LineSystemSuggest, Text: i18n.T(i18n.KeyConfigLLMCheckOK)})
 			mm.Lines = append(mm.Lines, uivm.Line{Kind: uivm.LineBlank})
 			next, _ := m.Update(mm)
-			m = next.(ui.Model)
-			m = m.CloseOverlayVisual()
+			m = next.(*ui.Model)
+			m.CloseOverlayVisual()
 			st = getOverlayState()
 			st.Active = false
 			setOverlayState(st)
@@ -97,21 +98,21 @@ func Register() {
 			}
 			return m, nil, true
 		},
-		Content: func(m ui.Model) (string, bool) {
+		Content: func(m *ui.Model) (string, bool) {
 			return buildConfigLLMOverlayContent()
 		},
-		Key: func(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
+		Key: func(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Model, tea.Cmd, bool) {
 			return handleOverlayKey(m, key, msg)
 		},
-		Startup: func(m ui.Model) (ui.Model, tea.Cmd, bool) {
-			return openOverlay(m), nil, true
+		Startup: func(m *ui.Model) (*ui.Model, tea.Cmd, bool) {
+			openOverlay(m)
+			return m, nil, true
 		},
-		Close: func(m ui.Model, activeKey string) ui.Model {
+		Close: func(m *ui.Model, activeKey string) {
 			if activeKey != OverlayFeatureKey {
-				return m
+				return
 			}
 			ResetOnOverlayClose()
-			return m
 		},
 	})
 }

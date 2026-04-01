@@ -16,7 +16,7 @@ import (
 
 const configLLMFieldCount = 5
 
-func handleOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd, bool) {
+func handleOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Model, tea.Cmd, bool) {
 	st := getOverlayState()
 	if !st.Active {
 		return m, nil, false
@@ -66,7 +66,7 @@ func handleOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd
 		if err != nil || cfg == nil {
 			cfg = config.Default()
 			if err := config.EnsureRootDir(); err != nil {
-				m = m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T(i18n.KeyConfigPrefix) + err.Error()))
+				m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T(i18n.KeyConfigPrefix) + err.Error()))
 				return m, nil, true
 			}
 		}
@@ -90,13 +90,11 @@ func handleOverlayKey(m ui.Model, key string, msg tea.KeyMsg) (ui.Model, tea.Cmd
 			cfg.LLM.MaxContextChars = 0
 		}
 		if err := config.Write(cfg); err != nil {
-			m = m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T(i18n.KeyConfigPrefix) + err.Error()))
+			m.AppendTranscriptLines(ui.ErrStyleRender(i18n.T(i18n.KeyConfigPrefix) + err.Error()))
 			return m, nil, true
 		}
-		st = getOverlayState()
-		if !st.Checking {
-			return m, nil, true
-		}
+		st.Checking = true
+		setOverlayState(st)
 		return m, func() tea.Msg {
 			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 			defer cancel()

@@ -22,7 +22,7 @@ import (
 var errUIIntentRejected = errors.New("ui lifecycle: outbound submission rejected")
 
 type uiControlContexts struct {
-	m Model
+	m *Model
 }
 
 func (c uiControlContexts) ControlContext() inputlifecycletype.ControlContext {
@@ -33,7 +33,7 @@ func (c uiControlContexts) ControlContext() inputlifecycletype.ControlContext {
 	}
 }
 
-func hasSlashPreInputState(m Model) bool {
+func hasSlashPreInputState(m *Model) bool {
 	inputVal := m.Input.Value()
 	return inputVal != "" && inputVal[0] == '/'
 }
@@ -172,7 +172,7 @@ func (e uiControlActionExecutor) ExecuteControl(action inputlifecycletype.Contro
 	}
 }
 
-func (m Model) lifecycleEngine() inputlifecycle.Engine {
+func (m *Model) lifecycleEngine() inputlifecycle.Engine {
 	router := inputlifecycle.NewRouter(
 		controlproc.New(uiControlContexts{m: m}, uiControlActionExecutor{sender: m.CommandSender}),
 		slashproc.New(slashRuntimeExecutor{sender: m.CommandSender, read: m.ReadModel}),
@@ -181,7 +181,7 @@ func (m Model) lifecycleEngine() inputlifecycle.Engine {
 	return inputlifecycle.NewEngine(inputpreflight.Engine{}, router)
 }
 
-func (m Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (Model, tea.Cmd) {
+func (m *Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (*Model, tea.Cmd) {
 	for _, out := range res.Outputs {
 		switch out.Kind {
 		case inputlifecycletype.OutputTranscriptAppend:
@@ -220,8 +220,8 @@ func (m Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (Model
 					}
 				}
 				if req.Title != "" || req.Content != "" {
-					m = m.OpenOverlayFeature("", req.Title, req.Content)
-					m = m.InitOverlayViewport()
+					m.OpenOverlayFeature("", req.Title, req.Content)
+					m.InitOverlayViewport()
 					return m, nil
 				}
 				return m, nil
@@ -230,7 +230,8 @@ func (m Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (Model
 			// Restore focus to the main input after dismissing the overlay (Esc / same as handleOverlayKey).
 			return m.closeOverlayCommon(true)
 		case inputlifecycletype.OutputPreInputClear:
-			return m.clearSlashInput(), nil
+			m.clearSlashInput()
+			return m, nil
 		}
 	}
 	patch, cmd := inputoutput.ApplyResult(res)
