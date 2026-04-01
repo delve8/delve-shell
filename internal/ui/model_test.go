@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"delve-shell/internal/ui/uivm"
 )
 
@@ -175,6 +177,67 @@ func TestMainTopPaddingLinesAccountsForTerminalWidth(t *testing.T) {
 	if narrow.normalModeTopPaddingLines(narrowBottom) >= wide.normalModeTopPaddingLines(wideBottom) {
 		t.Fatalf("expected narrower terminal to leave less top padding, wide=%d narrow=%d", wide.normalModeTopPaddingLines(wideBottom), narrow.normalModeTopPaddingLines(narrowBottom))
 	}
+}
+
+// Regression: second approval card in one session must reset viewport + choice state (first card OK, second broken).
+func TestTwoSequentialApprovalCards(t *testing.T) {
+	m := NewModel(nil, nil)
+	var mm *Model
+	next, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 28})
+	mm = next.(*Model)
+
+	var approved1, approved2 int
+	p1 := &uivm.PendingApproval{
+		Command: "first-cmd",
+		Respond: func(r uivm.ApprovalResponse) {
+			if r.Approved {
+				approved1++
+			}
+		},
+	}
+	next, _ = mm.Update(ChoiceCardShowMsg{PendingApproval: p1})
+	mm = next.(*Model)
+	next, _ = mm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'1'}})
+	mm = next.(*Model)
+	if approved1 != 1 {
+		t.Fatalf("first card: want approve callback once, got %d", approved1)
+	}
+	if mm.ChoiceCard.pending != nil {
+		t.Fatal("first card: pending should be cleared")
+	}
+	if mm.Interaction.ChoiceIndex != 0 {
+		t.Fatalf("after first card: ChoiceIndex=%d want 0", mm.Interaction.ChoiceIndex)
+	}
+
+	p2 := &uivm.PendingApproval{
+		Command: "second-cmd",
+		Respond: func(r uivm.ApprovalResponse) {
+			if r.Approved {
+				approved2++
+			}
+		},
+	}
+	next, _ = mm.Update(ChoiceCardShowMsg{PendingApproval: p2})
+	mm = next.(*Model)
+	if mm.Interaction.ChoiceIndex != 0 {
+		t.Fatalf("second card show: ChoiceIndex=%d want 0", mm.Interaction.ChoiceIndex)
+	}
+	view := mm.View()
+	if !strings.Contains(view, "second-cmd") {
+		t.Fatalf("second card View() should include command text; got snippet: %q", truncateForTest(view, 400))
+	}
+	next, _ = mm.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	mm = next.(*Model)
+	if approved2 != 1 {
+		t.Fatalf("second card: want approve via Enter once, got %d", approved2)
+	}
+}
+
+func truncateForTest(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[:max] + "…"
 }
 
 func TestTerminalWrappedRowsAccountsForSoftWrap(t *testing.T) {

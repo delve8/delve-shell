@@ -19,12 +19,18 @@ func (m *Model) handlePendingChoiceKey(msg tea.KeyMsg) (*Model, bool) {
 	if msg.String() == teakey.Esc {
 		return m, false
 	}
+	cc := approvalview.ChoiceCount(m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil)
+	if cc > 0 {
+		if m.Interaction.ChoiceIndex < 0 || m.Interaction.ChoiceIndex >= cc {
+			m.Interaction.ChoiceIndex = 0
+		}
+	}
 	res := approvalflow.Evaluate(
 		msg.String(),
 		m.ChoiceCard.pending != nil,
 		m.ChoiceCard.pendingSensitive != nil,
 		m.Interaction.ChoiceIndex,
-		approvalview.ChoiceCount(m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil),
+		cc,
 	)
 	if !res.Handled {
 		return m, false
@@ -114,6 +120,7 @@ func (m *Model) applyApprovalDecision(d approvalflow.Decision) (*Model, bool) {
 			m.ChoiceCard.pendingSensitive.Respond(choice)
 		}
 		m.ChoiceCard.pendingSensitive = nil
+		m.Interaction.ChoiceIndex = 0
 		return m, true
 
 	case approvalflow.DecisionApprove, approvalflow.DecisionReject, approvalflow.DecisionDismiss, approvalflow.DecisionCopy:
@@ -152,6 +159,7 @@ func (m *Model) applyApprovalDecision(d approvalflow.Decision) (*Model, bool) {
 		if waitingClear {
 			m.Interaction.WaitingForAI = false
 		}
+		m.Interaction.ChoiceIndex = 0
 		return m, true
 	default:
 		return m, true
