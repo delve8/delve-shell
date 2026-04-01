@@ -40,16 +40,29 @@ func (m *Model) renderBaseScreen() string {
 	if m.layout.Height <= minInputLayoutWidth {
 		out := bottomBlock
 		if mainBody != "" {
-			out = mainBody + out
+			out = joinMainBodyAboveBottomChrome(mainBody, out)
 		}
 		return out
 	}
 	// Base viewport height: leave room for the separator, input line, slash/choice dropdown, and footer below.
 	out := bottomBlock
 	if mainBody != "" {
-		out = mainBody + out
+		out = joinMainBodyAboveBottomChrome(mainBody, out)
 	}
 	return out
+}
+
+// joinMainBodyAboveBottomChrome concatenates the main viewport block with the bottom chrome (separator + input).
+// bubbles/viewport lipgloss output typically has no trailing newline; without an explicit boundary, the last
+// viewport line and the separator line merge into one row and the rule disappears.
+func joinMainBodyAboveBottomChrome(mainBody, bottomBlock string) string {
+	if mainBody == "" {
+		return bottomBlock
+	}
+	if strings.HasSuffix(mainBody, "\n") {
+		return mainBody + bottomBlock
+	}
+	return mainBody + "\n" + bottomBlock
 }
 
 func (m *Model) renderScreenSnapshot() string {

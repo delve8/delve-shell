@@ -4,17 +4,23 @@ import (
 	"strings"
 
 	"github.com/atotto/clipboard"
+	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/hil/approvalflow"
 	"delve-shell/internal/hil/approvalview"
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/teakey"
 	"delve-shell/internal/textwrap"
 	"delve-shell/internal/ui/uivm"
 )
 
-func (m *Model) handlePendingChoiceKey(key string) (*Model, bool) {
+func (m *Model) handlePendingChoiceKey(msg tea.KeyMsg) (*Model, bool) {
+	// Let the global Esc path run; approvalflow would otherwise handle the key with DecisionNone and swallow it.
+	if msg.String() == teakey.Esc {
+		return m, false
+	}
 	res := approvalflow.Evaluate(
-		key,
+		msg.String(),
 		m.ChoiceCard.pending != nil,
 		m.ChoiceCard.pendingSensitive != nil,
 		m.Interaction.ChoiceIndex,

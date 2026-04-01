@@ -16,6 +16,8 @@ const (
 	maxOverlayViewportHeight = 20
 	inputTextareaMinHeight   = 1
 	inputTextareaMaxHeight   = 5
+	// inputBelowStableRows: fixed lines below the input so the separator above the input and the footer
+	// stay in a stable vertical band across idle / processing / slash-open (padded with blanks when needed).
 	inputBelowStableRows     = 5
 	maxInputHistoryEntries   = 200
 )
@@ -286,16 +288,31 @@ func (m *Model) printedTranscriptLineCount() int {
 	return total
 }
 
+// bottomChromeReserveRows is the vertical space reserved for separator + input + below-input + footer.
+// terminalWrappedRows(bottomBlock) can underestimate lipgloss/textarea layout vs the real terminal;
+// inputChromeHeight() is the layout budget that must stay aligned with choice-card viewport math.
+// Using the max avoids extra leading newlines above the chrome after long transcript (input appears too high).
+func (m *Model) bottomChromeReserveRows(bottomBlock string) int {
+	wrapped := terminalWrappedRows(bottomBlock, m.contentWidth())
+	chrome := m.inputChromeHeight()
+	if wrapped > chrome {
+		return wrapped
+	}
+	return chrome
+}
+
 func (m *Model) normalModeTopPaddingLines(bottomBlock string) int {
 	if m.layout.Height <= 0 {
 		return 0
 	}
-	bottomLines := terminalWrappedRows(bottomBlock, m.contentWidth())
+	bottomReserve := m.bottomChromeReserveRows(bottomBlock)
 	visiblePrinted := m.printedTranscriptLineCount()
 	if visiblePrinted > m.layout.Height {
 		visiblePrinted = m.layout.Height
 	}
-	pad := m.layout.Height - visiblePrinted - bottomLines
+	// When transcript already uses (height - bottomReserve) or more rows, pad is zero: scrollback fills
+	// the band above the chrome and the bottom block sits directly under it without spacer rows.
+	pad := m.layout.Height - visiblePrinted - bottomReserve
 	if pad < 0 {
 		return 0
 	}
@@ -303,6 +320,7 @@ func (m *Model) normalModeTopPaddingLines(bottomBlock string) int {
 }
 
 func finalizeUpdate(prevOverlayActive bool, m *Model, cmd tea.Cmd) (tea.Model, tea.Cmd) {
+	m.syncInputHeight()
 	if !prevOverlayActive && m.Overlay.Active {
 		return m, tea.Sequence(
 			teaCmdForMsg(tea.EnterAltScreen()),

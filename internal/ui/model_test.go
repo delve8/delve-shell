@@ -112,6 +112,30 @@ func TestPrintTranscriptCmdSkipsSecondEnqueueBeforeTranscriptPrintedMsg(t *testi
 	_ = cmd1
 }
 
+func TestBottomChromeReserveRowsAtLeastInputChromeHeight(t *testing.T) {
+	m := NewModel(nil, nil)
+	m.layout.Width = 80
+	m.layout.Height = 24
+	bottom := renderSeparator(m.layout.Width) + "\n" + m.Input.View() + m.inputBelowBlock(false) + m.footerLine()
+	if got := m.bottomChromeReserveRows(bottom); got < m.inputChromeHeight() {
+		t.Fatalf("bottomChromeReserveRows=%d want >= inputChromeHeight=%d", got, m.inputChromeHeight())
+	}
+}
+
+func TestInputChromeHeightStableIdleVsWaitingSingleLine(t *testing.T) {
+	m := NewModel(nil, nil)
+	m.layout.Width = 80
+	m.Input.SetValue("")
+	m.syncInputHeight()
+	idleChrome := m.inputChromeHeight()
+	m.Interaction.WaitingForAI = true
+	m.syncInputHeight()
+	waitingChrome := m.inputChromeHeight()
+	if idleChrome != waitingChrome {
+		t.Fatalf("inputChromeHeight idle=%d waiting=%d want equal (separator band stable)", idleChrome, waitingChrome)
+	}
+}
+
 func TestMainTopPaddingLinesShrinksAsTranscriptPrints(t *testing.T) {
 	m := NewModel(nil, nil)
 	m.layout.Width = 80

@@ -114,6 +114,8 @@ func (m *Model) inputBelowBlock(inChoice bool) string {
 	}
 	block := widget.RenderFixedLinesBelowInput("   ", rows, reserveRows, suggestStyle, suggestHi)
 	if m.Interaction.WaitingForAI && !inChoice && !strings.HasPrefix(m.Input.Value(), "/") {
+		// Same fixed row count as idle (inputBelowStableRows) so the separator above the input and the
+		// footer band do not shift when entering/leaving processing.
 		waiting := i18n.T(i18n.KeyWaitOrCancel)
 		block = widget.RenderFixedLinesBelowInput("   ", []widget.ListRow{{Text: waiting}}, reserveRows, suggestStyle, suggestHi)
 	}

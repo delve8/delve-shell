@@ -1,6 +1,36 @@
 package approvalflow
 
-import "delve-shell/internal/teakey"
+import (
+	"unicode/utf8"
+
+	"delve-shell/internal/teakey"
+)
+
+// normalizeChoiceKey maps bracket-wrapped single-character paste keys ("[1]") and fullwidth
+// digits to ASCII 1–3 so they match ChoiceKey1..3 the same way as typed ASCII digits.
+func normalizeChoiceKey(key string) string {
+	// Terminals may send CR/LF as KeyRunes; main Enter must still confirm the highlighted option.
+	if key == "\r" || key == "\n" {
+		return teakey.Enter
+	}
+	if n := len(key); n >= 3 && key[0] == '[' && key[n-1] == ']' {
+		key = key[1 : n-1]
+	}
+	r, w := utf8.DecodeRuneInString(key)
+	if w != len(key) {
+		return key
+	}
+	switch r {
+	case '１':
+		return ChoiceKey1
+	case '２':
+		return ChoiceKey2
+	case '３':
+		return ChoiceKey3
+	default:
+		return key
+	}
+}
 
 type Decision int
 
@@ -27,9 +57,12 @@ func Evaluate(key string, hasPending bool, hasSensitive bool, choiceIndex int, c
 	if !hasPending && !hasSensitive {
 		return Result{}
 	}
+	key = normalizeChoiceKey(key)
 	r := Result{Handled: true, ChoiceIndex: choiceIndex}
 	if choiceCount > 0 {
-		if key == teakey.Enter {
+		// Same chords as bubbles/textarea InsertNewline: plain Enter confirms, but many keyboards
+		// send shift+enter / alt+enter / ctrl+j instead; those must not fall through as unknown keys.
+		if key == teakey.Enter || key == teakey.ShiftEnter || key == teakey.AltEnter || key == teakey.CtrlJ {
 			key = string(rune('1' + choiceIndex))
 		} else if key == teakey.Up || key == teakey.Down {
 			if key == teakey.Down {

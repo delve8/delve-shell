@@ -175,7 +175,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) (*Model, tea.Cmd) {
 
 	state := m.currentUIState()
 	if state == uiStateChoiceCardAlt || state == uiStateChoiceCard {
-		if handledModel, handled := m.handlePendingChoiceKey(key); handled {
+		if handledModel, handled := m.handlePendingChoiceKey(msg); handled {
 			return handledModel, nil
 		}
 	}

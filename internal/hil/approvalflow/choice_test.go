@@ -38,3 +38,42 @@ func TestEvaluateEnterAndArrow(t *testing.T) {
 		t.Fatalf("down should move selection: %#v", r)
 	}
 }
+
+func TestEvaluate_fullwidthDigitApprove(t *testing.T) {
+	r := Evaluate("１", true, false, 0, 3)
+	if r.Decision != DecisionApprove {
+		t.Fatalf("fullwidth 1: %#v", r)
+	}
+}
+
+func TestEvaluate_bracketPastedDigitApprove(t *testing.T) {
+	r := Evaluate("[1]", true, false, 0, 3)
+	if r.Decision != DecisionApprove {
+		t.Fatalf("pasted [1]: %#v", r)
+	}
+}
+
+func TestEvaluate_shiftEnterConfirmsLikeEnter(t *testing.T) {
+	r := Evaluate(teakey.ShiftEnter, true, false, 0, 3)
+	if r.Decision != DecisionApprove {
+		t.Fatalf("shift+enter: %#v", r)
+	}
+}
+
+func TestEvaluate_ctrlJConfirmsLikeEnter(t *testing.T) {
+	r := Evaluate(teakey.CtrlJ, true, false, 1, 3)
+	if r.Decision != DecisionDismiss {
+		t.Fatalf("ctrl+j: %#v", r)
+	}
+}
+
+func TestEvaluate_crlfRunesNormalizeToEnter(t *testing.T) {
+	r := Evaluate("\r", true, false, 0, 3)
+	if r.Decision != DecisionApprove {
+		t.Fatalf("\\r: %#v", r)
+	}
+	r = Evaluate("\n", true, false, 2, 3)
+	if r.Decision != DecisionCopy {
+		t.Fatalf("\\n: %#v", r)
+	}
+}
