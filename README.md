@@ -98,7 +98,7 @@ Chat, slash, and control share one submission model and one output-application p
 - `internal/skill`: skill install/update/remove, skill invocation, skill overlays.
 - `internal/skill/store`: skill discovery, manifest parsing, install/update/remove, and source management.
 - `internal/skill/git`: shallow clone/fetch helpers for skill installs from git remotes (`package git`).
-- `internal/config/llm`: LLM config overlay, default system/offline prompt text, OpenAI-compatible model context lookup, and config slash handling.
+- `internal/config/llm`: model config overlay, default system/offline prompt text, OpenAI-compatible model context lookup, and config slash handling.
 - `internal/history/tui`: `/history` slash options, transcript line mapping from stored events, and active session path for the picker (`package historytui`). Session file lifecycle stays in `internal/history` and `internal/runtime/sessionmgr`.
 - `internal/bootstrap`: single explicit registration entrypoint for feature modules.
 

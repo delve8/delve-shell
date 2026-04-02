@@ -21,8 +21,8 @@ type Host interface {
 	SetRemoteExecution(active bool, label string)
 	RemoteActive() bool
 	RemoteLabel() string
-	SetOpenConfigLLMOnFirstLayout(v bool)
-	TakeOpenConfigLLMOnFirstLayout() bool
+	SetOpenConfigModelOnFirstLayout(v bool)
+	TakeOpenConfigModelOnFirstLayout() bool
 	// OfflineExecutionMode is true when /access Offline is active (no in-process command execution).
 	OfflineExecutionMode() bool
 }
@@ -44,8 +44,8 @@ func (nopHost) PublishRemoteAuthResponse(remoteauth.Response) bool { return fals
 func (nopHost) SetRemoteExecution(bool, string)                    {}
 func (nopHost) RemoteActive() bool                                 { return false }
 func (nopHost) RemoteLabel() string                                { return "" }
-func (nopHost) SetOpenConfigLLMOnFirstLayout(bool)                 {}
-func (nopHost) TakeOpenConfigLLMOnFirstLayout() bool               { return false }
+func (nopHost) SetOpenConfigModelOnFirstLayout(bool)                 {}
+func (nopHost) TakeOpenConfigModelOnFirstLayout() bool               { return false }
 func (nopHost) OfflineExecutionMode() bool                         { return false }
 
 var (

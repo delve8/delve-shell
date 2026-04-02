@@ -7,31 +7,31 @@ import (
 	"delve-shell/internal/ui"
 )
 
-// buildConfigLLMOverlayContent renders the Config LLM modal body (inputs + hints).
-func buildConfigLLMOverlayContent() (string, bool) {
+// buildConfigModelOverlayContent renders the Config Model modal body (inputs + hints).
+func buildConfigModelOverlayContent() (string, bool) {
 	st := getOverlayState()
 	if !st.Active {
 		return "", false
 	}
 	var b strings.Builder
 	if st.Checking {
-		b.WriteString(ui.SuggestStyleRender(i18n.T(i18n.KeyConfigLLMChecking)) + "\n\n")
+		b.WriteString(ui.SuggestStyleRender(i18n.T(i18n.KeyConfigModelChecking)) + "\n\n")
 	} else if st.Error != "" {
 		b.WriteString(ui.ErrStyleRender(st.Error) + "\n\n")
 	}
-	b.WriteString(i18n.T(i18n.KeyConfigLLMBaseURLLabel) + "\n")
+	b.WriteString(i18n.T(i18n.KeyConfigModelBaseURLLabel) + "\n")
 	b.WriteString(st.BaseURLInput.View())
 	b.WriteString("\n\n")
-	b.WriteString(i18n.T(i18n.KeyConfigLLMApiKeyLabel) + "\n")
+	b.WriteString(i18n.T(i18n.KeyConfigModelApiKeyLabel) + "\n")
 	b.WriteString(st.ApiKeyInput.View())
 	b.WriteString("\n\n")
-	b.WriteString(i18n.T(i18n.KeyConfigLLMModelLabel) + "\n")
+	b.WriteString(i18n.T(i18n.KeyConfigModelModelLabel) + "\n")
 	b.WriteString(st.ModelInput.View())
 	b.WriteString("\n\n")
-	b.WriteString(i18n.T(i18n.KeyConfigLLMMaxMessagesLabel) + "\n")
+	b.WriteString(i18n.T(i18n.KeyConfigModelMaxMessagesLabel) + "\n")
 	b.WriteString(st.MaxMessagesInput.View())
 	b.WriteString("\n\n")
-	b.WriteString(i18n.T(i18n.KeyConfigLLMMaxCharsLabel) + "\n")
+	b.WriteString(i18n.T(i18n.KeyConfigModelMaxCharsLabel) + "\n")
 	b.WriteString(st.MaxCharsInput.View())
 	b.WriteString("\n\n")
 	b.WriteString(ui.RenderOverlayFormFooterHint())

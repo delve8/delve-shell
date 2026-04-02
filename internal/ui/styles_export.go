@@ -15,7 +15,7 @@ func RenderOverlayHintLine(key string) string {
 	return hintStyle.Render(s) + "\n"
 }
 
-// RenderOverlayFormFooterHint renders the standard multi-field form footer (same copy for add-remote, config LLM, add-skill).
+// RenderOverlayFormFooterHint renders the standard multi-field form footer (same copy for add-remote, config model, add-skill).
 func RenderOverlayFormFooterHint() string {
 	return RenderOverlayHintLine(i18n.KeyOverlayFormFooter)
 }

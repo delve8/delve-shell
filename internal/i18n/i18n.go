@@ -147,21 +147,21 @@ const (
 	KeyRemoteAuthHostKeyUnknown      = "remote_auth_host_key_unknown"
 	KeyRemoteAuthHostKeyMismatch     = "remote_auth_host_key_mismatch"
 	KeyTitleBarLocal                 = "title_bar_local"
-	KeyConfigSavedLLM                = "config_saved_llm"
-	KeyConfigLLMTitle                = "config_llm_title"
-	KeyConfigLLMBaseURLLabel         = "config_llm_base_url_label"
-	KeyConfigLLMApiKeyLabel          = "config_llm_api_key_label"
-	KeyConfigLLMBaseURLPlaceholder   = "config_llm_base_url_placeholder"
-	KeyConfigLLMApiKeyPlaceholder    = "config_llm_api_key_placeholder"
-	KeyConfigLLMModelLabel           = "config_llm_model_label"
-	KeyConfigLLMMaxMessagesLabel     = "config_llm_max_messages_label"
-	KeyConfigLLMMaxCharsLabel        = "config_llm_max_chars_label"
-	KeyConfigLLMModelRequired        = "config_llm_model_required"
-	KeyConfigLLMChecking             = "config_llm_checking"                // "Checking..."
-	KeyConfigLLMCheckOK              = "config_llm_check_ok"                // after save: "LLM check OK."
-	KeyConfigLLMCheckFailed          = "config_llm_check_failed"            // format: "LLM check failed: %v"
-	KeyConfigLLMBaseURLAutoCorrected = "config_llm_base_url_auto_corrected" // format: "Base URL updated to %s (added /v1)."
-	KeyDescConfigLLM                 = "desc_config_llm"
+	KeyConfigSavedModel                = "config_saved_model"
+	KeyConfigModelTitle                = "config_model_title"
+	KeyConfigModelBaseURLLabel         = "config_model_base_url_label"
+	KeyConfigModelApiKeyLabel          = "config_model_api_key_label"
+	KeyConfigModelBaseURLPlaceholder   = "config_model_base_url_placeholder"
+	KeyConfigModelApiKeyPlaceholder    = "config_model_api_key_placeholder"
+	KeyConfigModelModelLabel           = "config_model_model_label"
+	KeyConfigModelMaxMessagesLabel     = "config_model_max_messages_label"
+	KeyConfigModelMaxCharsLabel        = "config_model_max_chars_label"
+	KeyConfigModelModelRequired        = "config_model_model_required"
+	KeyConfigModelChecking             = "config_model_checking"                // "Checking..."
+	KeyConfigModelCheckOK              = "config_model_check_ok"                // after save connectivity check succeeded
+	KeyConfigModelCheckFailed          = "config_model_check_failed"            // format: "Model check failed: %v"
+	KeyConfigModelBaseURLAutoCorrected = "config_model_base_url_auto_corrected" // format: "Base URL updated to %s (added /v1)."
+	KeyDescConfigModel                 = "desc_config_model"
 	// Skill
 	KeyDescSkill                     = "desc_skill"
 	KeyUsageSkill                    = "usage_skill"
@@ -380,21 +380,21 @@ Quit (Ctrl+C also works)`,
 		KeyRemoteAuthHostKeyUnknown:      "Host key is not trusted yet. Accept to add/update known_hosts or reject to abort.",
 		KeyRemoteAuthHostKeyMismatch:     "Host key mismatch detected. Accept to update known_hosts or reject to abort.",
 		KeyTitleBarLocal:                 "Local",
-		KeyConfigSavedLLM:                "Config saved (llm).",
-		KeyConfigLLMTitle:                "Config LLM",
-		KeyConfigLLMBaseURLLabel:         "Base URL (optional; empty = OpenAI official API):",
-		KeyConfigLLMApiKeyLabel:          "API key (optional; supports $VAR):",
-		KeyConfigLLMBaseURLPlaceholder:   "https://api.openai.com/v1 (optional)",
-		KeyConfigLLMApiKeyPlaceholder:    "sk-... or $API_KEY",
-		KeyConfigLLMModelLabel:           "Model:",
-		KeyConfigLLMMaxMessagesLabel:     "Max context messages (default 50):",
-		KeyConfigLLMMaxCharsLabel:        "Max context chars (default: no limit or auto from API):",
-		KeyConfigLLMModelRequired:        "Model is required.",
-		KeyConfigLLMChecking:             "Checking...",
-		KeyConfigLLMCheckOK:              "LLM check OK.",
-		KeyConfigLLMCheckFailed:          "LLM check failed: %v",
-		KeyConfigLLMBaseURLAutoCorrected: "Base URL updated to %s (added /v1).",
-		KeyDescConfigLLM:                 "Configure model (LLM API)",
+		KeyConfigSavedModel:                "Config saved.",
+		KeyConfigModelTitle:                "Config Model",
+		KeyConfigModelBaseURLLabel:         "Base URL (optional; empty = OpenAI official API):",
+		KeyConfigModelApiKeyLabel:          "API key (optional; supports $VAR):",
+		KeyConfigModelBaseURLPlaceholder:   "https://api.openai.com/v1 (optional)",
+		KeyConfigModelApiKeyPlaceholder:    "sk-... or $API_KEY",
+		KeyConfigModelModelLabel:           "Model:",
+		KeyConfigModelMaxMessagesLabel:     "Max context messages (default 50):",
+		KeyConfigModelMaxCharsLabel:        "Max context chars (default: no limit or auto from API):",
+		KeyConfigModelModelRequired:        "Model is required.",
+		KeyConfigModelChecking:             "Checking...",
+		KeyConfigModelCheckOK:              "Model check OK.",
+		KeyConfigModelCheckFailed:          "Model check failed: %v",
+		KeyConfigModelBaseURLAutoCorrected: "Base URL updated to %s (added /v1).",
+		KeyDescConfigModel:                 "Configure model (LLM API)",
 		KeyDescSkill:                     "Use skill; optional detail for the AI",
 		KeyUsageSkill:                    "Usage: /skill <name> [detail] (text after the name is optional)",
 		KeySkillNotFound:                 "Skill not found.",

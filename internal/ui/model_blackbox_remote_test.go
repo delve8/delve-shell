@@ -70,9 +70,9 @@ func TestBlackboxSlashHistoryPrefixPreviewThenEnterSwitches(t *testing.T) {
 	}
 }
 
-func TestBlackboxStartupOverlayProviderOpensConfigLLM(t *testing.T) {
+func TestBlackboxStartupOverlayProviderOpensConfigModel(t *testing.T) {
 	open := true
-	m := ui.NewModel(nil, testReadModel{openConfigLLM: &open})
+	m := ui.NewModel(nil, testReadModel{openConfigModel: &open})
 	next, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	got := next.(*ui.Model)
 	if !got.Overlay.Active || !configllm.OverlayActive() {

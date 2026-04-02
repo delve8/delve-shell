@@ -200,7 +200,7 @@ func TestBlackboxSlashBashOfflineAppendsErrorToTranscript(t *testing.T) {
 		t.Skip("/bash is not available on Windows")
 	}
 	f := newBlackboxFixture(t)
-	f.model = ui.NewModel(nil, testReadModel{openConfigLLM: &f.openConfigLLM, offline: true})
+	f.model = ui.NewModel(nil, testReadModel{openConfigModel: &f.openConfigModel, offline: true})
 	f.model.CommandSender = testCommandSender{f: &f}
 	got := enterText(f.model, "/bash")
 	transcript := strings.Join(got.TranscriptLines(), "\n")
@@ -214,7 +214,7 @@ func TestBlackboxSlashBashOfflineAppendsErrorToTranscript(t *testing.T) {
 
 func TestBlackboxSlashSkillOfflineShowsError(t *testing.T) {
 	f := newBlackboxFixture(t)
-	f.model = ui.NewModel(nil, testReadModel{openConfigLLM: &f.openConfigLLM, offline: true})
+	f.model = ui.NewModel(nil, testReadModel{openConfigModel: &f.openConfigModel, offline: true})
 	f.model.CommandSender = testCommandSender{f: &f}
 	got := enterText(f.model, "/skill someskill extra")
 	transcript := strings.Join(got.TranscriptLines(), "\n")

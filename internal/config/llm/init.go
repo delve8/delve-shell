@@ -27,11 +27,11 @@ func Register() {
 		st.Error = ""
 		st.FieldIndex = 0
 		st.BaseURLInput = textinput.New()
-		st.BaseURLInput.Placeholder = i18n.T(i18n.KeyConfigLLMBaseURLPlaceholder)
+		st.BaseURLInput.Placeholder = i18n.T(i18n.KeyConfigModelBaseURLPlaceholder)
 		st.BaseURLInput.SetValue(cfg.LLM.BaseURL)
 		st.BaseURLInput.Focus()
 		st.ApiKeyInput = textinput.New()
-		st.ApiKeyInput.Placeholder = i18n.T(i18n.KeyConfigLLMApiKeyPlaceholder)
+		st.ApiKeyInput.Placeholder = i18n.T(i18n.KeyConfigModelApiKeyPlaceholder)
 		st.ApiKeyInput.EchoMode = textinput.EchoPassword
 		st.ApiKeyInput.SetValue(cfg.LLM.APIKey)
 		st.ApiKeyInput.Blur()
@@ -51,7 +51,7 @@ func Register() {
 		}
 		st.MaxCharsInput.Blur()
 		setOverlayState(st)
-		m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyConfigLLMTitle), "")
+		m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyConfigModelTitle), "")
 	}
 	ui.RegisterOverlayFeature(ui.OverlayFeature{
 		KeyID: OverlayFeatureKey,
@@ -73,19 +73,19 @@ func Register() {
 			st := getOverlayState()
 			st.Checking = false
 			if done.ErrText != "" {
-				st.Error = i18n.Tf(i18n.KeyConfigLLMCheckFailed, done.ErrText)
+				st.Error = i18n.Tf(i18n.KeyConfigModelCheckFailed, done.ErrText)
 				setOverlayState(st)
 				return m, nil, true
 			}
 			st.Error = ""
 			setOverlayState(st)
 			mm := ui.TranscriptAppendMsg{Lines: []uivm.Line{
-				{Kind: uivm.LineSystemSuggest, Text: i18n.T(i18n.KeyConfigSavedLLM)},
+				{Kind: uivm.LineSystemSuggest, Text: i18n.T(i18n.KeyConfigSavedModel)},
 			}}
 			if done.CorrectedBaseURL != "" {
-				mm.Lines = append(mm.Lines, uivm.Line{Kind: uivm.LineSystemSuggest, Text: i18n.Tf(i18n.KeyConfigLLMBaseURLAutoCorrected, done.CorrectedBaseURL)})
+				mm.Lines = append(mm.Lines, uivm.Line{Kind: uivm.LineSystemSuggest, Text: i18n.Tf(i18n.KeyConfigModelBaseURLAutoCorrected, done.CorrectedBaseURL)})
 			}
-			mm.Lines = append(mm.Lines, uivm.Line{Kind: uivm.LineSystemSuggest, Text: i18n.T(i18n.KeyConfigLLMCheckOK)})
+			mm.Lines = append(mm.Lines, uivm.Line{Kind: uivm.LineSystemSuggest, Text: i18n.T(i18n.KeyConfigModelCheckOK)})
 			mm.Lines = append(mm.Lines, uivm.Line{Kind: uivm.LineBlank})
 			next, _ := m.Update(mm)
 			m = next.(*ui.Model)
@@ -99,7 +99,7 @@ func Register() {
 			return m, nil, true
 		},
 		Content: func(m *ui.Model) (string, bool) {
-			return buildConfigLLMOverlayContent()
+			return buildConfigModelOverlayContent()
 		},
 		Key: func(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Model, tea.Cmd, bool) {
 			return handleOverlayKey(m, key, msg)

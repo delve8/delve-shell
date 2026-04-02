@@ -75,7 +75,7 @@ func (m *Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (*Model, tea.Cmd) {
 	if m.Overlay.Active {
 		m.InitOverlayViewport()
 	}
-	if m.takeOpenConfigLLMOnFirstLayout() {
+	if m.takeOpenConfigModelOnFirstLayout() {
 		for _, entry := range overlayFeatures() {
 			if entry.feature.Startup == nil {
 				continue

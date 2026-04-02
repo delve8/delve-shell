@@ -24,15 +24,15 @@ const (
 
 // ReadModel provides host-derived read-only state needed by UI rendering and local decisions.
 type ReadModel interface {
-	TakeOpenConfigLLMOnFirstLayout() bool
+	TakeOpenConfigModelOnFirstLayout() bool
 	OfflineExecutionMode() bool
 }
 
-func (m *Model) takeOpenConfigLLMOnFirstLayout() bool {
+func (m *Model) takeOpenConfigModelOnFirstLayout() bool {
 	if m.ReadModel == nil {
 		return false
 	}
-	return m.ReadModel.TakeOpenConfigLLMOnFirstLayout()
+	return m.ReadModel.TakeOpenConfigModelOnFirstLayout()
 }
 
 func (m *Model) offlineExecutionMode() bool {

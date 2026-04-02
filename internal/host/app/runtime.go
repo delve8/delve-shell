@@ -16,8 +16,8 @@ type Runtime struct {
 	remoteActive bool
 	remoteLabel  string
 	offline      bool
-	cfgLLMMu     sync.Mutex
-	cfgLLMFirst  bool
+	cfgModelMu    sync.Mutex
+	cfgModelFirst bool
 }
 
 // NewRuntime returns an empty runtime; call WireSend, then adapt *Runtime for the interactive UI loop.
@@ -86,19 +86,19 @@ func (r *Runtime) RemoteLabel() string {
 	return r.remoteLabel
 }
 
-// SetOpenConfigLLMOnFirstLayout arms the next first-layout open.
-func (r *Runtime) SetOpenConfigLLMOnFirstLayout(v bool) {
-	r.cfgLLMMu.Lock()
-	defer r.cfgLLMMu.Unlock()
-	r.cfgLLMFirst = v
+// SetOpenConfigModelOnFirstLayout arms the next first-layout open.
+func (r *Runtime) SetOpenConfigModelOnFirstLayout(v bool) {
+	r.cfgModelMu.Lock()
+	defer r.cfgModelMu.Unlock()
+	r.cfgModelFirst = v
 }
 
-// TakeOpenConfigLLMOnFirstLayout returns whether to run startup overlay providers and clears the flag.
-func (r *Runtime) TakeOpenConfigLLMOnFirstLayout() bool {
-	r.cfgLLMMu.Lock()
-	defer r.cfgLLMMu.Unlock()
-	v := r.cfgLLMFirst
-	r.cfgLLMFirst = false
+// TakeOpenConfigModelOnFirstLayout returns whether to run startup overlay providers and clears the flag.
+func (r *Runtime) TakeOpenConfigModelOnFirstLayout() bool {
+	r.cfgModelMu.Lock()
+	defer r.cfgModelMu.Unlock()
+	v := r.cfgModelFirst
+	r.cfgModelFirst = false
 	return v
 }
 
@@ -228,9 +228,9 @@ func (r *Runtime) Reset() {
 	r.remoteLabel = ""
 	r.offline = false
 	r.mu.Unlock()
-	r.cfgLLMMu.Lock()
-	r.cfgLLMFirst = false
-	r.cfgLLMMu.Unlock()
+	r.cfgModelMu.Lock()
+	r.cfgModelFirst = false
+	r.cfgModelMu.Unlock()
 }
 
 var _ Host = (*Runtime)(nil)

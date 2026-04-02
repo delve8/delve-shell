@@ -30,7 +30,7 @@ func TestTerminalE2E(t *testing.T) {
 	}
 }
 
-// writeMinimalConfig writes a minimal config.yaml with llm.model set so the TUI starts without opening the Config LLM overlay.
+// writeMinimalConfig writes a minimal config.yaml with llm.model set so the TUI starts without opening the Config Model overlay.
 func writeMinimalConfig(t *testing.T, root string) {
 	t.Helper()
 	cfgPath := filepath.Join(root, "config.yaml")

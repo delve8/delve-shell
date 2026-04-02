@@ -45,7 +45,7 @@ func ResetOnOverlayClose() {
 	global.st.Error = ""
 }
 
-// OverlayActive reports whether the Config LLM overlay is the active feature body (for tests).
+// OverlayActive reports whether the Config Model overlay is the active feature body (for tests).
 func OverlayActive() bool {
 	global.mu.Lock()
 	defer global.mu.Unlock()

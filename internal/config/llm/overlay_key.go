@@ -14,7 +14,7 @@ import (
 	"delve-shell/internal/ui"
 )
 
-const configLLMFieldCount = 5
+const configModelFieldCount = 5
 
 func handleOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Model, tea.Cmd, bool) {
 	st := getOverlayState()
@@ -28,7 +28,7 @@ func handleOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Model, tea.C
 		if key == teakey.Up {
 			dir = -1
 		}
-		st.FieldIndex = (st.FieldIndex + dir + configLLMFieldCount) % configLLMFieldCount
+		st.FieldIndex = (st.FieldIndex + dir + configModelFieldCount) % configModelFieldCount
 		st.BaseURLInput.Blur()
 		st.ApiKeyInput.Blur()
 		st.ModelInput.Blur()
@@ -58,7 +58,7 @@ func handleOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Model, tea.C
 		maxMessagesStr := strings.TrimSpace(st.MaxMessagesInput.Value())
 		maxCharsStr := strings.TrimSpace(st.MaxCharsInput.Value())
 		if model == "" {
-			st.Error = i18n.T(i18n.KeyConfigLLMModelRequired)
+			st.Error = i18n.T(i18n.KeyConfigModelModelRequired)
 			setOverlayState(st)
 			return m, nil, true
 		}

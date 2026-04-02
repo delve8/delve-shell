@@ -9,13 +9,13 @@ import (
 	"delve-shell/internal/config"
 )
 
-func TestNeedsConfigLLMOverlay_NilConfig(t *testing.T) {
-	if !NeedsConfigLLMOverlay(nil) {
-		t.Fatal("nil config should require LLM overlay")
+func TestNeedsConfigModelOverlay_NilConfig(t *testing.T) {
+	if !NeedsConfigModelOverlay(nil) {
+		t.Fatal("nil config should require model config overlay")
 	}
 }
 
-func TestNeedsConfigLLMOverlay_ModelPresent(t *testing.T) {
+func TestNeedsConfigModelOverlay_ModelPresent(t *testing.T) {
 	cases := []string{
 		"gpt-4o-mini",
 		" qwen ",
@@ -27,14 +27,14 @@ func TestNeedsConfigLLMOverlay_ModelPresent(t *testing.T) {
 	for _, m := range cases {
 		t.Run(m, func(t *testing.T) {
 			cfg := &config.Config{LLM: config.LLMConfig{Model: m}}
-			if NeedsConfigLLMOverlay(cfg) {
+			if NeedsConfigModelOverlay(cfg) {
 				t.Fatalf("model %q should not require overlay", m)
 			}
 		})
 	}
 }
 
-func TestNeedsConfigLLMOverlay_EmptyModel(t *testing.T) {
+func TestNeedsConfigModelOverlay_EmptyModel(t *testing.T) {
 	cases := []string{
 		"",
 		"   ",
@@ -45,7 +45,7 @@ func TestNeedsConfigLLMOverlay_EmptyModel(t *testing.T) {
 	for _, m := range cases {
 		t.Run(escapeLabel(m), func(t *testing.T) {
 			cfg := &config.Config{LLM: config.LLMConfig{Model: m}}
-			if !NeedsConfigLLMOverlay(cfg) {
+			if !NeedsConfigModelOverlay(cfg) {
 				t.Fatalf("model %q should require overlay", m)
 			}
 		})
@@ -61,7 +61,7 @@ func escapeLabel(s string) string {
 	return s
 }
 
-func TestNeedsConfigLLMOverlay_Table(t *testing.T) {
+func TestNeedsConfigModelOverlay_Table(t *testing.T) {
 	type row struct {
 		model string
 		want  bool
@@ -77,7 +77,7 @@ func TestNeedsConfigLLMOverlay_Table(t *testing.T) {
 	}
 	for i, tc := range rows {
 		cfg := &config.Config{LLM: config.LLMConfig{Model: tc.model}}
-		got := NeedsConfigLLMOverlay(cfg)
+		got := NeedsConfigModelOverlay(cfg)
 		if got != tc.want {
 			t.Fatalf("row %d model %q: want %v got %v", i, tc.model, tc.want, got)
 		}
@@ -153,7 +153,7 @@ func TestRunPreflight_LoadsRulesWhenPresent(t *testing.T) {
 	}
 }
 
-func TestRunPreflight_NeedConfigLLMMatchesHelper(t *testing.T) {
+func TestRunPreflight_NeedConfigModelMatchesHelper(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("DELVE_SHELL_ROOT", root)
 
@@ -163,9 +163,9 @@ func TestRunPreflight_NeedConfigLLMMatchesHelper(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = pf.InitialSession.Close() })
 
-	if pf.NeedConfigLLM != NeedsConfigLLMOverlay(pf.Config) {
-		t.Fatalf("NeedConfigLLM field inconsistent: pf=%v overlay=%v cfg=%v",
-			pf.NeedConfigLLM, NeedsConfigLLMOverlay(pf.Config), pf.Config)
+	if pf.NeedConfigModel != NeedsConfigModelOverlay(pf.Config) {
+		t.Fatalf("NeedConfigModel field inconsistent: pf=%v overlay=%v cfg=%v",
+			pf.NeedConfigModel, NeedsConfigModelOverlay(pf.Config), pf.Config)
 	}
 }
 
@@ -191,7 +191,7 @@ func TestRunPreflight_WithMinimalConfigYAML(t *testing.T) {
 	if strings.TrimSpace(pf.Config.LLM.Model) != "custom-model" {
 		t.Fatalf("model: %q", pf.Config.LLM.Model)
 	}
-	if pf.NeedConfigLLM {
-		t.Fatal("should not need LLM overlay when model set")
+	if pf.NeedConfigModel {
+		t.Fatal("should not need model config overlay when model set")
 	}
 }

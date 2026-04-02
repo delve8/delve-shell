@@ -24,6 +24,6 @@ func Run() error {
 	defer sessions.CloseAll()
 
 	stack := wireHostStack(stop, pf, sessions, syncSessionPath)
-	loop := newTuiRestartLoop(stack.controller, stack.currentP, stack.shellSnap, stack.commands, pf.NeedConfigLLM, stack.rt, stack.getExec)
+	loop := newTuiRestartLoop(stack.controller, stack.currentP, stack.shellSnap, stack.commands, pf.NeedConfigModel, stack.rt, stack.getExec)
 	return loop.run()
 }

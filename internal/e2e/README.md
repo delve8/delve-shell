@@ -11,7 +11,7 @@ go test ./internal/e2e/... -v -timeout=60s
 Always set a **non-zero test timeout** (e.g. `-timeout=60s`); if a step stalls with **no new `step N: matched` log lines** for longer than the step’s `Expect` timeout, the binary or expectations are wrong—do not wait for the default `go test` timeout (10m).
 
 - **Short mode**: `go test ./... -short` skips e2e (PTY/TUI tests are slow and environment-sensitive). Use this in CI or quick local runs.
-- **Config**: The test writes a minimal `config.yaml` (with `llm.model: gpt-4o-mini`) under a temp root so the TUI starts without opening the Config LLM overlay.
+- **Config**: The test writes a minimal `config.yaml` (with `llm.model: gpt-4o-mini`) under a temp root so the TUI starts without opening the Config Model overlay.
 - The cases below do not require LLM and pass as-is when run without `-short`.
 - The approval-flow case (requires LLM) is skipped by default; to run it: `E2E_LLM=1 go test ./internal/e2e/... -v -run TUI_approval_flow`, with a valid LLM config on the machine.
 

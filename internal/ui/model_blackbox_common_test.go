@@ -34,20 +34,20 @@ type blackboxFixture struct {
 	remoteOff      chan struct{}
 	accessOffline  chan struct{}
 	remoteAuthResp chan remoteauth.Response
-	openConfigLLM  bool
+	openConfigModel  bool
 }
 
 type testReadModel struct {
-	openConfigLLM *bool
+	openConfigModel *bool
 	offline       bool
 }
 
-func (r testReadModel) TakeOpenConfigLLMOnFirstLayout() bool {
-	if r.openConfigLLM == nil {
+func (r testReadModel) TakeOpenConfigModelOnFirstLayout() bool {
+	if r.openConfigModel == nil {
 		return false
 	}
-	v := *r.openConfigLLM
-	*r.openConfigLLM = false
+	v := *r.openConfigModel
+	*r.openConfigModel = false
 	return v
 }
 
@@ -164,7 +164,7 @@ func newBlackboxFixture(t *testing.T) blackboxFixture {
 		accessOffline:  make(chan struct{}, 2),
 		remoteAuthResp: make(chan remoteauth.Response, 2),
 	}
-	f.model = ui.NewModel(nil, testReadModel{openConfigLLM: &f.openConfigLLM})
+	f.model = ui.NewModel(nil, testReadModel{openConfigModel: &f.openConfigModel})
 	f.model.CommandSender = testCommandSender{f: &f}
 	return f
 }

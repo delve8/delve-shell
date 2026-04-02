@@ -12,7 +12,7 @@ import (
 // PreflightResult holds early startup outputs shared by the interactive loop.
 type PreflightResult struct {
 	Config         *config.Config
-	NeedConfigLLM  bool
+	NeedConfigModel bool
 	RulesText      string
 	InitialSession *history.Session
 }
@@ -23,7 +23,7 @@ func RunPreflight() (*PreflightResult, error) {
 		return nil, err
 	}
 	cfg, _ := config.LoadEnsured()
-	needConfigLLM := NeedsConfigLLMOverlay(cfg)
+	needConfigModel := NeedsConfigModelOverlay(cfg)
 
 	if cfg != nil {
 		if err := history.Prune(cfg); err != nil {
@@ -40,13 +40,13 @@ func RunPreflight() (*PreflightResult, error) {
 	}
 	return &PreflightResult{
 		Config:         cfg,
-		NeedConfigLLM:  needConfigLLM,
+		NeedConfigModel: needConfigModel,
 		RulesText:      rulesText,
 		InitialSession: initialSession,
 	}, nil
 }
 
-// NeedsConfigLLMOverlay reports whether the first layout should open the LLM config overlay.
-func NeedsConfigLLMOverlay(cfg *config.Config) bool {
+// NeedsConfigModelOverlay reports whether the first layout should open the model config overlay.
+func NeedsConfigModelOverlay(cfg *config.Config) bool {
 	return cfg == nil || strings.TrimSpace(cfg.LLM.Model) == ""
 }

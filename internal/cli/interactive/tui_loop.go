@@ -34,19 +34,19 @@ type tuiRestartLoop struct {
 	shellAfterExit <-chan hostcmd.ShellSnapshot
 	commands       chan<- hostcmd.Command
 	getExec        func() execenv.CommandExecutor
-	// openConfigLLMOnFirstLayout is applied only for the first TUI session in this process (startup overlay).
-	openConfigLLMOnFirstLayout bool
+	// openConfigModelOnFirstLayout is applied only for the first TUI session in this process (startup overlay).
+	openConfigModelOnFirstLayout bool
 }
 
 type hostReadModel struct {
 	host app.Host
 }
 
-func (r hostReadModel) TakeOpenConfigLLMOnFirstLayout() bool {
+func (r hostReadModel) TakeOpenConfigModelOnFirstLayout() bool {
 	if r.host == nil {
 		return false
 	}
-	return r.host.TakeOpenConfigLLMOnFirstLayout()
+	return r.host.TakeOpenConfigModelOnFirstLayout()
 }
 
 func (r hostReadModel) OfflineExecutionMode() bool {
@@ -61,7 +61,7 @@ func newTuiRestartLoop(
 	programPtr *atomic.Pointer[tea.Program],
 	shellAfterExit <-chan hostcmd.ShellSnapshot,
 	commands chan<- hostcmd.Command,
-	openConfigLLMOnFirstLayout bool,
+	openConfigModelOnFirstLayout bool,
 	host app.Host,
 	getExec func() execenv.CommandExecutor,
 ) *tuiRestartLoop {
@@ -77,7 +77,7 @@ func newTuiRestartLoop(
 		programPtr:                 programPtr,
 		shellAfterExit:             shellAfterExit,
 		commands:                   commands,
-		openConfigLLMOnFirstLayout: openConfigLLMOnFirstLayout,
+		openConfigModelOnFirstLayout: openConfigModelOnFirstLayout,
 		getExec:                    getExec,
 	}
 }
@@ -86,12 +86,12 @@ func newTuiRestartLoop(
 // tea.Program.Run returns an error.
 func (l *tuiRestartLoop) run() error {
 	var saved []string
-	openLLM := l.openConfigLLMOnFirstLayout
+	openModel := l.openConfigModelOnFirstLayout
 	for {
-		if err := l.runOneSession(&saved, openLLM); err != nil {
+		if err := l.runOneSession(&saved, openModel); err != nil {
 			return err
 		}
-		openLLM = false
+		openModel = false
 		select {
 		case snap := <-l.shellAfterExit:
 			saved = snap.Messages
@@ -108,9 +108,9 @@ func (l *tuiRestartLoop) run() error {
 	}
 }
 
-func (l *tuiRestartLoop) runOneSession(saved *[]string, openConfigLLM bool) error {
+func (l *tuiRestartLoop) runOneSession(saved *[]string, openConfigModel bool) error {
 	l.controller.SyncCurrentSessionPath()
-	l.host.SetOpenConfigLLMOnFirstLayout(openConfigLLM)
+	l.host.SetOpenConfigModelOnFirstLayout(openConfigModel)
 	model := ui.NewModel(*saved, hostReadModel{host: l.host})
 	model.CommandSender = ui.NewCommandChannelSender(l.commands)
 	p := tea.NewProgram(model, defaultTUIProgramOptions...)
