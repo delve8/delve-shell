@@ -46,7 +46,7 @@ func (w *LineEmitWriter) Flush() {
 	if w.buf.Len() == 0 {
 		return
 	}
-	line := strings.TrimSuffix(string(w.buf.Bytes()), "\r")
+	line := strings.TrimSuffix(w.buf.String(), "\r")
 	w.buf.Reset()
 	w.emit(line)
 }

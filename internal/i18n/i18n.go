@@ -110,6 +110,7 @@ const (
 	KeyOfflineExecBashDisabled       = "offline_exec_bash_disabled"
 	KeyOfflineSlashExecDisabled      = "offline_slash_exec_disabled"
 	KeyOfflineSlashSkillDisabled     = "offline_slash_skill_disabled"
+	KeySkillScriptsSyncRemote        = "skill_scripts_sync_remote"
 	KeyHelpTitle                     = "help_title"
 	KeyAddRemoteTitle                = "add_remote_title"
 	KeyAddRemoteScreenTitle          = "add_remote_screen_title"
@@ -343,6 +344,7 @@ Quit (Ctrl+C also works)`,
 		KeyOfflineExecBashDisabled:       "/bash is not available in Offline mode.",
 		KeyOfflineSlashExecDisabled:      "/exec is not available in Offline mode.",
 		KeyOfflineSlashSkillDisabled:     "/skill is not available in Offline mode.",
+		KeySkillScriptsSyncRemote:        "Syncing skill scripts to remote host…",
 		KeyHelpTitle:                     "Help",
 		KeyAddRemoteTitle:                "Add Remote",
 		KeyAddRemoteScreenTitle:          "Add remote",

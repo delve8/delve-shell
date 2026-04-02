@@ -16,6 +16,7 @@ import (
 	"delve-shell/internal/hil"
 	hiltypes "delve-shell/internal/hil/types"
 	"delve-shell/internal/history"
+	"delve-shell/internal/i18n"
 	"delve-shell/internal/remote/execenv"
 	"delve-shell/internal/runtime/execcancel"
 	"delve-shell/internal/skill/store"
@@ -226,15 +227,18 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 
 	cmdCtx, unregCancel := withCommandCancel(t.ExecCancelHub, ctx)
 	defer unregCancel()
-	endUI := pushCommandExecutionUI(t.UIEvents)
-	defer endUI()
 
 	// For remote executors, sync local skill scripts/ to a remote temp dir before running.
+	// Keep [EXECUTING] off until sync finishes: SCP can take a while with no stdout yet, which looked like a stuck run.
 	if isRemote && remoteScriptsDir != "" {
+		sendAgentNotify(t.UIEvents, i18n.T(i18n.KeySkillScriptsSyncRemote))
 		if err := syncSkillScriptsToRemote(cmdCtx, executor, localScriptsDir, remoteScriptsDir); err != nil {
 			return "Failed to sync skill scripts to remote: " + err.Error(), nil
 		}
 	}
+
+	endUI := pushCommandExecutionUI(t.UIEvents)
+	defer endUI()
 	streamStart := hiltypes.ExecStreamStart{Allowed: false, Suggested: false, Direct: false}
 	outStr, errStr, exitCode, err, streamed := runExecutorWithStream(cmdCtx, executor, cmd, t.OnExecStream, streamStart)
 	cancelled := errors.Is(cmdCtx.Err(), context.Canceled) || errors.Is(err, context.Canceled)

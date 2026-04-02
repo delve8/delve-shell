@@ -127,6 +127,19 @@ func TestPresenter_DispatchAgentUI(t *testing.T) {
 	}
 }
 
+func TestPresenter_DispatchAgentUI_AgentNotify(t *testing.T) {
+	var r recordSender
+	p := New(&r)
+	p.DispatchAgentUI(hiltypes.AgentNotify{Text: "syncing"})
+	if len(r.msgs) != 1 {
+		t.Fatalf("want 1 msg, got %d", len(r.msgs))
+	}
+	ta, ok := r.msgs[0].(ui.TranscriptAppendMsg)
+	if !ok || len(ta.Lines) < 1 || ta.Lines[0].Text != "syncing" {
+		t.Fatalf("got %#v", r.msgs[0])
+	}
+}
+
 func TestPresenter_DispatchAgentUI_StreamedExecTail(t *testing.T) {
 	var r recordSender
 	p := New(&r)

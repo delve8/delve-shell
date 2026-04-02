@@ -1,5 +1,5 @@
 // Package hiltypes defines messages exchanged between the agent runner and the host UI (approval, sensitive
-// confirmation, exec notifications). It is orthogonal to package hil (allowlist and sensitive-path policy).
+// confirmation, exec notifications, optional status lines). It is orthogonal to package hil (allowlist and sensitive-path policy).
 // Import path: delve-shell/internal/hil/types.
 //
 // This package is intentionally kept free of Bubble Tea and UI styling so host bus and runtime packages do not
@@ -40,6 +40,11 @@ type SensitiveConfirmationRequest struct {
 // CommandExecutionState toggles [EXECUTING] UI and input lock while a shell command runs (agent tools).
 type CommandExecutionState struct {
 	Active bool
+}
+
+// AgentNotify is a short system line for the transcript (e.g. remote skill script sync before run).
+type AgentNotify struct {
+	Text string
 }
 
 // ExecStreamStart is sent before streaming stdout/stderr lines for one command execution.

@@ -35,13 +35,19 @@ func TestBuildApprovalRiskAndSummary(t *testing.T) {
 	if !ok {
 		t.Fatal("expected approval block")
 	}
-	var hasRisk bool
+	var hasRisk, hasExecCmd bool
 	for _, l := range lines {
 		if l.Kind == LineRiskReadOnly {
 			hasRisk = true
 		}
+		if l.Kind == LineExec && strings.Contains(l.Text, "kubectl get pods") {
+			hasExecCmd = true
+		}
 	}
 	if !hasRisk {
 		t.Fatalf("expected read-only risk line, got %#v", lines)
+	}
+	if !hasExecCmd {
+		t.Fatalf("expected command on separate exec line, got %#v", lines)
 	}
 }

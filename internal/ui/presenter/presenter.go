@@ -246,6 +246,8 @@ func (p *Presenter) DispatchAgentUI(x any) {
 		p.ExecStreamLineOut(v.Line, v.Stderr)
 	case hiltypes.CommandExecutionState:
 		p.CommandExecutionActive(v.Active)
+	case hiltypes.AgentNotify:
+		p.SystemNotify(v.Text)
 	case hiltypes.ExecEvent:
 		if v.Streamed {
 			p.CommandExecutedStreamEnd(v.Sensitive, v.Result)

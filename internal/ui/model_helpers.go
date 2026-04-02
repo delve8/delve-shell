@@ -295,6 +295,9 @@ func finalizeUpdate(prevOverlayActive bool, m *Model, cmd tea.Cmd) (tea.Model, t
 		printCmd := m.printTranscriptCmd(false)
 		return m, tea.Sequence(
 			teaCmdForMsg(tea.ExitAltScreen()),
+			// Reset terminal mouse tracking after leaving the alt-screen overlay (viewport may have
+			// left modes like SGR mouse enabled on some emulators after auth / multi-field dialogs).
+			teaCmdForMsg(tea.DisableMouse()),
 			cmd,
 			printCmd,
 		)

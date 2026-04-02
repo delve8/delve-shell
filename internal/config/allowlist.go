@@ -86,6 +86,24 @@ func AllowlistUpdateWithDefaults() (added int, err error) {
 	return added, nil
 }
 
+// kubectlGlobalOptsBeforeSubcommand is a regex fragment (no leading ^) matching zero or more global
+// options that may appear between "kubectl" and the subcommand. Only a closed set of flags is allowed
+// so patterns do not degenerate to kubectl\s+.*\s+get (which would bypass intent).
+// No lookahead: Go regexp (RE2) does not support (?=) / (?!).
+const kubectlGlobalOptsBeforeSubcommand = `(?:` +
+	`\s+-n(?:=\S+|\s+\S+)|` +
+	`\s+--namespace(?:=\S+|\s+\S+)|` +
+	`\s+--context(?:=\S+|\s+\S+)|` +
+	`\s+--kubeconfig(?:=\S+|\s+\S+)|` +
+	`\s+-A|` +
+	`\s+--all-namespaces` +
+	`)*`
+
+// DefaultAllowlistEntries returns the built-in default allowlist patterns (same as a fresh allowlist.yaml).
+func DefaultAllowlistEntries() []AllowlistEntry {
+	return defaultAllowlist()
+}
+
 // defaultAllowlist is the built-in default: read-only commands; each Pattern is a regex.
 // Single-command patterns use (^|\s)word(\s|$) so the word is only matched as command name:
 // left side must be start or space (not -word option); right side must be space or end (not word-xxx).
@@ -170,22 +188,23 @@ func defaultAllowlist() []AllowlistEntry {
 		{Pattern: `(^|\s)false(\s|$)`},
 		{Pattern: `(^|\s)seq(\s|$)`},
 		{Pattern: `(^|\s)sleep(\s|$)`},
-		// kubectl read-only subcommands
-		{Pattern: `kubectl\s+get\s`},
-		{Pattern: `kubectl\s+describe\s`},
-		{Pattern: `kubectl\s+logs\s`},
-		{Pattern: `kubectl\s+top\s`},
-		{Pattern: `kubectl\s+explain\s`},
-		{Pattern: `kubectl\s+api-resources`},
-		{Pattern: `kubectl\s+api-versions`},
-		{Pattern: `kubectl\s+cluster-info(?!\s+dump)`}, // view read-only; dump writes so excluded
-		{Pattern: `kubectl\s+config\s+view`},
-		{Pattern: `kubectl\s+version`},
-		{Pattern: `kubectl\s+auth\s+can-i`},
-		{Pattern: `kubectl\s+auth\s+whoami`},
-		{Pattern: `kubectl\s+rollout\s+status`},
-		{Pattern: `kubectl\s+diff\s`},
-		{Pattern: `kubectl\s+.*--help`},
+		// kubectl read-only subcommands (^kubectl anchors segment start; globals only before subcommand)
+		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+get\s`},
+		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+describe\s`},
+		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+logs\s`},
+		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+top\s`},
+		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+explain\s`},
+		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+api-resources`},
+		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+api-versions`},
+		// cluster-info dump writes; require end of segment after cluster-info (no subcommand).
+		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+cluster-info\s*$`},
+		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+config\s+view`},
+		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+version`},
+		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+auth\s+can-i`},
+		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+auth\s+whoami`},
+		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+rollout\s+status`},
+		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+diff\s`},
+		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+.*--help`},
 		// git read-only commands
 		{Pattern: `git\s+status\s`},
 		{Pattern: `git\s+status\s*$`},

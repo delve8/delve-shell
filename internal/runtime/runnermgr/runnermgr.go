@@ -19,12 +19,13 @@ type Manager struct {
 	mu sync.Mutex
 	r  *agent.Runner
 
-	loadConfig            func() (*config.Config, error)
-	loadAllowlist         func() ([]config.AllowlistEntry, error)
-	loadSensitivePatterns func() ([]string, error)
-	sessionProvider       func() *history.Session
-	executorProvider      func() execenv.CommandExecutor
-	offlineMode           func() bool
+	loadConfig             func() (*config.Config, error)
+	loadAllowlist          func() ([]config.AllowlistEntry, error)
+	loadSensitivePatterns  func() ([]string, error)
+	sessionProvider        func() *history.Session
+	executorProvider       func() execenv.CommandExecutor
+	execContextDescription func() string
+	offlineMode            func() bool
 
 	rulesText string
 
@@ -41,6 +42,8 @@ type Options struct {
 
 	SessionProvider  func() *history.Session
 	ExecutorProvider func() execenv.CommandExecutor
+	// ExecContextDescription optional; see agent.RunnerUILoopInput.ExecContextDescription.
+	ExecContextDescription func() string
 	// OfflineMode when true builds a runner without skill tools and with offline execute_command behavior.
 	OfflineMode func() bool
 
@@ -51,15 +54,16 @@ type Options struct {
 
 func New(opts Options) *Manager {
 	m := &Manager{
-		loadConfig:            opts.LoadConfig,
-		loadAllowlist:         opts.LoadAllowlist,
-		loadSensitivePatterns: opts.LoadSensitivePatterns,
-		sessionProvider:       opts.SessionProvider,
-		executorProvider:      opts.ExecutorProvider,
-		offlineMode:           opts.OfflineMode,
-		rulesText:             opts.RulesText,
-		uiEvents:              opts.UIEvents,
-		execCancelHub:         opts.ExecCancelHub,
+		loadConfig:             opts.LoadConfig,
+		loadAllowlist:          opts.LoadAllowlist,
+		loadSensitivePatterns:  opts.LoadSensitivePatterns,
+		sessionProvider:        opts.SessionProvider,
+		executorProvider:       opts.ExecutorProvider,
+		execContextDescription: opts.ExecContextDescription,
+		offlineMode:            opts.OfflineMode,
+		rulesText:              opts.RulesText,
+		uiEvents:               opts.UIEvents,
+		execCancelHub:          opts.ExecCancelHub,
 	}
 	return m
 }
@@ -108,9 +112,10 @@ func (m *Manager) Get(ctx context.Context) (*agent.Runner, error) {
 			RulesText: m.rulesText,
 		},
 		UILoop: agent.RunnerUILoopInput{
-			UIEvents:         m.uiEvents,
-			ExecutorProvider: m.executorProvider,
-			ExecCancelHub:    m.execCancelHub,
+			UIEvents:               m.uiEvents,
+			ExecutorProvider:       m.executorProvider,
+			ExecCancelHub:          m.execCancelHub,
+			ExecContextDescription: m.execContextDescription,
 		},
 		Offline: offline,
 	})

@@ -1,6 +1,8 @@
 package app
 
 import (
+	"fmt"
+	"strings"
 	"sync"
 
 	"delve-shell/internal/host/cmd"
@@ -12,10 +14,12 @@ import (
 type Runtime struct {
 	mu sync.RWMutex
 	// send is the channel bundle installed by WireSend (nil when unwired).
-	send         *Send
-	remoteActive bool
-	remoteLabel  string
-	offline      bool
+	send          *Send
+	remoteActive  bool
+	remoteLabel   string // display string for UI (e.g. "name (host)" or host only)
+	remoteHost    string // hostname or IP from SSH target (no "name ( )" wrapper)
+	remoteName    string // remotes.yaml entry name when configured; may be empty
+	offline       bool
 	cfgModelMu    sync.Mutex
 	cfgModelFirst bool
 }
@@ -38,15 +42,22 @@ func (r *Runtime) currentSend() *Send {
 	return r.send
 }
 
-// SetRemoteExecution updates remote execution mirror for the UI footer/status bar.
-func (r *Runtime) SetRemoteExecution(active bool, label string) {
+// SetRemoteExecution updates remote execution mirror for the UI footer/status bar and LLM exec context.
+// When active: label is the display string (same as TUI); host is hostname or IP from the SSH target; configName is the remotes.yaml profile name (may be empty).
+func (r *Runtime) SetRemoteExecution(active bool, label, host, configName string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.remoteActive = active
-	r.remoteLabel = label
 	if active {
+		r.remoteLabel = strings.TrimSpace(label)
+		r.remoteHost = strings.TrimSpace(host)
+		r.remoteName = strings.TrimSpace(configName)
 		r.offline = false
+		return
 	}
+	r.remoteLabel = ""
+	r.remoteHost = ""
+	r.remoteName = ""
 }
 
 // SetOffline sets offline (manual relay) mode mirror for the UI; clears remote active.
@@ -57,6 +68,8 @@ func (r *Runtime) SetOffline(v bool) {
 	if v {
 		r.remoteActive = false
 		r.remoteLabel = ""
+		r.remoteHost = ""
+		r.remoteName = ""
 	}
 }
 
@@ -84,6 +97,48 @@ func (r *Runtime) RemoteLabel() string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.remoteLabel
+}
+
+// ParseRemoteDisplayLabel splits labels built as "name (host)" for remotes.yaml entries.
+// If the pattern does not match, name is empty and host is the trimmed whole string.
+func ParseRemoteDisplayLabel(display string) (name, host string) {
+	s := strings.TrimSpace(display)
+	if s == "" {
+		return "", ""
+	}
+	if i := strings.LastIndex(s, " ("); i > 0 && strings.HasSuffix(s, ")") {
+		return strings.TrimSpace(s[:i]), strings.TrimSpace(s[i+2 : len(s)-1])
+	}
+	return "", s
+}
+
+// ExecContextForLLM returns a short English line for the LLM: current execution node only (local / remote / offline).
+func (r *Runtime) ExecContextForLLM() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if r.offline {
+		return "Offline (manual relay)"
+	}
+	if !r.remoteActive {
+		return "Local"
+	}
+	host := r.remoteHost
+	name := r.remoteName
+	if host == "" && name == "" {
+		var parsedHost string
+		name, parsedHost = ParseRemoteDisplayLabel(r.remoteLabel)
+		host = parsedHost
+	}
+	if host == "" {
+		host = strings.TrimSpace(r.remoteLabel)
+	}
+	if name != "" && host != "" {
+		return fmt.Sprintf("Remote: %s @ %s", name, host)
+	}
+	if host != "" {
+		return fmt.Sprintf("Remote: %s", host)
+	}
+	return "Remote"
 }
 
 // SetOpenConfigModelOnFirstLayout arms the next first-layout open.
@@ -226,6 +281,8 @@ func (r *Runtime) Reset() {
 	r.send = nil
 	r.remoteActive = false
 	r.remoteLabel = ""
+	r.remoteHost = ""
+	r.remoteName = ""
 	r.offline = false
 	r.mu.Unlock()
 	r.cfgModelMu.Lock()

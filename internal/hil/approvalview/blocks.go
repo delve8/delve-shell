@@ -75,11 +75,20 @@ func Build(
 	}
 	switch pending.RiskLevel {
 	case hiltypes.RiskLevelReadOnly:
-		lines = append(lines, Line{Kind: LineRiskReadOnly, Text: w("[" + i18n.T(i18n.KeyRiskReadOnly) + "] " + pending.Command)})
+		lines = append(lines,
+			Line{Kind: LineRiskReadOnly, Text: "[" + i18n.T(i18n.KeyRiskReadOnly) + "]"},
+			Line{Kind: LineExec, Text: w(pending.Command)},
+		)
 	case hiltypes.RiskLevelLow:
-		lines = append(lines, Line{Kind: LineRiskLow, Text: w("[" + i18n.T(i18n.KeyRiskLow) + "] " + pending.Command)})
+		lines = append(lines,
+			Line{Kind: LineRiskLow, Text: "[" + i18n.T(i18n.KeyRiskLow) + "]"},
+			Line{Kind: LineExec, Text: w(pending.Command)},
+		)
 	case hiltypes.RiskLevelHigh:
-		lines = append(lines, Line{Kind: LineRiskHigh, Text: w("[" + i18n.T(i18n.KeyRiskHigh) + "] " + pending.Command)})
+		lines = append(lines,
+			Line{Kind: LineRiskHigh, Text: "[" + i18n.T(i18n.KeyRiskHigh) + "]"},
+			Line{Kind: LineExec, Text: w(pending.Command)},
+		)
 	default:
 		lines = append(lines, Line{Kind: LineExec, Text: w(pending.Command)})
 	}

@@ -57,9 +57,12 @@ func wireHostStack(
 		},
 		SessionProvider:  func() *history.Session { return sessions.Current() },
 		ExecutorProvider: getExecutor,
-		OfflineMode:      func() bool { return rt.Offline() },
-		UIEvents:         ports.AgentUIChan,
-		ExecCancelHub:    execCancelHub,
+		ExecContextDescription: func() string {
+			return rt.ExecContextForLLM()
+		},
+		OfflineMode:   func() bool { return rt.Offline() },
+		UIEvents:      ports.AgentUIChan,
+		ExecCancelHub: execCancelHub,
 	})
 
 	shellRequestedChan := make(chan hostcmd.ShellSnapshot, 1)

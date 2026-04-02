@@ -18,7 +18,7 @@ type Host interface {
 	PublishAccessRemote(target string) bool
 	PublishAccessLocal() bool
 	PublishRemoteAuthResponse(resp remoteauth.Response) bool
-	SetRemoteExecution(active bool, label string)
+	SetRemoteExecution(active bool, label, host, configName string)
 	RemoteActive() bool
 	RemoteLabel() string
 	SetOpenConfigModelOnFirstLayout(v bool)
@@ -41,11 +41,11 @@ func (nopHost) PublishExecDirect(string)                           {}
 func (nopHost) PublishAccessRemote(string) bool                    { return false }
 func (nopHost) PublishAccessLocal() bool                           { return false }
 func (nopHost) PublishRemoteAuthResponse(remoteauth.Response) bool { return false }
-func (nopHost) SetRemoteExecution(bool, string)                    {}
+func (nopHost) SetRemoteExecution(bool, string, string, string)    {}
 func (nopHost) RemoteActive() bool                                 { return false }
 func (nopHost) RemoteLabel() string                                { return "" }
-func (nopHost) SetOpenConfigModelOnFirstLayout(bool)                 {}
-func (nopHost) TakeOpenConfigModelOnFirstLayout() bool               { return false }
+func (nopHost) SetOpenConfigModelOnFirstLayout(bool)               {}
+func (nopHost) TakeOpenConfigModelOnFirstLayout() bool             { return false }
 func (nopHost) OfflineExecutionMode() bool                         { return false }
 
 var (

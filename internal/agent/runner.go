@@ -42,6 +42,8 @@ type RunnerUILoopInput struct {
 	ExecutorProvider func() execenv.CommandExecutor // returns current executor (local or remote)
 	// ExecCancelHub optional; ties ESC during [EXECUTING] to the in-flight command context.
 	ExecCancelHub *execcancel.Hub
+	// ExecContextDescription optional; when non-nil, trimmed non-empty return value is appended under "--- Execution environment ---" on each LLM request (local vs remote SSH label vs offline).
+	ExecContextDescription func() string
 }
 
 // RunnerOptions for creating a Runner; LLM is read from Config (config.yaml, supports $VAR env expansion).
@@ -170,6 +172,8 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		sysPrompt += "\n\n--- User rules (rules) ---\n" + opts.Session.RulesText
 	}
 
+	execCtxDesc := opts.UILoop.ExecContextDescription
+
 	reactAgent, err := react.NewAgent(ctx, &react.AgentConfig{
 		ToolCallingModel: chatModel,
 		ToolsConfig: compose.ToolsNodeConfig{
@@ -179,8 +183,14 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		// 50 allows multiple tool calls (e.g. inspecting several pods) plus retries while still failing fast on loops.
 		MaxStep: 50,
 		MessageModifier: func(ctx context.Context, input []*schema.Message) []*schema.Message {
+			msg := sysPrompt
+			if execCtxDesc != nil {
+				if extra := strings.TrimSpace(execCtxDesc()); extra != "" {
+					msg += "\n\n--- Execution environment ---\n" + extra
+				}
+			}
 			out := make([]*schema.Message, 0, len(input)+1)
-			out = append(out, schema.SystemMessage(sysPrompt))
+			out = append(out, schema.SystemMessage(msg))
 			out = append(out, input...)
 			return out
 		},

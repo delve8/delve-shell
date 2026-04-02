@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"delve-shell/internal/config"
+	"delve-shell/internal/host/app"
 	"delve-shell/internal/remote"
 	remoteauth "delve-shell/internal/remote/auth"
 	"delve-shell/internal/remote/execenv"
@@ -94,8 +95,15 @@ func (c *Controller) handleAccessRemote(target string) {
 	if c.runtime != nil {
 		c.runtime.SetOffline(false)
 	}
+	// Drop cached runner: OfflineMode is fixed when the runner is built; without this, Offline → Remote
+	// still uses execute_command's offline paste path until something else invalidates.
+	if c.runners != nil {
+		c.runners.Invalidate()
+	}
 	identityFile := ""
 	label := target
+	hostOnly := config.HostFromTarget(target)
+	cfgName := ""
 	remotes, errRemotes := config.LoadRemotes()
 	if errRemotes == nil && len(remotes) > 0 {
 		for _, r := range remotes {
@@ -103,9 +111,10 @@ func (c *Controller) handleAccessRemote(target string) {
 			if matched && r.Target != "" {
 				target = r.Target
 				identityFile = r.IdentityFile
-				hostOnly := config.HostFromTarget(target)
-				if r.Name != "" {
-					label = fmt.Sprintf("%s (%s)", r.Name, hostOnly)
+				hostOnly = config.HostFromTarget(target)
+				cfgName = strings.TrimSpace(r.Name)
+				if cfgName != "" {
+					label = fmt.Sprintf("%s (%s)", cfgName, hostOnly)
 				} else {
 					label = hostOnly
 				}
@@ -127,6 +136,9 @@ func (c *Controller) handleAccessRemote(target string) {
 	if !res.Connected {
 		return
 	}
+	if c.runtime != nil {
+		c.runtime.SetRemoteExecution(true, res.Label, hostOnly, cfgName)
+	}
 	c.updateRemoteRunCompletion(res.Executor, res.Label)
 	c.ui.RemoteStatus(true, res.Label, false)
 	c.ui.SystemNotify(fmt.Sprintf("Connected to remote: %s", res.Label))
@@ -136,6 +148,7 @@ func (c *Controller) handleAccessRemote(target string) {
 func (c *Controller) handleAccessLocal() {
 	if c.runtime != nil {
 		c.runtime.SetOffline(false)
+		c.runtime.SetRemoteExecution(false, "", "", "")
 	}
 	c.executors.SwitchToLocal()
 	if c.runners != nil {
@@ -181,6 +194,13 @@ func (c *Controller) handleRemoteAuthResp(resp remoteauth.Response) {
 			c.ui.RemoteConnectDone(false, res.Label, "")
 			return
 		}
+		if c.runtime != nil {
+			n, h := app.ParseRemoteDisplayLabel(res.Label)
+			if h == "" {
+				h = config.HostFromTarget(resp.Target)
+			}
+			c.runtime.SetRemoteExecution(true, res.Label, h, n)
+		}
 		c.updateRemoteRunCompletion(res.Executor, res.Label)
 		c.ui.RemoteStatus(true, res.Label, false)
 		c.ui.SystemNotify(fmt.Sprintf("Connected to remote: %s", res.Label))
@@ -194,6 +214,9 @@ func (c *Controller) handleRemoteAuthResp(resp remoteauth.Response) {
 	if err != nil {
 		c.ui.Raw(remote.AuthPromptMsg{Target: resp.Target, Err: fmt.Sprintf("Auth failed: %v", err)})
 		return
+	}
+	if c.runtime != nil {
+		c.runtime.SetRemoteExecution(true, labelStr, labelStr, "")
 	}
 	c.updateRemoteRunCompletion(c.getExec(), labelStr)
 	c.ui.RemoteStatus(true, labelStr, false)

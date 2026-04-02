@@ -7,6 +7,13 @@ import (
 	"delve-shell/internal/runtime/execcancel"
 )
 
+func sendAgentNotify(ch chan<- any, text string) {
+	if ch == nil || text == "" {
+		return
+	}
+	ch <- hiltypes.AgentNotify{Text: text}
+}
+
 func pushCommandExecutionUI(ch chan<- any) (end func()) {
 	if ch == nil {
 		return func() {}
