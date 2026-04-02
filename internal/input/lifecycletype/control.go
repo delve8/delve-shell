@@ -4,11 +4,12 @@ package inputlifecycletype
 type ControlAction string
 
 const (
-	ControlCancelProcessing ControlAction = "cancel_processing"
-	ControlCloseOverlay     ControlAction = "close_overlay"
-	ControlClearPreInput    ControlAction = "clear_pre_input"
-	ControlQuit             ControlAction = "quit"
-	ControlInterrupt        ControlAction = "interrupt"
+	ControlCancelProcessing       ControlAction = "cancel_processing"
+	ControlCancelCommandExecution ControlAction = "cancel_command_execution"
+	ControlCloseOverlay           ControlAction = "close_overlay"
+	ControlClearPreInput          ControlAction = "clear_pre_input"
+	ControlQuit                   ControlAction = "quit"
+	ControlInterrupt              ControlAction = "interrupt"
 )
 
 // ControlSignal identifies the incoming control intent before state-aware resolution.
@@ -24,17 +25,20 @@ const (
 type ControlContext struct {
 	HasActiveOverlay bool
 	HasPreInputState bool
+	CommandExecuting bool
 	WaitingForAI     bool
 }
 
 // ResolveEscAction applies the current Esc priority rule:
-// overlay -> pre-input state -> cancel processing -> no-op.
+// overlay -> pre-input state -> cancel in-flight command -> cancel LLM processing -> no-op.
 func ResolveEscAction(ctx ControlContext) (ControlAction, bool) {
 	switch {
 	case ctx.HasActiveOverlay:
 		return ControlCloseOverlay, true
 	case ctx.HasPreInputState:
 		return ControlClearPreInput, true
+	case ctx.CommandExecuting:
+		return ControlCancelCommandExecution, true
 	case ctx.WaitingForAI:
 		return ControlCancelProcessing, true
 	default:

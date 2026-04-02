@@ -104,9 +104,10 @@ func TestPresenter_DispatchAgentUI(t *testing.T) {
 	p.DispatchAgentUI(&hiltypes.ApprovalRequest{Command: "ls", ResponseCh: make(chan hiltypes.ApprovalResponse, 1)})
 	p.DispatchAgentUI(&hiltypes.SensitiveConfirmationRequest{Command: "cat", ResponseCh: make(chan hiltypes.SensitiveChoice, 1)})
 	p.DispatchAgentUI(hiltypes.ExecEvent{Command: "x", Allowed: true, Result: "ok", Sensitive: false, Suggested: false})
+	p.DispatchAgentUI(hiltypes.CommandExecutionState{Active: true})
 
-	if len(r.msgs) != 3 {
-		t.Fatalf("want 3 msgs, got %d", len(r.msgs))
+	if len(r.msgs) != 4 {
+		t.Fatalf("want 4 msgs, got %d", len(r.msgs))
 	}
 	if ar, ok := r.msgs[0].(ui.ChoiceCardShowMsg); !ok || ar.PendingApproval == nil || ar.PendingApproval.Command != "ls" {
 		t.Fatalf("msg0 %T %+v", r.msgs[0], r.msgs[0])
@@ -120,6 +121,51 @@ func TestPresenter_DispatchAgentUI(t *testing.T) {
 	}
 	if len(ta.Lines) < 1 || ta.Lines[0].Text != "Run: x (allowlist)" {
 		t.Fatalf("ExecEvent allowlist tag: got %#v", ta.Lines)
+	}
+	if _, ok := r.msgs[3].(ui.CommandExecutionStateMsg); !ok {
+		t.Fatalf("msg3 type %T", r.msgs[3])
+	}
+}
+
+func TestPresenter_DispatchAgentUI_StreamedExecTail(t *testing.T) {
+	var r recordSender
+	p := New(&r)
+	p.DispatchAgentUI(hiltypes.ExecEvent{Streamed: true, Sensitive: true, Result: "exit_code: 0"})
+	if len(r.msgs) != 1 {
+		t.Fatalf("want 1 msg, got %d", len(r.msgs))
+	}
+	ta := r.msgs[0].(ui.TranscriptAppendMsg)
+	if len(ta.Lines) < 3 {
+		t.Fatalf("lines: %#v", ta.Lines)
+	}
+	if ta.Lines[0].Text != "Result contains sensitive data." {
+		t.Fatalf("want sensitive line, got %#v", ta.Lines[0])
+	}
+	if ta.Lines[1].Text != "exit_code: 0" {
+		t.Fatalf("want tail, got %#v", ta.Lines[1])
+	}
+}
+
+func TestPresenter_DispatchAgentUI_ExecStream(t *testing.T) {
+	var r recordSender
+	p := New(&r)
+	p.DispatchAgentUI(hiltypes.ExecStreamStart{Command: "c", Allowed: false})
+	p.DispatchAgentUI(hiltypes.ExecStreamLine{Line: "hi", Stderr: false})
+	p.DispatchAgentUI(hiltypes.ExecStreamLine{Line: "e", Stderr: true})
+	if len(r.msgs) != 3 {
+		t.Fatalf("want 3 msgs, got %d", len(r.msgs))
+	}
+	m0 := r.msgs[0].(ui.TranscriptAppendMsg)
+	if m0.Lines[0].Text != "Run: c (approved)" {
+		t.Fatalf("run line: %#v", m0.Lines[0])
+	}
+	m1 := r.msgs[1].(ui.TranscriptAppendMsg)
+	if m1.Lines[0].Text != "hi" {
+		t.Fatalf("stdout line: %#v", m1.Lines[0])
+	}
+	m2 := r.msgs[2].(ui.TranscriptAppendMsg)
+	if m2.Lines[0].Text != "stderr: e" {
+		t.Fatalf("stderr line: %#v", m2.Lines[0])
 	}
 }
 

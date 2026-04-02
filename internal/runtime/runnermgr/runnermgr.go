@@ -10,6 +10,7 @@ import (
 	"delve-shell/internal/hil"
 	"delve-shell/internal/history"
 	"delve-shell/internal/remote/execenv"
+	"delve-shell/internal/runtime/execcancel"
 )
 
 // Manager owns the Runner cache and rebuild logic.
@@ -27,7 +28,8 @@ type Manager struct {
 
 	rulesText string
 
-	uiEvents chan<- any
+	uiEvents      chan<- any
+	execCancelHub *execcancel.Hub
 }
 
 type Options struct {
@@ -42,7 +44,9 @@ type Options struct {
 	// OfflineMode when true builds a runner without skill tools and with offline execute_command behavior.
 	OfflineMode func() bool
 
-	UIEvents chan<- any // *ApprovalRequest | *SensitiveConfirmationRequest | ExecEvent
+	UIEvents chan<- any // *ApprovalRequest | *SensitiveConfirmationRequest | ExecEvent | ExecStreamStart | ExecStreamLine
+	// ExecCancelHub optional; host uses it when the user presses Esc during [EXECUTING].
+	ExecCancelHub *execcancel.Hub
 }
 
 func New(opts Options) *Manager {
@@ -55,6 +59,7 @@ func New(opts Options) *Manager {
 		offlineMode:           opts.OfflineMode,
 		rulesText:             opts.RulesText,
 		uiEvents:              opts.UIEvents,
+		execCancelHub:         opts.ExecCancelHub,
 	}
 	return m
 }
@@ -105,6 +110,7 @@ func (m *Manager) Get(ctx context.Context) (*agent.Runner, error) {
 		UILoop: agent.RunnerUILoopInput{
 			UIEvents:         m.uiEvents,
 			ExecutorProvider: m.executorProvider,
+			ExecCancelHub:    m.execCancelHub,
 		},
 		Offline: offline,
 	})

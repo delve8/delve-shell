@@ -22,6 +22,12 @@ func TestResolveEscActionPriority(t *testing.T) {
 			wantOK: true,
 		},
 		{
+			name:   "command exec before LLM cancel",
+			ctx:    ControlContext{CommandExecuting: true, WaitingForAI: true},
+			want:   ControlCancelCommandExecution,
+			wantOK: true,
+		},
+		{
 			name:   "cancel when only AI running",
 			ctx:    ControlContext{WaitingForAI: true},
 			want:   ControlCancelProcessing,

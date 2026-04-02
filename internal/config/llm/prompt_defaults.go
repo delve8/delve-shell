@@ -13,7 +13,8 @@ const DefaultSystemPrompt = `You are an ops assistant. Propose runnable work via
 ## Execution gate and safety
 - Chat text alone does not execute commands. Propose execution only through execute_command (and run_skill for skills). Do not treat informal agreement in natural language as proof that a command ran.
 - The host applies allowlist and consent rules you do not control; supply complete, intentional tool arguments. Additional allowlist details are appended below when online.
-- For every execute_command, always set reason (why this command and expected effect) and risk_level (read_only, low, or high). These are required metadata for the execution gate.
+- For every execute_command, always set reason (why this command and expected effect) and risk_level (read_only, low, or high). These are required metadata for the execution gate. Write reason in the same language as the user's current message (the question or instruction you are answering); if the user mixes languages, use the dominant language of that message. The host shows reason on the approval card.
+- For run_skill, apply the same language rule to reason as for execute_command.
 - If output may contain secrets or sensitive data, set result_contains_secrets to true: you receive a minimal acknowledgment; full content handling follows host rules and may be omitted from stored history.
 
 ## Clarifications and confirmations
@@ -42,4 +43,5 @@ const OfflineManualRelayAppend = `
 - list_skills, get_skill, and run_skill are not available. Use execute_command and view_context only.
 - Prefer one combined shell command or pipeline per execute_command so the operator can align one run with one tool result.
 - Treat tool-returned stdout as operator-attributed and unverified for automation; it may be incomplete or inconsistent with a real execution.
-- When the returned content may include secrets or credentials, set result_contains_secrets to true.`
+- When the returned content may include secrets or credentials, set result_contains_secrets to true.
+- Write execute_command reason in the same language as the user's current message (approval card copy).`

@@ -38,6 +38,10 @@ func (k Kind) SemanticLabel() string {
 		return "SensitiveConfirmationRequested"
 	case KindAgentExecEvent:
 		return "CommandExecuted"
+	case KindAgentExecStreamStart:
+		return "CommandExecStreamStart"
+	case KindAgentExecStreamLine:
+		return "CommandExecStreamLine"
 	case KindAgentUnknown:
 		return "AgentUIPassthrough"
 	case KindLLMRunCompleted:
@@ -79,7 +83,13 @@ func (e Event) RedactedSummary() string {
 		return fmt.Sprintf("%s command=%q", label, clipOneLine(e.Sensitive.Command, 120))
 	case KindAgentExecEvent:
 		v := e.AgentExec
-		return fmt.Sprintf("%s command=%q allowed=%v sensitive=%v", label, clipOneLine(v.Command, 120), v.Allowed, v.Sensitive)
+		return fmt.Sprintf("%s command=%q allowed=%v sensitive=%v streamed=%v", label, clipOneLine(v.Command, 120), v.Allowed, v.Sensitive, v.Streamed)
+	case KindAgentExecStreamStart:
+		v := e.ExecStreamStart
+		return fmt.Sprintf("%s command=%q", label, clipOneLine(v.Command, 120))
+	case KindAgentExecStreamLine:
+		v := e.ExecStreamLine
+		return fmt.Sprintf("%s stderr=%v line_len=%d", label, v.Stderr, utf8.RuneCountInString(v.Line))
 	case KindAgentUnknown:
 		return fmt.Sprintf("%s type=%T", label, e.AgentUI)
 	case KindLLMRunCompleted:

@@ -64,6 +64,10 @@ func cloneOutputEvent(event OutputEvent) OutputEvent {
 		payload := *event.Status
 		cloned.Status = &payload
 	}
+	if event.CommandExec != nil {
+		payload := *event.CommandExec
+		cloned.CommandExec = &payload
+	}
 	if event.Approval != nil {
 		payload := *event.Approval
 		cloned.Approval = &payload

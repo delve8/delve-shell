@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -13,9 +14,10 @@ import (
 
 	"delve-shell/internal/agent/ctx"
 	"delve-shell/internal/hil"
-	"delve-shell/internal/hil/types"
+	hiltypes "delve-shell/internal/hil/types"
 	"delve-shell/internal/history"
 	"delve-shell/internal/remote/execenv"
+	"delve-shell/internal/runtime/execcancel"
 	"delve-shell/internal/skill/store"
 )
 
@@ -26,7 +28,11 @@ type RunSkillTool struct {
 	RequestSensitiveConfirmation func(command string) hiltypes.SensitiveChoice
 	SensitiveMatcher             *hil.SensitiveMatcher
 	Session                      *history.Session
-	OnExec                       func(command string, allowed bool, result string, sensitive bool, suggested bool)
+	OnExec                       func(command string, allowed bool, result string, sensitive bool, suggested bool, streamed bool)
+	// OnExecStream optional; when set and executor supports streaming, same path as execute_command (live lines in transcript).
+	OnExecStream                 func(any)
+	UIEvents                     chan<- any
+	ExecCancelHub                *execcancel.Hub
 	ExecutorProvider             func() execenv.CommandExecutor
 }
 
@@ -58,7 +64,7 @@ func (t *RunSkillTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 			},
 			"reason": {
 				Type:     schema.String,
-				Desc:     "Brief explanation for the approval card.",
+				Desc:     "Brief explanation for the approval card. Use the same language as the user's current message.",
 				Required: false,
 			},
 			"risk_level": {
@@ -218,26 +224,47 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 		sensitive = true
 	}
 
+	cmdCtx, unregCancel := withCommandCancel(t.ExecCancelHub, ctx)
+	defer unregCancel()
+	endUI := pushCommandExecutionUI(t.UIEvents)
+	defer endUI()
+
 	// For remote executors, sync local skill scripts/ to a remote temp dir before running.
 	if isRemote && remoteScriptsDir != "" {
-		if err := syncSkillScriptsToRemote(ctx, executor, localScriptsDir, remoteScriptsDir); err != nil {
+		if err := syncSkillScriptsToRemote(cmdCtx, executor, localScriptsDir, remoteScriptsDir); err != nil {
 			return "Failed to sync skill scripts to remote: " + err.Error(), nil
 		}
 	}
-	outStr, errStr, exitCode, err := executor.Run(ctx, cmd)
-	if storeResult && t.Session != nil {
+	streamStart := hiltypes.ExecStreamStart{Allowed: false, Suggested: false, Direct: false}
+	outStr, errStr, exitCode, err, streamed := runExecutorWithStream(cmdCtx, executor, cmd, t.OnExecStream, streamStart)
+	cancelled := errors.Is(cmdCtx.Err(), context.Canceled) || errors.Is(err, context.Canceled)
+	if storeResult && t.Session != nil && !cancelled {
 		_ = t.Session.AppendCommandResult(cmd, outStr, errStr, exitCode)
 	}
-	resultForUI := outStr
-	if errStr != "" {
-		resultForUI += "\nstderr:\n" + errStr
+	if cancelled {
+		if t.OnExec != nil {
+			t.OnExec(cmd, false, "", sensitive, false, streamed)
+		}
+		return "The skill command was cancelled.", nil
 	}
-	resultForUI += "\nexit_code: " + strconv.Itoa(exitCode)
-	if err != nil && exitCode == 0 {
-		resultForUI += "\nerror: " + err.Error()
+	var resultForUI string
+	if streamed {
+		resultForUI = "exit_code: " + strconv.Itoa(exitCode)
+		if err != nil && exitCode == 0 {
+			resultForUI += "\nerror: " + err.Error()
+		}
+	} else {
+		resultForUI = outStr
+		if errStr != "" {
+			resultForUI += "\nstderr:\n" + errStr
+		}
+		resultForUI += "\nexit_code: " + strconv.Itoa(exitCode)
+		if err != nil && exitCode == 0 {
+			resultForUI += "\nerror: " + err.Error()
+		}
 	}
 	if t.OnExec != nil {
-		t.OnExec(cmd, false, resultForUI, sensitive, false)
+		t.OnExec(cmd, false, resultForUI, sensitive, false, streamed)
 	}
 	if sensitive {
 		return "done", nil

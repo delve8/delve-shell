@@ -8,8 +8,9 @@ import (
 
 // StatePatch is the UI-agnostic effect summary produced from lifecycle outputs.
 type StatePatch struct {
-	WaitingForAI *bool
-	Quit         bool
+	WaitingForAI     *bool
+	CommandExecuting *bool
+	Quit             bool
 }
 
 // ApplyResult summarizes the result into a minimal patch plus any terminal command.
@@ -33,6 +34,11 @@ func ApplyResult(res inputlifecycletype.ProcessResult) (StatePatch, tea.Cmd) {
 					v := false
 					patch.WaitingForAI = &v
 				}
+			}
+		case inputlifecycletype.OutputCommandExecution:
+			if out.CommandExec != nil {
+				v := out.CommandExec.Active
+				patch.CommandExecuting = &v
 			}
 		case inputlifecycletype.OutputQuit:
 			patch.Quit = true

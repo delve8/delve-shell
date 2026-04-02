@@ -121,8 +121,7 @@ func (p *Presenter) CommandExecutedDirect(cmd, result string) {
 	p.CommandExecutedFromTool(cmd, false, result, false, false, true)
 }
 
-func (p *Presenter) CommandExecutedFromTool(cmd string, allowed bool, result string, sensitive, suggested, direct bool) {
-	// Presenter builds transcript semantics; UI owns styling and wrapping.
+func execRunTag(allowed, suggested, direct bool) string {
 	tag := "approved"
 	if direct {
 		tag = "direct"
@@ -131,13 +130,49 @@ func (p *Presenter) CommandExecutedFromTool(cmd string, allowed bool, result str
 	} else if allowed {
 		tag = "allowlist"
 	}
-	runLine := "Run: " + cmd + " (" + tag + ")"
+	return tag
+}
+
+func (p *Presenter) CommandExecutedFromTool(cmd string, allowed bool, result string, sensitive, suggested, direct bool) {
+	// Presenter builds transcript semantics; UI owns styling and wrapping.
+	runLine := "Run: " + cmd + " (" + execRunTag(allowed, suggested, direct) + ")"
 	lines := []uivm.Line{{Kind: uivm.LineExec, Text: runLine}}
 	if sensitive {
 		lines = append(lines, uivm.Line{Kind: uivm.LineSystemSuggest, Text: "Result contains sensitive data."})
 	}
 	if result != "" {
 		lines = append(lines, uivm.Line{Kind: uivm.LineResult, Text: result})
+	}
+	lines = append(lines, uivm.Line{Kind: uivm.LineBlank})
+	p.Raw(ui.TranscriptAppendMsg{Lines: lines})
+}
+
+// ExecStreamBegin appends the Run: line before streamed stdout/stderr lines.
+func (p *Presenter) ExecStreamBegin(cmd string, allowed, suggested, direct bool) {
+	runLine := "Run: " + cmd + " (" + execRunTag(allowed, suggested, direct) + ")"
+	p.Raw(ui.TranscriptAppendMsg{Lines: []uivm.Line{{Kind: uivm.LineExec, Text: runLine}}})
+}
+
+// ExecStreamLineOut appends one streamed command output line (stdout or stderr).
+func (p *Presenter) ExecStreamLineOut(line string, stderr bool) {
+	if line == "" {
+		return
+	}
+	text := line
+	if stderr {
+		text = "stderr: " + line
+	}
+	p.Raw(ui.TranscriptAppendMsg{Lines: []uivm.Line{{Kind: uivm.LineResult, Text: text}}})
+}
+
+// CommandExecutedStreamEnd finishes a streamed run: sensitive note, exit/footer tail, blank line (no second Run: line).
+func (p *Presenter) CommandExecutedStreamEnd(sensitive bool, tail string) {
+	var lines []uivm.Line
+	if sensitive {
+		lines = append(lines, uivm.Line{Kind: uivm.LineSystemSuggest, Text: "Result contains sensitive data."})
+	}
+	if tail != "" {
+		lines = append(lines, uivm.Line{Kind: uivm.LineResult, Text: tail})
 	}
 	lines = append(lines, uivm.Line{Kind: uivm.LineBlank})
 	p.Raw(ui.TranscriptAppendMsg{Lines: lines})
@@ -205,9 +240,24 @@ func (p *Presenter) DispatchAgentUI(x any) {
 		p.ShowSensitiveConfirmation(v)
 	case *hiltypes.OfflinePasteRequest:
 		p.ShowOfflinePaste(v)
+	case hiltypes.ExecStreamStart:
+		p.ExecStreamBegin(v.Command, v.Allowed, v.Suggested, v.Direct)
+	case hiltypes.ExecStreamLine:
+		p.ExecStreamLineOut(v.Line, v.Stderr)
+	case hiltypes.CommandExecutionState:
+		p.CommandExecutionActive(v.Active)
 	case hiltypes.ExecEvent:
-		p.CommandExecutedFromTool(v.Command, v.Allowed, v.Result, v.Sensitive, v.Suggested, false)
+		if v.Streamed {
+			p.CommandExecutedStreamEnd(v.Sensitive, v.Result)
+		} else {
+			p.CommandExecutedFromTool(v.Command, v.Allowed, v.Result, v.Sensitive, v.Suggested, false)
+		}
 	}
+}
+
+// CommandExecutionActive toggles [EXECUTING] footer state and input lock while a shell command runs.
+func (p *Presenter) CommandExecutionActive(active bool) {
+	p.Raw(ui.CommandExecutionStateMsg{Active: active})
 }
 
 // --- Remote / header ---

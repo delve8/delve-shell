@@ -63,6 +63,8 @@ func (m *Model) titleBarStatus() widget.TitleBarStatus {
 	switch m.statusKey() {
 	case i18n.KeyStatusIdle:
 		return widget.TitleBarStatusIdle
+	case i18n.KeyStatusExecuting:
+		return widget.TitleBarStatusExecuting
 	case i18n.KeyStatusRunning:
 		return widget.TitleBarStatusRunning
 	case i18n.KeyStatusWaitingUserInput:
@@ -83,6 +85,9 @@ func (m *Model) statusKey() string {
 	}
 	if m.ChoiceCard.pending != nil || m.ChoiceCard.pendingSensitive != nil {
 		return i18n.KeyStatusPendingApproval
+	}
+	if m.Interaction.CommandExecuting {
+		return i18n.KeyStatusExecuting
 	}
 	if m.Interaction.WaitingForAI {
 		return i18n.KeyStatusRunning
@@ -120,6 +125,7 @@ func (m *Model) footerLine() string {
 func footerStatusReserveWidth() int {
 	statuses := []string{
 		i18n.T(i18n.KeyStatusIdle),
+		i18n.T(i18n.KeyStatusExecuting),
 		i18n.T(i18n.KeyStatusRunning),
 		i18n.T(i18n.KeyStatusWaitingUserInput),
 		i18n.T(i18n.KeyStatusPendingApproval),
@@ -169,4 +175,3 @@ func (m *Model) syncInputPlaceholder() {
 	}
 	m.Input.Placeholder = approvalview.InputPlaceholder(m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil)
 }
-

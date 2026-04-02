@@ -29,6 +29,7 @@ func (c uiControlContexts) ControlContext() inputlifecycletype.ControlContext {
 	return inputlifecycletype.ControlContext{
 		HasActiveOverlay: c.m.Overlay.Active,
 		HasPreInputState: hasSlashPreInputState(c.m),
+		CommandExecuting: c.m.Interaction.CommandExecuting,
 		WaitingForAI:     c.m.Interaction.WaitingForAI,
 	}
 }
@@ -143,6 +144,17 @@ type uiControlActionExecutor struct {
 
 func (e uiControlActionExecutor) ExecuteControl(action inputlifecycletype.ControlAction) (inputlifecycletype.ProcessResult, error) {
 	switch action {
+	case inputlifecycletype.ControlCancelCommandExecution:
+		if e.sender == nil {
+			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
+		}
+		if !e.sender.Send(hostcmd.CancelRequested{}) {
+			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
+		}
+		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+			Kind:        inputlifecycletype.OutputCommandExecution,
+			CommandExec: &inputlifecycletype.CommandExecutionPayload{Active: false},
+		}), nil
 	case inputlifecycletype.ControlCancelProcessing:
 		if e.sender == nil {
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
@@ -237,6 +249,9 @@ func (m *Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (*Mod
 	patch, cmd := inputoutput.ApplyResult(res)
 	if patch.WaitingForAI != nil {
 		m.Interaction.WaitingForAI = *patch.WaitingForAI
+	}
+	if patch.CommandExecuting != nil {
+		m.Interaction.CommandExecuting = *patch.CommandExecuting
 	}
 	return m, cmd
 }

@@ -14,6 +14,7 @@ import (
 	"delve-shell/internal/host/bus"
 	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/remote/execenv"
+	"delve-shell/internal/runtime/execcancel"
 	"delve-shell/internal/runtime/executormgr"
 	"delve-shell/internal/runtime/runnermgr"
 	"delve-shell/internal/runtime/sessionmgr"
@@ -43,6 +44,9 @@ type Options struct {
 	// OnEventDispatch is optional; invoked at the start of each dequeued event before the handler runs.
 	// Use bus.Event.RedactedSummary for logs (no secrets).
 	OnEventDispatch func(e bus.Event)
+
+	// ExecCancelHub optional; ESC during [EXECUTING] cancels the in-flight /exec or tool command.
+	ExecCancelHub *execcancel.Hub
 }
 
 // Controller is the single orchestration core for host-side flows.
@@ -74,6 +78,8 @@ type Controller struct {
 	onEventDispatch func(bus.Event)
 
 	runtime *app.Runtime
+
+	execCancelHub *execcancel.Hub
 }
 
 func New(opts Options) *Controller {
@@ -98,6 +104,7 @@ func New(opts Options) *Controller {
 
 		onEventDispatch: opts.OnEventDispatch,
 		runtime:         opts.Runtime,
+		execCancelHub:   opts.ExecCancelHub,
 	}
 	bus.BridgeInputs(opts.Stop, opts.Bus, opts.Inputs)
 	bus.StartUIPump(opts.Stop, opts.Bus, opts.CurrentP)
@@ -112,6 +119,9 @@ func (c *Controller) run() {
 	for {
 		select {
 		case <-c.stop:
+			if c.execCancelHub != nil {
+				c.execCancelHub.Cancel()
+			}
 			if c.llmRunning && c.llmCancel != nil {
 				c.llmCancel()
 			}

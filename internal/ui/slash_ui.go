@@ -61,6 +61,9 @@ func (m *Model) slashSuggestionContextWithLang(inputVal, lang string) (opts []Sl
 // waitingLineText returns the waiting hint text without layout padding.
 func (m *Model) waitingLineText() string {
 	inChoice := m.hasPendingChoiceCard()
+	if m.Interaction.CommandExecuting && !inChoice {
+		return suggestStyle.Render(i18n.T(i18n.KeyCommandExecWaitOrCancel))
+	}
 	if m.Interaction.WaitingForAI && !inChoice {
 		return suggestStyle.Render(i18n.T(i18n.KeyWaitOrCancel))
 	}
@@ -71,7 +74,7 @@ func (m *Model) waitingLineText() string {
 func (m *Model) inputBelowBlock(inChoice bool) string {
 	// Multiline: skip choice list / slash / fixed block unless walking input history (need hint + layout).
 	if m.Input.LineCount() > 1 && !inChoice && m.Interaction.inputHistIndex < 0 {
-		if m.Interaction.WaitingForAI {
+		if m.Interaction.CommandExecuting || m.Interaction.WaitingForAI {
 			text := m.waitingLineText()
 			if text == "" {
 				return "\n"
@@ -118,7 +121,10 @@ func (m *Model) inputBelowBlock(inChoice bool) string {
 		}
 	}
 	block := widget.RenderFixedLinesBelowInput("   ", rows, reserveRows, suggestStyle, suggestHi)
-	if m.Interaction.WaitingForAI && !inChoice && !strings.HasPrefix(m.Input.Value(), "/") {
+	if m.Interaction.CommandExecuting && !inChoice && !strings.HasPrefix(m.Input.Value(), "/") {
+		waiting := i18n.T(i18n.KeyCommandExecWaitOrCancel)
+		block = widget.RenderFixedLinesBelowInput("   ", []widget.ListRow{{Text: waiting}}, reserveRows, suggestStyle, suggestHi)
+	} else if m.Interaction.WaitingForAI && !inChoice && !strings.HasPrefix(m.Input.Value(), "/") {
 		// Same fixed row count as idle (inputBelowStableRows) so the separator above the input and the
 		// footer band do not shift when entering/leaving processing.
 		waiting := i18n.T(i18n.KeyWaitOrCancel)

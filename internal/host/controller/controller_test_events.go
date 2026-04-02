@@ -98,11 +98,15 @@ func TestHandleEvent_DispatchExecDirect(t *testing.T) {
 	fx := &fakeExec{stdout: "ok", exitCode: 0}
 	c.getExec = func() execenv.CommandExecutor { return fx }
 	c.handleEvent(bus.Event{Kind: bus.KindExecDirectRequested, Command: "echo ok"})
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if fx.lastCmd == "echo ok" {
+			break
+		}
+		time.Sleep(2 * time.Millisecond)
+	}
 	if fx.lastCmd != "echo ok" {
 		t.Fatalf("unexpected cmd: %q", fx.lastCmd)
-	}
-	if len(s.msgs) != 1 {
-		t.Fatalf("want 1 msg, got %d", len(s.msgs))
 	}
 }
 

@@ -35,6 +35,8 @@ const (
 	KindApprovalRequested              Kind = "approval_requested"
 	KindSensitiveConfirmationRequested Kind = "sensitive_confirmation_requested"
 	KindAgentExecEvent                 Kind = "agent_exec_event"
+	KindAgentExecStreamStart           Kind = "agent_exec_stream_start"
+	KindAgentExecStreamLine            Kind = "agent_exec_stream_line"
 	KindAgentUnknown                   Kind = "agent_unknown"
 	KindLLMRunCompleted                Kind = "llm_run_completed"
 )
@@ -56,6 +58,8 @@ func AllKinds() []Kind {
 		KindApprovalRequested,
 		KindSensitiveConfirmationRequested,
 		KindAgentExecEvent,
+		KindAgentExecStreamStart,
+		KindAgentExecStreamLine,
 		KindAgentUnknown,
 		KindLLMRunCompleted,
 	}
@@ -72,10 +76,12 @@ type Event struct {
 	RemoteAuthResponse remoteauth.Response
 	Submission         inputlifecycletype.InputSubmission
 
-	Approval  *hiltypes.ApprovalRequest
-	Sensitive *hiltypes.SensitiveConfirmationRequest
-	AgentExec hiltypes.ExecEvent
-	AgentUI   any // fallback when Kind == KindAgentUnknown
+	Approval        *hiltypes.ApprovalRequest
+	Sensitive       *hiltypes.SensitiveConfirmationRequest
+	AgentExec       hiltypes.ExecEvent
+	ExecStreamStart hiltypes.ExecStreamStart
+	ExecStreamLine  hiltypes.ExecStreamLine
+	AgentUI         any // fallback when Kind == KindAgentUnknown
 
 	Reply string
 	Err   error
@@ -252,6 +258,10 @@ func bridgeAgentUI(x any) (Event, bool) {
 		return Event{Kind: KindSensitiveConfirmationRequested, Sensitive: v}, true
 	case hiltypes.ExecEvent:
 		return Event{Kind: KindAgentExecEvent, AgentExec: v}, true
+	case hiltypes.ExecStreamStart:
+		return Event{Kind: KindAgentExecStreamStart, ExecStreamStart: v}, true
+	case hiltypes.ExecStreamLine:
+		return Event{Kind: KindAgentExecStreamLine, ExecStreamLine: v}, true
 	default:
 		return Event{Kind: KindAgentUnknown, AgentUI: x}, true
 	}

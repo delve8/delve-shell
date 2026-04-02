@@ -20,10 +20,18 @@ func NewCommandChannelSender(ch chan<- hostcmd.Command) CommandSender {
 }
 
 func (s commandChannelSender) Send(command hostcmd.Command) bool {
-	select {
-	case s.ch <- command:
+	// Cancel must not be dropped when the channel is momentarily full; otherwise Esc clears [EXECUTING]
+	// (or the user expects abort) while the host never runs handleCancelRequest / execCancelHub.Cancel().
+	switch command.(type) {
+	case hostcmd.CancelRequested:
+		s.ch <- command
 		return true
 	default:
-		return false
+		select {
+		case s.ch <- command:
+			return true
+		default:
+			return false
+		}
 	}
 }

@@ -10,6 +10,7 @@ const (
 	OutputOverlayClose     OutputEventKind = "overlay_close"
 	OutputPreInputClear    OutputEventKind = "pre_input_clear"
 	OutputStatusChange     OutputEventKind = "status_change"
+	OutputCommandExecution OutputEventKind = "command_execution"
 	OutputApprovalOpen     OutputEventKind = "approval_open"
 	OutputErrorNotice      OutputEventKind = "error_notice"
 	OutputQuit             OutputEventKind = "quit"
@@ -61,6 +62,11 @@ type StatusPayload struct {
 	Key string
 }
 
+// CommandExecutionPayload toggles command-run UI lock ([EXECUTING]) without changing LLM waiting state.
+type CommandExecutionPayload struct {
+	Active bool
+}
+
 // ApprovalPayload describes a request to show an approval/sensitive confirmation surface.
 type ApprovalPayload struct {
 	Title       string
@@ -79,10 +85,11 @@ type OutputEvent struct {
 
 	Text string
 
-	Transcript *TranscriptPayload
-	Slash      *SlashExecutionPayload
-	Overlay    *OverlayPayload
-	Status     *StatusPayload
-	Approval   *ApprovalPayload
-	Error      *ErrorPayload
+	Transcript  *TranscriptPayload
+	Slash       *SlashExecutionPayload
+	Overlay     *OverlayPayload
+	Status      *StatusPayload
+	CommandExec *CommandExecutionPayload
+	Approval    *ApprovalPayload
+	Error       *ErrorPayload
 }

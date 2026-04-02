@@ -19,6 +19,7 @@ import (
 	"delve-shell/internal/hil/types"
 	"delve-shell/internal/history"
 	"delve-shell/internal/remote/execenv"
+	"delve-shell/internal/runtime/execcancel"
 )
 
 // RunnerHILInput is allowlist and sensitive matching for tools and approval flow.
@@ -35,10 +36,12 @@ type RunnerSessionInput struct {
 
 // RunnerUILoopInput connects the agent to host-side UI and command execution.
 type RunnerUILoopInput struct {
-	// UIEvents sends *ApprovalRequest, *SensitiveConfirmationRequest, or ExecEvent to the host (e.g. TUI).
+	// UIEvents sends *ApprovalRequest, *SensitiveConfirmationRequest, ExecEvent, ExecStreamStart, and ExecStreamLine to the host (e.g. TUI).
 	// If nil: sensitive confirmation defaults to SensitiveRunAndStore; exec notifications are dropped; approvals are rejected without UI.
 	UIEvents         chan<- any
 	ExecutorProvider func() execenv.CommandExecutor // returns current executor (local or remote)
+	// ExecCancelHub optional; ties ESC during [EXECUTING] to the in-flight command context.
+	ExecCancelHub *execcancel.Hub
 }
 
 // RunnerOptions for creating a Runner; LLM is read from Config (config.yaml, supports $VAR env expansion).
@@ -105,11 +108,18 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		RequestOfflinePaste:          requestOfflinePaste,
 		OfflineMode:                  func() bool { return offline },
 		Session:                      opts.Session.Session,
-		OnExec: func(cmd string, allowed bool, result string, sensitive bool, suggested bool) {
+		OnExec: func(cmd string, allowed bool, result string, sensitive bool, suggested bool, streamed bool) {
 			if uiEvents != nil {
-				uiEvents <- hiltypes.ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested}
+				uiEvents <- hiltypes.ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested, Streamed: streamed}
 			}
 		},
+		OnExecStream: func(x any) {
+			if uiEvents != nil {
+				uiEvents <- x
+			}
+		},
+		UIEvents:         uiEvents,
+		ExecCancelHub:    opts.UILoop.ExecCancelHub,
 		ExecutorProvider: opts.UILoop.ExecutorProvider,
 	}
 	viewTool := &agenttools.ViewContextTool{
@@ -129,11 +139,18 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 			RequestSensitiveConfirmation: requestSensitiveConfirmation,
 			SensitiveMatcher:             opts.HIL.SensitiveMatcher,
 			Session:                      opts.Session.Session,
-			OnExec: func(cmd string, allowed bool, result string, sensitive bool, suggested bool) {
+			OnExec: func(cmd string, allowed bool, result string, sensitive bool, suggested bool, streamed bool) {
 				if uiEvents != nil {
-					uiEvents <- hiltypes.ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested}
+					uiEvents <- hiltypes.ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested, Streamed: streamed}
 				}
 			},
+			OnExecStream: func(x any) {
+				if uiEvents != nil {
+					uiEvents <- x
+				}
+			},
+			UIEvents:         uiEvents,
+			ExecCancelHub:    opts.UILoop.ExecCancelHub,
 			ExecutorProvider: opts.UILoop.ExecutorProvider,
 		}
 		tools = append(tools, listSkillsTool, getSkillTool, runSkillTool)

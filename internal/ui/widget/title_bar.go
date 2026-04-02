@@ -12,6 +12,7 @@ type TitleBarStatus int
 
 const (
 	TitleBarStatusIdle TitleBarStatus = iota
+	TitleBarStatusExecuting
 	TitleBarStatusRunning
 	TitleBarStatusWaitingUserInput
 	TitleBarStatusPendingApproval
@@ -143,6 +144,8 @@ func statusStyleFor(st TitleBarStatus, s TitleLineStyles) lipgloss.Style {
 	switch st {
 	case TitleBarStatusIdle:
 		return s.StatusIdle
+	case TitleBarStatusExecuting:
+		return s.StatusRunning
 	case TitleBarStatusRunning:
 		return s.StatusRunning
 	case TitleBarStatusWaitingUserInput:

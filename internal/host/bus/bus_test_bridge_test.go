@@ -175,6 +175,32 @@ func TestBridgeInputs_AgentUI_ExecEvent(t *testing.T) {
 	}
 }
 
+func TestBridgeInputs_AgentUI_ExecStreamStart(t *testing.T) {
+	stop := make(chan struct{})
+	defer close(stop)
+	b := New(8)
+	in := NewInputPorts()
+	BridgeInputs(stop, b, in)
+	in.AgentUIChan <- hiltypes.ExecStreamStart{Command: "x", Allowed: true}
+	ev := mustRecvEvent(t, b.Events())
+	if ev.Kind != KindAgentExecStreamStart || ev.ExecStreamStart.Command != "x" {
+		t.Fatalf("unexpected event: %+v", ev)
+	}
+}
+
+func TestBridgeInputs_AgentUI_ExecStreamLine(t *testing.T) {
+	stop := make(chan struct{})
+	defer close(stop)
+	b := New(8)
+	in := NewInputPorts()
+	BridgeInputs(stop, b, in)
+	in.AgentUIChan <- hiltypes.ExecStreamLine{Line: "out", Stderr: true}
+	ev := mustRecvEvent(t, b.Events())
+	if ev.Kind != KindAgentExecStreamLine || ev.ExecStreamLine.Line != "out" || !ev.ExecStreamLine.Stderr {
+		t.Fatalf("unexpected event: %+v", ev)
+	}
+}
+
 func TestBridgeInputs_Stop(t *testing.T) {
 	stop := make(chan struct{})
 	b := New(8)

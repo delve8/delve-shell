@@ -1,9 +1,13 @@
 package controller
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,8 +26,56 @@ func (c *Controller) handleExecDirect(cmd string) {
 		})
 		return
 	}
+	go func() {
+		ctx := context.Background()
+		unreg := func() {}
+		if c.execCancelHub != nil {
+			ctx, unreg = c.execCancelHub.WithCancel(context.Background())
+		}
+		defer unreg()
+		defer c.ui.CommandExecutionActive(false)
+		// Register cancel before [EXECUTING] so Esc cannot arrive before hub.Cancel is wired.
+		c.ui.CommandExecutionActive(true)
+		c.runDirectExecWithContext(ctx, cmd)
+	}()
+}
+
+func (c *Controller) runDirectExecWithContext(ctx context.Context, cmd string) {
 	executor := c.getExec()
-	stdout, stderrStr, exitCode, runErr := executor.Run(context.Background(), cmd)
+	if sr, ok := executor.(execenv.StreamingRunner); ok {
+		c.ui.ExecStreamBegin(cmd, false, false, true)
+		var outBuf, errBuf bytes.Buffer
+		lineOut := execenv.NewLineEmitWriter(func(line string) {
+			c.ui.ExecStreamLineOut(line, false)
+		})
+		lineErr := execenv.NewLineEmitWriter(func(line string) {
+			c.ui.ExecStreamLineOut(line, true)
+		})
+		mwOut := io.MultiWriter(&outBuf, lineOut)
+		mwErr := io.MultiWriter(&errBuf, lineErr)
+		exitCode, runErr := sr.RunStreaming(ctx, cmd, mwOut, mwErr)
+		lineOut.Flush()
+		lineErr.Flush()
+		cancelled := errors.Is(ctx.Err(), context.Canceled) || errors.Is(runErr, context.Canceled)
+		if cancelled {
+			// "Execution cancelled." is sent when Esc is handled ([handleCancelRequest]); only close the streamed block here.
+			c.ui.CommandExecutedStreamEnd(false, "")
+			return
+		}
+		tail := "exit_code: " + strconv.Itoa(exitCode)
+		if runErr != nil && exitCode == 0 {
+			tail += "\nerror: " + runErr.Error()
+		}
+		c.ui.CommandExecutedStreamEnd(false, tail)
+		return
+	}
+
+	stdout, stderrStr, exitCode, runErr := executor.Run(ctx, cmd)
+	cancelled := errors.Is(ctx.Err(), context.Canceled) || errors.Is(runErr, context.Canceled)
+	if cancelled {
+		c.ui.CommandExecutedDirect(cmd, "")
+		return
+	}
 	result := stdout
 	if stderrStr != "" {
 		if result != "" {

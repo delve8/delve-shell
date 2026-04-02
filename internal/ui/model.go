@@ -24,8 +24,8 @@ const (
 
 // Model is the Bubble Tea session and approval UI.
 type Model struct {
-	Input    textarea.Model
-	messages []string
+	Input           textarea.Model
+	messages        []string
 	printedMessages int
 	// recenterStartupTitleOnce: first WindowSize replaces the default-width-centered title with contentWidth().
 	recenterStartupTitleOnce bool
@@ -46,7 +46,9 @@ type Model struct {
 type InteractionState struct {
 	slashSuggestIndex int  // 0..len(visible)-1 when input starts with /
 	ChoiceIndex       int  // 0-based selection when in Pending/PendingSensitive/PendingSuggested; Up/Down to move, Enter to confirm
-	WaitingForAI      bool // when true only blocks submitting new messages (Enter); /xxx slash commands always allowed
+	WaitingForAI      bool // when true blocks normal chat submit; slash still allowed unless CommandExecuting
+	// CommandExecuting while a shell command runs (/exec or agent execute_command / run_skill); blocks input except Esc / Ctrl+C.
+	CommandExecuting bool
 
 	// inputHistory: recent submitted lines (non-slash single-line path + echoed slash lines); Up/Down recall when not in slash suggestion mode.
 	inputHistory     []string
@@ -222,6 +224,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.ChoiceCard.offlinePaste != nil {
 			m.ChoiceCard.offlinePaste.copyFeedback = ""
 		}
+		return finalizeUpdate(prevOverlayActive, m, nil)
+
+	case CommandExecutionStateMsg:
+		m.Interaction.CommandExecuting = msg.Active
 		return finalizeUpdate(prevOverlayActive, m, nil)
 
 	}

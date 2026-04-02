@@ -47,3 +47,8 @@ type transcriptPrintedMsg struct {
 
 // offlinePasteCopyAckClearMsg clears OfflinePasteState.copyFeedback after a short delay.
 type offlinePasteCopyAckClearMsg struct{}
+
+// CommandExecutionStateMsg toggles [EXECUTING] chrome and input lock while a command runs.
+type CommandExecutionStateMsg struct {
+	Active bool
+}

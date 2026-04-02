@@ -30,16 +30,17 @@ func Lang() string {
 
 // Msg keys for user-facing strings. Code error messages stay in English in callers.
 const (
-	KeyHelpText              = "help_text"
-	KeyUsageRun              = "usage_run"
-	KeyUnknownCmd            = "unknown_cmd"
-	KeyErrorPrefix           = "error_prefix"
-	KeyConfigPrefix          = "config_prefix"
-	KeyWaitOrCancel          = "wait_or_cancel"
-	KeyPlaceholderInput      = "placeholder_input"
-	KeyInputHintApproveThree = "input_hint_approve_three" // placeholder when waiting for 1/2/3 (Run/Dismiss/Copy)
-	KeyInputHintSensitive    = "input_hint_sensitive"     // placeholder when waiting for 1/2/3 (sensitive)
-	KeyInputHistBrowsingHint = "input_hist_browsing_hint" // one line under input while walking local input history
+	KeyHelpText                = "help_text"
+	KeyUsageRun                = "usage_run"
+	KeyUnknownCmd              = "unknown_cmd"
+	KeyErrorPrefix             = "error_prefix"
+	KeyConfigPrefix            = "config_prefix"
+	KeyWaitOrCancel            = "wait_or_cancel"
+	KeyCommandExecWaitOrCancel = "command_exec_wait_or_cancel"
+	KeyPlaceholderInput        = "placeholder_input"
+	KeyInputHintApproveThree   = "input_hint_approve_three" // placeholder when waiting for 1/2/3 (Run/Dismiss/Copy)
+	KeyInputHintSensitive      = "input_hint_sensitive"     // placeholder when waiting for 1/2/3 (sensitive)
+	KeyInputHistBrowsingHint   = "input_hist_browsing_hint" // one line under input while walking local input history
 	// Choice menu labels (for Up/Down + Enter selection list)
 	KeyChoiceApprove            = "choice_approve"
 	KeyChoiceRefuse             = "choice_refuse"
@@ -82,6 +83,7 @@ const (
 
 	// Status bar (title): IDLE / RUNNING / pending approval / suggest card
 	KeyStatusIdle             = "status_idle"
+	KeyStatusExecuting        = "status_executing"
 	KeyStatusRunning          = "status_running"
 	KeyStatusPendingApproval  = "status_pending_approval"
 	KeyStatusWaitingUserInput = "status_waiting_user_input"
@@ -274,6 +276,7 @@ Quit (Ctrl+C also works)`,
 		KeyErrorPrefix:                   "Error: ",
 		KeyConfigPrefix:                  "Config: ",
 		KeyWaitOrCancel:                  "(Please wait for the current response, or press Esc to cancel)",
+		KeyCommandExecWaitOrCancel:       "(Command running — press Esc to cancel)",
 		KeyPlaceholderInput:              "Type your question or / for slash commands.",
 		KeyInputHistBrowsingHint:         "↑/↓ input history · Enter to send · any other key edits",
 		KeyInputHintApproveThree:         "1, 2 or 3",
@@ -314,6 +317,7 @@ Quit (Ctrl+C also works)`,
 		KeyConfigRemoteAdded:             "Remote added: %s.",
 		KeyConfigRemoteRemoved:           "Remote removed: %s.",
 		KeyStatusIdle:                    "[IDLE]",
+		KeyStatusExecuting:               "[EXECUTING]",
 		KeyStatusRunning:                 "[PROCESSING]",
 		KeyStatusPendingApproval:         "[NEED APPROVAL]",
 		KeyStatusWaitingUserInput:        "[WAIT INPUT]",

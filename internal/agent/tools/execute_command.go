@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strconv"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 	"delve-shell/internal/hil/types"
 	"delve-shell/internal/history"
 	"delve-shell/internal/remote/execenv"
+	"delve-shell/internal/runtime/execcancel"
 )
 
 // ExecuteCommandTool runs a command/script; blocks on requestApproval until user chooses Run or Reject when the command is not allowlisted (or has write redirection).
@@ -24,7 +26,13 @@ type ExecuteCommandTool struct {
 	RequestApproval              func(command, summary, reason, riskLevel, skillName string) hiltypes.ApprovalResponse
 	RequestSensitiveConfirmation func(command string) hiltypes.SensitiveChoice
 	Session                      *history.Session
-	OnExec                       func(command string, allowed bool, result string, sensitive bool, suggested bool)
+	OnExec                       func(command string, allowed bool, result string, sensitive bool, suggested bool, streamed bool)
+	// OnExecStream delivers [hiltypes.ExecStreamStart] and [hiltypes.ExecStreamLine] when streaming is used; nil disables streaming.
+	OnExecStream func(any)
+	// UIEvents optional; used with [CommandExecutionState] for [EXECUTING] chrome during run.
+	UIEvents chan<- any
+	// ExecCancelHub optional; ESC during [EXECUTING] cancels the command context (not the whole LLM turn).
+	ExecCancelHub *execcancel.Hub
 
 	// ExecutorProvider returns the current executor (local or remote). When nil, a local executor is used.
 	ExecutorProvider func() execenv.CommandExecutor
@@ -49,7 +57,7 @@ func (t *ExecuteCommandTool) Info(ctx context.Context) (*schema.ToolInfo, error)
 			},
 			"reason": {
 				Type:     schema.String,
-				Desc:     "Brief explanation of why this command is run and what effect is expected. Shown to the user in the approval card.",
+				Desc:     "Brief explanation of why this command is run and what effect is expected. Use the same language as the user's current message; shown on the approval card.",
 				Required: false,
 			},
 			"risk_level": {
@@ -137,20 +145,47 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 			executor = e
 		}
 	}
-	outStr, errStr, exitCode, err := executor.Run(ctx, command)
-	if storeResult && t.Session != nil {
+
+	cmdCtx, unregCancel := withCommandCancel(t.ExecCancelHub, ctx)
+	defer unregCancel()
+	endUI := pushCommandExecutionUI(t.UIEvents)
+	defer endUI()
+
+	streamStart := hiltypes.ExecStreamStart{Allowed: allowed, Suggested: false, Direct: false}
+	outStr, errStr, exitCode, err, useStream := runExecutorWithStream(cmdCtx, executor, command, t.OnExecStream, streamStart)
+	cancelled := errors.Is(cmdCtx.Err(), context.Canceled) || errors.Is(err, context.Canceled)
+	if storeResult && t.Session != nil && !cancelled {
 		_ = t.Session.AppendCommandResult(command, outStr, errStr, exitCode)
 	}
-	resultForUI := outStr
-	if errStr != "" {
-		resultForUI += "\nstderr:\n" + errStr
+	if cancelled {
+		// Empty tail: "Execution cancelled." is shown when the host handles Esc; avoid duplicate Delve-prefixed lines.
+		if t.OnExec != nil {
+			if useStream {
+				t.OnExec(command, allowed, "", sensitive || !storeResult, false, true)
+			} else {
+				t.OnExec(command, allowed, "", sensitive || !storeResult, false, false)
+			}
+		}
+		return "The command was cancelled.", nil
 	}
-	resultForUI += "\nexit_code: " + strconv.Itoa(exitCode)
-	if err != nil && exitCode == 0 {
-		resultForUI += "\nerror: " + err.Error()
+	var resultForUI string
+	if useStream {
+		resultForUI = "exit_code: " + strconv.Itoa(exitCode)
+		if err != nil && exitCode == 0 {
+			resultForUI += "\nerror: " + err.Error()
+		}
+	} else {
+		resultForUI = outStr
+		if errStr != "" {
+			resultForUI += "\nstderr:\n" + errStr
+		}
+		resultForUI += "\nexit_code: " + strconv.Itoa(exitCode)
+		if err != nil && exitCode == 0 {
+			resultForUI += "\nerror: " + err.Error()
+		}
 	}
 	if t.OnExec != nil {
-		t.OnExec(command, allowed, resultForUI, sensitive || !storeResult, false)
+		t.OnExec(command, allowed, resultForUI, sensitive || !storeResult, false, useStream)
 	}
 	// When AI set result_contains_secrets we return "done"; when user chose RunNoStore we still return full result to AI.
 	if sensitive {
@@ -209,7 +244,7 @@ func (t *ExecuteCommandTool) invokableRunOffline(ctx context.Context, command, r
 		resultForUI = manualPasteNoteForUI
 	}
 	if t.OnExec != nil {
-		t.OnExec(command, false, resultForUI, sensitive || !storeResult, false)
+		t.OnExec(command, false, resultForUI, sensitive || !storeResult, false, false)
 	}
 	if sensitive {
 		return "done", nil

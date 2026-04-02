@@ -36,6 +36,21 @@ func TestProcessorCanProcess(t *testing.T) {
 	}
 }
 
+func TestProcessorProcessEsc_CommandExecuting(t *testing.T) {
+	exec := &stubExecutor{res: inputlifecycletype.ConsumedResult()}
+	p := New(stubContexts{ctx: inputlifecycletype.ControlContext{CommandExecuting: true, WaitingForAI: true}}, exec)
+	_, err := p.Process(inputlifecycletype.InputSubmission{
+		Kind:          inputlifecycletype.SubmissionControl,
+		ControlSignal: inputlifecycletype.ControlSignalEsc,
+	})
+	if err != nil {
+		t.Fatalf("Process() error = %v", err)
+	}
+	if exec.action != inputlifecycletype.ControlCancelCommandExecution {
+		t.Fatalf("ExecuteControl action = %q want cancel_command_execution", exec.action)
+	}
+}
+
 func TestProcessorProcessEsc(t *testing.T) {
 	exec := &stubExecutor{res: inputlifecycletype.ConsumedResult()}
 	p := New(stubContexts{ctx: inputlifecycletype.ControlContext{WaitingForAI: true}}, exec)

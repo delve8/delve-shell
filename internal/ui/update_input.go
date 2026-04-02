@@ -180,6 +180,16 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) (*Model, tea.Cmd) {
 		}
 	}
 
+	if m.Interaction.CommandExecuting {
+		if key == teakey.Esc {
+			res, err := m.lifecycleEngine().SubmitControl(inputlifecycletype.ControlSignalEsc, inputlifecycletype.SourceKeyboardSignal)
+			if err == nil {
+				return m.applyLifecycleResult(res)
+			}
+		}
+		return m, nil
+	}
+
 	inputVal := ks.inputValue()
 	if strings.HasPrefix(inputVal, "/") && m.Input.LineCount() == 1 {
 		if key == teakey.Enter {

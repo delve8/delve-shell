@@ -19,6 +19,19 @@ func TestApplyResultWaitingForAI(t *testing.T) {
 	}
 }
 
+func TestApplyResultCommandExecution(t *testing.T) {
+	patch, cmd := ApplyResult(inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+		Kind:        inputlifecycletype.OutputCommandExecution,
+		CommandExec: &inputlifecycletype.CommandExecutionPayload{Active: false},
+	}))
+	if patch.CommandExecuting == nil || *patch.CommandExecuting {
+		t.Fatal("expected CommandExecuting false patch")
+	}
+	if cmd != nil {
+		t.Fatal("unexpected cmd")
+	}
+}
+
 func TestApplyResultQuit(t *testing.T) {
 	patch, cmd := ApplyResult(inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 		Kind: inputlifecycletype.OutputQuit,

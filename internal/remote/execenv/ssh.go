@@ -5,10 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/ssh"
@@ -195,6 +197,17 @@ func (e *SSHExecutor) CopyLocalFileToRemote(ctx context.Context, localPath, remo
 	return scpUpload(ctx, e.client, localPath, remotePath)
 }
 
+// interruptRemoteSession asks the SSH server to signal the remote process. Non-interactive "sh -c"
+// often ignores SIGINT alone; TERM/KILL improve teardown before [ssh.Session.Close] runs via defer.
+func interruptRemoteSession(s *ssh.Session) {
+	if s == nil {
+		return
+	}
+	_ = s.Signal(ssh.SIGINT)
+	_ = s.Signal(ssh.SIGTERM)
+	_ = s.Signal(ssh.SIGKILL)
+}
+
 // Run implements CommandExecutor by executing the command via "sh -c" on the remote host.
 func (e *SSHExecutor) Run(ctx context.Context, command string) (stdout, stderr string, exitCode int, err error) {
 	if e.client == nil {
@@ -205,7 +218,11 @@ func (e *SSHExecutor) Run(ctx context.Context, command string) (stdout, stderr s
 	if err != nil {
 		return "", "", -1, err
 	}
-	defer session.Close()
+	var closeOnce sync.Once
+	closeSession := func() {
+		closeOnce.Do(func() { _ = session.Close() })
+	}
+	defer closeSession()
 
 	var outBuf, errBuf bytes.Buffer
 	session.Stdout = &outBuf
@@ -220,7 +237,8 @@ func (e *SSHExecutor) Run(ctx context.Context, command string) (stdout, stderr s
 	var runErr error
 	select {
 	case <-ctx.Done():
-		_ = session.Signal(ssh.SIGINT)
+		interruptRemoteSession(session)
+		closeSession()
 		runErr = ctx.Err()
 	case runErr = <-done:
 	}
@@ -232,6 +250,45 @@ func (e *SSHExecutor) Run(ctx context.Context, command string) (stdout, stderr s
 	}
 
 	return outBuf.String(), errBuf.String(), exitCode, runErr
+}
+
+// RunStreaming runs the command on the remote host like [SSHExecutor.Run] but copies stdout/stderr to the given writers as data arrives.
+func (e *SSHExecutor) RunStreaming(ctx context.Context, command string, stdout, stderr io.Writer) (exitCode int, err error) {
+	if e.client == nil {
+		return -1, errors.New("ssh client is not connected")
+	}
+	session, err := e.client.NewSession()
+	if err != nil {
+		return -1, err
+	}
+	var closeOnce sync.Once
+	closeSession := func() {
+		closeOnce.Do(func() { _ = session.Close() })
+	}
+	defer closeSession()
+	session.Stdout = stdout
+	session.Stderr = stderr
+
+	done := make(chan error, 1)
+	go func() {
+		done <- session.Run("sh -c " + sshEscape(command))
+	}()
+
+	var runErr error
+	select {
+	case <-ctx.Done():
+		interruptRemoteSession(session)
+		closeSession()
+		runErr = ctx.Err()
+	case runErr = <-done:
+	}
+
+	if exitErr, ok := runErr.(*ssh.ExitError); ok {
+		exitCode = exitErr.ExitStatus()
+	} else if runErr != nil {
+		exitCode = -1
+	}
+	return exitCode, runErr
 }
 
 // Close closes the underlying SSH client connection.

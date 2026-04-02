@@ -12,6 +12,7 @@ import (
 	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/host/controller"
 	"delve-shell/internal/remote/execenv"
+	"delve-shell/internal/runtime/execcancel"
 	"delve-shell/internal/runtime/executormgr"
 	"delve-shell/internal/runtime/runnermgr"
 	"delve-shell/internal/runtime/sessionmgr"
@@ -40,6 +41,7 @@ func wireHostStack(
 	executors := executormgr.New()
 	getExecutor := func() execenv.CommandExecutor { return executors.Get() }
 
+	execCancelHub := execcancel.New()
 	rt := app.NewRuntime()
 
 	runners := runnermgr.New(runnermgr.Options{
@@ -57,6 +59,7 @@ func wireHostStack(
 		ExecutorProvider: getExecutor,
 		OfflineMode:      func() bool { return rt.Offline() },
 		UIEvents:         ports.AgentUIChan,
+		ExecCancelHub:    execCancelHub,
 	})
 
 	shellRequestedChan := make(chan hostcmd.ShellSnapshot, 1)
@@ -86,6 +89,7 @@ func wireHostStack(
 		GetExec:         getExecutor,
 		SyncSessionPath: syncSessionPath,
 		Runtime:         rt,
+		ExecCancelHub:   execCancelHub,
 	})
 	controller.Start()
 
