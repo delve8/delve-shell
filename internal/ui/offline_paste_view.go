@@ -3,12 +3,21 @@ package ui
 import (
 	"strings"
 
-	"delve-shell/internal/hil/types"
+	hiltypes "delve-shell/internal/hil/types"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/textwrap"
 )
 
-func (m *Model) appendOfflinePasteViewportContent(b *strings.Builder) {
+// appendOfflinePasteCardToMessages appends the offline-paste prompt block (without transient copy feedback)
+// to m.messages so it prints with the same transcript pipeline as chat and approval cards.
+func (m *Model) appendOfflinePasteCardToMessages() {
+	var b strings.Builder
+	m.writeOfflinePasteCardBody(&b)
+	m.appendRenderedLinesToMessages(b.String())
+}
+
+// writeOfflinePasteCardBody writes styled offline-paste card text (no clipboard ack line).
+func (m *Model) writeOfflinePasteCardBody(b *strings.Builder) {
 	s := m.ChoiceCard.offlinePaste
 	if s == nil {
 		return
@@ -40,9 +49,4 @@ func (m *Model) appendOfflinePasteViewportContent(b *strings.Builder) {
 	}
 	b.WriteString(execStyle.Render(textwrap.WrapString(s.Command, w)))
 	b.WriteString("\n")
-	if fb := strings.TrimSpace(s.copyFeedback); fb != "" {
-		b.WriteString("\n")
-		b.WriteString(hintStyle.Render(textwrap.WrapString(fb, w)))
-		b.WriteString("\n")
-	}
 }

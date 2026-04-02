@@ -70,7 +70,7 @@ func (m *Model) currentUIState() uiState {
 	return uiStateMainInput
 }
 
-// TranscriptLines returns a copy of the current transcript lines shown in the main viewport.
+// TranscriptLines returns a copy of the current transcript lines (printed via tea.Println + padding alignment).
 func (m *Model) TranscriptLines() []string {
 	if len(m.messages) == 0 {
 		return nil
@@ -131,16 +131,6 @@ func (m *Model) withTranscriptReplaced(lines []string) {
 	m.printedMessages = 0
 }
 
-func (m *Model) syncChoiceViewport() {
-	if !m.hasPendingChoiceCard() {
-		return
-	}
-	m.Viewport.Width = m.layout.Width
-	m.Viewport.Height = m.mainViewportHeight()
-	m.Viewport.SetContent(m.pendingChoiceContent())
-	m.Viewport.GotoBottom()
-}
-
 // OpenOverlayFeature opens a feature-owned overlay and records its active key.
 func (m *Model) OpenOverlayFeature(key, title, content string) {
 	m.Overlay.Active = true
@@ -189,7 +179,7 @@ func (m *Model) syncInputHeight() {
 	}
 }
 
-// inputChromeHeight returns the total number of lines reserved below the transcript viewport.
+// inputChromeHeight returns the total number of lines in the bottom chrome (separator through footer).
 func (m *Model) inputChromeHeight() int {
 	height := 1 // separator above input
 	height += m.primaryInputHeight()
@@ -222,23 +212,6 @@ func (m *Model) inputBelowHeight() int {
 	return inputBelowStableRows
 }
 
-// mainViewportHeight returns the viewport height used by main content.
-func (m *Model) mainViewportHeight() int {
-	vh := m.layout.Height - m.inputChromeHeight()
-	if vh < 1 {
-		return 1
-	}
-	return vh
-}
-
-func (m *Model) mainBodyView() string {
-	if m.hasPendingChoiceCard() {
-		m.syncChoiceViewport()
-		return m.Viewport.View()
-	}
-	return ""
-}
-
 // primaryInputHeight returns the height of the active bottom text area (main input or offline paste).
 func (m *Model) primaryInputHeight() int {
 	if m.ChoiceCard.offlinePaste != nil {
@@ -263,16 +236,6 @@ func (m *Model) primaryInputLineCount() int {
 	return m.Input.LineCount()
 }
 
-func (m *Model) pendingChoiceContent() string {
-	var b strings.Builder
-	if m.ChoiceCard.offlinePaste != nil {
-		m.appendOfflinePasteViewportContent(&b)
-		return b.String()
-	}
-	m.appendApprovalViewportContent(&b)
-	return b.String()
-}
-
 func (m *Model) printedTranscriptLineCount() int {
 	if m.printedMessages <= 0 || len(m.messages) == 0 {
 		return 0
@@ -290,7 +253,7 @@ func (m *Model) printedTranscriptLineCount() int {
 
 // bottomChromeReserveRows is the vertical space reserved for separator + input + below-input + footer.
 // terminalWrappedRows(bottomBlock) can underestimate lipgloss/textarea layout vs the real terminal;
-// inputChromeHeight() is the layout budget that must stay aligned with choice-card viewport math.
+// inputChromeHeight() is the layout budget that must stay aligned with bottom-chrome line accounting.
 // Using the max avoids extra leading newlines above the chrome after long transcript (input appears too high).
 func (m *Model) bottomChromeReserveRows(bottomBlock string) int {
 	wrapped := terminalWrappedRows(bottomBlock, m.contentWidth())

@@ -4,11 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	"delve-shell/internal/hil/types"
+	hiltypes "delve-shell/internal/hil/types"
 	"delve-shell/internal/ui/uivm"
 )
 
-func TestAppendApprovalViewportContent_sensitive(t *testing.T) {
+func TestAppendPendingChoiceCardToMessages_sensitive(t *testing.T) {
 	m := Model{
 		layout: LayoutState{Width: 80},
 		ChoiceCard: ChoiceCardState{
@@ -17,17 +17,14 @@ func TestAppendApprovalViewportContent_sensitive(t *testing.T) {
 			},
 		},
 	}
-	var b strings.Builder
-	if !m.appendApprovalViewportContent(&b) {
-		t.Fatal("expected true")
-	}
-	out := b.String()
-	if !strings.Contains(out, "rm -rf /") {
-		t.Fatalf("missing command in output: %q", out)
+	m.appendPendingChoiceCardToMessages()
+	joined := strings.Join(m.messages, "\n")
+	if !strings.Contains(joined, "rm -rf /") {
+		t.Fatalf("missing command in transcript: %q", joined)
 	}
 }
 
-func TestAppendApprovalViewportContent_pendingRisk(t *testing.T) {
+func TestAppendPendingChoiceCardToMessages_pendingRisk(t *testing.T) {
 	m := Model{
 		layout: LayoutState{Width: 80},
 		ChoiceCard: ChoiceCardState{
@@ -40,23 +37,17 @@ func TestAppendApprovalViewportContent_pendingRisk(t *testing.T) {
 			},
 		},
 	}
-	var b strings.Builder
-	if !m.appendApprovalViewportContent(&b) {
-		t.Fatal("expected true")
-	}
-	out := b.String()
-	if !strings.Contains(out, "kubectl get pods") || !strings.Contains(out, "k8s") {
-		t.Fatalf("unexpected output: %q", out)
+	m.appendPendingChoiceCardToMessages()
+	joined := strings.Join(m.messages, "\n")
+	if !strings.Contains(joined, "kubectl get pods") || !strings.Contains(joined, "k8s") {
+		t.Fatalf("unexpected transcript: %q", joined)
 	}
 }
 
-func TestAppendApprovalViewportContent_none(t *testing.T) {
+func TestAppendPendingChoiceCardToMessages_none(t *testing.T) {
 	var m Model
-	var b strings.Builder
-	if m.appendApprovalViewportContent(&b) {
-		t.Fatal("expected false")
-	}
-	if b.Len() != 0 {
-		t.Fatalf("expected empty builder, got %q", b.String())
+	m.appendPendingChoiceCardToMessages()
+	if len(m.messages) != 0 {
+		t.Fatalf("expected no messages, got %d", len(m.messages))
 	}
 }

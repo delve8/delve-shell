@@ -49,11 +49,14 @@ func TestView_FooterAlwaysShown(t *testing.T) {
 		t.Error("View() at small height should still show the footer with remote segment")
 	}
 
-	// With Pending, footer shows [NEED APPROVAL] or [待确认]
-	m.ChoiceCard.pending = &uivm.PendingApproval{Command: "ls"}
-	m.layout.Height = 24
-	m.syncChoiceViewport()
-	viewPending := m.View()
+	// With Pending, footer shows [NEED APPROVAL] or [待确认] (card body is in messages; align printed count for padding).
+	mPending := NewModel(nil, nil)
+	mPending.layout.Width = 80
+	mPending.layout.Height = 24
+	n, _ := mPending.Update(ChoiceCardShowMsg{PendingApproval: &uivm.PendingApproval{Command: "ls", Respond: func(uivm.ApprovalResponse) {}}})
+	mm := n.(*Model)
+	mm.printedMessages = len(mm.messages)
+	viewPending := mm.View()
 	if !strings.Contains(viewPending, "[NEED APPROVAL]") && !strings.Contains(viewPending, "[待确认]") {
 		t.Error("View() with Pending should show pending status in the footer")
 	}
@@ -63,7 +66,9 @@ func TestView_FooterAlwaysShown(t *testing.T) {
 	m2 := NewModel(nil, nil)
 	m2.layout.Height = 12
 	m2.layout.Width = 80
-	m2.ChoiceCard.pendingSensitive = &uivm.PendingSensitive{Command: "cat /etc/shadow"}
+	n2, _ := m2.Update(ChoiceCardShowMsg{PendingSensitive: &uivm.PendingSensitive{Command: "cat /etc/shadow", Respond: func(uivm.SensitiveChoice) {}}})
+	m2 = n2.(*Model)
+	m2.printedMessages = len(m2.messages)
 	viewChoice := m2.View()
 	choiceLines := strings.Split(viewChoice, "\n")
 	if len(choiceLines) > m2.layout.Height {
@@ -222,9 +227,9 @@ func TestTwoSequentialApprovalCards(t *testing.T) {
 	if mm.Interaction.ChoiceIndex != 0 {
 		t.Fatalf("second card show: ChoiceIndex=%d want 0", mm.Interaction.ChoiceIndex)
 	}
-	view := mm.View()
-	if !strings.Contains(view, "second-cmd") {
-		t.Fatalf("second card View() should include command text; got snippet: %q", truncateForTest(view, 400))
+	joined := strings.Join(mm.messages, "\n")
+	if !strings.Contains(joined, "second-cmd") {
+		t.Fatalf("transcript should include second card command; got snippet: %q", truncateForTest(joined, 400))
 	}
 	next, _ = mm.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	mm = next.(*Model)

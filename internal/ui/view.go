@@ -29,40 +29,13 @@ func (m *Model) renderBaseScreen() string {
 		inputSeparator = "\n"
 	}
 	bottomBlock := sepLine + "\n" + m.primaryInputView() + inputSeparator + m.inputBelowBlock(inChoice) + footer
-	if !inChoice {
-		padLines := m.normalModeTopPaddingLines(bottomBlock)
-		if padLines <= 0 {
-			return bottomBlock
-		}
-		return strings.Repeat("\n", padLines) + bottomBlock
-	}
-	mainBody := m.mainBodyView()
-	if m.layout.Height <= minInputLayoutWidth {
-		out := bottomBlock
-		if mainBody != "" {
-			out = joinMainBodyAboveBottomChrome(mainBody, out)
-		}
-		return out
-	}
-	// Base viewport height: leave room for the separator, input line, slash/choice dropdown, and footer below.
-	out := bottomBlock
-	if mainBody != "" {
-		out = joinMainBodyAboveBottomChrome(mainBody, out)
-	}
-	return out
-}
-
-// joinMainBodyAboveBottomChrome concatenates the main viewport block with the bottom chrome (separator + input).
-// bubbles/viewport lipgloss output typically has no trailing newline; without an explicit boundary, the last
-// viewport line and the separator line merge into one row and the rule disappears.
-func joinMainBodyAboveBottomChrome(mainBody, bottomBlock string) string {
-	if mainBody == "" {
+	// Choice cards (approval / sensitive / offline paste) render their body via m.messages + tea.Println,
+	// same as chat; View() only draws this bottom chrome. Top padding aligns with printed transcript rows.
+	padLines := m.normalModeTopPaddingLines(bottomBlock)
+	if padLines <= 0 {
 		return bottomBlock
 	}
-	if strings.HasSuffix(mainBody, "\n") {
-		return mainBody + bottomBlock
-	}
-	return mainBody + "\n" + bottomBlock
+	return strings.Repeat("\n", padLines) + bottomBlock
 }
 
 func (m *Model) renderScreenSnapshot() string {
@@ -197,26 +170,3 @@ func (m *Model) syncInputPlaceholder() {
 	m.Input.Placeholder = approvalview.InputPlaceholder(m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil)
 }
 
-// appendApprovalViewportContent appends sensitive or standard approval blocks to the viewport.
-// Returns true if the viewport body is complete (caller should return b.String()).
-func (m *Model) appendApprovalViewportContent(b *strings.Builder) bool {
-	lines, ok := approvalview.Build(
-		m.contentWidth(),
-		m.ChoiceCard.pending,
-		m.ChoiceCard.pendingSensitive,
-		textwrap.WrapString,
-	)
-	if !ok {
-		return false
-	}
-	b.WriteString("\n")
-	b.WriteString(widget.RenderPendingApprovalLines(lines, widget.PendingCardStyles{
-		Header:       approvalHeaderStyle,
-		Exec:         execStyle,
-		Suggest:      suggestStyle,
-		RiskReadOnly: riskReadOnlyStyle,
-		RiskLow:      riskLowStyle,
-		RiskHigh:     riskHighStyle,
-	}))
-	return true
-}

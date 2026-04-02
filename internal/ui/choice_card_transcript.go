@@ -1,0 +1,41 @@
+package ui
+
+import (
+	"strings"
+
+	"delve-shell/internal/hil/approvalview"
+	"delve-shell/internal/textwrap"
+	"delve-shell/internal/ui/widget"
+)
+
+// appendPendingChoiceCardToMessages renders the current approval or sensitive card into styled lines
+// and appends them to m.messages (same pipeline as chat transcript + tea.Println).
+func (m *Model) appendPendingChoiceCardToMessages() {
+	lines, ok := approvalview.Build(
+		m.contentWidth(),
+		m.ChoiceCard.pending,
+		m.ChoiceCard.pendingSensitive,
+		textwrap.WrapString,
+	)
+	if !ok {
+		return
+	}
+	rendered := widget.RenderPendingApprovalLines(lines, widget.PendingCardStyles{
+		Header:       approvalHeaderStyle,
+		Exec:         execStyle,
+		Suggest:      suggestStyle,
+		RiskReadOnly: riskReadOnlyStyle,
+		RiskLow:      riskLowStyle,
+		RiskHigh:     riskHighStyle,
+	})
+	m.appendRenderedLinesToMessages(rendered)
+}
+
+func (m *Model) appendRenderedLinesToMessages(rendered string) {
+	if rendered == "" {
+		return
+	}
+	for _, line := range strings.Split(rendered, "\n") {
+		m.messages = append(m.messages, line)
+	}
+}

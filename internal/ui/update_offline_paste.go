@@ -52,9 +52,10 @@ func (m *Model) handleOfflinePasteShowMsg(msg OfflinePasteShowMsg) (*Model, tea.
 		Respond:   msg.Pending.Respond,
 	}
 	m.syncOfflinePasteHeight()
-	m.syncChoiceViewport()
+	m.appendOfflinePasteCardToMessages()
 	copyCmd := m.offlinePasteWriteCommandToClipboard()
-	return m, tea.Batch(paste.Focus(), copyCmd)
+	printCmd := m.printTranscriptCmd(false)
+	return m, tea.Batch(paste.Focus(), copyCmd, printCmd)
 }
 
 // offlinePasteWriteCommandToClipboard puts the pending command on the system clipboard and shows
@@ -70,7 +71,6 @@ func (m *Model) offlinePasteWriteCommandToClipboard() tea.Cmd {
 		op.copyFeedback = i18n.T(i18n.KeySuggestedCopied)
 	}
 	m.ChoiceCard.offlinePaste = op
-	m.syncChoiceViewport()
 	return tea.Tick(2*time.Second, func(time.Time) tea.Msg {
 		return offlinePasteCopyAckClearMsg{}
 	})
@@ -113,13 +113,11 @@ func (m *Model) handleOfflinePasteKeyMsg(msg tea.KeyMsg) (*Model, tea.Cmd) {
 	case teakey.Esc:
 		m.finishOfflinePaste("", true)
 		m.syncInputHeight()
-		m.syncChoiceViewport()
 		return m, nil
 	case teakey.Enter:
 		text := strings.TrimSpace(m.ChoiceCard.offlinePaste.Paste.Value())
 		m.finishOfflinePaste(text, false)
 		m.syncInputHeight()
-		m.syncChoiceViewport()
 		return m, nil
 	default:
 		op := m.ChoiceCard.offlinePaste
@@ -130,7 +128,6 @@ func (m *Model) handleOfflinePasteKeyMsg(msg tea.KeyMsg) (*Model, tea.Cmd) {
 		op.Paste, cmd = op.Paste.Update(msg)
 		m.ChoiceCard.offlinePaste = op
 		m.syncOfflinePasteHeight()
-		m.syncChoiceViewport()
 		return m, cmd
 	}
 }

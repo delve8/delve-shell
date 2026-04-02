@@ -10,6 +10,7 @@ import (
 	"delve-shell/internal/input/maininput"
 	"delve-shell/internal/slash/dispatch"
 	"delve-shell/internal/slash/view"
+	"delve-shell/internal/textwrap"
 	"delve-shell/internal/ui/registry"
 	"delve-shell/internal/ui/widget"
 )
@@ -85,6 +86,10 @@ func (m *Model) inputBelowBlock(inChoice bool) string {
 		if m.ChoiceCard.offlinePaste != nil {
 			hint := suggestStyle.Render(i18n.T(i18n.KeyOfflinePasteHint))
 			rows = []widget.ListRow{{Text: hint, PreRendered: true}}
+			if fb := strings.TrimSpace(m.ChoiceCard.offlinePaste.copyFeedback); fb != "" {
+				wrapped := textwrap.WrapString(fb, m.contentWidth())
+				rows = append(rows, widget.ListRow{Text: hintStyle.Render(wrapped), PreRendered: true})
+			}
 		} else {
 			opts := approvalview.ChoiceOptions(m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil)
 			adapted := make([]maininput.ChoiceOption, 0, len(opts))

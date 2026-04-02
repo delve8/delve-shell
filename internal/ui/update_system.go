@@ -3,7 +3,6 @@ package ui
 import (
 	"strings"
 
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/host/cmd"
@@ -73,9 +72,6 @@ func (m *Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (*Model, tea.Cmd) {
 	}
 	m.syncInputHeight()
 	m.syncOfflinePasteHeight()
-	if m.hasPendingChoiceCard() && m.layout.Height > minInputLayoutWidth {
-		m.syncChoiceViewport()
-	}
 	if m.Overlay.Active {
 		m.InitOverlayViewport()
 	}
@@ -173,20 +169,8 @@ func (m *Model) handleChoiceCardShowMsg(msg ChoiceCardShowMsg) (*Model, tea.Cmd)
 	}
 	m.Interaction.ChoiceIndex = 0
 	m.syncInputPlaceholder()
-	// Fresh viewport each time a choice card opens: reuse across rounds can leave stale YOffset/lines
-	// state that mis-sizes or clips the second approval block after the first card is cleared.
-	vh := m.mainViewportHeight()
-	if vh < 1 {
-		vh = 1
-	}
-	w := m.layout.Width
-	if w < 1 {
-		w = defaultWidth
-	}
-	m.Viewport = viewport.New(w, vh)
-	m.Viewport.MouseWheelEnabled = true
-	m.syncChoiceViewport()
-	return m, nil
+	m.appendPendingChoiceCardToMessages()
+	return m, m.printTranscriptCmd(false)
 }
 
 func (m *Model) renderTranscriptLines(lines []uivm.Line) []string {

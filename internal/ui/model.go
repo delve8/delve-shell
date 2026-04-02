@@ -24,9 +24,8 @@ const (
 
 // Model is the Bubble Tea session and approval UI.
 type Model struct {
-	Input           textarea.Model
-	Viewport        viewport.Model
-	messages        []string
+	Input    textarea.Model
+	messages []string
 	printedMessages int
 	// recenterStartupTitleOnce: first WindowSize replaces the default-width-centered title with contentWidth().
 	recenterStartupTitleOnce bool
@@ -222,7 +221,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case offlinePasteCopyAckClearMsg:
 		if m.ChoiceCard.offlinePaste != nil {
 			m.ChoiceCard.offlinePaste.copyFeedback = ""
-			m.syncChoiceViewport()
 		}
 		return finalizeUpdate(prevOverlayActive, m, nil)
 
@@ -231,7 +229,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return finalizeUpdate(prevOverlayActive, m, nil)
 }
 
-// NewModel creates a Model with default input (slash commands and viewport scrolling).
+// NewModel creates a Model with default input (slash commands and transcript-aligned bottom chrome).
 // initialMessages if non-nil is used as existing conversation (e.g. after /bash return).
 func NewModel(initialMessages []string, readModel ReadModel) *Model {
 	i18n.SetLang(languageFromConfig())
@@ -256,8 +254,6 @@ func NewModel(initialMessages []string, readModel ReadModel) *Model {
 	ti.BlurredStyle.Placeholder = inputPlaceholderStyle
 	ti.Cursor.Style = inputCursorStyle
 	ti.Focus()
-	vp := viewport.New(defaultWidth, defaultHeight-3)
-	vp.MouseWheelEnabled = true
 	msgs := []string(nil)
 	if len(initialMessages) > 0 {
 		msgs = make([]string, len(initialMessages))
@@ -268,7 +264,6 @@ func NewModel(initialMessages []string, readModel ReadModel) *Model {
 	recenter := len(initialMessages) == 0
 	return &Model{
 		Input:                    ti,
-		Viewport:                 vp,
 		messages:                 msgs,
 		recenterStartupTitleOnce: recenter,
 		ReadModel:                readModel,
