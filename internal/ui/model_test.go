@@ -202,7 +202,10 @@ func TestTwoSequentialApprovalCards(t *testing.T) {
 	}
 	next, _ = mm.Update(ChoiceCardShowMsg{PendingApproval: p1})
 	mm = next.(*Model)
-	next, _ = mm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'1'}})
+	next, cmd := mm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'1'}})
+	if cmd == nil {
+		t.Fatal("expected tea.Cmd to flush decision lines to scrollback immediately after approve")
+	}
 	mm = next.(*Model)
 	if approved1 != 1 {
 		t.Fatalf("first card: want approve callback once, got %d", approved1)

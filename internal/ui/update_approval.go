@@ -14,10 +14,10 @@ import (
 	"delve-shell/internal/ui/uivm"
 )
 
-func (m *Model) handlePendingChoiceKey(msg tea.KeyMsg) (*Model, bool) {
+func (m *Model) handlePendingChoiceKey(msg tea.KeyMsg) (*Model, tea.Cmd, bool) {
 	// Let the global Esc path run; approvalflow would otherwise handle the key with DecisionNone and swallow it.
 	if msg.String() == teakey.Esc {
-		return m, false
+		return m, nil, false
 	}
 	cc := approvalview.ChoiceCount(m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil)
 	if cc > 0 {
@@ -33,11 +33,11 @@ func (m *Model) handlePendingChoiceKey(msg tea.KeyMsg) (*Model, bool) {
 		cc,
 	)
 	if !res.Handled {
-		return m, false
+		return m, nil, false
 	}
 	if res.ChoiceChanged {
 		m.Interaction.ChoiceIndex = res.ChoiceIndex
-		return m, true
+		return m, nil, true
 	}
 	return m.applyApprovalDecision(res.Decision)
 }
@@ -96,11 +96,11 @@ func (m *Model) appendDecisionLines(decision approvalview.DecisionKind) {
 	}
 }
 
-func (m *Model) applyApprovalDecision(d approvalflow.Decision) (*Model, bool) {
+func (m *Model) applyApprovalDecision(d approvalflow.Decision) (*Model, tea.Cmd, bool) {
 	switch d {
 	case approvalflow.DecisionSensitiveRefuse, approvalflow.DecisionSensitiveRunStore, approvalflow.DecisionSensitiveRunNoStore:
 		if m.ChoiceCard.pendingSensitive == nil {
-			return m, true
+			return m, nil, true
 		}
 		var kind approvalview.DecisionKind
 		var choice uivm.SensitiveChoice
@@ -121,11 +121,11 @@ func (m *Model) applyApprovalDecision(d approvalflow.Decision) (*Model, bool) {
 		}
 		m.ChoiceCard.pendingSensitive = nil
 		m.Interaction.ChoiceIndex = 0
-		return m, true
+		return m, m.printTranscriptCmd(false), true
 
 	case approvalflow.DecisionApprove, approvalflow.DecisionReject, approvalflow.DecisionDismiss, approvalflow.DecisionCopy:
 		if m.ChoiceCard.pending == nil {
-			return m, true
+			return m, nil, true
 		}
 		var kind approvalview.DecisionKind
 		resp := uivm.ApprovalResponse{Approved: false, CopyRequested: false}
@@ -160,8 +160,8 @@ func (m *Model) applyApprovalDecision(d approvalflow.Decision) (*Model, bool) {
 			m.Interaction.WaitingForAI = false
 		}
 		m.Interaction.ChoiceIndex = 0
-		return m, true
+		return m, m.printTranscriptCmd(false), true
 	default:
-		return m, true
+		return m, nil, true
 	}
 }
