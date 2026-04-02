@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/x/ansi"
 
 	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/i18n"
@@ -193,7 +194,18 @@ func (m *Model) renderTranscriptLines(lines []uivm.Line) []string {
 		case uivm.LineExec:
 			rendered = append(rendered, execStyle.Render(textwrap.WrapString(l.Text, w)))
 		case uivm.LineResult:
-			rendered = append(rendered, resultStyle.Render(textwrap.WrapString(l.Text, w)))
+			// Command/tool stdout may include ANSI (e.g. kubectl color). Bubble Tea queues Println lines
+			// without truncating when width >= terminal; the terminal soft-wraps while the renderer still
+			// assumes one row, so the next View() redraw can start mid-line and merge with placeholder/footer.
+			plain := ansi.Strip(strings.ReplaceAll(l.Text, "\r", ""))
+			wrapped := textwrap.WrapString(plain, w)
+			for _, part := range strings.Split(wrapped, "\n") {
+				line := resultStyle.Render(part)
+				if w > 0 && ansi.StringWidth(line) > w {
+					line = ansi.Truncate(line, w, "")
+				}
+				rendered = append(rendered, line)
+			}
 		case uivm.LineSessionBanner:
 			rendered = append(rendered, sessionSwitchedStyle.Render(textwrap.WrapString(l.Text, w)))
 		default:

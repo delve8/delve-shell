@@ -44,11 +44,38 @@ func TestContainsWriteRedirection(t *testing.T) {
 		{"echo a => b", false},
 		{"true", false},
 		{"", false},
+		// discard / dup only: not treated as write redirection
+		{"kubectl get pods 2>/dev/null", false},
+		{"kubectl get pods 2> /dev/null", false},
+		{"echo x >> /dev/null", false},
+		{"cmd 2>&1", false},
+		{"cmd >&2", false},
+		{"cmd &> /dev/null", false},
+		{"echo ok > /dev/null && echo x > /tmp/out", true},
+		{"echo ok > /dev/nullx", true},
 	}
 	for _, tt := range tests {
 		got := ContainsWriteRedirection(tt.cmd)
 		if got != tt.want {
 			t.Errorf("ContainsWriteRedirection(%q) = %v, want %v", tt.cmd, got, tt.want)
 		}
+	}
+}
+
+func TestAllowStrict_SedWithoutInPlace(t *testing.T) {
+	w := NewAllowlist(config.DefaultAllowlistEntries())
+	// Avoid unquoted | inside egrep pattern: splitShellChain does not honor quotes.
+	cmd := "kubectl get pods 2>/dev/null | sed -n '1,260p' && echo '---' && kubectl get ns 2>/dev/null | egrep NAME || true"
+	if ContainsWriteRedirection(cmd) {
+		t.Fatal("ContainsWriteRedirection should be false for 2>/dev/null only")
+	}
+	if !w.AllowStrict(cmd) {
+		t.Fatalf("AllowStrict(%q) want true", cmd)
+	}
+	if w.AllowStrict("sed -i.bak -n '1p' /etc/passwd") {
+		t.Fatal("AllowStrict(sed -i...) should be false")
+	}
+	if w.AllowStrict("sed --in-place -n '1p' x") {
+		t.Fatal("AllowStrict(sed --in-place...) should be false")
 	}
 }

@@ -268,11 +268,17 @@ func NewModel(initialMessages []string, readModel ReadModel) *Model {
 		msgs = []string{startupTitleLine(defaultWidth)}
 	}
 	recenter := len(initialMessages) == 0
+	remote := RemoteState{}
+	if readModel != nil {
+		a, lbl, off := readModel.InitialRemoteFooter()
+		remote = RemoteState{Active: a, Label: lbl, Offline: off}
+	}
 	return &Model{
 		Input:                    ti,
 		messages:                 msgs,
 		recenterStartupTitleOnce: recenter,
 		ReadModel:                readModel,
+		Remote:                   remote,
 		Interaction: InteractionState{
 			inputHistIndex: -1,
 		},

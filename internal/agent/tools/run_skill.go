@@ -42,7 +42,7 @@ var _ tool.InvokableTool = (*RunSkillTool)(nil)
 func (t *RunSkillTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 	return &schema.ToolInfo{
 		Name: "run_skill",
-		Desc: "Run a script from an installed skill. Skills are under ~/.delve-shell/skills/<skill_name>/ with SKILL.md and scripts/ subdir. Use list_skills to discover skills and their scripts. When the user started the turn with /skill <name> for the same skill, approval is skipped; otherwise an approval card is shown. The command runs in the skill's scripts/ directory. Set result_contains_secrets if the script output may contain sensitive data.",
+		Desc: "Run a script from an installed skill. Skills are under ~/.delve-shell/skills/<skill_name>/ with SKILL.md and scripts/ subdir. Use list_skills to discover skills and their scripts. When the user started the turn with /skill <name> for the same skill, approval is skipped; otherwise an approval card is shown. The command runs in the skill's scripts/ directory. Prefer scripts that print concise, task-relevant summaries rather than large raw dumps. Set result_contains_secrets if the script output may contain sensitive data.",
 		ParamsOneOf: schema.NewParamsOneOfByParams(map[string]*schema.ParameterInfo{
 			"skill_name": {
 				Type:     schema.String,

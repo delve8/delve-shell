@@ -69,4 +69,13 @@ func TestAllowlist_DefaultKubectlGlobalOptsBeforeSubcommand(t *testing.T) {
 			t.Fatalf("AllowStrict(%q) want true", cmd)
 		}
 	})
+	t.Run("compound cluster-info get nodes echo field-selector", func(t *testing.T) {
+		cmd := "kubectl cluster-info && echo '---' && kubectl get nodes -o wide && echo '---' && kubectl get pods -A --field-selector=status.phase!=Running,status.phase!=Succeeded -o wide"
+		if ContainsWriteRedirection(cmd) {
+			t.Fatal("unexpected write-redirection heuristic on field-selector !=")
+		}
+		if !w.AllowStrict(cmd) {
+			t.Fatalf("AllowStrict(%q) want true", cmd)
+		}
+	})
 }

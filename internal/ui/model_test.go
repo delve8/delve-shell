@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/x/ansi"
 
 	"delve-shell/internal/ui/uivm"
 )
@@ -246,6 +247,56 @@ func truncateForTest(s string, max int) string {
 		return s
 	}
 	return s[:max] + "…"
+}
+
+type stubReadModelRemote struct {
+	active  bool
+	label   string
+	offline bool
+}
+
+func (stubReadModelRemote) TakeOpenConfigModelOnFirstLayout() bool { return false }
+
+func (s stubReadModelRemote) OfflineExecutionMode() bool { return s.offline }
+
+func (s stubReadModelRemote) InitialRemoteFooter() (active bool, label string, offline bool) {
+	return s.active, s.label, s.offline
+}
+
+func TestNewModelSeedsRemoteFromReadModel(t *testing.T) {
+	m := NewModel(nil, stubReadModelRemote{active: true, label: "prod (10.0.0.1)", offline: false})
+	if !m.Remote.Active || m.Remote.Label != "prod (10.0.0.1)" || m.Remote.Offline {
+		t.Fatalf("Remote: %+v", m.Remote)
+	}
+	m2 := NewModel(nil, stubReadModelRemote{active: false, offline: true})
+	if m2.Remote.Active || !m2.Remote.Offline {
+		t.Fatalf("offline Remote: %+v", m2.Remote)
+	}
+}
+
+func TestBashReturnTranscriptLineNonEmpty(t *testing.T) {
+	s := BashReturnTranscriptLine()
+	if s == "" {
+		t.Fatal("BashReturnTranscriptLine should be non-empty")
+	}
+	if !strings.Contains(s, "Delve") && !strings.Contains(s, "delve") {
+		t.Fatalf("expected Delve prefix in styled line: %q", s)
+	}
+}
+
+func TestRenderTranscriptLines_LineResultFitsWidthWithANSI(t *testing.T) {
+	m := NewModel(nil, nil)
+	m.layout.Width = 48
+	long := "\x1b[34m" + strings.Repeat("W", 120) + "\x1b[0m"
+	out := m.renderTranscriptLines([]uivm.Line{{Kind: uivm.LineResult, Text: long}})
+	if len(out) < 2 {
+		t.Fatalf("expected wrapped result into multiple rows, got %d lines", len(out))
+	}
+	for i, ln := range out {
+		if sw := ansi.StringWidth(ln); m.contentWidth() > 0 && sw > m.contentWidth() {
+			t.Fatalf("line %d: display width %d > content width %d", i, sw, m.contentWidth())
+		}
+	}
 }
 
 func TestTerminalWrappedRowsAccountsForSoftWrap(t *testing.T) {

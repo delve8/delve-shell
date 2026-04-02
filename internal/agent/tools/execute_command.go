@@ -11,7 +11,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 
 	"delve-shell/internal/hil"
-	"delve-shell/internal/hil/types"
+	hiltypes "delve-shell/internal/hil/types"
 	"delve-shell/internal/history"
 	"delve-shell/internal/remote/execenv"
 	"delve-shell/internal/runtime/execcancel"
@@ -48,7 +48,7 @@ var _ tool.InvokableTool = (*ExecuteCommandTool)(nil)
 func (t *ExecuteCommandTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 	return &schema.ToolInfo{
 		Name: "execute_command",
-		Desc: "Execute a shell command or script in the user's environment. Prefer shell commands to accomplish tasks; use Python or other scripting only when shell is not sufficient. If the command is not on the allowlist, the tool waits for user approval before running. Results must not contain user secrets or passwords; if output may contain sensitive data, set result_contains_secrets to true so the result is shown only to the user and not returned to the model or stored in history.",
+		Desc: "Execute a shell command or script in the user's environment. Prefer shell commands to accomplish tasks; use Python or other scripting only when shell is not sufficient. Prefer pipelines and filters (grep, awk, jq/jsonpath, head/tail, etc.) so stdout contains only the information you need—full verbose output is returned to the model and consumes context. If the command is not on the allowlist, the tool waits for user approval before running. Results must not contain user secrets or passwords; if output may contain sensitive data, set result_contains_secrets to true so the result is shown only to the user and not returned to the model or stored in history.",
 		ParamsOneOf: schema.NewParamsOneOfByParams(map[string]*schema.ParameterInfo{
 			"command": {
 				Type:     schema.String,

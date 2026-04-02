@@ -7,6 +7,11 @@ import (
 	"delve-shell/internal/config"
 )
 
+var (
+	sedLeadingCmd   = regexp.MustCompile(`^sed(\s|$)`)
+	sedInPlaceFlags = regexp.MustCompile(`(?:^|\s)(?:-i(?:\.\S+)?(?:=[^\s]+)?|--in-place(?:=[^\s]+)?)(?:\s|$)`)
+)
+
 // Allowlist is a config-based allowlist matcher.
 type Allowlist struct {
 	patterns []compiledEntry
@@ -28,8 +33,10 @@ func NewAllowlist(entries []config.AllowlistEntry) *Allowlist {
 }
 
 // ContainsWriteRedirection reports whether the command contains write redirection (>, >>, 2>, etc.).
-// Heuristic: > outside single quotes and not >= or => is treated as write redirection and requires user approval.
+// Outside single quotes, > not part of >= or => is a redirect unless the target is a discard/dup only:
+// /dev/null, or &fd (e.g. 2>&1). Other targets still require user approval.
 func ContainsWriteRedirection(command string) bool {
+	const devNull = "/dev/null"
 	inSingle := false
 	for i := 0; i < len(command); i++ {
 		c := command[i]
@@ -40,15 +47,62 @@ func ContainsWriteRedirection(command string) bool {
 		if inSingle {
 			continue
 		}
-		if c == '>' {
-			nextEq := i+1 < len(command) && command[i+1] == '='
-			prevEq := i > 0 && command[i-1] == '='
-			if !nextEq && !prevEq {
-				return true
+		if c != '>' {
+			continue
+		}
+		if i+1 < len(command) && command[i+1] == '=' {
+			continue // >=
+		}
+		if i > 0 && command[i-1] == '=' {
+			continue // =>
+		}
+		opEnd := i + 1
+		if opEnd < len(command) && command[opEnd] == '>' {
+			opEnd++ // >>
+		}
+		targetStart := opEnd
+		for targetStart < len(command) && (command[targetStart] == ' ' || command[targetStart] == '\t') {
+			targetStart++
+		}
+		rest := command[targetStart:]
+		if len(rest) >= len(devNull) && rest[:len(devNull)] == devNull {
+			if len(rest) == len(devNull) || isRedirectTargetBoundary(rest[len(devNull)]) {
+				i = targetStart + len(devNull) - 1
+				continue
 			}
 		}
+		if len(rest) > 0 && rest[0] == '&' {
+			j := 1
+			for j < len(rest) && rest[j] >= '0' && rest[j] <= '9' {
+				j++
+			}
+			if j > 1 && (j == len(rest) || isRedirectTargetBoundary(rest[j])) {
+				i = targetStart + j - 1
+				continue
+			}
+		}
+		return true
 	}
 	return false
+}
+
+func isRedirectTargetBoundary(b byte) bool {
+	switch b {
+	case ' ', '\t', '|', ';', '&', '#':
+		return true
+	default:
+		return false
+	}
+}
+
+// benignSedReadOnly is true for a segment whose command is sed without in-place flags (-i / --in-place).
+// It does not try to rule out sed scripts that use the w command (write to file); that remains a residual risk.
+func benignSedReadOnly(seg string) bool {
+	s := strings.TrimSpace(seg)
+	if !sedLeadingCmd.MatchString(s) {
+		return false
+	}
+	return !sedInPlaceFlags.MatchString(s)
 }
 
 // Allow reports whether a single command string matches the allowlist (used per segment in AllowStrict).
@@ -78,12 +132,17 @@ func splitIntoCommands(command string) []string {
 	return out
 }
 
+// segmentAllowed is true when the segment matches the allowlist or is read-only sed (no -i / --in-place).
+func (w *Allowlist) segmentAllowed(seg string) bool {
+	return seg != "" && (w.Allow(seg) || benignSedReadOnly(seg))
+}
+
 // AllowStrict: for chained/pipeline commands, splits into segments and requires every segment to match the allowlist;
 // for a single command, requires that one segment to match. All must match; no approval bypass by a single allowed token.
 func (w *Allowlist) AllowStrict(command string) bool {
 	segments := splitIntoCommands(command)
 	for _, seg := range segments {
-		if seg == "" || !w.Allow(seg) {
+		if !w.segmentAllowed(seg) {
 			return false
 		}
 	}
@@ -149,7 +208,7 @@ func (w *Allowlist) AllowPipeline(command string) bool {
 	}
 	for _, part := range parts {
 		for _, sub := range splitShellChain(part) {
-			if sub == "" || !w.Allow(sub) {
+			if !w.segmentAllowed(sub) {
 				return false
 			}
 		}

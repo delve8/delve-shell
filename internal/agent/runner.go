@@ -178,6 +178,9 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		ToolCallingModel: chatModel,
 		ToolsConfig: compose.ToolsNodeConfig{
 			Tools: tools,
+			// Default ToolsNode runs multiple tool calls from one assistant message in parallel.
+			// That overlaps streaming stdout with HIL approval for another execute_command and confuses the TUI.
+			ExecuteSequentially: true,
 		},
 		// Limit total ReAct steps per turn to avoid infinite loops; default is node count + 2.
 		// 50 allows multiple tool calls (e.g. inspecting several pods) plus retries while still failing fast on loops.
@@ -203,7 +206,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 }
 
 func allowlistExecutionParagraph() string {
-	return `When an allowlist is configured: commands that match it and contain no shell write redirection (e.g. > or >>) may run without an additional consent step. Other proposed commands are held until the session authorizes them under host rules. An empty allowlist matches nothing, so every command follows the non-allowlist path unless other policy applies. Prefer one combined command per execute_command when batching is acceptable.`
+	return `When an allowlist is configured: commands that match it and contain no shell write redirection (e.g. > or >>) may run without an additional consent step. Other proposed commands are held until the session authorizes them under host rules. An empty allowlist matches nothing, so every command follows the non-allowlist path unless other policy applies. Prefer one execute_command with a single shell script combining steps using &&, ||, or ; (one sh -c) when batching is acceptable, instead of multiple execute_command calls in one reply.`
 }
 
 // MaxConversationEvents is the max number of session events to use when building conversation history (user_input + llm_response only).

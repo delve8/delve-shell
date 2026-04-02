@@ -108,6 +108,7 @@ const (
 	KeyOfflinePasteCopyFailed        = "offline_paste_copy_failed"
 	KeyOfflinePastePlaceholder       = "offline_paste_placeholder"
 	KeyOfflineExecBashDisabled       = "offline_exec_bash_disabled"
+	KeyBashReturnNotice              = "bash_return_notice"
 	KeyOfflineSlashExecDisabled      = "offline_slash_exec_disabled"
 	KeyOfflineSlashSkillDisabled     = "offline_slash_skill_disabled"
 	KeySkillScriptsSyncRemote        = "skill_scripts_sync_remote"
@@ -342,6 +343,7 @@ Quit (Ctrl+C also works)`,
 		KeyOfflinePasteCopyFailed:        "Could not copy to clipboard. Select the command line above or copy manually.",
 		KeyOfflinePastePlaceholder:       "Paste output",
 		KeyOfflineExecBashDisabled:       "/bash is not available in Offline mode.",
+		KeyBashReturnNotice:              "Returned from embedded shell (/bash).",
 		KeyOfflineSlashExecDisabled:      "/exec is not available in Offline mode.",
 		KeyOfflineSlashSkillDisabled:     "/skill is not available in Offline mode.",
 		KeySkillScriptsSyncRemote:        "Syncing skill scripts to remote host…",

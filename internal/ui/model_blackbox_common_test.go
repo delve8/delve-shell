@@ -53,6 +53,10 @@ func (r testReadModel) TakeOpenConfigModelOnFirstLayout() bool {
 
 func (r testReadModel) OfflineExecutionMode() bool { return r.offline }
 
+func (r testReadModel) InitialRemoteFooter() (active bool, label string, offline bool) {
+	return false, "", r.offline
+}
+
 type testCommandSender struct {
 	f *blackboxFixture
 }

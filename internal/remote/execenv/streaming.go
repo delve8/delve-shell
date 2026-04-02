@@ -18,7 +18,19 @@ type LineEmitWriter struct {
 	emit func(line string)
 }
 
-// NewLineEmitWriter returns a writer that splits on '\n' and invokes emit for each line (without the newline). Carriage returns before '\n' are trimmed from line text.
+// normalizeLineForEmit removes CR used for in-place terminal updates. Trailing '\r' (CRLF) is dropped,
+// then any earlier '\r' is treated as "return to column 0": only the substring after the last '\r' is kept.
+// This avoids raw '\r' reaching tea.Println and corrupting the TUI cursor.
+func normalizeLineForEmit(s string) string {
+	s = strings.TrimSuffix(s, "\r")
+	if i := strings.LastIndex(s, "\r"); i >= 0 {
+		s = s[i+1:]
+	}
+	return s
+}
+
+// NewLineEmitWriter returns a writer that splits on '\n' and invokes emit for each line (without the newline).
+// Lines are normalized with [normalizeLineForEmit] so progress-style '\r' updates do not break the host TUI.
 func NewLineEmitWriter(emit func(line string)) *LineEmitWriter {
 	if emit == nil {
 		emit = func(string) {}
@@ -34,7 +46,7 @@ func (w *LineEmitWriter) Write(p []byte) (int, error) {
 		if i < 0 {
 			break
 		}
-		line := strings.TrimSuffix(string(b[:i]), "\r")
+		line := normalizeLineForEmit(string(b[:i]))
 		w.buf.Next(i + 1)
 		w.emit(line)
 	}
@@ -46,7 +58,7 @@ func (w *LineEmitWriter) Flush() {
 	if w.buf.Len() == 0 {
 		return
 	}
-	line := strings.TrimSuffix(w.buf.String(), "\r")
+	line := normalizeLineForEmit(w.buf.String())
 	w.buf.Reset()
 	w.emit(line)
 }

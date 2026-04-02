@@ -56,6 +56,16 @@ func (r hostReadModel) OfflineExecutionMode() bool {
 	return r.host.OfflineExecutionMode()
 }
 
+func (r hostReadModel) InitialRemoteFooter() (active bool, label string, offline bool) {
+	if r.host == nil {
+		return false, "", false
+	}
+	offline = r.host.OfflineExecutionMode()
+	active = r.host.RemoteActive()
+	label = r.host.RemoteLabel()
+	return active, label, offline
+}
+
 func newTuiRestartLoop(
 	controller *controller.Controller,
 	programPtr *atomic.Pointer[tea.Program],
@@ -95,6 +105,7 @@ func (l *tuiRestartLoop) run() error {
 		select {
 		case snap := <-l.shellAfterExit:
 			saved = snap.Messages
+			saved = append(saved, ui.BashReturnTranscriptLine(), "")
 			if snap.Mode == hostcmd.SubshellModeRemoteSSH {
 				if err := execenv.RunInteractiveSSHShell(context.Background(), l.getExec()); err != nil {
 					_, _ = fmt.Fprintf(os.Stderr, "delve-shell: remote shell: %v\n", err)

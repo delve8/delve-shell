@@ -26,6 +26,9 @@ const (
 type ReadModel interface {
 	TakeOpenConfigModelOnFirstLayout() bool
 	OfflineExecutionMode() bool
+	// InitialRemoteFooter mirrors host Runtime when a new tea.Program starts (e.g. after /bash).
+	// When inactive, label and offline are ignored by the UI footer.
+	InitialRemoteFooter() (active bool, label string, offline bool)
 }
 
 func (m *Model) takeOpenConfigModelOnFirstLayout() bool {
