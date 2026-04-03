@@ -152,6 +152,7 @@ func defaultAllowlist() []AllowlistEntry {
 		// output and pipes (read-only)
 		{Pattern: `(^|\s)echo(\s|$)`},
 		{Pattern: `(^|\s)printf(\s|$)`},
+		{Pattern: `(^|\s)set(\s|$)`},
 		// text compare and process (read-only, no file write)
 		{Pattern: `(^|\s)diff(\s|$)`},
 		{Pattern: `(^|\s)cmp(\s|$)`},

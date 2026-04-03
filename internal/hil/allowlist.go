@@ -10,6 +10,11 @@ import (
 var (
 	sedLeadingCmd   = regexp.MustCompile(`^sed(\s|$)`)
 	sedInPlaceFlags = regexp.MustCompile(`(?:^|\s)(?:-i(?:\.\S+)?(?:=[^\s]+)?|--in-place(?:=[^\s]+)?)(?:\s|$)`)
+
+	jqLeadingCmd = regexp.MustCompile(`^jq(\s|$)`)
+	// Reject loading a jq program from disk (-f / --from-file). Filter source is not analyzed.
+	jqFromFileFlag = regexp.MustCompile(`(?:^|\s)-f(?:\s+|\s*=|$|\S)`)
+	jqFromFileLong = regexp.MustCompile(`(?:^|\s)--from-file(?:\s+|\s*=|$)`)
 )
 
 // Allowlist is a config-based allowlist matcher.
@@ -105,6 +110,18 @@ func benignSedReadOnly(seg string) bool {
 	return !sedInPlaceFlags.MatchString(s)
 }
 
+// benignJqReadOnly is true for jq without -f/--from-file (program from file). Stdin/stdout-only filters are assumed.
+func benignJqReadOnly(seg string) bool {
+	s := strings.TrimSpace(seg)
+	if !jqLeadingCmd.MatchString(s) {
+		return false
+	}
+	if jqFromFileFlag.MatchString(s) || jqFromFileLong.MatchString(s) {
+		return false
+	}
+	return true
+}
+
 // Allow reports whether a single command string matches the allowlist (used per segment in AllowStrict).
 func (w *Allowlist) Allow(command string) bool {
 	for _, p := range w.patterns {
@@ -132,9 +149,9 @@ func splitIntoCommands(command string) []string {
 	return out
 }
 
-// segmentAllowed is true when the segment matches the allowlist or is read-only sed (no -i / --in-place).
+// segmentAllowed is true when the segment matches the allowlist or is read-only sed (no -i / --in-place) or read-only jq (no -f/--from-file).
 func (w *Allowlist) segmentAllowed(seg string) bool {
-	return seg != "" && (w.Allow(seg) || benignSedReadOnly(seg))
+	return seg != "" && (w.Allow(seg) || benignSedReadOnly(seg) || benignJqReadOnly(seg))
 }
 
 // AllowStrict: for chained/pipeline commands, splits into segments and requires every segment to match the allowlist;

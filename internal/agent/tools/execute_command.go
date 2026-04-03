@@ -101,8 +101,7 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 
 	allowed := false
 	if t.Allowlist != nil {
-		allowed = !hil.ContainsWriteRedirection(command) &&
-			t.Allowlist.AllowStrict(command)
+		allowed = t.Allowlist.CommandAllowsAutoApprove(command)
 	}
 	if !allowed {
 		resp := t.RequestApproval(command, "", reason, riskLevel, "")

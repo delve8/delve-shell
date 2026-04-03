@@ -62,6 +62,17 @@ func TestContainsWriteRedirection(t *testing.T) {
 	}
 }
 
+func TestBenignJqReadOnly(t *testing.T) {
+	w := NewAllowlist(config.DefaultAllowlistEntries())
+	// AllowStrict splits chains on | without quote awareness; use a filter without |.
+	if !w.AllowStrict(`jq -r '.items[]'`) {
+		t.Fatal("AllowStrict jq without -f should pass")
+	}
+	if w.AllowStrict(`jq -f prog.jq .`) {
+		t.Fatal("jq -f should not pass AllowStrict")
+	}
+}
+
 func TestAllowStrict_SedWithoutInPlace(t *testing.T) {
 	w := NewAllowlist(config.DefaultAllowlistEntries())
 	// Avoid unquoted | inside egrep pattern: splitShellChain does not honor quotes.
