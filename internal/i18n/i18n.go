@@ -37,6 +37,7 @@ const (
 	KeyConfigPrefix            = "config_prefix"
 	KeyWaitOrCancel            = "wait_or_cancel"
 	KeyCommandExecWaitOrCancel = "command_exec_wait_or_cancel"
+	KeyExecStreamPreviewHeader   = "exec_stream_preview_header"
 	KeyPlaceholderInput        = "placeholder_input"
 	KeyInputHintApproveThree   = "input_hint_approve_three" // placeholder when waiting for 1/2/3 (Run/Dismiss/Copy)
 	KeyInputHintSensitive      = "input_hint_sensitive"     // placeholder when waiting for 1/2/3 (sensitive)
@@ -279,6 +280,7 @@ Quit (Ctrl+C also works)`,
 		KeyConfigPrefix:                  "Config: ",
 		KeyWaitOrCancel:                  "(Please wait for the current response, or press Esc to cancel)",
 		KeyCommandExecWaitOrCancel:       "(Command running — press Esc to cancel)",
+		KeyExecStreamPreviewHeader:       "Output (last lines):",
 		KeyPlaceholderInput:              "Type your question or / for slash commands.",
 		KeyInputHistBrowsingHint:         "↑/↓ input history · Enter to send · any other key edits",
 		KeyInputHintApproveThree:         "1, 2 or 3",

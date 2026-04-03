@@ -151,31 +151,20 @@ func (p *Presenter) CommandExecutedFromTool(cmd string, allowed bool, result str
 func (p *Presenter) ExecStreamBegin(cmd string, allowed, suggested, direct bool) {
 	runLine := "Run: " + cmd + " (" + execRunTag(allowed, suggested, direct) + ")"
 	p.Raw(ui.TranscriptAppendMsg{Lines: []uivm.Line{{Kind: uivm.LineExec, Text: runLine}}})
+	p.Raw(ui.ExecStreamWindowOpenMsg{})
 }
 
-// ExecStreamLineOut appends one streamed command output line (stdout or stderr).
+// ExecStreamLineOut queues one line for the live preview; transcript gets all lines on stream end.
 func (p *Presenter) ExecStreamLineOut(line string, stderr bool) {
 	if line == "" {
 		return
 	}
-	text := line
-	if stderr {
-		text = "stderr: " + line
-	}
-	p.Raw(ui.TranscriptAppendMsg{Lines: []uivm.Line{{Kind: uivm.LineResult, Text: text}}})
+	p.Raw(ui.ExecStreamPreviewMsg{Line: line, Stderr: stderr})
 }
 
-// CommandExecutedStreamEnd finishes a streamed run: sensitive note, exit/footer tail, blank line (no second Run: line).
+// CommandExecutedStreamEnd flushes the preview buffer to the transcript, then tail/sensitive lines.
 func (p *Presenter) CommandExecutedStreamEnd(sensitive bool, tail string) {
-	var lines []uivm.Line
-	if sensitive {
-		lines = append(lines, uivm.Line{Kind: uivm.LineSystemSuggest, Text: "Result contains sensitive data."})
-	}
-	if tail != "" {
-		lines = append(lines, uivm.Line{Kind: uivm.LineResult, Text: tail})
-	}
-	lines = append(lines, uivm.Line{Kind: uivm.LineBlank})
-	p.Raw(ui.TranscriptAppendMsg{Lines: lines})
+	p.Raw(ui.ExecStreamFlushMsg{Sensitive: sensitive, Tail: tail})
 }
 
 // --- HIL: approval & sensitive confirmation (Agent payloads as tea.Msg) ---

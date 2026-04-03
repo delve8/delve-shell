@@ -57,6 +57,16 @@ type InteractionState struct {
 
 	// pendingHistorySwitchID is the session id to pass to SessionSwitch when the user presses Enter in the history preview overlay.
 	pendingHistorySwitchID string
+
+	// Streamed command output: live preview (last N lines) + buffer flushed on [ExecStreamFlushMsg].
+	execStreamWindowOpen bool
+	execStreamBuffer     []execStreamSeg
+}
+
+// execStreamSeg is one logical line emitted by the executor (stdout or stderr).
+type execStreamSeg struct {
+	text   string
+	stderr bool
 }
 
 // OfflinePasteState holds the paste textarea and callback for offline manual relay.
@@ -226,8 +236,28 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return finalizeUpdate(prevOverlayActive, m, nil)
 
+	case ExecStreamWindowOpenMsg:
+		m2, cmd := m.handleExecStreamWindowOpenMsg()
+		return finalizeUpdate(prevOverlayActive, m2, cmd)
+
+	case ExecStreamPreviewMsg:
+		m2, cmd := m.handleExecStreamPreviewMsg(msg)
+		return finalizeUpdate(prevOverlayActive, m2, cmd)
+
+	case ExecStreamFlushMsg:
+		m2, cmd := m.handleExecStreamFlushMsg(msg)
+		return finalizeUpdate(prevOverlayActive, m2, cmd)
+
 	case CommandExecutionStateMsg:
 		m.Interaction.CommandExecuting = msg.Active
+		if !msg.Active {
+			// If the host drops [ExecStreamFlushMsg], avoid leaving buffered output stuck in the preview.
+			if len(m.Interaction.execStreamBuffer) > 0 {
+				m2, cmd := m.handleExecStreamFlushMsg(ExecStreamFlushMsg{})
+				return finalizeUpdate(prevOverlayActive, m2, cmd)
+			}
+			m.Interaction.execStreamWindowOpen = false
+		}
 		return finalizeUpdate(prevOverlayActive, m, nil)
 
 	}

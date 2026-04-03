@@ -184,7 +184,8 @@ func (m *Model) syncInputHeight() {
 
 // inputChromeHeight returns the total number of lines in the bottom chrome (separator through footer).
 func (m *Model) inputChromeHeight() int {
-	height := 1 // separator above input
+	height := m.execStreamPreviewReserveRows()
+	height += 1 // separator above input
 	height += m.primaryInputHeight()
 	if m.ChoiceCard.offlinePaste != nil {
 		if m.ChoiceCard.offlinePaste.Paste.LineCount() > 1 {

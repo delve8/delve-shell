@@ -52,3 +52,19 @@ type offlinePasteCopyAckClearMsg struct{}
 type CommandExecutionStateMsg struct {
 	Active bool
 }
+
+// ExecStreamWindowOpenMsg marks the start of streamed command output (after Run: is appended).
+// The UI reserves a small preview band until [ExecStreamFlushMsg].
+type ExecStreamWindowOpenMsg struct{}
+
+// ExecStreamPreviewMsg carries one stdout/stderr line for the live preview (not transcript yet).
+type ExecStreamPreviewMsg struct {
+	Line   string
+	Stderr bool
+}
+
+// ExecStreamFlushMsg appends all buffered stream lines to the transcript, then tail/sensitive lines.
+type ExecStreamFlushMsg struct {
+	Sensitive bool
+	Tail      string
+}

@@ -147,15 +147,12 @@ func TestPresenter_DispatchAgentUI_StreamedExecTail(t *testing.T) {
 	if len(r.msgs) != 1 {
 		t.Fatalf("want 1 msg, got %d", len(r.msgs))
 	}
-	ta := r.msgs[0].(ui.TranscriptAppendMsg)
-	if len(ta.Lines) < 3 {
-		t.Fatalf("lines: %#v", ta.Lines)
+	fl, ok := r.msgs[0].(ui.ExecStreamFlushMsg)
+	if !ok {
+		t.Fatalf("want ExecStreamFlushMsg, got %T", r.msgs[0])
 	}
-	if ta.Lines[0].Text != "Result contains sensitive data." {
-		t.Fatalf("want sensitive line, got %#v", ta.Lines[0])
-	}
-	if ta.Lines[1].Text != "exit_code: 0" {
-		t.Fatalf("want tail, got %#v", ta.Lines[1])
+	if !fl.Sensitive || fl.Tail != "exit_code: 0" {
+		t.Fatalf("flush: %+v", fl)
 	}
 }
 
@@ -165,20 +162,23 @@ func TestPresenter_DispatchAgentUI_ExecStream(t *testing.T) {
 	p.DispatchAgentUI(hiltypes.ExecStreamStart{Command: "c", Allowed: false})
 	p.DispatchAgentUI(hiltypes.ExecStreamLine{Line: "hi", Stderr: false})
 	p.DispatchAgentUI(hiltypes.ExecStreamLine{Line: "e", Stderr: true})
-	if len(r.msgs) != 3 {
-		t.Fatalf("want 3 msgs, got %d", len(r.msgs))
+	if len(r.msgs) != 4 {
+		t.Fatalf("want 4 msgs, got %d", len(r.msgs))
 	}
 	m0 := r.msgs[0].(ui.TranscriptAppendMsg)
 	if m0.Lines[0].Text != "Run: c (approved)" {
 		t.Fatalf("run line: %#v", m0.Lines[0])
 	}
-	m1 := r.msgs[1].(ui.TranscriptAppendMsg)
-	if m1.Lines[0].Text != "hi" {
-		t.Fatalf("stdout line: %#v", m1.Lines[0])
+	if _, ok := r.msgs[1].(ui.ExecStreamWindowOpenMsg); !ok {
+		t.Fatalf("msg1 type %T", r.msgs[1])
 	}
-	m2 := r.msgs[2].(ui.TranscriptAppendMsg)
-	if m2.Lines[0].Text != "stderr: e" {
-		t.Fatalf("stderr line: %#v", m2.Lines[0])
+	m2 := r.msgs[2].(ui.ExecStreamPreviewMsg)
+	if m2.Line != "hi" || m2.Stderr {
+		t.Fatalf("stdout preview: %+v", m2)
+	}
+	m3 := r.msgs[3].(ui.ExecStreamPreviewMsg)
+	if m3.Line != "e" || !m3.Stderr {
+		t.Fatalf("stderr preview: %+v", m3)
 	}
 }
 

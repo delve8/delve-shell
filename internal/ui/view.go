@@ -28,7 +28,8 @@ func (m *Model) renderBaseScreen() string {
 	if m.primaryInputLineCount() > 1 {
 		inputSeparator = "\n"
 	}
-	bottomBlock := sepLine + "\n" + m.primaryInputView() + inputSeparator + m.inputBelowBlock(inChoice) + footer
+	preview := m.renderExecStreamPreviewBlock()
+	bottomBlock := preview + sepLine + "\n" + m.primaryInputView() + inputSeparator + m.inputBelowBlock(inChoice) + footer
 	// Choice cards (approval / sensitive / offline paste) render their body via m.messages + tea.Println,
 	// same as chat; View() only draws this bottom chrome. Top padding aligns with printed transcript rows.
 	padLines := m.normalModeTopPaddingLines(bottomBlock)
