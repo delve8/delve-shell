@@ -6,7 +6,12 @@ import "strings"
 func ShouldFillOnly(chosen Option, input string) bool {
 	text := strings.TrimSpace(input)
 	if chosen.FillValue == "" {
-		return strings.HasPrefix(chosen.Cmd, text) && chosen.Cmd != text
+		cmd := strings.TrimSpace(chosen.Cmd)
+		// Case-fold so "/access l" can complete "/access Local" (reserved tokens are title-cased).
+		if strings.EqualFold(cmd, text) {
+			return false
+		}
+		return strings.HasPrefix(strings.ToLower(cmd), strings.ToLower(text))
 	}
 	return strings.HasPrefix(chosen.Cmd, text)
 }

@@ -19,3 +19,10 @@ func TestEvaluateSlashEnter_ExactChosen(t *testing.T) {
 		t.Fatalf("unexpected result: %+v", got)
 	}
 }
+
+func TestEvaluateSlashEnter_AccessLocalPartialLowerL(t *testing.T) {
+	got := EvaluateSlashEnter("/access l", "/access l", slashview.Option{Cmd: "/access Local"}, true)
+	if got.Action != EnterKeyFillOnly || got.Fill != "/access Local " {
+		t.Fatalf("unexpected result: %+v", got)
+	}
+}

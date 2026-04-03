@@ -12,6 +12,15 @@ func TestShouldFillOnly(t *testing.T) {
 	if !ShouldFillOnly(Option{Cmd: "/skill demo", FillValue: "/skill demo"}, "/skill demo") {
 		t.Fatalf("expected fill-only for explicit fill-value option")
 	}
+	if !ShouldFillOnly(Option{Cmd: "/access Local"}, "/access l") {
+		t.Fatalf("expected fill-only when prefix differs only by case after partial token")
+	}
+	if ShouldFillOnly(Option{Cmd: "/access Local"}, "/access Local") {
+		t.Fatalf("exact command match should not be fill-only")
+	}
+	if ShouldFillOnly(Option{Cmd: "/access Local"}, "/access local") {
+		t.Fatalf("case-insensitive exact match should not be fill-only")
+	}
 }
 
 func TestShouldResolveSelected(t *testing.T) {
