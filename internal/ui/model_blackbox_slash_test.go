@@ -50,6 +50,24 @@ func TestBlackboxSlashBashSendsMessagesToShell(t *testing.T) {
 	}
 }
 
+func TestBlackboxSlashBashSnapshotIncludesInputHistory(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("/bash is not available on Windows")
+	}
+	f := newBlackboxFixture(t)
+	m := enterText(f.model, "hello")
+	m.Interaction.WaitingForAI = false
+	_ = enterText(m, "/bash")
+	select {
+	case snap := <-f.shellRequested:
+		if len(snap.InputHistory) != 2 || snap.InputHistory[0] != "hello" || snap.InputHistory[1] != "/bash" {
+			t.Fatalf("want input history [hello /bash], got %#v", snap.InputHistory)
+		}
+	default:
+		t.Fatalf("expected /bash to send shell snapshot")
+	}
+}
+
 func TestBlackboxSlashBashRemoteModeWhenRemoteActive(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("/bash is not available on Windows")

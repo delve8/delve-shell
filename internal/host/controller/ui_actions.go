@@ -32,8 +32,9 @@ func (c *Controller) handleCommand(command hostcmd.Command) {
 	case hostcmd.ShellSnapshot:
 		if c.shellSnapshot != nil {
 			snap := hostcmd.ShellSnapshot{
-				Messages: append([]string(nil), cmd.Messages...),
-				Mode:     cmd.Mode,
+				Messages:     append([]string(nil), cmd.Messages...),
+				InputHistory: append([]string(nil), cmd.InputHistory...),
+				Mode:         cmd.Mode,
 			}
 			select {
 			case c.shellSnapshot <- snap:

@@ -59,7 +59,9 @@ const (
 
 type ShellSnapshot struct {
 	Messages []string
-	Mode     SubshellMode
+	// InputHistory is local submitted-line recall (Up/Down); persisted across /bash TUI restart.
+	InputHistory []string
+	Mode         SubshellMode
 }
 
 func (ShellSnapshot) hostCommand() {}

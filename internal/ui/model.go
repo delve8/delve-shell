@@ -238,6 +238,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // NewModel creates a Model with default input (slash commands and transcript-aligned bottom chrome).
 // initialMessages if non-nil is used as existing conversation (e.g. after /bash return).
 func NewModel(initialMessages []string, readModel ReadModel) *Model {
+	return newModel(initialMessages, nil, readModel)
+}
+
+// NewModelWithInputHistory is like [NewModel] but restores local submitted-line recall (Up/Down),
+// used when the TUI restarts after /bash. Pass nil or empty inputHistory when not applicable.
+func NewModelWithInputHistory(initialMessages []string, inputHistory []string, readModel ReadModel) *Model {
+	return newModel(initialMessages, inputHistory, readModel)
+}
+
+func newModel(initialMessages []string, inputHistory []string, readModel ReadModel) *Model {
 	i18n.SetLang(languageFromConfig())
 	ti := textarea.New()
 	ti.Placeholder = i18n.T(i18n.KeyPlaceholderInput)
@@ -273,6 +283,14 @@ func NewModel(initialMessages []string, readModel ReadModel) *Model {
 		a, lbl, off := readModel.InitialRemoteFooter()
 		remote = RemoteState{Active: a, Label: lbl, Offline: off}
 	}
+	var ih []string
+	if len(inputHistory) > 0 {
+		ih = make([]string, len(inputHistory))
+		copy(ih, inputHistory)
+		if len(ih) > maxInputHistoryEntries {
+			ih = ih[len(ih)-maxInputHistoryEntries:]
+		}
+	}
 	return &Model{
 		Input:                    ti,
 		messages:                 msgs,
@@ -280,6 +298,7 @@ func NewModel(initialMessages []string, readModel ReadModel) *Model {
 		ReadModel:                readModel,
 		Remote:                   remote,
 		Interaction: InteractionState{
+			inputHistory:   ih,
 			inputHistIndex: -1,
 		},
 		layout: LayoutState{

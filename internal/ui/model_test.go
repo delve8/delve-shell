@@ -96,6 +96,17 @@ func TestNewModelInitialTranscriptOnly(t *testing.T) {
 	}
 }
 
+func TestNewModelWithInputHistoryRecall(t *testing.T) {
+	m := NewModelWithInputHistory([]string{"restored"}, []string{"first", "second"}, nil)
+	m.Input.SetValue("")
+	m.Input.CursorEnd()
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	m = next.(*Model)
+	if got := m.Input.Value(); got != "second" {
+		t.Fatalf("Up after restore want latest history line, got %q", got)
+	}
+}
+
 func TestNewModelStartupTitleWhenEmpty(t *testing.T) {
 	m := NewModel(nil, nil)
 	if len(m.messages) != 1 {

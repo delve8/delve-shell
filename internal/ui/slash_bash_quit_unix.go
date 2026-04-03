@@ -15,20 +15,21 @@ func trySlashBashQuit(m *Model, text string) (*Model, tea.Cmd, bool) {
 		return m, nil, false
 	}
 	if m.offlineExecutionMode() {
-		m.appendUserSubmittedEcho(text)
+		m.appendUserTranscriptLine(text)
 		m.AppendTranscriptLines(errStyle.Render(m.delveMsg(i18n.T(i18n.KeyOfflineExecBashDisabled))))
 		m.clearSlashInput()
 		printCmd := m.printTranscriptCmd(false)
 		return m, printCmd, true
 	}
-	m.appendUserSubmittedEcho(text)
+	m.appendUserTranscriptLine(text)
 	mode := hostcmd.SubshellModeLocalBash
 	if m.Remote.Active {
 		mode = hostcmd.SubshellModeRemoteSSH
 	}
 	if m.CommandSender != nil {
 		msgs := append([]string(nil), m.TranscriptLines()...)
-		_ = m.CommandSender.Send(hostcmd.ShellSnapshot{Messages: msgs, Mode: mode})
+		hist := append([]string(nil), m.Interaction.inputHistory...)
+		_ = m.CommandSender.Send(hostcmd.ShellSnapshot{Messages: msgs, InputHistory: hist, Mode: mode})
 	}
 	m.clearSlashInput()
 	return m, tea.Quit, true

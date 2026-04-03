@@ -143,6 +143,16 @@ func (m *Model) appendUserSubmittedEcho(text string) {
 		return
 	}
 	m.withInputHistoryCommitted(text)
+	m.appendUserTranscriptLine(text)
+}
+
+// appendUserTranscriptLine appends the "User: …" transcript row only (no input history).
+// Used when [withInputHistoryCommitted] or equivalent already ran (e.g. slash Enter before /bash quit).
+func (m *Model) appendUserTranscriptLine(text string) {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return
+	}
 	w := m.contentWidth()
 	sepLine := renderSeparator(w)
 	m.messages = maininput.AppendUserInputLines(m.messages, i18n.T(i18n.KeyUserLabel), text, w, sepLine)

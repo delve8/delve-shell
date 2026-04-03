@@ -96,15 +96,20 @@ func newTuiRestartLoop(
 // tea.Program.Run returns an error.
 func (l *tuiRestartLoop) run() error {
 	var saved []string
+	var savedInputHist []string
 	openModel := l.openConfigModelOnFirstLayout
 	for {
-		if err := l.runOneSession(&saved, openModel); err != nil {
+		if err := l.runOneSession(&saved, &savedInputHist, openModel); err != nil {
 			return err
 		}
 		openModel = false
 		select {
 		case snap := <-l.shellAfterExit:
 			saved = snap.Messages
+			savedInputHist = nil
+			if len(snap.InputHistory) > 0 {
+				savedInputHist = append([]string(nil), snap.InputHistory...)
+			}
 			saved = append(saved, ui.BashReturnTranscriptLine(), "")
 			if snap.Mode == hostcmd.SubshellModeRemoteSSH {
 				if err := execenv.RunInteractiveSSHShell(context.Background(), l.getExec()); err != nil {
@@ -119,10 +124,10 @@ func (l *tuiRestartLoop) run() error {
 	}
 }
 
-func (l *tuiRestartLoop) runOneSession(saved *[]string, openConfigModel bool) error {
+func (l *tuiRestartLoop) runOneSession(saved *[]string, savedInputHist *[]string, openConfigModel bool) error {
 	l.controller.SyncCurrentSessionPath()
 	l.host.SetOpenConfigModelOnFirstLayout(openConfigModel)
-	model := ui.NewModel(*saved, hostReadModel{host: l.host})
+	model := ui.NewModelWithInputHistory(*saved, *savedInputHist, hostReadModel{host: l.host})
 	model.CommandSender = ui.NewCommandChannelSender(l.commands)
 	p := tea.NewProgram(model, defaultTUIProgramOptions...)
 	l.programPtr.Store(p)
