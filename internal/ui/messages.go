@@ -63,7 +63,8 @@ type ExecStreamPreviewMsg struct {
 	Stderr bool
 }
 
-// ExecStreamFlushMsg appends all buffered stream lines to the transcript, then tail/sensitive lines.
+// ExecStreamFlushMsg appends buffered stream output as one transcript block (joined with newlines), optionally
+// truncating long output to the last chunk of lines with a hint; full stdout/stderr is still stored in session history.
 type ExecStreamFlushMsg struct {
 	Sensitive bool
 	Tail      string

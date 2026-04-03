@@ -104,14 +104,33 @@ func (m *Model) handleExecStreamPreviewMsg(msg ExecStreamPreviewMsg) (*Model, te
 func (m *Model) handleExecStreamFlushMsg(msg ExecStreamFlushMsg) (*Model, tea.Cmd) {
 	m.Interaction.execStreamWindowOpen = false
 	var lines []uivm.Line
-	for _, seg := range m.Interaction.execStreamBuffer {
-		text := seg.text
-		if seg.stderr {
-			text = "stderr: " + text
-		}
-		lines = append(lines, uivm.Line{Kind: uivm.LineResult, Text: text})
-	}
+	buf := m.Interaction.execStreamBuffer
 	m.Interaction.execStreamBuffer = nil
+	flushSegs := buf
+	// When marked sensitive, full stdout may not be stored in session history; keep the full transcript block.
+	if !msg.Sensitive {
+		if n := len(buf); n > execStreamPreviewMaxLines {
+			omitted := n - execStreamPreviewMaxLines
+			flushSegs = buf[n-execStreamPreviewMaxLines:]
+			lines = append(lines, uivm.Line{
+				Kind: uivm.LineSystemSuggest,
+				Text: i18n.Tf(i18n.KeyExecStreamTranscriptTruncatedHint, omitted),
+			})
+		}
+	}
+	var body strings.Builder
+	for i, seg := range flushSegs {
+		if i > 0 {
+			body.WriteByte('\n')
+		}
+		if seg.stderr {
+			body.WriteString("stderr: ")
+		}
+		body.WriteString(seg.text)
+	}
+	if body.Len() > 0 {
+		lines = append(lines, uivm.Line{Kind: uivm.LineResult, Text: body.String()})
+	}
 	if msg.Sensitive {
 		lines = append(lines, uivm.Line{Kind: uivm.LineSystemSuggest, Text: "Result contains sensitive data."})
 	}
