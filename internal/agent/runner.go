@@ -67,9 +67,10 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 	// apiKey may be empty for local deployments (e.g. Ollama) that do not require auth.
 
 	chatModel, err := openaimodel.NewChatModel(ctx, &openaimodel.ChatModelConfig{
-		APIKey:  apiKey,
-		BaseURL: baseURL,
-		Model:   model,
+		APIKey:     apiKey,
+		BaseURL:    baseURL,
+		Model:      model,
+		HTTPClient: configllm.NewLLMHTTPClient(0),
 	})
 	if err != nil {
 		return nil, err

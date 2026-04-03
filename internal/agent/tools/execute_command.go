@@ -57,7 +57,7 @@ func (t *ExecuteCommandTool) Info(ctx context.Context) (*schema.ToolInfo, error)
 			},
 			"reason": {
 				Type:     schema.String,
-				Desc:     "Brief explanation of why this command is run and what effect is expected. Use the same language as the user's current message; shown on the approval card.",
+				Desc:     "Brief: why this command and expected effect. Must use the same language as the user's current question or instruction; do not switch to another language.",
 				Required: false,
 			},
 			"risk_level": {

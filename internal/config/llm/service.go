@@ -71,9 +71,10 @@ func TestConnection(ctx context.Context, baseURL, apiKey, model string) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	chatModel, err := openaimodel.NewChatModel(ctx, &openaimodel.ChatModelConfig{
-		APIKey:  apiKey,
-		BaseURL: baseURL,
-		Model:   model,
+		APIKey:     apiKey,
+		BaseURL:    baseURL,
+		Model:      model,
+		HTTPClient: NewLLMHTTPClient(timeout),
 	})
 	if err != nil {
 		return err
