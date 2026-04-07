@@ -37,11 +37,6 @@ type RemoteTarget struct {
 	IdentityFile string `yaml:"identity_file,omitempty"`
 }
 
-// AllowlistEntry is one allowlist entry; Pattern is always a regex.
-type AllowlistEntry struct {
-	Pattern string `yaml:"pattern"`
-}
-
 // HistoryConfig is the history retention policy.
 type HistoryConfig struct {
 	MaxDays    int `yaml:"max_days"`    // keep last N days; 0 = no day-based cleanup

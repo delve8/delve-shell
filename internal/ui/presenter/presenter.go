@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/hil/types"
+	"delve-shell/internal/i18n"
 	"delve-shell/internal/remote"
 	"delve-shell/internal/ui"
 	"delve-shell/internal/ui/uivm"
@@ -92,7 +93,13 @@ func (p *Presenter) AgentReply(reply string, err error) {
 		return
 	}
 	if reply == "" {
-		p.Raw(ui.TranscriptAppendMsg{ClearWaitingForAI: true})
+		p.Raw(ui.TranscriptAppendMsg{
+			ClearWaitingForAI: true,
+			Lines: []uivm.Line{
+				{Kind: uivm.LineSystemSuggest, Text: i18n.T(i18n.KeyAgentReplyEmpty)},
+				{Kind: uivm.LineBlank},
+			},
+		})
 		return
 	}
 	p.Raw(ui.TranscriptAppendMsg{

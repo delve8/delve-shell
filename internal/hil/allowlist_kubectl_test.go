@@ -7,7 +7,7 @@ import (
 )
 
 func TestAllowlist_DefaultKubectlGlobalOptsBeforeSubcommand(t *testing.T) {
-	w := NewAllowlist(config.DefaultAllowlistEntries())
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
 
 	t.Run("namespace before subcommand", func(t *testing.T) {
 		cmd := "kubectl -n cpaas-system get pod foo -o wide"
@@ -59,6 +59,12 @@ func TestAllowlist_DefaultKubectlGlobalOptsBeforeSubcommand(t *testing.T) {
 	})
 	t.Run("cluster-info dump not allowlisted", func(t *testing.T) {
 		cmd := "kubectl cluster-info dump"
+		if w.AllowStrict(cmd) {
+			t.Fatalf("AllowStrict(%q) want false", cmd)
+		}
+	})
+	t.Run("cluster-info with dump not first tail token", func(t *testing.T) {
+		cmd := "kubectl cluster-info foo dump"
 		if w.AllowStrict(cmd) {
 			t.Fatalf("AllowStrict(%q) want false", cmd)
 		}

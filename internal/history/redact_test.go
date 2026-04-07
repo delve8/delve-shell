@@ -61,6 +61,43 @@ func TestRedactText_AWSKeys(t *testing.T) {
 	}
 }
 
+func TestRedactText_JWT(t *testing.T) {
+	in := "tok eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XwpLbqQu0isrO5H2NcVc"
+	got := RedactText(in)
+	if contains(got, "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9") {
+		t.Errorf("JWT should be redacted, got %q", got)
+	}
+	if !contains(got, "[REDACTED_JWT]") {
+		t.Errorf("expected JWT placeholder, got %q", got)
+	}
+}
+
+func TestRedactText_AuthorizationBearer(t *testing.T) {
+	in := "curl -H \"Authorization: Bearer somelongtokenthinghere\" https://x"
+	got := RedactText(in)
+	if contains(got, "somelongtokenthinghere") {
+		t.Errorf("bearer value redacted, got %q", got)
+	}
+}
+
+func TestRedactText_QueryToken(t *testing.T) {
+	in := "https://x?access_token=sekret&foo=1"
+	got := RedactText(in)
+	if contains(got, "sekret") {
+		t.Errorf("query token redacted, got %q", got)
+	}
+}
+
+func TestRedactedToolResultMessage(t *testing.T) {
+	got := RedactedToolResultMessage("password=abc", "err", 0, nil)
+	if contains(got, "abc") {
+		t.Fatalf("stdout secret leaked: %q", got)
+	}
+	if !contains(got, "exit_code: 0") || !contains(got, "stderr:") {
+		t.Fatalf("expected shape: %q", got)
+	}
+}
+
 func TestRedactText_PrivateKeyBlock(t *testing.T) {
 	in := "header\n-----BEGIN PRIVATE KEY-----\nABCDEF\n-----END PRIVATE KEY-----\nfooter"
 	got := RedactText(in)

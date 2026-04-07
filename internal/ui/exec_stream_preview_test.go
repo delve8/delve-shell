@@ -27,7 +27,7 @@ func TestHandleExecStreamFlushMsg_TruncatesLongBuffer(t *testing.T) {
 	}
 }
 
-func TestHandleExecStreamFlushMsg_NoTruncateWhenSensitive(t *testing.T) {
+func TestHandleExecStreamFlushMsg_SensitiveAlsoTruncates(t *testing.T) {
 	m := NewModel(nil, nil)
 	m.layout.Width = 120
 	m.Interaction.execStreamWindowOpen = true
@@ -37,11 +37,37 @@ func TestHandleExecStreamFlushMsg_NoTruncateWhenSensitive(t *testing.T) {
 	n, _ := m.Update(ExecStreamFlushMsg{Sensitive: true})
 	m = n.(*Model)
 	transcript := strings.Join(m.messages, "\n")
-	if !strings.Contains(transcript, "S0") {
-		t.Fatalf("sensitive flush should not truncate head: %q", transcript)
+	if strings.Contains(transcript, "S0") || strings.Contains(transcript, "S6") {
+		t.Fatalf("sensitive flush should truncate like non-sensitive: %q", transcript)
 	}
-	if strings.Contains(transcript, "omitted") {
-		t.Fatalf("unexpected truncation hint when sensitive: %q", transcript)
+	if !strings.Contains(transcript, "S9") {
+		t.Fatalf("expected tail preserved: %q", transcript)
+	}
+	if !strings.Contains(transcript, "7 earlier output line(s) omitted") {
+		t.Fatalf("expected truncation hint: %q", transcript)
+	}
+	if !strings.Contains(transcript, "Result contains sensitive data") {
+		t.Fatalf("expected sensitive notice: %q", transcript)
+	}
+}
+
+func TestHandleExecStreamFlushMsg_SensitiveRedactsBody(t *testing.T) {
+	m := NewModel(nil, nil)
+	m.layout.Width = 120
+	m.Interaction.execStreamWindowOpen = true
+	m.Interaction.execStreamBuffer = []execStreamSeg{
+		{text: "ok"},
+		{text: "password=supersecret"},
+		{text: "done"},
+	}
+	n, _ := m.Update(ExecStreamFlushMsg{Sensitive: true})
+	m = n.(*Model)
+	transcript := strings.Join(m.messages, "\n")
+	if strings.Contains(transcript, "supersecret") {
+		t.Fatalf("expected password value redacted: %q", transcript)
+	}
+	if !strings.Contains(transcript, "[REDACTED]") && !strings.Contains(transcript, "password=") {
+		t.Fatalf("expected redaction marker or key preserved: %q", transcript)
 	}
 }
 

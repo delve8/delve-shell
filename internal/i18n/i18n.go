@@ -64,6 +64,7 @@ const (
 	KeySensitiveChoice3         = "sensitive_choice_3"
 	KeyUserLabel                = "user_label"
 	KeyAILabel                  = "ai_label"
+	KeyAgentReplyEmpty          = "agent_reply_empty" // model finished with no assistant text (API/empty parse)
 	KeyDelveLabel               = "delve_label" // tool/system message prefix, e.g. "Delve:"
 	KeyRunLabel                 = "run_label"
 	KeySkillLine                = "skill_line" // format: Skill: %s
@@ -302,6 +303,7 @@ Quit (Ctrl+C also works)`,
 		KeySensitiveChoice3:                  "3 = Run, return result to AI, do not store in history",
 		KeyUserLabel:                         "User: ",
 		KeyAILabel:                           "AI: ",
+		KeyAgentReplyEmpty:                   "The model returned an empty reply (no assistant text in the API response).",
 		KeyRunLabel:                          "Run: ",
 		KeySkillLine:                         "Skill: %s",
 		KeyDescExit:                          "Quit delve-shell",

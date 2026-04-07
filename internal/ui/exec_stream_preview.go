@@ -6,6 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
 
+	"delve-shell/internal/history"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/textwrap"
 	"delve-shell/internal/ui/uivm"
@@ -107,16 +108,13 @@ func (m *Model) handleExecStreamFlushMsg(msg ExecStreamFlushMsg) (*Model, tea.Cm
 	buf := m.Interaction.execStreamBuffer
 	m.Interaction.execStreamBuffer = nil
 	flushSegs := buf
-	// When marked sensitive, full stdout may not be stored in session history; keep the full transcript block.
-	if !msg.Sensitive {
-		if n := len(buf); n > execStreamPreviewMaxLines {
-			omitted := n - execStreamPreviewMaxLines
-			flushSegs = buf[n-execStreamPreviewMaxLines:]
-			lines = append(lines, uivm.Line{
-				Kind: uivm.LineSystemSuggest,
-				Text: i18n.Tf(i18n.KeyExecStreamTranscriptTruncatedHint, omitted),
-			})
-		}
+	if n := len(buf); n > execStreamPreviewMaxLines {
+		omitted := n - execStreamPreviewMaxLines
+		flushSegs = buf[n-execStreamPreviewMaxLines:]
+		lines = append(lines, uivm.Line{
+			Kind: uivm.LineSystemSuggest,
+			Text: i18n.Tf(i18n.KeyExecStreamTranscriptTruncatedHint, omitted),
+		})
 	}
 	var body strings.Builder
 	for i, seg := range flushSegs {
@@ -129,13 +127,21 @@ func (m *Model) handleExecStreamFlushMsg(msg ExecStreamFlushMsg) (*Model, tea.Cm
 		body.WriteString(seg.text)
 	}
 	if body.Len() > 0 {
-		lines = append(lines, uivm.Line{Kind: uivm.LineResult, Text: body.String()})
+		text := body.String()
+		if msg.Sensitive {
+			text = history.RedactText(text)
+		}
+		lines = append(lines, uivm.Line{Kind: uivm.LineResult, Text: text})
 	}
 	if msg.Sensitive {
 		lines = append(lines, uivm.Line{Kind: uivm.LineSystemSuggest, Text: "Result contains sensitive data."})
 	}
 	if msg.Tail != "" {
-		lines = append(lines, uivm.Line{Kind: uivm.LineResult, Text: msg.Tail})
+		tail := msg.Tail
+		if msg.Sensitive {
+			tail = history.RedactText(tail)
+		}
+		lines = append(lines, uivm.Line{Kind: uivm.LineResult, Text: tail})
 	}
 	lines = append(lines, uivm.Line{Kind: uivm.LineBlank})
 	rendered := m.renderTranscriptLines(lines)

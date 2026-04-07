@@ -48,7 +48,7 @@ var _ tool.InvokableTool = (*ExecuteCommandTool)(nil)
 func (t *ExecuteCommandTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 	return &schema.ToolInfo{
 		Name: "execute_command",
-		Desc: "Execute a shell command or script in the user's environment. Prefer shell commands to accomplish tasks; use Python or other scripting only when shell is not sufficient. Prefer pipelines and filters (grep, awk, jq/jsonpath, head/tail, etc.) so stdout contains only the information you need—full verbose output is returned to the model and consumes context. If the command is not on the allowlist, the tool waits for user approval before running. Results must not contain user secrets or passwords; if output may contain sensitive data, set result_contains_secrets to true so the result is shown only to the user and not returned to the model or stored in history.",
+		Desc: "Execute a shell command or script in the user's environment. Prefer shell commands to accomplish tasks; use Python or other scripting only when shell is not sufficient. Prefer pipelines and filters (grep, awk, jq/jsonpath, head/tail, etc.) so stdout contains only the information you need—full verbose output is returned to the model and consumes context. If the command is not on the allowlist, the tool waits for user approval before running. If output may contain secrets, set result_contains_secrets to true: the transcript is minimized for the user, the result is not stored in session history, and the model still receives stdout/stderr with heuristic redaction (patterns like tokens, JWTs, labeled passwords)—redaction is not guaranteed complete, so avoid printing raw secrets in commands.",
 		ParamsOneOf: schema.NewParamsOneOfByParams(map[string]*schema.ParameterInfo{
 			"command": {
 				Type:     schema.String,
@@ -67,7 +67,7 @@ func (t *ExecuteCommandTool) Info(ctx context.Context) (*schema.ToolInfo, error)
 			},
 			"result_contains_secrets": {
 				Type:     schema.Boolean,
-				Desc:     "Set to true if the command output may contain secrets, passwords, or other private data. When true, the result is shown only to the user; the model receives 'done' and the result is not stored in session history.",
+				Desc:     "Set to true if the command output may contain secrets or private data. When true, the result is not stored in session history; the user sees a short redacted transcript; the model receives the same stdout/stderr shape with heuristic redaction (not a cryptographic guarantee).",
 				Required: false,
 			},
 		}),
@@ -186,9 +186,8 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 	if t.OnExec != nil {
 		t.OnExec(command, allowed, resultForUI, sensitive || !storeResult, false, useStream)
 	}
-	// When AI set result_contains_secrets we return "done"; when user chose RunNoStore we still return full result to AI.
 	if sensitive {
-		return "done", nil
+		return history.RedactedToolResultMessage(outStr, errStr, exitCode, err), nil
 	}
 	msg := "stdout:\n" + outStr
 	if errStr != "" {
@@ -246,7 +245,10 @@ func (t *ExecuteCommandTool) invokableRunOffline(ctx context.Context, command, r
 		t.OnExec(command, false, resultForUI, sensitive || !storeResult, false, false)
 	}
 	if sensitive {
-		return "done", nil
+		if pasted == "" {
+			return "The user submitted empty pasted output for: " + command + ".", nil
+		}
+		return "stdout:\n" + history.RedactText(pasted), nil
 	}
 	if pasted == "" {
 		return "The user submitted empty pasted output for: " + command + ".", nil

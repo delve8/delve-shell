@@ -1,0 +1,803 @@
+# Builtin default allowlist (schema v2).
+#
+# Top-level shape
+# ---------------
+# - `version` (required): must equal 2 for this schema.
+# - `commands` (required): map basename -> policy object. Keys are argv0 basenames.
+#
+# Policy object (`commands.<name>`)
+# --------------------------------
+# Optional keys only; an empty `{}` policy is valid.
+#
+# - `global` (optional object): describes tokens before the first non-flag operand / subcommand
+#   segment, for tools that separate "global" options from the rest.
+#   - `flags` (optional): a Flag rule (see below). If the whole `global` key is absent,
+#     effective global flags are `none`. If `global` is present but `flags` is omitted, the field
+#     zero-decodes to `none`.
+#
+# - `root` (optional object): describes argv after argv0 for that tool: interleaved flags and
+#   operands, plus an optional subcommand tree.
+#   - `flags`, `operands`: Flag rule and Operands rule (see below).
+#   - `subcommands` (optional): map subcommand name -> subcommand node (see below).
+#   If the `root` key is **absent**, the loader applies the effective root default (see below).
+#   If `root` is **present** (even as `{}`), omitted `flags` / `operands` inside it zero-decode to
+#   `none` each—not `any`. Use explicit `flags: any` / `operands: any` when the root segment should
+#   accept unrestricted flags and/or operands.
+#
+# Flag rule
+# ---------
+# YAML is either:
+#
+# 1) **Scalar** — one of:
+#    - `any` — any `-x` / `--long` tokens allowed (subject to parser details; `--` is rejected).
+#    - `none` — no flag tokens allowed at this node.
+#    - `""` (empty string) — treated like `none`.
+#
+# 2) **Mapping** — exactly:
+#        flags:
+#          allow:
+#            - short: <1-char>   # optional
+#              long: <name>      # optional; at least one of short/long per entry
+#              value: none | required   # optional; `required` means a separate token or `=value`
+#    `allow` must be non-empty. Validation rejects entries with both short and long empty.
+#
+# At match time, if `global.flags` is an allow-list, that list is **prepended** to a node's
+# allow-list when the node’s local rule is also allow-list; if the local rule is `none`, the
+# effective rule becomes an allow-list containing **only** those global entries; if the local rule
+# is `any`, global allow-list does not merge (local `any` wins).
+#
+# Operands rule
+# -------------
+# YAML is a **scalar** only:
+# - `any` — non-flag tokens may appear where operands are consumed.
+# - `none` or `""` — operands disallowed at that position (only flags until the segment ends or
+#   a subcommand is taken).
+# No mapping form exists for `operands`.
+#
+# Subcommand node
+# ---------------
+# Under `root.subcommands` or nested `subcommands`, each value is a map (the subcommand name is
+# **only** the map key; do not add a `name` field).
+#
+# Optional fields:
+# - `flags` — Flag rule, pointer-backed: **omitted key** ⇒ effective `any` (unlike `root`, where
+#   omission inside a present `root` block means `none`).
+# - `operands` — Operands rule, pointer-backed: **omitted key** ⇒ effective `any`.
+# - `subcommands` — nested map of the same shape, arbitrary depth.
+#
+# Matching walks argv left-to-right: globals (if any) are consumed first as leading `-` tokens only;
+# then each segment uses the current node's merged flag rule and operands rule. If `subcommands` is
+# non-empty and the next token does not start with `-`, the matcher first tries that token as a child
+# name; on success it recurses into that child for the rest of argv. At the policy `root` only, when
+# `subcommands` is non-empty, a non-flag token that is **not** a child key fails the match (there is
+# no operand bypass at that top segment). Deeper nodes pass a different mode: if `subcommands` is
+# non-empty but the token is not a child key and `operands` is `any`, the token is consumed as an
+# operand at that level instead of descending (structured read-only CLI matcher).
+# Inner nodes can be pure branches (`subcommands` only), pure leaves (`flags` / `operands` only), or
+# both.
+#
+# Effective root default
+# ----------------------
+# When `root` is **absent** on a policy: effective `flags` = `any`, effective `operands` = `any`,
+# empty `subcommands`. This is what makes `commands: { tool: {} }` mean "argv0 allowed, tail open".
+#
+# User copy
+# ---------
+# On first run or rewrite, an editable copy is written beside the config as allowlist.yaml.
+
+version: 2
+commands:
+  base64: {}
+  bzcat: {}
+  cat: {}
+  cksum: {}
+  cmp: {}
+  column: {}
+  crictl:
+    # Global flags:any so connection flags (-r/--runtime-endpoint, -c/--config, etc.) parse before the verb.
+    global:
+      flags: any
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        imagefsinfo: {}
+        image: {}
+        images: {}
+        img: {}
+        info: {}
+        inspect: {}
+        inspecti: {}
+        inspectp: {}
+        logs: {}
+        metricdescs: {}
+        metricsp: {}
+        pods: {}
+        ps: {}
+        runtime-config: {}
+        stats: {}
+        statsp: {}
+        version: {}
+  ctr:
+    # Matches containerd/ctr (main branch): plugins, version, containers, content, events, images, ...
+    global:
+      flags: any
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        content:
+          subcommands:
+            active: {}
+            list: {}
+        containers:
+          subcommands:
+            info: {}
+            list: {}
+        deprecations:
+          subcommands:
+            list: {}
+        images:
+          subcommands:
+            check: {}
+            inspect: {}
+            list: {}
+            usage: {}
+        info: {}
+        leases:
+          subcommands:
+            list: {}
+        namespaces:
+          subcommands:
+            list: {}
+        plugin:
+          subcommands:
+            inspect-runtime: {}
+            list: {}
+        plugins:
+          subcommands:
+            inspect-runtime: {}
+            list: {}
+        sandboxes:
+          subcommands:
+            info: {}
+            list: {}
+        snapshot:
+          subcommands:
+            info: {}
+            list: {}
+            tree: {}
+            usage: {}
+        snapshots:
+          subcommands:
+            info: {}
+            list: {}
+            tree: {}
+            usage: {}
+        tasks:
+          subcommands:
+            list: {}
+            metrics: {}
+            ps: {}
+        version: {}
+  cut: {}
+  date: {}
+  df: {}
+  diff: {}
+  dig: {}
+  dir: {}
+  docker:
+    global:
+      flags:
+        allow:
+        - short: h
+          long: help
+          value: none
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        compose:
+          subcommands:
+            config: {}
+            ls: {}
+            ps: {}
+            version: {}
+        container:
+          subcommands:
+            inspect: {}
+            logs: {}
+            ls: {}
+            port: {}
+            top: {}
+        context:
+          subcommands:
+            ls: {}
+            show: {}
+        image:
+          subcommands:
+            inspect: {}
+            ls: {}
+        images: {}
+        info: {}
+        inspect: {}
+        manifest:
+          subcommands:
+            inspect: {}
+        network:
+          subcommands:
+            inspect: {}
+            ls: {}
+        plugin:
+          subcommands:
+            ls: {}
+        ps: {}
+        system:
+          subcommands:
+            df: {}
+            info: {}
+        version: {}
+        volume:
+          subcommands:
+            inspect: {}
+            ls: {}
+  du: {}
+  echo: {}
+  egrep: {}
+  env: {}
+  etcdctl:
+    # Global flags:any for --endpoints, TLS, --write-out, etc. (etcd.io etcdctl v3).
+    global:
+      flags: any
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        alarm:
+          subcommands:
+            list: {}
+        endpoint:
+          subcommands:
+            health: {}
+            status: {}
+        get: {}
+        lease:
+          subcommands:
+            timetolive: {}
+        member:
+          subcommands:
+            list: {}
+        snapshot:
+          subcommands:
+            status: {}
+        version: {}
+  'false': {}
+  fgrep: {}
+  file: {}
+  find:
+    global:
+      flags: none
+    root:
+      flags:
+        allow:
+        - long: name
+          value: required
+        - long: type
+          value: required
+        - long: maxdepth
+          value: required
+        - long: iname
+          value: required
+      operands: any
+  free: {}
+  getent: {}
+  git:
+    global:
+      flags: none
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        blame: {}
+        branch: {}
+        cat-file: {}
+        config:
+          flags:
+            allow:
+            - long: get
+              value: required
+            - long: list
+              value: none
+            - long: get-all
+              value: required
+        describe: {}
+        diff: {}
+        for-each-ref: {}
+        help: {}
+        log: {}
+        ls-files: {}
+        ls-tree: {}
+        reflog: {}
+        remote: {}
+        rev-parse: {}
+        show: {}
+        stash:
+          operands: none
+          subcommands:
+            list: {}
+        status: {}
+        symbolic-ref: {}
+        tag: {}
+        version: {}
+  grep: {}
+  groups: {}
+  head: {}
+  hexdump: {}
+  host: {}
+  hostname: {}
+  id: {}
+  kubectl:
+    global:
+      flags:
+        allow:
+        - short: h
+          long: help
+          value: none
+        - short: A
+          long: all-namespaces
+          value: none
+        - short: n
+          long: namespace
+          value: required
+        - long: context
+          value: required
+        - long: kubeconfig
+          value: required
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        api-resources:
+          flags:
+            allow:
+            - value: required
+              long: api-group
+            - value: none
+              long: cached
+            - value: none
+              long: categories
+            - value: none
+              long: namespaced
+            - value: none
+              long: no-headers
+            - value: required
+              short: o
+              long: output
+            - value: none
+              long: show-managed-fields
+            - value: required
+              long: sort-by
+            - value: none
+              long: verbs
+          operands: any
+        api-versions:
+          flags: none
+          operands: none
+        auth:
+          flags: none
+          operands: none
+          subcommands:
+            can-i:
+              flags:
+                allow:
+                - value: none
+                  long: list
+                - value: none
+                  long: no-headers
+                - value: none
+                  short: q
+                  long: quiet
+                - value: required
+                  long: subresource
+              operands: any
+            whoami:
+              flags:
+                allow:
+                - value: none
+                  long: allow-missing-template-keys
+                - value: required
+                  short: o
+                  long: output
+                - value: none
+                  long: show-managed-fields
+                - value: required
+                  long: template
+              operands: none
+        cluster-info:
+          flags: none
+          operands: none
+        config:
+          flags: none
+          operands: none
+          subcommands:
+            view:
+              flags:
+                allow:
+                - value: none
+                  long: allow-missing-template-keys
+                - value: none
+                  long: flatten
+                - value: none
+                  long: merge
+                - value: none
+                  long: minify
+                - value: required
+                  short: o
+                  long: output
+                - value: none
+                  long: raw
+                - value: none
+                  long: show-managed-fields
+                - value: required
+                  long: template
+              operands: none
+        describe:
+          flags:
+            allow:
+            - value: none
+              long: chunk-size
+            - value: none
+              short: f
+              long: filename
+            - value: required
+              short: k
+              long: kustomize
+            - value: none
+              short: R
+              long: recursive
+            - value: required
+              short: l
+              long: selector
+            - value: none
+              long: show-events
+          operands: any
+        diff:
+          flags:
+            allow:
+            - value: none
+              long: concurrency
+            - value: required
+              long: field-manager
+            - value: none
+              short: f
+              long: filename
+            - value: none
+              long: force-conflicts
+            - value: required
+              short: k
+              long: kustomize
+            - value: none
+              long: prune
+            - value: none
+              long: prune-allowlist
+            - value: none
+              short: R
+              long: recursive
+            - value: required
+              short: l
+              long: selector
+            - value: none
+              long: server-side
+            - value: none
+              long: show-managed-fields
+          operands: none
+        explain:
+          flags:
+            allow:
+            - value: required
+              long: api-version
+            - value: required
+              short: o
+              long: output
+            - value: none
+              long: recursive
+          operands: any
+        get:
+          flags:
+            allow:
+            - value: none
+              long: allow-missing-template-keys
+            - value: none
+              long: chunk-size
+            - value: required
+              long: field-selector
+            - value: none
+              short: f
+              long: filename
+            - value: none
+              long: ignore-not-found
+            - value: required
+              short: k
+              long: kustomize
+            - value: none
+              short: L
+              long: label-columns
+            - value: none
+              long: no-headers
+            - value: required
+              short: o
+              long: output
+            - value: none
+              long: output-watch-events
+            - value: none
+              short: R
+              long: recursive
+            - value: required
+              short: l
+              long: selector
+            - value: none
+              long: server-print
+            - value: none
+              long: show-kind
+            - value: none
+              long: show-labels
+            - value: none
+              long: show-managed-fields
+            - value: required
+              long: sort-by
+            - value: required
+              long: subresource
+            - value: required
+              long: template
+            - value: none
+              short: w
+              long: watch
+            - value: none
+              long: watch-only
+          operands: any
+        logs:
+          flags:
+            allow:
+            - value: none
+              long: all-containers
+            - value: none
+              long: all-pods
+            - value: required
+              short: c
+              long: container
+            - value: none
+              short: f
+              long: follow
+            - value: none
+              long: ignore-errors
+            - value: none
+              long: insecure-skip-tls-verify-backend
+            - value: none
+              long: limit-bytes
+            - value: none
+              long: max-log-requests
+            - value: none
+              long: pod-running-timeout
+            - value: none
+              long: prefix
+            - value: none
+              short: p
+              long: previous
+            - value: required
+              short: l
+              long: selector
+            - value: none
+              long: since
+            - value: required
+              long: since-time
+            - value: none
+              long: tail
+            - value: none
+              long: timestamps
+          operands: any
+        rollout:
+          flags: none
+          operands: none
+          subcommands:
+            status:
+              flags:
+                allow:
+                - value: none
+                  short: f
+                  long: filename
+                - value: required
+                  short: k
+                  long: kustomize
+                - value: none
+                  short: R
+                  long: recursive
+                - value: none
+                  long: revision
+                - value: required
+                  short: l
+                  long: selector
+                - value: none
+                  long: timeout
+                - value: none
+                  short: w
+                  long: watch
+              operands: any
+        top:
+          flags: none
+          operands: none
+          subcommands:
+            node:
+              flags:
+                allow:
+                - value: none
+                  long: no-headers
+                - value: required
+                  short: l
+                  long: selector
+                - value: none
+                  long: show-capacity
+                - value: none
+                  long: show-swap
+                - value: required
+                  long: sort-by
+                - value: none
+                  long: use-protocol-buffers
+              operands: any
+            nodes:
+              flags:
+                allow:
+                - value: none
+                  long: no-headers
+                - value: required
+                  short: l
+                  long: selector
+                - value: none
+                  long: show-capacity
+                - value: none
+                  long: show-swap
+                - value: required
+                  long: sort-by
+                - value: none
+                  long: use-protocol-buffers
+              operands: any
+            pod:
+              flags:
+                allow:
+                - value: none
+                  long: containers
+                - value: required
+                  long: field-selector
+                - value: none
+                  long: no-headers
+                - value: required
+                  short: l
+                  long: selector
+                - value: none
+                  long: show-swap
+                - value: required
+                  long: sort-by
+                - value: none
+                  long: sum
+                - value: none
+                  long: use-protocol-buffers
+              operands: any
+            pods:
+              flags:
+                allow:
+                - value: none
+                  long: containers
+                - value: required
+                  long: field-selector
+                - value: none
+                  long: no-headers
+                - value: required
+                  short: l
+                  long: selector
+                - value: none
+                  long: show-swap
+                - value: required
+                  long: sort-by
+                - value: none
+                  long: sum
+                - value: none
+                  long: use-protocol-buffers
+              operands: any
+        version:
+          flags:
+            allow:
+            - long: client
+              value: none
+            - short: o
+              long: output
+              value: required
+          operands: none
+  less: {}
+  locale: {}
+  ls: {}
+  lsblk: {}
+  md5sum: {}
+  more: {}
+  nl: {}
+  nslookup: {}
+  od: {}
+  podman:
+    global:
+      flags:
+        allow:
+        - short: h
+          long: help
+          value: none
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        compose:
+          subcommands:
+            config: {}
+            ls: {}
+            ps: {}
+            version: {}
+        container:
+          subcommands:
+            inspect: {}
+            logs: {}
+            ls: {}
+            port: {}
+            top: {}
+        context:
+          subcommands:
+            ls: {}
+            show: {}
+        image:
+          subcommands:
+            inspect: {}
+            ls: {}
+        images: {}
+        info: {}
+        inspect: {}
+        manifest:
+          subcommands:
+            inspect: {}
+        network:
+          subcommands:
+            inspect: {}
+            ls: {}
+        plugin:
+          subcommands:
+            ls: {}
+        ps: {}
+        system:
+          subcommands:
+            df: {}
+            info: {}
+        version: {}
+        volume:
+          subcommands:
+            inspect: {}
+            ls: {}
+  ping: {}
+  printenv: {}
+  printf: {}
+  ps: {}
+  pwd: {}
+  seq: {}
+  set: {}
+  sha1sum: {}
+  sha256sum: {}
+  shasum: {}
+  sleep: {}
+  stat: {}
+  tail: {}
+  tr: {}
+  'true': {}
+  type: {}
+  uname: {}
+  uniq: {}
+  uptime: {}
+  wc: {}
+  whereis: {}
+  which: {}
+  whoami: {}
+  xxd: {}
+  xzcat: {}
+  zcat: {}

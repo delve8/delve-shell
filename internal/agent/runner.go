@@ -16,7 +16,7 @@ import (
 	"delve-shell/internal/config"
 	configllm "delve-shell/internal/config/llm"
 	"delve-shell/internal/hil"
-	"delve-shell/internal/hil/types"
+	hiltypes "delve-shell/internal/hil/types"
 	"delve-shell/internal/history"
 	"delve-shell/internal/remote/execenv"
 	"delve-shell/internal/runtime/execcancel"

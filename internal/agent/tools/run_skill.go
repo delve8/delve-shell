@@ -31,10 +31,10 @@ type RunSkillTool struct {
 	Session                      *history.Session
 	OnExec                       func(command string, allowed bool, result string, sensitive bool, suggested bool, streamed bool)
 	// OnExecStream optional; when set and executor supports streaming, same path as execute_command (live lines in transcript).
-	OnExecStream                 func(any)
-	UIEvents                     chan<- any
-	ExecCancelHub                *execcancel.Hub
-	ExecutorProvider             func() execenv.CommandExecutor
+	OnExecStream     func(any)
+	UIEvents         chan<- any
+	ExecCancelHub    *execcancel.Hub
+	ExecutorProvider func() execenv.CommandExecutor
 }
 
 var _ tool.InvokableTool = (*RunSkillTool)(nil)
@@ -42,7 +42,7 @@ var _ tool.InvokableTool = (*RunSkillTool)(nil)
 func (t *RunSkillTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 	return &schema.ToolInfo{
 		Name: "run_skill",
-		Desc: "Run a script from an installed skill. Skills are under ~/.delve-shell/skills/<skill_name>/ with SKILL.md and scripts/ subdir. Use list_skills to discover skills and their scripts. When the user started the turn with /skill <name> for the same skill, approval is skipped; otherwise an approval card is shown. The command runs in the skill's scripts/ directory. Prefer scripts that print concise, task-relevant summaries rather than large raw dumps. Set result_contains_secrets if the script output may contain sensitive data.",
+		Desc: "Run a script from an installed skill. Skills are under ~/.delve-shell/skills/<skill_name>/ with SKILL.md and scripts/ subdir. Use list_skills to discover skills and their scripts. When the user started the turn with /skill <name> for the same skill, approval is skipped; otherwise an approval card is shown. The command runs in the skill's scripts/ directory. Prefer scripts that print concise, task-relevant summaries rather than large raw dumps. Set result_contains_secrets when output may include secrets: history is not stored for that run, the user sees a short redacted transcript, and the model receives redacted stdout/stderr (heuristic, not guaranteed).",
 		ParamsOneOf: schema.NewParamsOneOfByParams(map[string]*schema.ParameterInfo{
 			"skill_name": {
 				Type:     schema.String,
@@ -75,7 +75,7 @@ func (t *RunSkillTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 			},
 			"result_contains_secrets": {
 				Type:     schema.Boolean,
-				Desc:     "Set true if output may contain secrets; result is not returned to the model or stored.",
+				Desc:     "Set true if output may contain secrets. Result is not stored in session history; model receives redacted stdout/stderr (same shape as normal tool output).",
 				Required: false,
 			},
 		}),
@@ -271,7 +271,7 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 		t.OnExec(cmd, false, resultForUI, sensitive, false, streamed)
 	}
 	if sensitive {
-		return "done", nil
+		return history.RedactedToolResultMessage(outStr, errStr, exitCode, err), nil
 	}
 	msg := "stdout:\n" + outStr
 	if errStr != "" {

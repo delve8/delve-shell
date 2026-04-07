@@ -8,11 +8,13 @@ import (
 
 func TestAllowStrict_ChainedCommand(t *testing.T) {
 	// Build allowlist with only echo and tr (no openssl). Chain must require every segment to match.
-	entries := []config.AllowlistEntry{
-		{Pattern: `(^|\s)echo(\s|$)`},
-		{Pattern: `(^|\s)tr(\s|$)`},
-	}
-	w := NewAllowlist(entries)
+	w := NewAllowlist(&config.LoadedAllowlist{
+		Version: config.AllowlistSchemaVersion,
+		Commands: map[string]config.ReadOnlyCLIPolicy{
+			"echo": {Name: "echo"},
+			"tr":   {Name: "tr"},
+		},
+	})
 
 	// Single allowed command: allowed
 	if !w.AllowStrict("echo hello") {
@@ -63,7 +65,7 @@ func TestContainsWriteRedirection(t *testing.T) {
 }
 
 func TestBenignJqReadOnly(t *testing.T) {
-	w := NewAllowlist(config.DefaultAllowlistEntries())
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
 	// AllowStrict splits chains on | without quote awareness; use a filter without |.
 	if !w.AllowStrict(`jq -r '.items[]'`) {
 		t.Fatal("AllowStrict jq without -f should pass")
@@ -73,8 +75,27 @@ func TestBenignJqReadOnly(t *testing.T) {
 	}
 }
 
+func TestBenignSortReadOnly(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	if !w.AllowStrict(`sort -nr`) {
+		t.Fatal("AllowStrict sort without -o should pass")
+	}
+	if !w.AllowStrict(`sort -k3 -hr`) {
+		t.Fatal("AllowStrict sort -k -h should pass")
+	}
+	if w.AllowStrict(`sort -o /tmp/out`) {
+		t.Fatal("sort -o must not pass AllowStrict")
+	}
+	if w.AllowStrict(`sort --output=out`) {
+		t.Fatal("sort --output= must not pass AllowStrict")
+	}
+	if w.AllowStrict(`sort --output out`) {
+		t.Fatal("sort --output file must not pass AllowStrict")
+	}
+}
+
 func TestAllowStrict_SedWithoutInPlace(t *testing.T) {
-	w := NewAllowlist(config.DefaultAllowlistEntries())
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
 	// Avoid unquoted | inside egrep pattern: splitShellChain does not honor quotes.
 	cmd := "kubectl get pods 2>/dev/null | sed -n '1,260p' && echo '---' && kubectl get ns 2>/dev/null | egrep NAME || true"
 	if ContainsWriteRedirection(cmd) {

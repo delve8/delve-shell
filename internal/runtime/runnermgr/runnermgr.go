@@ -20,7 +20,7 @@ type Manager struct {
 	r  *agent.Runner
 
 	loadConfig             func() (*config.Config, error)
-	loadAllowlist          func() ([]config.AllowlistEntry, error)
+	loadAllowlist          func() (*config.LoadedAllowlist, error)
 	loadSensitivePatterns  func() ([]string, error)
 	sessionProvider        func() *history.Session
 	executorProvider       func() execenv.CommandExecutor
@@ -37,7 +37,7 @@ type Options struct {
 	RulesText string
 
 	LoadConfig            func() (*config.Config, error)
-	LoadAllowlist         func() ([]config.AllowlistEntry, error)
+	LoadAllowlist         func() (*config.LoadedAllowlist, error)
 	LoadSensitivePatterns func() ([]string, error)
 
 	SessionProvider  func() *history.Session
@@ -89,11 +89,11 @@ func (m *Manager) Get(ctx context.Context) (*agent.Runner, error) {
 	if err != nil {
 		return nil, err
 	}
-	allowlistEntries, err := m.loadAllowlist()
+	ld, err := m.loadAllowlist()
 	if err != nil {
 		return nil, fmt.Errorf("load allowlist: %w", err)
 	}
-	allowlist := hil.NewAllowlist(allowlistEntries)
+	allowlist := hil.NewAllowlist(ld)
 	offline := m.offlineMode != nil && m.offlineMode()
 	sensitivePatterns, err := m.loadSensitivePatterns()
 	if err != nil {

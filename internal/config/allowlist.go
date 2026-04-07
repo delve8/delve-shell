@@ -1,50 +1,84 @@
 package config
 
 import (
+	"fmt"
+	"maps"
 	"os"
 
 	"gopkg.in/yaml.v3"
 )
 
-// allowlistFile is the allowlist.yaml file structure.
-type allowlistFile struct {
-	Allowlist []AllowlistEntry `yaml:"allowlist"`
-}
-
-// LoadAllowlist loads allowlist from allowlist.yaml. If missing, writes default and returns it.
-func LoadAllowlist() ([]AllowlistEntry, error) {
+// LoadAllowlist loads allowlist.yaml. If missing, writes the default file and returns it.
+// If the file is unreadable, not schema v2, or fails validation, it is replaced with the default and rewritten.
+func LoadAllowlist() (*LoadedAllowlist, error) {
 	path := AllowlistPath()
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			def := defaultAllowlist()
+			def := DefaultLoadedAllowlist()
 			if err := EnsureRootDir(); err != nil {
 				return nil, err
 			}
-			if err := WriteAllowlist(def); err != nil {
+			if err := WriteLoadedAllowlist(def); err != nil {
 				return nil, err
 			}
 			return def, nil
 		}
 		return nil, err
 	}
-	var f allowlistFile
-	if err := yaml.Unmarshal(data, &f); err != nil {
-		return nil, err
+	ld, err := ParseAllowlistYAML(data)
+	if err != nil || ld.Version != AllowlistSchemaVersion {
+		def := DefaultLoadedAllowlist()
+		if werr := EnsureRootDir(); werr != nil {
+			return nil, werr
+		}
+		if werr := WriteLoadedAllowlist(def); werr != nil {
+			return nil, werr
+		}
+		return def, nil
 	}
-	return f.Allowlist, nil
+	if err := ValidateLoadedAllowlist(ld); err != nil {
+		def := DefaultLoadedAllowlist()
+		if werr := EnsureRootDir(); werr != nil {
+			return nil, werr
+		}
+		if werr := WriteLoadedAllowlist(def); werr != nil {
+			return nil, werr
+		}
+		return def, nil
+	}
+	ld.Commands = NormalizeReadOnlyCLIPolicies(ld.Commands)
+	return ld, nil
 }
 
-// WriteAllowlist writes the allowlist to allowlist.yaml (call after changes; EnsureRootDir before first write).
-func WriteAllowlist(entries []AllowlistEntry) error {
-	data, err := yaml.Marshal(allowlistFile{Allowlist: entries})
+// WriteLoadedAllowlist writes allowlist.yaml (EnsureRootDir before first write).
+func WriteLoadedAllowlist(ld *LoadedAllowlist) error {
+	if ld == nil {
+		ld = DefaultLoadedAllowlist()
+	}
+	data, err := yaml.Marshal(ld)
 	if err != nil {
 		return err
 	}
 	return os.WriteFile(AllowlistPath(), data, 0600)
 }
 
-// AllowlistUpdateWithDefaults merges current allowlist with built-in default: keep existing, add missing patterns. Returns number added.
+// ParseAllowlistYAML parses YAML bytes into LoadedAllowlist (strict v2: commands map).
+func ParseAllowlistYAML(data []byte) (*LoadedAllowlist, error) {
+	var ld LoadedAllowlist
+	if err := yaml.Unmarshal(data, &ld); err != nil {
+		return nil, err
+	}
+	if ld.Commands == nil {
+		return nil, fmt.Errorf("allowlist: missing commands")
+	}
+	if ld.Version != AllowlistSchemaVersion {
+		return nil, fmt.Errorf("allowlist: version %d, want %d", ld.Version, AllowlistSchemaVersion)
+	}
+	return &ld, nil
+}
+
+// AllowlistUpdateWithDefaults merges built-in defaults into the current file (missing command keys). Returns how many were added.
 func AllowlistUpdateWithDefaults() (added int, err error) {
 	path := AllowlistPath()
 	data, err := os.ReadFile(path)
@@ -53,189 +87,46 @@ func AllowlistUpdateWithDefaults() (added int, err error) {
 			if err := EnsureRootDir(); err != nil {
 				return 0, err
 			}
-			def := defaultAllowlist()
-			if err := WriteAllowlist(def); err != nil {
+			def := DefaultLoadedAllowlist()
+			if err := WriteLoadedAllowlist(def); err != nil {
 				return 0, err
 			}
-			return len(def), nil
+			return len(def.Commands), nil
 		}
 		return 0, err
 	}
-	var f allowlistFile
-	if err := yaml.Unmarshal(data, &f); err != nil {
-		return 0, err
+	cur, err := ParseAllowlistYAML(data)
+	if err != nil || cur.Version != AllowlistSchemaVersion {
+		def := DefaultLoadedAllowlist()
+		if err := EnsureRootDir(); err != nil {
+			return 0, err
+		}
+		if err := WriteLoadedAllowlist(def); err != nil {
+			return 0, err
+		}
+		return len(def.Commands), nil
 	}
-	have := make(map[string]bool)
-	for _, e := range f.Allowlist {
-		have[e.Pattern] = true
+	if err := ValidateLoadedAllowlist(cur); err != nil {
+		def := DefaultLoadedAllowlist()
+		if err := EnsureRootDir(); err != nil {
+			return 0, err
+		}
+		if err := WriteLoadedAllowlist(def); err != nil {
+			return 0, err
+		}
+		return len(def.Commands), nil
 	}
-	out := f.Allowlist
-	for _, e := range defaultAllowlist() {
-		if !have[e.Pattern] {
-			out = append(out, e)
-			have[e.Pattern] = true
+	def := DefaultLoadedAllowlist()
+	outCmd := maps.Clone(cur.Commands)
+	for k, p := range def.Commands {
+		if _, ok := outCmd[k]; !ok {
+			outCmd[k] = p
 			added++
 		}
 	}
-	if added == 0 {
-		return 0, nil
-	}
-	if err := WriteAllowlist(out); err != nil {
+	out := &LoadedAllowlist{Version: AllowlistSchemaVersion, Commands: NormalizeReadOnlyCLIPolicies(outCmd)}
+	if err := WriteLoadedAllowlist(out); err != nil {
 		return 0, err
 	}
 	return added, nil
-}
-
-// kubectlGlobalOptsBeforeSubcommand is a regex fragment (no leading ^) matching zero or more global
-// options that may appear between "kubectl" and the subcommand. Only a closed set of flags is allowed
-// so patterns do not degenerate to kubectl\s+.*\s+get (which would bypass intent).
-// No lookahead: Go regexp (RE2) does not support (?=) / (?!).
-const kubectlGlobalOptsBeforeSubcommand = `(?:` +
-	`\s+-n(?:=\S+|\s+\S+)|` +
-	`\s+--namespace(?:=\S+|\s+\S+)|` +
-	`\s+--context(?:=\S+|\s+\S+)|` +
-	`\s+--kubeconfig(?:=\S+|\s+\S+)|` +
-	`\s+-A|` +
-	`\s+--all-namespaces` +
-	`)*`
-
-// DefaultAllowlistEntries returns the built-in default allowlist patterns (same as a fresh allowlist.yaml).
-func DefaultAllowlistEntries() []AllowlistEntry {
-	return defaultAllowlist()
-}
-
-// defaultAllowlist is the built-in default: read-only commands; each Pattern is a regex.
-// Single-command patterns use (^|\s)word(\s|$) so the word is only matched as command name:
-// left side must be start or space (not -word option); right side must be space or end (not word-xxx).
-func defaultAllowlist() []AllowlistEntry {
-	return []AllowlistEntry{
-		// dirs and paths
-		{Pattern: `(^|\s)pwd(\s|$)`},
-		{Pattern: `(^|\s)ls(\s|$)`},
-		{Pattern: `(^|\s)dir(\s|$)`}, // some envs alias
-		// user and env
-		{Pattern: `(^|\s)whoami(\s|$)`},
-		{Pattern: `(^|\s)id(\s|$)`},
-		{Pattern: `(^|\s)env(\s|$)`},
-		{Pattern: `(^|\s)printenv(\s|$)`},
-		// system info
-		{Pattern: `(^|\s)uname(\s|$)`},
-		{Pattern: `(^|\s)hostname(\s|$)`},
-		{Pattern: `(^|\s)date(\s|$)`},
-		// command lookup
-		{Pattern: `(^|\s)which(\s|$)`},
-		{Pattern: `(^|\s)whereis(\s|$)`},
-		{Pattern: `(^|\s)type(\s|$)`},
-		// read-only file view (cat/head/tail/less/more read-only; cat can read any file)
-		{Pattern: `(^|\s)cat(\s|$)`},
-		{Pattern: `(^|\s)head(\s|$)`},
-		{Pattern: `(^|\s)tail(\s|$)`},
-		{Pattern: `(^|\s)less(\s|$)`},
-		{Pattern: `(^|\s)more(\s|$)`},
-		// file info and stats
-		{Pattern: `(^|\s)file(\s|$)`},
-		{Pattern: `(^|\s)stat(\s|$)`},
-		{Pattern: `(^|\s)wc(\s|$)`},
-		// checksum and encoding (read-only)
-		{Pattern: `(^|\s)md5sum(\s|$)`},
-		{Pattern: `(^|\s)sha256sum(\s|$)`},
-		{Pattern: `(^|\s)sha1sum(\s|$)`},
-		{Pattern: `(^|\s)shasum(\s|$)`}, // macOS
-		{Pattern: `(^|\s)base64(\s|$)`},
-		{Pattern: `(^|\s)cksum(\s|$)`},
-		// find: common read-only usage only (-name/-type/-maxdepth), no -exec/-delete
-		{Pattern: `find\s+\S+(\s+-(name|type|maxdepth|iname)\s+\S+)*\s*$`},
-		// grep/egrep/fgrep: read-only search
-		{Pattern: `(^|\s)grep(\s|$)`},
-		{Pattern: `(^|\s)egrep(\s|$)`},
-		{Pattern: `(^|\s)fgrep(\s|$)`},
-		// output and pipes (read-only)
-		{Pattern: `(^|\s)echo(\s|$)`},
-		{Pattern: `(^|\s)printf(\s|$)`},
-		{Pattern: `(^|\s)set(\s|$)`},
-		// text compare and process (read-only, no file write)
-		{Pattern: `(^|\s)diff(\s|$)`},
-		{Pattern: `(^|\s)cmp(\s|$)`},
-		{Pattern: `(^|\s)cut(\s|$)`},
-		{Pattern: `(^|\s)tr(\s|$)`},
-		{Pattern: `(^|\s)uniq(\s|$)`},
-		{Pattern: `(^|\s)nl(\s|$)`},
-		{Pattern: `(^|\s)column(\s|$)`},
-		{Pattern: `(^|\s)od(\s|$)`},
-		{Pattern: `(^|\s)xxd(\s|$)`},
-		{Pattern: `(^|\s)hexdump(\s|$)`},
-		// decompress to stdout (read-only)
-		{Pattern: `(^|\s)zcat(\s|$)`},
-		{Pattern: `(^|\s)bzcat(\s|$)`},
-		{Pattern: `(^|\s)xzcat(\s|$)`},
-		// process and system resources (read-only)
-		{Pattern: `(^|\s)ps(\s|$)`},
-		{Pattern: `(^|\s)uptime(\s|$)`},
-		{Pattern: `(^|\s)df(\s|$)`},
-		{Pattern: `(^|\s)du(\s|$)`},
-		{Pattern: `(^|\s)free(\s|$)`},
-		{Pattern: `(^|\s)lsblk(\s|$)`},
-		// user and permissions (read-only)
-		{Pattern: `(^|\s)groups(\s|$)`},
-		{Pattern: `(^|\s)getent(\s|$)`},
-		{Pattern: `(^|\s)locale(\s|$)`},
-		// network read-only (DNS, connectivity)
-		{Pattern: `(^|\s)ping(\s|$)`},
-		{Pattern: `(^|\s)nslookup(\s|$)`},
-		{Pattern: `(^|\s)dig(\s|$)`},
-		{Pattern: `(^|\s)host(\s|$)`},
-		// other read-only
-		{Pattern: `(^|\s)true(\s|$)`},
-		{Pattern: `(^|\s)false(\s|$)`},
-		{Pattern: `(^|\s)seq(\s|$)`},
-		{Pattern: `(^|\s)sleep(\s|$)`},
-		// kubectl read-only subcommands (^kubectl anchors segment start; globals only before subcommand)
-		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+get\s`},
-		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+describe\s`},
-		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+logs\s`},
-		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+top\s`},
-		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+explain\s`},
-		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+api-resources`},
-		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+api-versions`},
-		// cluster-info dump writes; require end of segment after cluster-info (no subcommand).
-		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+cluster-info\s*$`},
-		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+config\s+view`},
-		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+version`},
-		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+auth\s+can-i`},
-		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+auth\s+whoami`},
-		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+rollout\s+status`},
-		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+diff\s`},
-		{Pattern: `^kubectl` + kubectlGlobalOptsBeforeSubcommand + `\s+.*--help`},
-		// git read-only commands
-		{Pattern: `git\s+status\s`},
-		{Pattern: `git\s+status\s*$`},
-		{Pattern: `git\s+diff\s`},
-		{Pattern: `git\s+diff\s*$`},
-		{Pattern: `git\s+log\s`},
-		{Pattern: `git\s+log\s*$`},
-		{Pattern: `git\s+show\s`},
-		{Pattern: `git\s+show\s*$`},
-		{Pattern: `git\s+branch(?:\s+-(?:a|v|r)|\s+--(?:list|show-current))?(?:\s|$)`},
-		{Pattern: `git\s+tag(?:\s+-(?:l|list)|\s+--list)(?:\s|$)`},
-		{Pattern: `git\s+tag\s*$`},
-		{Pattern: `git\s+remote(?:\s+-(?:v)|\s+show)(?:\s|$)`},
-		{Pattern: `git\s+config\s+(?:--get|--list|--get-all)(?:\s|$)`},
-		{Pattern: `git\s+rev-parse(?:\s|$)`},
-		{Pattern: `git\s+describe(?:\s|$)`},
-		{Pattern: `git\s+stash\s+list(?:\s|$)`},
-		{Pattern: `git\s+reflog\s`},
-		{Pattern: `git\s+reflog\s*$`},
-		{Pattern: `git\s+blame\s`},
-		{Pattern: `git\s+ls-files\s`},
-		{Pattern: `git\s+ls-tree\s`},
-		{Pattern: `git\s+cat-file\s`},
-		{Pattern: `git\s+for-each-ref\s`},
-		{Pattern: `git\s+symbolic-ref\s`},
-		{Pattern: `git\s+help\s`},
-		{Pattern: `git\s+version\s*$`},
-		{Pattern: `git\s+--help`},
-		// other CLI help
-		{Pattern: `docker\s+.*--help`},
-		{Pattern: `(^|\s)--help(\s|$)`}, // most GNU tools: command --help
-	}
 }

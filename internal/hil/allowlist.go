@@ -15,26 +15,40 @@ var (
 	// Reject loading a jq program from disk (-f / --from-file). Filter source is not analyzed.
 	jqFromFileFlag = regexp.MustCompile(`(?:^|\s)-f(?:\s+|\s*=|$|\S)`)
 	jqFromFileLong = regexp.MustCompile(`(?:^|\s)--from-file(?:\s+|\s*=|$)`)
+
+	sortLeadingCmd = regexp.MustCompile(`^sort(\s|$)`)
+	// Reject -o / --output (write sorted output to a file; GNU coreutils).
+	sortOutputShort = regexp.MustCompile(`(?:^|\s)-o(?:\s|$|\S)`)
+	sortOutputLong  = regexp.MustCompile(`(?:^|\s)--output(?:=\S*|\s+|$)`)
 )
 
-// Allowlist is a config-based allowlist matcher.
+// Allowlist is a config-based allowlist matcher (allowlist.yaml schema v2: commands map by argv0 basename).
 type Allowlist struct {
-	patterns []compiledEntry
+	cliByName       map[string]config.ReadOnlyCLIPolicy
+	permissiveArgv0 map[string]struct{}
 }
 
-type compiledEntry struct {
-	regex *regexp.Regexp
-}
-
-// NewAllowlist builds a matcher from allowlist entries; each Pattern is a regex, invalid ones are ignored.
-func NewAllowlist(entries []config.AllowlistEntry) *Allowlist {
-	w := &Allowlist{}
-	for _, e := range entries {
-		if re, err := regexp.Compile(e.Pattern); err == nil {
-			w.patterns = append(w.patterns, compiledEntry{regex: re})
+// NewAllowlist builds a matcher from a loaded allowlist. If ld is nil, uses [config.DefaultLoadedAllowlist].
+func NewAllowlist(ld *config.LoadedAllowlist) *Allowlist {
+	if ld == nil {
+		ld = config.DefaultLoadedAllowlist()
+	}
+	pol := config.NormalizeReadOnlyCLIPolicies(ld.Commands)
+	per := make(map[string]struct{})
+	for name, p := range pol {
+		if p.PermissiveVarArgs() {
+			per[name] = struct{}{}
 		}
 	}
-	return w
+	return &Allowlist{cliByName: pol, permissiveArgv0: per}
+}
+
+func (w *Allowlist) argv0PermitsVarArgs(argv0 string) bool {
+	if w == nil {
+		return false
+	}
+	_, ok := w.permissiveArgv0[argv0Base(argv0)]
+	return ok
 }
 
 // ContainsWriteRedirection reports whether the command contains write redirection (>, >>, 2>, etc.).
@@ -122,14 +136,16 @@ func benignJqReadOnly(seg string) bool {
 	return true
 }
 
-// Allow reports whether a single command string matches the allowlist (used per segment in AllowStrict).
-func (w *Allowlist) Allow(command string) bool {
-	for _, p := range w.patterns {
-		if p.regex != nil && p.regex.MatchString(command) {
-			return true
-		}
+// benignSortReadOnly is true for sort without -o/--output (those write to a path).
+func benignSortReadOnly(seg string) bool {
+	s := strings.TrimSpace(seg)
+	if !sortLeadingCmd.MatchString(s) {
+		return false
 	}
-	return false
+	if sortOutputShort.MatchString(s) || sortOutputLong.MatchString(s) {
+		return false
+	}
+	return true
 }
 
 // splitIntoCommands splits a command into a flat list of single commands by pipeline (|) and chain (;, &&, ||).
@@ -149,9 +165,11 @@ func splitIntoCommands(command string) []string {
 	return out
 }
 
-// segmentAllowed is true when the segment matches the allowlist or is read-only sed (no -i / --in-place) or read-only jq (no -f/--from-file).
+// segmentAllowed is true when the segment matches structured read-only CLI policy, bare --help/-h,
+// or is read-only sed (no -i / --in-place), read-only jq (no -f/--from-file), read-only awk
+// (GoAWK parse: no print redirect, no system(), no cmd|getline), or read-only sort (no -o/--output).
 func (w *Allowlist) segmentAllowed(seg string) bool {
-	return seg != "" && (w.Allow(seg) || benignSedReadOnly(seg) || benignJqReadOnly(seg))
+	return seg != "" && (segmentBareHelp(seg) || w.structuredLiteralSegmentOK(seg) || benignSedReadOnly(seg) || benignJqReadOnly(seg) || benignAwkReadOnly(seg) || benignSortReadOnly(seg))
 }
 
 // AllowStrict: for chained/pipeline commands, splits into segments and requires every segment to match the allowlist;

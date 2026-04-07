@@ -66,18 +66,27 @@ func TestPresenter_Config(t *testing.T) {
 }
 
 func TestPresenter_AgentReply(t *testing.T) {
+	i18n.SetLang("en")
 	var r recordSender
 	p := New(&r)
 	p.AgentReply("hi", nil)
+	p.AgentReply("", nil)
 	p.AgentReply("", errors.New("boom"))
-	if len(r.msgs) != 2 {
-		t.Fatalf("want 2 msgs, got %d", len(r.msgs))
+	if len(r.msgs) != 3 {
+		t.Fatalf("want 3 msgs, got %d", len(r.msgs))
 	}
 	if _, ok := r.msgs[0].(ui.TranscriptAppendMsg); !ok {
 		t.Fatalf("reply0 type %T", r.msgs[0])
 	}
-	if _, ok := r.msgs[1].(ui.TranscriptAppendMsg); !ok {
+	emptyOK, ok := r.msgs[1].(ui.TranscriptAppendMsg)
+	if !ok || len(emptyOK.Lines) < 1 {
 		t.Fatalf("reply1 type %T", r.msgs[1])
+	}
+	if emptyOK.Lines[0].Text != i18n.T(i18n.KeyAgentReplyEmpty) {
+		t.Fatalf("empty reply hint: got %q", emptyOK.Lines[0].Text)
+	}
+	if _, ok := r.msgs[2].(ui.TranscriptAppendMsg); !ok {
+		t.Fatalf("reply2 type %T", r.msgs[2])
 	}
 }
 

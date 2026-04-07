@@ -63,8 +63,9 @@ type ExecStreamPreviewMsg struct {
 	Stderr bool
 }
 
-// ExecStreamFlushMsg appends buffered stream output as one transcript block (joined with newlines), optionally
-// truncating long output to the last chunk of lines with a hint; full stdout/stderr is still stored in session history.
+// ExecStreamFlushMsg appends buffered stream output as one transcript block (joined with newlines), truncating
+// to the last preview-sized chunk of lines with a hint when long; when Sensitive, runs history.RedactText on
+// body and tail before display. Full stdout/stderr is still stored in session history when the tool stores results.
 type ExecStreamFlushMsg struct {
 	Sensitive bool
 	Tail      string

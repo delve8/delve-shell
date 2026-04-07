@@ -6,19 +6,22 @@ toolchain go1.24.6
 
 require (
 	github.com/atotto/clipboard v0.1.4
+	github.com/benhoyt/goawk v1.31.0
 	github.com/charmbracelet/bubbles v1.0.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0
+	github.com/charmbracelet/x/ansi v0.11.6
 	github.com/cloudwego/eino v0.7.36
 	github.com/cloudwego/eino-ext/components/model/openai v0.1.8
 	github.com/creack/pty v1.1.23
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/mattn/go-runewidth v0.0.19
 	github.com/spf13/cobra v1.10.2
-	mvdan.cc/sh/v3 v3.10.0
 	golang.org/x/crypto v0.48.0
+	golang.org/x/sys v0.41.0
 	golang.org/x/term v0.40.0
 	gopkg.in/yaml.v3 v3.0.1
+	mvdan.cc/sh/v3 v3.10.0
 )
 
 require (
@@ -32,7 +35,6 @@ require (
 	github.com/bytedance/sonic v1.14.1 // indirect
 	github.com/bytedance/sonic/loader v0.3.0 // indirect
 	github.com/charmbracelet/colorprofile v0.4.1 // indirect
-	github.com/charmbracelet/x/ansi v0.11.6 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.15 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
 	github.com/clipperhouse/displaywidth v0.9.0 // indirect
@@ -87,9 +89,7 @@ require (
 	golang.org/x/mod v0.32.0 // indirect
 	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	golang.org/x/tools v0.41.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	mvdan.cc/sh/v3 v3.10.0 // indirect
 )
