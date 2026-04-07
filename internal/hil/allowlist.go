@@ -167,9 +167,10 @@ func splitIntoCommands(command string) []string {
 
 // segmentAllowed is true when the segment matches structured read-only CLI policy, bare --help/-h,
 // or is read-only sed (no -i / --in-place), read-only jq (no -f/--from-file), read-only awk
-// (GoAWK parse: no print redirect, no system(), no cmd|getline), or read-only sort (no -o/--output).
+// (GoAWK parse: no print redirect, no system(), no cmd|getline), read-only sort (no -o/--output),
+// or benign "exit" / "exit N" ([benignExitReadOnly]).
 func (w *Allowlist) segmentAllowed(seg string) bool {
-	return seg != "" && (segmentBareHelp(seg) || w.structuredLiteralSegmentOK(seg) || benignSedReadOnly(seg) || benignJqReadOnly(seg) || benignAwkReadOnly(seg) || benignSortReadOnly(seg))
+	return seg != "" && (segmentBareHelp(seg) || w.structuredLiteralSegmentOK(seg) || benignSedReadOnly(seg) || benignJqReadOnly(seg) || benignAwkReadOnly(seg) || benignSortReadOnly(seg) || benignExitReadOnly(seg))
 }
 
 // AllowStrict: for chained/pipeline commands, splits into segments and requires every segment to match the allowlist;

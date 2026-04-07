@@ -1,89 +1,29 @@
 # Builtin default allowlist (schema v2).
 #
-# Top-level shape
-# ---------------
-# - `version` (required): must equal 2 for this schema.
-# - `commands` (required): map basename -> policy object. Keys are argv0 basenames.
+# version: required; must be 2.
+# commands: map argv0 basename -> policy. `{}` is valid.
 #
-# Policy object (`commands.<name>`)
-# --------------------------------
-# Optional keys only; an empty `{}` policy is valid.
+# global (optional): only leading flags after argv0. Missing global or missing global.flags => none.
+#   Do not use `must` under global.flags.
 #
-# - `global` (optional object): describes tokens before the first non-flag operand / subcommand
-#   segment, for tools that separate "global" options from the rest.
-#   - `flags` (optional): a Flag rule (see below). If the whole `global` key is absent,
-#     effective global flags are `none`. If `global` is present but `flags` is omitted, the field
-#     zero-decodes to `none`.
+# root (optional): rest of argv. Missing root => flags any, operands any, no subcommands.
+#   If root is present, missing flags or operands inside it => none each (set `any` explicitly when needed).
 #
-# - `root` (optional object): describes argv after argv0 for that tool: interleaved flags and
-#   operands, plus an optional subcommand tree.
-#   - `flags`, `operands`: Flag rule and Operands rule (see below).
-#   - `subcommands` (optional): map subcommand name -> subcommand node (see below).
-#   If the `root` key is **absent**, the loader applies the effective root default (see below).
-#   If `root` is **present** (even as `{}`), omitted `flags` / `operands` inside it zero-decode to
-#   `none` each—not `any`. Use explicit `flags: any` / `operands: any` when the root segment should
-#   accept unrestricted flags and/or operands.
+# flags: scalar `any`, `none`, or ""; or a mapping with at least one of allow / must:
+#   allow — optional list of { short?, long?, value: none|required? }; each row needs short or long.
+#   must  — same row shape; each listed option must appear before operands or a child subcommand.
+#   Rows may appear only under must (optional flags stay under allow). If the same option is in both,
+#   the allow row sets value:. `--` is not allowed as a flag token.
 #
-# Flag rule
-# ---------
-# YAML is either:
+# operands: scalar `any`, `none`, or "" only.
 #
-# 1) **Scalar** — one of:
-#    - `any` — any `-x` / `--long` tokens allowed (subject to parser details; `--` is rejected).
-#    - `none` — no flag tokens allowed at this node.
-#    - `""` (empty string) — treated like `none`.
+# subcommands: nested maps; the name is the key only (no `name` field). Under a node, missing flags =>
+#   any, missing operands => any.
 #
-# 2) **Mapping** — exactly:
-#        flags:
-#          allow:
-#            - short: <1-char>   # optional
-#              long: <name>      # optional; at least one of short/long per entry
-#              value: none | required   # optional; `required` means a separate token or `=value`
-#    `allow` must be non-empty. Validation rejects entries with both short and long empty.
+# Policy root with subcommands: a non-flag word must match a child name. Deeper nodes with subcommands
+# and operands any may accept other non-flag words as operands.
 #
-# At match time, if `global.flags` is an allow-list, that list is **prepended** to a node's
-# allow-list when the node’s local rule is also allow-list; if the local rule is `none`, the
-# effective rule becomes an allow-list containing **only** those global entries; if the local rule
-# is `any`, global allow-list does not merge (local `any` wins).
-#
-# Operands rule
-# -------------
-# YAML is a **scalar** only:
-# - `any` — non-flag tokens may appear where operands are consumed.
-# - `none` or `""` — operands disallowed at that position (only flags until the segment ends or
-#   a subcommand is taken).
-# No mapping form exists for `operands`.
-#
-# Subcommand node
-# ---------------
-# Under `root.subcommands` or nested `subcommands`, each value is a map (the subcommand name is
-# **only** the map key; do not add a `name` field).
-#
-# Optional fields:
-# - `flags` — Flag rule, pointer-backed: **omitted key** ⇒ effective `any` (unlike `root`, where
-#   omission inside a present `root` block means `none`).
-# - `operands` — Operands rule, pointer-backed: **omitted key** ⇒ effective `any`.
-# - `subcommands` — nested map of the same shape, arbitrary depth.
-#
-# Matching walks argv left-to-right: globals (if any) are consumed first as leading `-` tokens only;
-# then each segment uses the current node's merged flag rule and operands rule. If `subcommands` is
-# non-empty and the next token does not start with `-`, the matcher first tries that token as a child
-# name; on success it recurses into that child for the rest of argv. At the policy `root` only, when
-# `subcommands` is non-empty, a non-flag token that is **not** a child key fails the match (there is
-# no operand bypass at that top segment). Deeper nodes pass a different mode: if `subcommands` is
-# non-empty but the token is not a child key and `operands` is `any`, the token is consumed as an
-# operand at that level instead of descending (structured read-only CLI matcher).
-# Inner nodes can be pure branches (`subcommands` only), pure leaves (`flags` / `operands` only), or
-# both.
-#
-# Effective root default
-# ----------------------
-# When `root` is **absent** on a policy: effective `flags` = `any`, effective `operands` = `any`,
-# empty `subcommands`. This is what makes `commands: { tool: {} }` mean "argv0 allowed, tail open".
-#
-# User copy
-# ---------
-# On first run or rewrite, an editable copy is written beside the config as allowlist.yaml.
+# On first run or rewrite, an editable copy may be written beside the config as allowlist.yaml.
 
 version: 2
 commands:
@@ -92,6 +32,13 @@ commands:
   cat: {}
   cksum: {}
   cmp: {}
+  command:
+    root:
+      flags:
+        must:
+          - value: none
+            short: v
+      operands: any
   column: {}
   crictl:
     # Global flags:any so connection flags (-r/--runtime-endpoint, -c/--config, etc.) parse before the verb.
@@ -420,6 +367,18 @@ commands:
           flags: none
           operands: none
           subcommands:
+            current-context:
+              flags: none
+              operands: none
+            get-contexts:
+              flags:
+                allow:
+                - value: none
+                  long: no-headers
+                - value: required
+                  short: o
+                  long: output
+              operands: any
             view:
               flags:
                 allow:

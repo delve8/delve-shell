@@ -23,7 +23,7 @@ import (
 type ExecuteCommandTool struct {
 	Allowlist                    *hil.Allowlist
 	SensitiveMatcher             *hil.SensitiveMatcher
-	RequestApproval              func(command, summary, reason, riskLevel, skillName string) hiltypes.ApprovalResponse
+	RequestApproval              func(command, summary, reason, riskLevel, skillName string, autoApproveHL []hiltypes.AutoApproveHighlightSpan) hiltypes.ApprovalResponse
 	RequestSensitiveConfirmation func(command string) hiltypes.SensitiveChoice
 	Session                      *history.Session
 	OnExec                       func(command string, allowed bool, result string, sensitive bool, suggested bool, streamed bool)
@@ -104,7 +104,11 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 		allowed = t.Allowlist.CommandAllowsAutoApprove(command)
 	}
 	if !allowed {
-		resp := t.RequestApproval(command, "", reason, riskLevel, "")
+		var autoHL []hiltypes.AutoApproveHighlightSpan
+		if t.Allowlist != nil {
+			autoHL = t.Allowlist.CommandAutoApproveHighlight(command)
+		}
+		resp := t.RequestApproval(command, "", reason, riskLevel, "", autoHL)
 		if t.Session != nil {
 			_ = t.Session.AppendCommand(command, resp.Approved, reason, riskLevel, "", "")
 		}

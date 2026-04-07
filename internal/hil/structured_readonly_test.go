@@ -37,6 +37,31 @@ func TestStaticSimpleCommandArgs_quotedOutputWide(t *testing.T) {
 	}
 }
 
+func TestStaticOrOpaque_kubectlQuotedSimpleNamespace(t *testing.T) {
+	t.Parallel()
+	pol := config.KubectlReadOnlyCLIPolicyForTest()
+	qa, ok := staticOrOpaqueSimpleCommandArgs(`kubectl -n "$ns" get pods --no-headers`)
+	if !ok {
+		t.Fatal("staticOrOpaqueSimpleCommandArgs failed")
+	}
+	if len(qa) < 2 || qa[2].opaque != true {
+		t.Fatalf("expected opaque argv slot for -n value, got %#v", qa)
+	}
+	if !matchReadOnlyCLIArgs(qa, &pol) {
+		t.Fatal("expected matchReadOnlyCLIArgs for quoted simple -n value")
+	}
+}
+
+func TestStaticOrOpaque_rejectsUnquotedOrNonSimpleParam(t *testing.T) {
+	t.Parallel()
+	if _, ok := staticOrOpaqueSimpleCommandArgs(`kubectl -n $ns get pods`); ok {
+		t.Fatal("unquoted $ns should be rejected")
+	}
+	if _, ok := staticOrOpaqueSimpleCommandArgs(`kubectl -n "${ns:-x}" get pods`); ok {
+		t.Fatal("defaulted param expansion should be rejected")
+	}
+}
+
 func TestMatchReadOnlyCLIArgv_kubectlPolicy(t *testing.T) {
 	pol := config.KubectlReadOnlyCLIPolicyForTest()
 
@@ -67,7 +92,89 @@ func TestMatchReadOnlyCLIArgv_kubectlPolicy(t *testing.T) {
 		{[]string{"kubectl", "top", "node"}, true},
 		{[]string{"kubectl", "top", "pods"}, true},
 		{[]string{"kubectl", "top", "nodes"}, true},
+		{[]string{"kubectl", "top", "pod", "-A", "--no-headers"}, true},
+		{[]string{"kubectl", "top", "pods", "-A", "--no-headers"}, true},
 		{[]string{"helm", "version"}, false},
+	}
+	for _, tt := range tests {
+		got := MatchReadOnlyCLIArgv(tt.args, &pol)
+		if got != tt.want {
+			t.Errorf("MatchReadOnlyCLIArgv(%q) = %v, want %v", tt.args, got, tt.want)
+		}
+	}
+}
+
+func TestMatchReadOnlyCLIArgv_rootMustBeforeSubcommand(t *testing.T) {
+	pol := config.ReadOnlyCLIPolicy{
+		Name: "tool",
+		Root: &config.RootSpec{
+			Flags: config.NewFlagAllow([]config.AllowedOption{
+				{Short: "v", Value: "none"},
+			}).WithMust([]config.AllowedOption{{Short: "v"}}),
+			Operands: config.NewOperandsNone(),
+			Subcommands: config.SubcommandMap{
+				"get": {},
+			},
+		},
+	}
+	tests := []struct {
+		args []string
+		want bool
+	}{
+		{[]string{"tool", "-v", "get"}, true},
+		{[]string{"tool", "get"}, false},
+	}
+	for _, tt := range tests {
+		got := MatchReadOnlyCLIArgv(tt.args, &pol)
+		if got != tt.want {
+			t.Errorf("MatchReadOnlyCLIArgv(%q) = %v, want %v", tt.args, got, tt.want)
+		}
+	}
+}
+
+func TestMatchReadOnlyCLIArgv_mustNotListedInAllowStillConsumable(t *testing.T) {
+	pol := config.ReadOnlyCLIPolicy{
+		Name: "tool",
+		Root: &config.RootSpec{
+			Flags: config.NewFlagAllow([]config.AllowedOption{
+				{Short: "b", Value: "none"},
+				{Short: "c", Value: "none"},
+			}).WithMust([]config.AllowedOption{{Short: "a", Value: "none"}}),
+			Operands: config.NewOperandsAny(),
+		},
+	}
+	tests := []struct {
+		args []string
+		want bool
+	}{
+		{[]string{"tool", "-a", "op"}, true},
+		{[]string{"tool", "-a", "-b", "op"}, true},
+		{[]string{"tool", "-b", "op"}, false},
+		{[]string{"tool", "op"}, false},
+		{[]string{"tool", "-x"}, false},
+	}
+	for _, tt := range tests {
+		got := MatchReadOnlyCLIArgv(tt.args, &pol)
+		if got != tt.want {
+			t.Errorf("MatchReadOnlyCLIArgv(%q) = %v, want %v", tt.args, got, tt.want)
+		}
+	}
+}
+
+func TestMatchReadOnlyCLIArgv_commandMustDashV(t *testing.T) {
+	ld := config.DefaultLoadedAllowlist()
+	pol, ok := ld.Commands["command"]
+	if !ok {
+		t.Fatal("missing command in default allowlist")
+	}
+	tests := []struct {
+		args []string
+		want bool
+	}{
+		{[]string{"command", "-v", "kubectl"}, true},
+		{[]string{"command", "-v", "sh", "bash"}, true},
+		{[]string{"command", "kubectl"}, false},
+		{[]string{"command", "-V", "kubectl"}, false},
 	}
 	for _, tt := range tests {
 		got := MatchReadOnlyCLIArgv(tt.args, &pol)

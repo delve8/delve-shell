@@ -1,14 +1,17 @@
 package uivm
 
+import hiltypes "delve-shell/internal/hil/types"
+
 // PendingApproval is the UI view-model for a command pending user approval.
 // Respond is invoked by the TUI when the user chooses.
 type PendingApproval struct {
-	Command   string
-	Summary   string
-	Reason    string
-	RiskLevel string
-	SkillName string
-	Respond   func(ApprovalResponse)
+	Command              string
+	Summary              string
+	Reason               string
+	RiskLevel            string
+	SkillName            string
+	AutoApproveHighlight []hiltypes.AutoApproveHighlightSpan
+	Respond              func(ApprovalResponse)
 }
 
 // ApprovalResponse is the UI-level approval choice.

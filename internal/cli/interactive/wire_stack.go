@@ -66,8 +66,10 @@ func wireHostStack(
 		ExecCancelHub: execCancelHub,
 	})
 
-	if _, err := config.AllowlistUpdateWithDefaults(); err != nil {
-		log.Printf("[warn] allowlist merge at startup: %v", err)
+	if updated, err := config.AllowlistSyncWithDefaults(); err != nil {
+		log.Printf("[warn] allowlist sync at startup: %v", err)
+	} else if updated {
+		log.Printf("[info] allowlist: wrote built-in default to %s", config.AllowlistPath())
 	}
 	runners.Invalidate()
 

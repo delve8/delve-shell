@@ -20,8 +20,9 @@ const (
 )
 
 type Line struct {
-	Kind LineKind
-	Text string
+	Kind          LineKind
+	Text          string
+	AutoApproveHL []hiltypes.AutoApproveHighlightSpan // optional; byte offsets into Text for LineExec
 }
 
 type DecisionKind int
@@ -67,6 +68,14 @@ func Build(
 		return nil, false
 	}
 
+	execLine := func() Line {
+		if len(pending.AutoApproveHighlight) == 0 {
+			return Line{Kind: LineExec, Text: w(pending.Command)}
+		}
+		// Wrapping would desync byte offsets; terminal soft-wraps one logical line.
+		return Line{Kind: LineExec, Text: pending.Command, AutoApproveHL: pending.AutoApproveHighlight}
+	}
+
 	lines := []Line{
 		{Kind: LineHeader, Text: i18n.T(i18n.KeyApprovalPrompt)},
 	}
@@ -77,20 +86,20 @@ func Build(
 	case hiltypes.RiskLevelReadOnly:
 		lines = append(lines,
 			Line{Kind: LineRiskReadOnly, Text: "[" + i18n.T(i18n.KeyRiskReadOnly) + "]"},
-			Line{Kind: LineExec, Text: w(pending.Command)},
+			execLine(),
 		)
 	case hiltypes.RiskLevelLow:
 		lines = append(lines,
 			Line{Kind: LineRiskLow, Text: "[" + i18n.T(i18n.KeyRiskLow) + "]"},
-			Line{Kind: LineExec, Text: w(pending.Command)},
+			execLine(),
 		)
 	case hiltypes.RiskLevelHigh:
 		lines = append(lines,
 			Line{Kind: LineRiskHigh, Text: "[" + i18n.T(i18n.KeyRiskHigh) + "]"},
-			Line{Kind: LineExec, Text: w(pending.Command)},
+			execLine(),
 		)
 	default:
-		lines = append(lines, Line{Kind: LineExec, Text: w(pending.Command)})
+		lines = append(lines, execLine())
 	}
 	if pending.Summary != "" {
 		lines = append(lines, Line{Kind: LineSuggest, Text: i18n.T(i18n.KeyApprovalSummary) + " " + pending.Summary})
@@ -144,6 +153,9 @@ func BuildDecision(
 		base = append(base, Line{Kind: LineSuggest, Text: i18n.T(i18n.KeyChoiceDismiss)})
 	}
 	for i := range base {
+		if base[i].Kind == LineExec && len(base[i].AutoApproveHL) > 0 {
+			continue
+		}
 		base[i].Text = w(base[i].Text)
 	}
 	return base, true

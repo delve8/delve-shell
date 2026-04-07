@@ -21,12 +21,15 @@ func (m *Model) appendPendingChoiceCardToMessages() {
 		return
 	}
 	rendered := widget.RenderPendingApprovalLines(lines, widget.PendingCardStyles{
-		Header:       approvalHeaderStyle,
-		Exec:         execStyle,
-		Suggest:      suggestStyle,
-		RiskReadOnly: riskReadOnlyStyle,
-		RiskLow:      riskLowStyle,
-		RiskHigh:     riskHighStyle,
+		Header:          approvalHeaderStyle,
+		Exec:            execStyle,
+		Suggest:         suggestStyle,
+		RiskReadOnly:    riskReadOnlyStyle,
+		RiskLow:         riskLowStyle,
+		RiskHigh:        riskHighStyle,
+		ExecAutoSafe:    execAutoSafeStyle,
+		ExecAutoRisk:    execAutoRiskStyle,
+		ExecAutoNeutral: execAutoNeutralStyle,
 	})
 	m.appendRenderedLinesToMessages(rendered)
 }

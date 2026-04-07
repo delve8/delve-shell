@@ -1,8 +1,8 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
-	"maps"
 	"os"
 
 	"gopkg.in/yaml.v3"
@@ -51,12 +51,29 @@ func LoadAllowlist() (*LoadedAllowlist, error) {
 	return ld, nil
 }
 
+// EncodeAllowlistYAML encodes the allowlist as YAML with 2-space indentation.
+func EncodeAllowlistYAML(ld *LoadedAllowlist) ([]byte, error) {
+	if ld == nil {
+		return nil, fmt.Errorf("allowlist: nil document")
+	}
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetIndent(2)
+	if err := enc.Encode(ld); err != nil {
+		return nil, err
+	}
+	if err := enc.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
 // WriteLoadedAllowlist writes allowlist.yaml (EnsureRootDir before first write).
 func WriteLoadedAllowlist(ld *LoadedAllowlist) error {
 	if ld == nil {
 		ld = DefaultLoadedAllowlist()
 	}
-	data, err := yaml.Marshal(ld)
+	data, err := EncodeAllowlistYAML(ld)
 	if err != nil {
 		return err
 	}
@@ -78,55 +95,3 @@ func ParseAllowlistYAML(data []byte) (*LoadedAllowlist, error) {
 	return &ld, nil
 }
 
-// AllowlistUpdateWithDefaults merges built-in defaults into the current file (missing command keys). Returns how many were added.
-func AllowlistUpdateWithDefaults() (added int, err error) {
-	path := AllowlistPath()
-	data, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			if err := EnsureRootDir(); err != nil {
-				return 0, err
-			}
-			def := DefaultLoadedAllowlist()
-			if err := WriteLoadedAllowlist(def); err != nil {
-				return 0, err
-			}
-			return len(def.Commands), nil
-		}
-		return 0, err
-	}
-	cur, err := ParseAllowlistYAML(data)
-	if err != nil || cur.Version != AllowlistSchemaVersion {
-		def := DefaultLoadedAllowlist()
-		if err := EnsureRootDir(); err != nil {
-			return 0, err
-		}
-		if err := WriteLoadedAllowlist(def); err != nil {
-			return 0, err
-		}
-		return len(def.Commands), nil
-	}
-	if err := ValidateLoadedAllowlist(cur); err != nil {
-		def := DefaultLoadedAllowlist()
-		if err := EnsureRootDir(); err != nil {
-			return 0, err
-		}
-		if err := WriteLoadedAllowlist(def); err != nil {
-			return 0, err
-		}
-		return len(def.Commands), nil
-	}
-	def := DefaultLoadedAllowlist()
-	outCmd := maps.Clone(cur.Commands)
-	for k, p := range def.Commands {
-		if _, ok := outCmd[k]; !ok {
-			outCmd[k] = p
-			added++
-		}
-	}
-	out := &LoadedAllowlist{Version: AllowlistSchemaVersion, Commands: NormalizeReadOnlyCLIPolicies(outCmd)}
-	if err := WriteLoadedAllowlist(out); err != nil {
-		return 0, err
-	}
-	return added, nil
-}

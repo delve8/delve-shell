@@ -9,6 +9,39 @@ import (
 // shellUnwrapMax is how many times a bash/sh -c or -lc wrapper may be replaced by its script argument (one level only).
 const shellUnwrapMax = 1
 
+// allowSeg is a half-open byte range [start,end) into the root trimmed command string.
+type allowSeg struct {
+	start, end int
+}
+
+type walkCtx struct {
+	root string
+	src  string
+	base int
+}
+
+func (c walkCtx) segFromStmt(st *syntax.Stmt) (allowSeg, bool) {
+	if st == nil {
+		return allowSeg{}, false
+	}
+	i := int(st.Pos().Offset())
+	j := int(st.End().Offset())
+	if i < 0 || j > len(c.src) || i > j {
+		return allowSeg{}, false
+	}
+	ai, aj := c.base+i, c.base+j
+	if ai < 0 {
+		ai = 0
+	}
+	if aj > len(c.root) {
+		aj = len(c.root)
+	}
+	if ai > aj {
+		return allowSeg{}, false
+	}
+	return allowSeg{start: ai, end: aj}, true
+}
+
 // CommandAllowsAutoApprove decides whether a shell command may run without explicit HIL approval.
 //
 // Policy:
@@ -42,7 +75,7 @@ func (w *Allowlist) CommandAllowsAutoApprove(command string) bool {
 		return false
 	}
 	varArg := func(name string) bool { return w.argv0PermitsVarArgs(name) }
-	segs, reject := collectAllowlistSegments(f, command, localFunctionNames(f), shellUnwrapMax, varArg)
+	segs, _, reject := collectAllowlistSegments(f, command, localFunctionNames(f), shellUnwrapMax, varArg)
 	if reject {
 		return false
 	}
@@ -82,27 +115,35 @@ func localFunctionNames(f *syntax.File) map[string]struct{} {
 	return m
 }
 
-func collectAllowlistSegments(f *syntax.File, src string, localFuncs map[string]struct{}, unwrapLeft int, argv0AllowsVarArgs func(string) bool) (segments []string, reject bool) {
-	segs, rej := walkStmtList(f.Stmts, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
-	segments = append(segments, segs...)
-	reject = reject || rej
+func collectAllowlistSegments(f *syntax.File, root string, localFuncs map[string]struct{}, unwrapLeft int, argv0AllowsVarArgs func(string) bool) (segments []string, ranges []allowSeg, reject bool) {
+	ctx := walkCtx{root: root, src: root, base: 0}
+	segs, rej := walkStmtList(f.Stmts, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+	ranges = append(ranges, segs...)
+	reject = rej
 
-	s, r := substSegsFromNode(f, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
-	segments = append(segments, s...)
+	s, r := substSegsFromNode(f, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+	ranges = append(ranges, s...)
 	reject = reject || r
-	return segments, reject
+
+	for _, rg := range ranges {
+		if rg.start < 0 || rg.end > len(root) || rg.start > rg.end {
+			continue
+		}
+		segments = append(segments, strings.TrimSpace(root[rg.start:rg.end]))
+	}
+	return segments, ranges, reject
 }
 
 // substSegsFromNode collects command/process substitution bodies under n (for nodes that do not emit their own allowlist segment).
-func substSegsFromNode(n syntax.Node, src string, localFuncs map[string]struct{}, unwrapLeft int, argv0AllowsVarArgs func(string) bool) (segments []string, reject bool) {
+func substSegsFromNode(n syntax.Node, ctx walkCtx, localFuncs map[string]struct{}, unwrapLeft int, argv0AllowsVarArgs func(string) bool) (segments []allowSeg, reject bool) {
 	syntax.Walk(n, func(node syntax.Node) bool {
 		switch x := node.(type) {
 		case *syntax.CmdSubst:
-			s, r := walkStmtList(x.Stmts, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+			s, r := walkStmtList(x.Stmts, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
 			segments = append(segments, s...)
 			reject = reject || r
 		case *syntax.ProcSubst:
-			s, r := walkStmtList(x.Stmts, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+			s, r := walkStmtList(x.Stmts, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
 			segments = append(segments, s...)
 			reject = reject || r
 		}
@@ -111,41 +152,41 @@ func substSegsFromNode(n syntax.Node, src string, localFuncs map[string]struct{}
 	return segments, reject
 }
 
-func walkStmtList(stmts []*syntax.Stmt, src string, localFuncs map[string]struct{}, unwrapLeft int, argv0AllowsVarArgs func(string) bool) (segs []string, reject bool) {
+func walkStmtList(stmts []*syntax.Stmt, ctx walkCtx, localFuncs map[string]struct{}, unwrapLeft int, argv0AllowsVarArgs func(string) bool) (segs []allowSeg, reject bool) {
 	for _, s := range stmts {
-		x, r := stmtSegments(s, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+		x, r := stmtSegments(s, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
 		segs = append(segs, x...)
 		reject = reject || r
 	}
 	return segs, reject
 }
 
-func stmtSegments(st *syntax.Stmt, src string, localFuncs map[string]struct{}, unwrapLeft int, argv0AllowsVarArgs func(string) bool) (segs []string, reject bool) {
+func stmtSegments(st *syntax.Stmt, ctx walkCtx, localFuncs map[string]struct{}, unwrapLeft int, argv0AllowsVarArgs func(string) bool) (segs []allowSeg, reject bool) {
 	if st == nil || st.Cmd == nil {
 		return nil, false
 	}
 	switch c := st.Cmd.(type) {
 	case *syntax.BinaryCmd:
-		sx, r1 := stmtSegments(c.X, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
-		sy, r2 := stmtSegments(c.Y, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+		sx, r1 := stmtSegments(c.X, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+		sy, r2 := stmtSegments(c.Y, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
 		return append(sx, sy...), r1 || r2
 	case *syntax.IfClause:
-		return walkIfClause(c, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+		return walkIfClause(c, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
 	case *syntax.Subshell:
-		return walkStmtList(c.Stmts, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+		return walkStmtList(c.Stmts, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
 	case *syntax.Block:
-		return walkStmtList(c.Stmts, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+		return walkStmtList(c.Stmts, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
 	case *syntax.WhileClause:
-		s1, r1 := walkStmtList(c.Cond, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
-		s2, r2 := walkStmtList(c.Do, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+		s1, r1 := walkStmtList(c.Cond, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+		s2, r2 := walkStmtList(c.Do, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
 		return append(s1, s2...), r1 || r2
 	case *syntax.ForClause:
-		return walkStmtList(c.Do, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+		return walkStmtList(c.Do, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
 	case *syntax.CaseClause:
-		var out []string
+		var out []allowSeg
 		var rej bool
 		for _, item := range c.Items {
-			s, r := walkStmtList(item.Stmts, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+			s, r := walkStmtList(item.Stmts, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
 			out = append(out, s...)
 			rej = rej || r
 		}
@@ -156,13 +197,19 @@ func stmtSegments(st *syntax.Stmt, src string, localFuncs map[string]struct{}, u
 			return nil, false
 		}
 		if unwrapLeft > 0 {
-			if script, ok := extractBashCScript(c); ok {
+			script, word, ok := extractBashCScriptAndWord(c)
+			if ok {
 				innerF, err := parseShell(script)
 				if err != nil {
 					return nil, true
 				}
+				base, ok := scriptContentBaseInRoot(ctx.root, word, script)
+				if !ok {
+					return nil, true
+				}
 				innerLocals := localFunctionNames(innerF)
-				return walkStmtList(innerF.Stmts, script, innerLocals, unwrapLeft-1, argv0AllowsVarArgs)
+				innerCtx := walkCtx{root: ctx.root, src: script, base: base}
+				return walkStmtList(innerF.Stmts, innerCtx, innerLocals, unwrapLeft-1, argv0AllowsVarArgs)
 			}
 		}
 		callName := simpleCallCommandName(c)
@@ -175,38 +222,52 @@ func stmtSegments(st *syntax.Stmt, src string, localFuncs map[string]struct{}, u
 				return nil, false
 			}
 			if testOrBracketBuiltin(callName) {
-				return substSegsFromNode(c, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+				return substSegsFromNode(c, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
 			}
 			if shellBuiltinNoAllowlistSegment(callName) {
-				return substSegsFromNode(c, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+				return substSegsFromNode(c, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+			}
+			if readBuiltinSkipsAllowlistSegment(callName) {
+				if callExprArgsContainDisallowedExpansionForStructured(c.Args[1:]) {
+					return nil, true
+				}
+				return substSegsFromNode(c, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
 			}
 			allowVar := argv0AllowsVarArgs != nil && argv0AllowsVarArgs(callName)
 			if commandAllowsShellExpansionInArgsPastArgv0(callName) {
 				allowVar = true
 			}
-			if !allowVar && callExprArgsContainShellExpansion(c.Args[1:]) {
+			if !allowVar && callExprArgsContainDisallowedExpansionForStructured(c.Args[1:]) {
 				return nil, true
 			}
 		}
-		return []string{byteSliceFromPos(src, st.Pos(), st.End())}, false
+		sg, ok := ctx.segFromStmt(st)
+		if !ok {
+			return nil, false
+		}
+		return []allowSeg{sg}, false
 	case *syntax.TestClause:
-		return substSegsFromNode(c, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+		return substSegsFromNode(c, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
 	case *syntax.DeclClause:
-		return []string{byteSliceFromPos(src, st.Pos(), st.End())}, false
+		sg, ok := ctx.segFromStmt(st)
+		if !ok {
+			return nil, false
+		}
+		return []allowSeg{sg}, false
 	case *syntax.LetClause, *syntax.ArithmCmd:
 		return nil, false
 	case *syntax.FuncDecl:
 		if c.Body == nil {
 			return nil, false
 		}
-		return stmtSegments(c.Body, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+		return stmtSegments(c.Body, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
 	case *syntax.CoprocClause, *syntax.TestDecl:
 		return nil, true
 	case *syntax.TimeClause:
 		if c.Stmt == nil {
 			return nil, false
 		}
-		return stmtSegments(c.Stmt, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+		return stmtSegments(c.Stmt, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
 	default:
 		return nil, true
 	}
@@ -214,24 +275,57 @@ func stmtSegments(st *syntax.Stmt, src string, localFuncs map[string]struct{}, u
 
 // extractBashCScript returns the script argument after a literal -c or -lc when the command is bash or sh.
 func extractBashCScript(ce *syntax.CallExpr) (string, bool) {
+	s, _, ok := extractBashCScriptAndWord(ce)
+	return s, ok
+}
+
+func extractBashCScriptAndWord(ce *syntax.CallExpr) (script string, word *syntax.Word, ok bool) {
 	if ce == nil || len(ce.Args) < 3 {
-		return "", false
+		return "", nil, false
 	}
 	if !isBashOrSh(ce.Args[0].Lit()) {
-		return "", false
+		return "", nil, false
 	}
 	for i := 1; i < len(ce.Args)-1; i++ {
 		lit := ce.Args[i].Lit()
 		if lit != "-c" && lit != "-lc" {
 			continue
 		}
-		script, ok := scriptFromWord(ce.Args[i+1])
-		if !ok || script == "" {
-			return "", false
+		w := ce.Args[i+1]
+		s, ok := scriptFromWord(w)
+		if !ok || s == "" {
+			return "", nil, false
 		}
-		return script, true
+		return s, w, true
 	}
-	return "", false
+	return "", nil, false
+}
+
+// scriptContentBaseInRoot maps the inner -c script string to a byte offset in root where script[0] appears.
+func scriptContentBaseInRoot(root string, w *syntax.Word, script string) (base int, ok bool) {
+	if w == nil || script == "" {
+		return 0, false
+	}
+	ws := int(w.Pos().Offset())
+	we := int(w.End().Offset())
+	if ws < 0 || we > len(root) || ws > we {
+		return 0, false
+	}
+	if len(w.Parts) == 1 {
+		if sq, ok := w.Parts[0].(*syntax.SglQuoted); ok && sq.Value == script {
+			return ws + 1, true
+		}
+	}
+	chunk := root[ws:we]
+	if idx := strings.Index(chunk, script); idx >= 0 {
+		return ws + idx, true
+	}
+	trim := strings.TrimSpace(chunk)
+	if idx := strings.Index(trim, script); idx >= 0 {
+		prefixLen := len(chunk) - len(strings.TrimLeft(chunk, " \t"))
+		return ws + prefixLen + idx, true
+	}
+	return 0, false
 }
 
 // scriptFromWord returns the string passed to -c/-lc: unescaped for a single single-quoted word,
@@ -277,6 +371,14 @@ func shellBuiltinNoAllowlistSegment(name string) bool {
 	return name == ":"
 }
 
+// readBuiltinSkipsAllowlistSegment is true for the read builtin: it adds no allowlist segment. Variable
+// definitions are not executed as argv[0] binaries; use sites of those variables remain governed by
+// structured opaque rules (e.g. kubectl -n "$ns"). If read's arguments contain disallowed expansions
+// (unquoted $, command substitution in -p, etc.), [stmtSegments] still rejects.
+func readBuiltinSkipsAllowlistSegment(name string) bool {
+	return argv0Base(name) == "read"
+}
+
 // simpleCallCommandName returns the first literal word of a simple command (the "name" position),
 // or "" if the name is not a single literal (e.g. variable or expansion).
 func simpleCallCommandName(ce *syntax.CallExpr) string {
@@ -286,23 +388,15 @@ func simpleCallCommandName(ce *syntax.CallExpr) string {
 	return ce.Args[0].Lit()
 }
 
-func walkIfClause(ic *syntax.IfClause, src string, localFuncs map[string]struct{}, unwrapLeft int, argv0AllowsVarArgs func(string) bool) (segs []string, reject bool) {
-	s1, r1 := walkStmtList(ic.Cond, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
-	s2, r2 := walkStmtList(ic.Then, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+func walkIfClause(ic *syntax.IfClause, ctx walkCtx, localFuncs map[string]struct{}, unwrapLeft int, argv0AllowsVarArgs func(string) bool) (segs []allowSeg, reject bool) {
+	s1, r1 := walkStmtList(ic.Cond, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+	s2, r2 := walkStmtList(ic.Then, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
 	segs = append(append(segs, s1...), s2...)
 	reject = r1 || r2
 	if ic.Else != nil {
-		s3, r3 := walkIfClause(ic.Else, src, localFuncs, unwrapLeft, argv0AllowsVarArgs)
+		s3, r3 := walkIfClause(ic.Else, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
 		segs = append(segs, s3...)
 		reject = reject || r3
 	}
 	return segs, reject
-}
-
-func byteSliceFromPos(src string, start, end syntax.Pos) string {
-	i, j := int(start.Offset()), int(end.Offset())
-	if i < 0 || j > len(src) || i > j {
-		return ""
-	}
-	return strings.TrimSpace(src[i:j])
 }

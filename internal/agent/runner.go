@@ -86,12 +86,20 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		uiEvents <- &hiltypes.OfflinePasteRequest{Command: cmd, Reason: reason, RiskLevel: riskLevel, ResponseCh: ch}
 		return <-ch
 	}
-	requestApproval := func(cmd, summary, reason, riskLevel, skillName string) hiltypes.ApprovalResponse {
+	requestApproval := func(cmd, summary, reason, riskLevel, skillName string, autoHL []hiltypes.AutoApproveHighlightSpan) hiltypes.ApprovalResponse {
 		if uiEvents == nil {
 			return hiltypes.ApprovalResponse{}
 		}
 		ch := make(chan hiltypes.ApprovalResponse, 1)
-		uiEvents <- &hiltypes.ApprovalRequest{Command: cmd, Summary: summary, Reason: reason, RiskLevel: riskLevel, SkillName: strings.TrimSpace(skillName), ResponseCh: ch}
+		uiEvents <- &hiltypes.ApprovalRequest{
+			Command:              cmd,
+			Summary:              summary,
+			Reason:               reason,
+			RiskLevel:            riskLevel,
+			SkillName:            strings.TrimSpace(skillName),
+			AutoApproveHighlight: autoHL,
+			ResponseCh:           ch,
+		}
 		return <-ch
 	}
 	requestSensitiveConfirmation := func(cmd string) hiltypes.SensitiveChoice {

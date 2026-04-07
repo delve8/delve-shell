@@ -25,7 +25,7 @@ import (
 // RunSkillTool runs a skill script via HIL approval by default; when the LLM context is a /skill <name> turn
 // and skill_name matches, approval is skipped (sensitive-path confirmation still applies).
 type RunSkillTool struct {
-	RequestApproval              func(command, summary, reason, riskLevel, skillName string) hiltypes.ApprovalResponse
+	RequestApproval              func(command, summary, reason, riskLevel, skillName string, autoApproveHL []hiltypes.AutoApproveHighlightSpan) hiltypes.ApprovalResponse
 	RequestSensitiveConfirmation func(command string) hiltypes.SensitiveChoice
 	SensitiveMatcher             *hil.SensitiveMatcher
 	Session                      *history.Session
@@ -194,7 +194,7 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 	if slashSkill, ok := agentctx.SkillSlashSkillName(ctx); ok && strings.EqualFold(slashSkill, skillName) {
 		resp = hiltypes.ApprovalResponse{Approved: true}
 	} else {
-		resp = t.RequestApproval(cmd, summary, reason, riskLevel, skillName)
+		resp = t.RequestApproval(cmd, summary, reason, riskLevel, skillName, nil)
 	}
 	if t.Session != nil {
 		_ = t.Session.AppendCommand(cmd, resp.Approved, reason, riskLevel, history.CommandPayloadKindSkill, skillName)

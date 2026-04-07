@@ -152,10 +152,75 @@ func TestCommandAllowsAutoApprove_DynamicArgv0RequiresApproval(t *testing.T) {
 	}
 }
 
-func TestCommandAllowsAutoApprove_KubectlVarArgRequiresApproval(t *testing.T) {
+func TestCommandAllowsAutoApprove_commandDashVOnly(t *testing.T) {
 	w := NewAllowlist(config.DefaultLoadedAllowlist())
-	if w.CommandAllowsAutoApprove(`bash -lc 'kubectl get ns -n "${NS}"'`) {
-		t.Fatal("kubectl with expansion in args must not auto-approve")
+	if !w.CommandAllowsAutoApprove(`command -v kubectl`) {
+		t.Fatal("command -v should auto-approve")
+	}
+	if !w.CommandAllowsAutoApprove(`command -v sh bash`) {
+		t.Fatal("command -v with multiple names should auto-approve")
+	}
+	if !w.CommandAllowsAutoApprove(`command -v "$PATH"`) {
+		t.Fatal("command -v with quoted simple param should auto-approve")
+	}
+	if w.CommandAllowsAutoApprove(`command kubectl`) {
+		t.Fatal("command without -v runs utility; must not auto-approve")
+	}
+	if w.CommandAllowsAutoApprove(`command -V kubectl`) {
+		t.Fatal("command -V not allowed; must not auto-approve")
+	}
+}
+
+func TestCommandAllowsAutoApprove_exitBenign(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	if !w.CommandAllowsAutoApprove(`exit`) {
+		t.Fatal("bare exit should auto-approve")
+	}
+	if !w.CommandAllowsAutoApprove(`exit 0`) {
+		t.Fatal("exit with literal status should auto-approve")
+	}
+	if !w.CommandAllowsAutoApprove(`exit 255`) {
+		t.Fatal("exit 255 should auto-approve")
+	}
+	if !w.CommandAllowsAutoApprove(`exit "$?"`) {
+		t.Fatal("exit with quoted simple param should auto-approve")
+	}
+	if w.CommandAllowsAutoApprove(`exit $(echo 1)`) {
+		t.Fatal("exit with command substitution must not auto-approve")
+	}
+	if w.CommandAllowsAutoApprove(`exit kubectl`) {
+		t.Fatal("exit with non-numeric literal must not auto-approve")
+	}
+	if w.CommandAllowsAutoApprove(`exit 0 1`) {
+		t.Fatal("exit with two operands must not auto-approve")
+	}
+}
+
+func TestCommandAllowsAutoApprove_whileReadMultiVarThenKubectlOpaqueNS(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	cmd := `kubectl top nodes --no-headers 2>/dev/null | awk '{print $1, $3, $5}' | while read n cpu mem; do kubectl -n "$n" get pods --no-headers; done`
+	if !w.CommandAllowsAutoApprove(cmd) {
+		t.Fatalf("expected auto-approve: read adds no segment; kubectl -n uses quoted simple param\n%q", cmd)
+	}
+}
+
+func TestCommandAllowsAutoApprove_readRejectsDisallowedExpansionInArgs(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	if w.CommandAllowsAutoApprove(`read -p "$(echo x)" a`) {
+		t.Fatal("read with command substitution in args must not auto-approve without checking inner cmd")
+	}
+}
+
+func TestCommandAllowsAutoApprove_KubectlQuotedSimpleVarOpaque(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	if !w.CommandAllowsAutoApprove(`bash -lc 'kubectl get ns -n "${NS}"'`) {
+		t.Fatal("kubectl -n with double-quoted simple parameter should auto-approve (flag value slot unconstrained)")
+	}
+	if w.CommandAllowsAutoApprove(`bash -lc 'kubectl get ns -n ${NS}'`) {
+		t.Fatal("unquoted expansion in kubectl args must not auto-approve")
+	}
+	if w.CommandAllowsAutoApprove(`bash -lc 'kubectl get ns -n "${NS:-x}"'`) {
+		t.Fatal("non-simple parameter expansion in quotes must not auto-approve")
 	}
 	if !w.CommandAllowsAutoApprove(`bash -lc 'kubectl get ns -n default'`) {
 		t.Fatal("kubectl literal args should still auto-approve when allowlisted")
@@ -194,5 +259,8 @@ func TestCommandAllowsAutoApprove_KubectlTopNodesPodsPlural(t *testing.T) {
 	}
 	if !w.CommandAllowsAutoApprove(`kubectl top pods --no-headers 2>/dev/null || true`) {
 		t.Fatal("kubectl top pods should match allowlist like top pod")
+	}
+	if !w.CommandAllowsAutoApprove(`kubectl top pod -A --no-headers 2>/dev/null`) {
+		t.Fatal("kubectl top pod with -A after resource should auto-approve (global flag merged at leaf)")
 	}
 }

@@ -182,11 +182,12 @@ func (p *Presenter) ShowApproval(req *hiltypes.ApprovalRequest) {
 	}
 	// Map domain request to UI view-model; respond writes back into domain channel.
 	p.Raw(ui.ChoiceCardShowMsg{PendingApproval: &uivm.PendingApproval{
-		Command:   req.Command,
-		Summary:   req.Summary,
-		Reason:    req.Reason,
-		RiskLevel: req.RiskLevel,
-		SkillName: req.SkillName,
+		Command:              req.Command,
+		Summary:              req.Summary,
+		Reason:               req.Reason,
+		RiskLevel:            req.RiskLevel,
+		SkillName:            req.SkillName,
+		AutoApproveHighlight: req.AutoApproveHighlight,
 		Respond: func(r uivm.ApprovalResponse) {
 			req.ResponseCh <- hiltypes.ApprovalResponse{Approved: r.Approved, CopyRequested: r.CopyRequested}
 		},

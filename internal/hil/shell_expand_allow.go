@@ -132,3 +132,59 @@ func callExprArgsContainShellExpansion(args []*syntax.Word) bool {
 	}
 	return false
 }
+
+// isSimpleParamExp is true for $name or ${name} with no slice, default, pattern ops, etc.
+func isSimpleParamExp(pe *syntax.ParamExp) bool {
+	if pe == nil || pe.Param == nil || pe.Param.Value == "" {
+		return false
+	}
+	if pe.Excl || pe.Length || pe.Width || pe.Index != nil || pe.Slice != nil || pe.Repl != nil || pe.Exp != nil {
+		return false
+	}
+	if pe.Names != 0 {
+		return false
+	}
+	// ${a[i]} / $a[1] style expansions are not a plain name.
+	if pe.Index != nil {
+		return false
+	}
+	return true
+}
+
+// wordIsDoubleQuotedSimpleParamOnly is true when w is exactly one double-quoted simple parameter expansion.
+func wordIsDoubleQuotedSimpleParamOnly(w *syntax.Word) bool {
+	if w == nil || len(w.Parts) != 1 {
+		return false
+	}
+	dq, ok := w.Parts[0].(*syntax.DblQuoted)
+	if !ok || len(dq.Parts) != 1 {
+		return false
+	}
+	pe, ok := dq.Parts[0].(*syntax.ParamExp)
+	if !ok {
+		return false
+	}
+	return isSimpleParamExp(pe)
+}
+
+// wordContainsDisallowedShellExpansionForStructured is true when w has shell expansions that are not
+// a lone double-quoted simple parameter (e.g. "$ns"). Those quoted placeholders may still match policy
+// if the corresponding argv slot allows any value (see [matchReadOnlyCLIArgs]).
+func wordContainsDisallowedShellExpansionForStructured(w *syntax.Word) bool {
+	if !wordContainsShellExpansion(w) {
+		return false
+	}
+	if wordIsDoubleQuotedSimpleParamOnly(w) {
+		return false
+	}
+	return true
+}
+
+func callExprArgsContainDisallowedExpansionForStructured(args []*syntax.Word) bool {
+	for _, w := range args {
+		if wordContainsDisallowedShellExpansionForStructured(w) {
+			return true
+		}
+	}
+	return false
+}

@@ -12,14 +12,34 @@ type ApprovalResponse struct {
 	CopyRequested bool // true = user chose Copy (do not run; copy to clipboard)
 }
 
+// AutoApproveHighlightKind classifies a byte range of the command for approval UI coloring.
+type AutoApproveHighlightKind uint8
+
+const (
+	// AutoApproveHighlightRisk marks text that does not pass per-segment auto-approve policy (or whole-command failure).
+	AutoApproveHighlightRisk AutoApproveHighlightKind = iota
+	// AutoApproveHighlightSafe marks a segment that would pass segment-level auto-approve checks in isolation.
+	AutoApproveHighlightSafe
+	// AutoApproveHighlightNeutral marks separators between segments (e.g. |, &&) or non-segment gaps.
+	AutoApproveHighlightNeutral
+)
+
+// AutoApproveHighlightSpan is a half-open byte range [Start, End) into the same command string shown on the approval card.
+type AutoApproveHighlightSpan struct {
+	Start, End int
+	Kind       AutoApproveHighlightKind
+}
+
 // ApprovalRequest is sent to HIL: pending command and response channel.
 type ApprovalRequest struct {
-	Command    string // command to run
-	Summary    string // optional short summary (e.g. from SKILL.md); shown separately from Reason
-	Reason     string // AI explanation (why, expected effect); may be empty
-	RiskLevel  string // RiskLevel* constants; empty if not provided
-	SkillName  string // non-empty when pending command is from run_skill (shown on approval card)
-	ResponseCh chan ApprovalResponse
+	Command   string // command to run
+	Summary   string // optional short summary (e.g. from SKILL.md); shown separately from Reason
+	Reason    string // AI explanation (why, expected effect); may be empty
+	RiskLevel string // RiskLevel* constants; empty if not provided
+	SkillName string // non-empty when pending command is from run_skill (shown on approval card)
+	// AutoApproveHighlight optional; when non-empty, UI colors ranges to contrast auto-approve-safe vs risky parts.
+	AutoApproveHighlight []AutoApproveHighlightSpan
+	ResponseCh           chan ApprovalResponse
 }
 
 // SensitiveChoice is the user's choice when a command may access sensitive path(s).

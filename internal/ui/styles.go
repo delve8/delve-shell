@@ -16,6 +16,10 @@ var (
 	// Commands and results
 	execStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("6")).Italic(true)  // command text (pending, run line)
 	resultStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).MarginLeft(2) // command output
+	// Auto-approve highlight on pending approval: safe segment vs risky segment vs separators (|, &&, spaces).
+	execAutoSafeStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Italic(true)
+	execAutoRiskStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true).Italic(true)
+	execAutoNeutralStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("246")).Italic(true)
 )
 
 var (
