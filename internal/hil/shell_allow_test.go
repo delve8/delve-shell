@@ -100,10 +100,16 @@ func TestCommandAllowsAutoApprove_AwkDoubleQuotedFieldRefNotRejectedAsShellVar(t
 	}
 }
 
-func TestCommandAllowsAutoApprove_GawkNotBenignAwk(t *testing.T) {
+func TestCommandAllowsAutoApprove_GawkMawkNawkBenignLikeAwk(t *testing.T) {
 	w := NewAllowlist(config.DefaultLoadedAllowlist())
-	if w.CommandAllowsAutoApprove(`gawk '{print NR}'`) {
-		t.Fatal("gawk should not use benign awk path")
+	for _, cmd := range []string{
+		`gawk '{print NR}'`,
+		`mawk '{print NR}'`,
+		`nawk '{print NR}'`,
+	} {
+		if !w.CommandAllowsAutoApprove(cmd) {
+			t.Fatalf("want auto-approve for read-only awk-family program: %q", cmd)
+		}
 	}
 }
 
@@ -171,28 +177,20 @@ func TestCommandAllowsAutoApprove_commandDashVOnly(t *testing.T) {
 	}
 }
 
-func TestCommandAllowsAutoApprove_exitBenign(t *testing.T) {
+func TestCommandAllowsAutoApprove_exitAllowlistPermissive(t *testing.T) {
 	w := NewAllowlist(config.DefaultLoadedAllowlist())
-	if !w.CommandAllowsAutoApprove(`exit`) {
-		t.Fatal("bare exit should auto-approve")
-	}
-	if !w.CommandAllowsAutoApprove(`exit 0`) {
-		t.Fatal("exit with literal status should auto-approve")
-	}
-	if !w.CommandAllowsAutoApprove(`exit 255`) {
-		t.Fatal("exit 255 should auto-approve")
-	}
-	if !w.CommandAllowsAutoApprove(`exit "$?"`) {
-		t.Fatal("exit with quoted simple param should auto-approve")
-	}
-	if w.CommandAllowsAutoApprove(`exit $(echo 1)`) {
-		t.Fatal("exit with command substitution must not auto-approve")
-	}
-	if w.CommandAllowsAutoApprove(`exit kubectl`) {
-		t.Fatal("exit with non-numeric literal must not auto-approve")
-	}
-	if w.CommandAllowsAutoApprove(`exit 0 1`) {
-		t.Fatal("exit with two operands must not auto-approve")
+	for _, cmd := range []string{
+		`exit`,
+		`exit 0`,
+		`exit 255`,
+		`exit "$?"`,
+		`exit $(echo 1)`,
+		`exit kubectl`,
+		`exit 0 1`,
+	} {
+		if !w.CommandAllowsAutoApprove(cmd) {
+			t.Fatalf("expected auto-approve for permissive allowlisted exit: %q", cmd)
+		}
 	}
 }
 

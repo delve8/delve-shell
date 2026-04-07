@@ -2,15 +2,11 @@ package hil
 
 import (
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"delve-shell/internal/config"
 	"mvdan.cc/sh/v3/syntax"
 )
-
-// exitStatusLiteral matches a decimal exit status for [benignExitReadOnly] (optional leading minus; bash wraps).
-var exitStatusLiteral = regexp.MustCompile(`^-?[0-9]+$`)
 
 // readOnlyCLIArg is one argv element for structured read-only matching. Opaque is true when the shell
 // word was exactly one double-quoted simple parameter ("$var" or "${var}"); such a token may match only
@@ -163,7 +159,8 @@ func matchReadOnlyCLIArgs(args []readOnlyCLIArg, pol *config.ReadOnlyCLIPolicy) 
 
 	i := 0
 	g := pol.EffectiveGlobal()
-	if g.Flags.IsAny() || g.Flags.IsAllowList() {
+	gStart := i
+	if g.Flags.IsOpenAny() || g.Flags.IsAllowList() {
 		for i < len(rest) {
 			if !rest[i].isFlagToken() {
 				break
@@ -177,6 +174,11 @@ func matchReadOnlyCLIArgs(args []readOnlyCLIArg, pol *config.ReadOnlyCLIPolicy) 
 				return false
 			}
 			i += n
+		}
+		if g.Flags.IsOpenAny() && len(g.Flags.MustNotList()) > 0 {
+			if scanArgsForMustNotViolations(rest[gStart:i], g.Flags.MustNotList()) {
+				return false
+			}
 		}
 	}
 
@@ -215,16 +217,122 @@ func flagsWithGlobalAllowMerged(pol *config.ReadOnlyCLIPolicy, local config.Flag
 	return local
 }
 
-// flatOpaqueTail is true when tail argv is not parsed into flags vs operands (any tokens allowed after globals).
-func flatOpaqueTail(root config.RootSpec) bool {
-	return len(root.Subcommands) == 0 && root.Flags.IsAny() && root.Operands.IsAny()
-}
-
 func matchFromRootArg(rest []readOnlyCLIArg, i int, root config.RootSpec, pol *config.ReadOnlyCLIPolicy) bool {
-	if flatOpaqueTail(root) {
+	merged := flagsWithGlobalAllowMerged(pol, root.Flags)
+	if len(root.Subcommands) == 0 && root.Flags.IsOpenAny() && root.Operands.IsAny() {
+		if len(merged.MustNotList()) > 0 {
+			if scanArgsForMustNotViolations(rest[i:], merged.MustNotList()) {
+				return false
+			}
+		}
 		return true
 	}
 	return matchNodeArg(rest, i, root.Flags, root.Operands, root.Subcommands, true, pol)
+}
+
+// scanArgsForMustNotViolations reports whether any flag token in args uses an option listed in mustNot.
+func scanArgsForMustNotViolations(args []readOnlyCLIArg, mustNot []config.AllowedOption) bool {
+	if len(mustNot) == 0 {
+		return false
+	}
+	for j := 0; j < len(args); {
+		if !args[j].isFlagToken() {
+			j++
+			continue
+		}
+		t, ok := args[j].literalOK()
+		if !ok || t == "--" {
+			j++
+			continue
+		}
+		n, hit := flagTokenHitsMustNot(args, j, mustNot)
+		if hit {
+			return true
+		}
+		if n == 0 {
+			j++
+			continue
+		}
+		j += n
+	}
+	return false
+}
+
+func flagTokenHitsMustNot(args []readOnlyCLIArg, i int, mustNot []config.AllowedOption) (n int, hit bool) {
+	t, ok := args[i].literalOK()
+	if !ok || !strings.HasPrefix(t, "-") || t == "--" {
+		return 0, false
+	}
+	if strings.HasPrefix(t, "--") {
+		body := strings.TrimPrefix(t, "--")
+		name, _, _ := strings.Cut(body, "=")
+		for _, o := range mustNot {
+			if o.Long != "" && name == o.Long {
+				n, _ := consumeAnyFlagArg(args, i)
+				return n, true
+			}
+		}
+		n, ok := consumeAnyFlagArg(args, i)
+		if !ok {
+			return 0, false
+		}
+		return n, false
+	}
+	return shortFlagHitsMustNot(t, args, i, mustNot)
+}
+
+func shortFlagHitsMustNot(t string, args []readOnlyCLIArg, i int, mustNot []config.AllowedOption) (n int, hit bool) {
+	if len(t) < 2 || t[0] != '-' {
+		return 0, false
+	}
+	if t[1] == '-' {
+		return 0, false
+	}
+	if eq := strings.IndexByte(t, '='); eq >= 0 {
+		if eq == 2 && len(t) > 2 {
+			opt := t[1:2]
+			if shortInMustNot(opt, mustNot) {
+				n, _ := consumeAnyFlagArg(args, i)
+				return n, true
+			}
+		}
+		n, ok := consumeAnyFlagArg(args, i)
+		if !ok {
+			return 0, false
+		}
+		return n, false
+	}
+	if len(t) == 2 {
+		opt := t[1:2]
+		if shortInMustNot(opt, mustNot) {
+			n, _ := consumeAnyFlagArg(args, i)
+			return n, true
+		}
+		n, ok := consumeAnyFlagArg(args, i)
+		if !ok {
+			return 0, false
+		}
+		return n, false
+	}
+	for _, c := range t[1:] {
+		if shortInMustNot(string(c), mustNot) {
+			return 1, true
+		}
+	}
+	n, ok := consumeAnyFlagArg(args, i)
+	if !ok {
+		return 0, false
+	}
+	return n, false
+}
+
+func shortInMustNot(s string, mustNot []config.AllowedOption) bool {
+	for _, o := range mustNot {
+		if o.Short == s {
+			return true
+		}
+	}
+	return false
 }
 
 func matchNodeArg(rest []readOnlyCLIArg, i int, flags config.FlagRule, operands config.OperandsRule, subs config.SubcommandMap, isKubectlStyleRoot bool, pol *config.ReadOnlyCLIPolicy) bool {
@@ -349,7 +457,7 @@ func consumeFlagArg(args []readOnlyCLIArg, i int, rule config.FlagRule) (n int, 
 
 func consumeFlagArgIdx(args []readOnlyCLIArg, i int, rule config.FlagRule) (n int, ok bool, allowIdx int) {
 	allowIdx = -1
-	if rule.IsAny() {
+	if rule.IsOpenAny() {
 		n, ok = consumeAnyFlagArg(args, i)
 		return n, ok, -1
 	}
@@ -576,54 +684,4 @@ func (w *Allowlist) structuredLiteralSegmentOK(seg string) bool {
 		}
 	}
 	return false
-}
-
-// benignExitReadOnly is true for bash "exit" or "exit N" where N is a literal decimal status, or "exit \"$var\""
-// with a double-quoted simple parameter only. Rejects extra args, command substitution, and non-numeric literals.
-func benignExitReadOnly(seg string) bool {
-	seg = strings.TrimSpace(seg)
-	if seg == "" {
-		return false
-	}
-	f, err := parseShell(seg)
-	if err != nil || len(f.Stmts) != 1 {
-		return false
-	}
-	st := f.Stmts[0]
-	if st == nil || st.Cmd == nil {
-		return false
-	}
-	ce, ok := st.Cmd.(*syntax.CallExpr)
-	if !ok || len(ce.Args) < 1 {
-		return false
-	}
-	if ce.Args[0].Lit() == "" || argv0Base(ce.Args[0].Lit()) != "exit" {
-		return false
-	}
-	if len(ce.Args) == 1 {
-		return true
-	}
-	if len(ce.Args) != 2 {
-		return false
-	}
-	w := ce.Args[1]
-	if WordContainsExtGlob(w) {
-		return false
-	}
-	if wordIsDoubleQuotedSimpleParamOnly(w) {
-		return true
-	}
-	if wordContainsDisallowedShellExpansionForStructured(w) {
-		return false
-	}
-	s, ok := wordToStaticString(w)
-	if !ok || strings.TrimSpace(s) == "" {
-		return false
-	}
-	return exitStatusLiteral.MatchString(strings.TrimSpace(s))
-}
-
-func segmentBareHelp(seg string) bool {
-	s := strings.TrimSpace(seg)
-	return s == "--help" || s == "-h"
 }

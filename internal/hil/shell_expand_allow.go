@@ -116,12 +116,7 @@ func wordPartContainsShellExpansion(p syntax.WordPart) bool {
 // contain $ that parses as ParamExp but is not “kubectl-style dynamic argv” risk (e.g. awk field refs in
 // double quotes). Those commands still need their own segment policy (e.g. benignAwkReadOnly).
 func commandAllowsShellExpansionInArgsPastArgv0(cmd0 string) bool {
-	switch argv0Base(cmd0) {
-	case "awk":
-		return true
-	default:
-		return false
-	}
+	return awkFamilyInvokerBase(argv0Base(cmd0))
 }
 
 func callExprArgsContainShellExpansion(args []*syntax.Word) bool {

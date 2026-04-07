@@ -28,6 +28,28 @@ func TestKubectlGlobalSurvivesParseAndEncode(t *testing.T) {
 	}
 }
 
+func TestValidateLoadedAllowlist_mustNotWithAllowRejected(t *testing.T) {
+	const y = `version: 2
+commands:
+  bad:
+    root:
+      flags:
+        allow:
+          - short: x
+            value: none
+        must_not:
+          - short: f
+      operands: any
+`
+	ld, err := ParseAllowlistYAML([]byte(y))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateLoadedAllowlist(ld); err == nil {
+		t.Fatal("expected error when flags combine allow with must_not")
+	}
+}
+
 func TestValidateLoadedAllowlist_globalMustForbidden(t *testing.T) {
 	ld := &LoadedAllowlist{
 		Version: AllowlistSchemaVersion,

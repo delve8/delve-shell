@@ -161,6 +161,60 @@ func TestMatchReadOnlyCLIArgv_mustNotListedInAllowStillConsumable(t *testing.T) 
 	}
 }
 
+func TestMatchReadOnlyCLIArgv_jqMustNotFromFile(t *testing.T) {
+	ld := config.DefaultLoadedAllowlist()
+	pol, ok := ld.Commands["jq"]
+	if !ok {
+		t.Fatal("missing jq in default allowlist")
+	}
+	tests := []struct {
+		args []string
+		want bool
+	}{
+		{[]string{"jq", "-r", ".items[]"}, true},
+		{[]string{"jq", "-f", "prog.jq", "."}, false},
+		{[]string{"jq", "--from-file", "prog.jq", "."}, false},
+		{[]string{"jq", "--from-file=prog.jq", "."}, false},
+		{[]string{"jq", "-rf", "."}, false},
+		{[]string{"jq", "-r", "-f", "x"}, false},
+	}
+	for _, tt := range tests {
+		got := MatchReadOnlyCLIArgv(tt.args, &pol)
+		if got != tt.want {
+			t.Errorf("MatchReadOnlyCLIArgv(%q) = %v, want %v", tt.args, got, tt.want)
+		}
+	}
+	if !pol.PermissiveVarArgs() {
+		t.Fatal("jq policy should be permissive for var-args auto-approve")
+	}
+}
+
+func TestMatchReadOnlyCLIArgv_sedSortMustNot(t *testing.T) {
+	ld := config.DefaultLoadedAllowlist()
+	sedPol := ld.Commands["sed"]
+	sortPol := ld.Commands["sort"]
+	cases := []struct {
+		name string
+		pol  config.ReadOnlyCLIPolicy
+		args []string
+		want bool
+	}{
+		{"sed ok", sedPol, []string{"sed", "-n", "1p"}, true},
+		{"sed -i", sedPol, []string{"sed", "-i", "s/a/b/", "f"}, false},
+		{"sed -i.bak", sedPol, []string{"sed", "-i.bak", "s/a/b/", "f"}, false},
+		{"sed --in-place", sedPol, []string{"sed", "--in-place", "-n", "1p", "x"}, false},
+		{"sort ok", sortPol, []string{"sort", "-nr"}, true},
+		{"sort -o", sortPol, []string{"sort", "-o", "/tmp/out"}, false},
+		{"sort --output", sortPol, []string{"sort", "--output", "/tmp/out"}, false},
+	}
+	for _, tt := range cases {
+		got := MatchReadOnlyCLIArgv(tt.args, &tt.pol)
+		if got != tt.want {
+			t.Errorf("%s: MatchReadOnlyCLIArgv(%q) = %v, want %v", tt.name, tt.args, got, tt.want)
+		}
+	}
+}
+
 func TestMatchReadOnlyCLIArgv_commandMustDashV(t *testing.T) {
 	ld := config.DefaultLoadedAllowlist()
 	pol, ok := ld.Commands["command"]

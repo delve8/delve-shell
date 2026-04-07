@@ -157,17 +157,21 @@ func (g AllowedOption) ValueRequired() bool {
 	return strings.EqualFold(strings.TrimSpace(g.Value), "required")
 }
 
-// FlagRule is YAML either a scalar "any"|"none" or a mapping `{ allow: [...], must: [...] }`.
-// Mapping form requires at least one of allow or must. Options listed only under must are still
-// consumable (must implies allow for those rows); allow lists additional optional flags. A must entry
-// that already matches an allow row (same short/long where set) uses that allow row for value: rules.
+// FlagRule is YAML either a scalar "any"|"none" or a mapping with any / allow / must / must_not.
+// Mapping form requires at least one of: any: true, allow, must, or must_not.
+// Options listed only under must are still consumable (must implies allow for those rows); allow lists
+// additional optional flags. A must entry that already matches an allow row (same short/long where set)
+// uses that allow row for value: rules.
 // When must is non-empty, each must entry must be consumed at least once before the first operand token
 // at the same matcher node, and before recursing into a child subcommand when that node has subcommands
 // (see hil structured matcher). must is not valid on global.flags. Empty must means no extra requirement.
+// must_not lists options that must not appear anywhere in argv (for open-flag policies only); each row
+// needs short or long. must_not cannot be combined with allow or must on the same flags node (validated).
 type FlagRule struct {
-	any   bool
-	allow []AllowedOption
-	must  []AllowedOption
+	any     bool
+	allow   []AllowedOption
+	must    []AllowedOption
+	mustNot []AllowedOption
 }
 
 // NewFlagAny returns a rule that accepts any flag tokens.
@@ -187,11 +191,30 @@ func (f FlagRule) WithMust(must []AllowedOption) FlagRule {
 	return f
 }
 
-func (f FlagRule) IsAny() bool                { return f.any && len(f.allow) == 0 && len(f.must) == 0 }
+// WithMustNot returns a copy with forbidden options (open-flag policies only; see [FlagRule]).
+func (f FlagRule) WithMustNot(mustNot []AllowedOption) FlagRule {
+	f.mustNot = append([]AllowedOption(nil), mustNot...)
+	return f
+}
+
+// IsOpenAny is true when flags are unconstrained except optional must_not: any style, no allow/must list.
+func (f FlagRule) IsOpenAny() bool {
+	return f.any && len(f.allow) == 0 && len(f.must) == 0
+}
+
+// IsAny is true for a plain open allow (no allow/must/must_not lists).
+func (f FlagRule) IsAny() bool { return f.IsOpenAny() && len(f.mustNot) == 0 }
+
 func (f FlagRule) IsAllowList() bool          { return len(f.allow) > 0 || len(f.must) > 0 }
 func (f FlagRule) AllowList() []AllowedOption { return f.allow }
 func (f FlagRule) MustList() []AllowedOption  { return f.must }
-func (f FlagRule) IsNone() bool               { return !f.any && len(f.allow) == 0 && len(f.must) == 0 }
+func (f FlagRule) MustNotList() []AllowedOption {
+	if len(f.mustNot) == 0 {
+		return nil
+	}
+	return append([]AllowedOption(nil), f.mustNot...)
+}
+func (f FlagRule) IsNone() bool { return !f.any && len(f.allow) == 0 && len(f.must) == 0 && len(f.mustNot) == 0 }
 
 // EffectiveConsumableAllowList is the closed set of flag rows used to parse argv at this node: explicit
 // allow entries plus any must entry not already covered by an allow row (same short/long per
@@ -232,12 +255,20 @@ func (f FlagRule) MarshalYAML() (interface{}, error) {
 	if f.IsAny() {
 		return "any", nil
 	}
+	if f.IsOpenAny() && len(f.mustNot) > 0 {
+		type out struct {
+			Any     bool            `yaml:"any"`
+			MustNot []AllowedOption `yaml:"must_not,omitempty"`
+		}
+		return out{Any: true, MustNot: f.mustNot}, nil
+	}
 	if f.IsAllowList() {
 		type out struct {
-			Allow []AllowedOption `yaml:"allow,omitempty"`
-			Must  []AllowedOption `yaml:"must,omitempty"`
+			Allow   []AllowedOption `yaml:"allow,omitempty"`
+			Must    []AllowedOption `yaml:"must,omitempty"`
+			MustNot []AllowedOption `yaml:"must_not,omitempty"`
 		}
-		return out{Allow: f.allow, Must: f.must}, nil
+		return out{Allow: f.allow, Must: f.must, MustNot: f.mustNot}, nil
 	}
 	return "none", nil
 }
@@ -260,17 +291,36 @@ func (f *FlagRule) UnmarshalYAML(n *yaml.Node) error {
 		return nil
 	case yaml.MappingNode:
 		var aux struct {
-			Allow []AllowedOption `yaml:"allow"`
-			Must  []AllowedOption `yaml:"must,omitempty"`
+			Any     *bool           `yaml:"any"`
+			Allow   []AllowedOption `yaml:"allow"`
+			Must    []AllowedOption `yaml:"must,omitempty"`
+			MustNot []AllowedOption `yaml:"must_not,omitempty"`
 		}
 		if err := n.Decode(&aux); err != nil {
 			return err
 		}
-		if len(aux.Allow) == 0 && len(aux.Must) == 0 {
-			return fmt.Errorf("flags: mapping requires at least one of allow or must")
+		hasAllow := len(aux.Allow) > 0
+		hasMust := len(aux.Must) > 0
+		hasMustNot := len(aux.MustNot) > 0
+		explicitAny := aux.Any != nil && *aux.Any
+		if !hasAllow && !hasMust && !hasMustNot && !explicitAny {
+			return fmt.Errorf("flags: mapping requires any: true, must_not, allow, or must")
 		}
-		f.allow = aux.Allow
-		f.must = aux.Must
+		if explicitAny && hasAllow {
+			return fmt.Errorf("flags: cannot combine any: true with allow")
+		}
+		if explicitAny && hasMust {
+			return fmt.Errorf("flags: cannot combine any: true with must")
+		}
+		if hasAllow || hasMust {
+			f.allow = aux.Allow
+			f.must = aux.Must
+			f.mustNot = aux.MustNot
+			f.any = false
+			return nil
+		}
+		f.any = true
+		f.mustNot = aux.MustNot
 		return nil
 	default:
 		return fmt.Errorf("flags: expected scalar or mapping")
@@ -361,7 +411,7 @@ func (p ReadOnlyCLIPolicy) PermissiveVarArgs() bool {
 	if len(r.Subcommands) > 0 {
 		return false
 	}
-	if !r.Flags.IsAny() || !r.Operands.IsAny() {
+	if !r.Flags.IsOpenAny() || !r.Operands.IsAny() {
 		return false
 	}
 	return true
@@ -424,6 +474,14 @@ func validateFlagRule(f FlagRule, ctx string) error {
 				return fmt.Errorf("%s: must[%d] needs short or long", ctx, i)
 			}
 		}
+	}
+	for i, o := range f.mustNot {
+		if o.Short == "" && o.Long == "" {
+			return fmt.Errorf("%s: must_not[%d] needs short or long", ctx, i)
+		}
+	}
+	if len(f.mustNot) > 0 && f.IsAllowList() {
+		return fmt.Errorf("%s: must_not is only valid with open flag policy (any: true and no allow/must), not with allow/must lists", ctx)
 	}
 	return nil
 }

@@ -94,6 +94,9 @@ func TestCommandAllowsShellExpansionInArgsPastArgv0(t *testing.T) {
 	if !commandAllowsShellExpansionInArgsPastArgv0("/usr/local/bin/awk") {
 		t.Fatal("basename awk should match")
 	}
+	if !commandAllowsShellExpansionInArgsPastArgv0("/usr/bin/gawk") {
+		t.Fatal("basename gawk should match")
+	}
 	if commandAllowsShellExpansionInArgsPastArgv0("kubectl") {
 		t.Fatal("kubectl should not skip expansion scan")
 	}

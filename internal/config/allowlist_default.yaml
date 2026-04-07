@@ -9,9 +9,10 @@
 # root (optional): rest of argv. Missing root => flags any, operands any, no subcommands.
 #   If root is present, missing flags or operands inside it => none each (set `any` explicitly when needed).
 #
-# flags: scalar `any`, `none`, or ""; or a mapping with at least one of allow / must:
+# flags: scalar `any`, `none`, or ""; or a mapping with at least one of any: true / allow / must / must_not:
 #   allow — optional list of { short?, long?, value: none|required? }; each row needs short or long.
 #   must  — same row shape; each listed option must appear before operands or a child subcommand.
+#   must_not — forbidden options (short/long rows); only valid with open flags (any: true and no allow/must).
 #   Rows may appear only under must (optional flags stay under allow). If the same option is in both,
 #   the allow row sets value:. `--` is not allowed as a flag token.
 #
@@ -192,6 +193,7 @@ commands:
   echo: {}
   egrep: {}
   env: {}
+  exit: {}
   etcdctl:
     # Global flags:any for --endpoints, TLS, --write-out, etc. (etcd.io etcdctl v3).
     global:
@@ -283,6 +285,14 @@ commands:
   host: {}
   hostname: {}
   id: {}
+  jq:
+    root:
+      flags:
+        any: true
+        must_not:
+          - short: f
+            long: from-file
+      operands: any
   kubectl:
     global:
       flags:
@@ -739,11 +749,28 @@ commands:
   printf: {}
   ps: {}
   pwd: {}
+  # In-place edit: must_not short "i" also rejects GNU forms -iSUFFIX / -i.SUFFIX (one argv token; cluster scan hits "i").
+  sed:
+    root:
+      flags:
+        any: true
+        must_not:
+          - short: i
+            long: in-place
+      operands: any
   seq: {}
   set: {}
   sha1sum: {}
   sha256sum: {}
   shasum: {}
+  sort:
+    root:
+      flags:
+        any: true
+        must_not:
+          - short: o
+            long: output
+      operands: any
   sleep: {}
   stat: {}
   tail: {}

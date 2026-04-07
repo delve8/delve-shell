@@ -1,25 +1,9 @@
 package hil
 
 import (
-	"regexp"
 	"strings"
 
 	"delve-shell/internal/config"
-)
-
-var (
-	sedLeadingCmd   = regexp.MustCompile(`^sed(\s|$)`)
-	sedInPlaceFlags = regexp.MustCompile(`(?:^|\s)(?:-i(?:\.\S+)?(?:=[^\s]+)?|--in-place(?:=[^\s]+)?)(?:\s|$)`)
-
-	jqLeadingCmd = regexp.MustCompile(`^jq(\s|$)`)
-	// Reject loading a jq program from disk (-f / --from-file). Filter source is not analyzed.
-	jqFromFileFlag = regexp.MustCompile(`(?:^|\s)-f(?:\s+|\s*=|$|\S)`)
-	jqFromFileLong = regexp.MustCompile(`(?:^|\s)--from-file(?:\s+|\s*=|$)`)
-
-	sortLeadingCmd = regexp.MustCompile(`^sort(\s|$)`)
-	// Reject -o / --output (write sorted output to a file; GNU coreutils).
-	sortOutputShort = regexp.MustCompile(`(?:^|\s)-o(?:\s|$|\S)`)
-	sortOutputLong  = regexp.MustCompile(`(?:^|\s)--output(?:=\S*|\s+|$)`)
 )
 
 // Allowlist is a config-based allowlist matcher (allowlist.yaml schema v2: commands map by argv0 basename).
@@ -114,40 +98,6 @@ func isRedirectTargetBoundary(b byte) bool {
 	}
 }
 
-// benignSedReadOnly is true for a segment whose command is sed without in-place flags (-i / --in-place).
-// It does not try to rule out sed scripts that use the w command (write to file); that remains a residual risk.
-func benignSedReadOnly(seg string) bool {
-	s := strings.TrimSpace(seg)
-	if !sedLeadingCmd.MatchString(s) {
-		return false
-	}
-	return !sedInPlaceFlags.MatchString(s)
-}
-
-// benignJqReadOnly is true for jq without -f/--from-file (program from file). Stdin/stdout-only filters are assumed.
-func benignJqReadOnly(seg string) bool {
-	s := strings.TrimSpace(seg)
-	if !jqLeadingCmd.MatchString(s) {
-		return false
-	}
-	if jqFromFileFlag.MatchString(s) || jqFromFileLong.MatchString(s) {
-		return false
-	}
-	return true
-}
-
-// benignSortReadOnly is true for sort without -o/--output (those write to a path).
-func benignSortReadOnly(seg string) bool {
-	s := strings.TrimSpace(seg)
-	if !sortLeadingCmd.MatchString(s) {
-		return false
-	}
-	if sortOutputShort.MatchString(s) || sortOutputLong.MatchString(s) {
-		return false
-	}
-	return true
-}
-
 // splitIntoCommands splits a command into a flat list of single commands by pipeline (|) and chain (;, &&, ||).
 func splitIntoCommands(command string) []string {
 	parts := splitPipeline(command)
@@ -165,12 +115,11 @@ func splitIntoCommands(command string) []string {
 	return out
 }
 
-// segmentAllowed is true when the segment matches structured read-only CLI policy, bare --help/-h,
-// or is read-only sed (no -i / --in-place), read-only jq (no -f/--from-file), read-only awk
-// (GoAWK parse: no print redirect, no system(), no cmd|getline), read-only sort (no -o/--output),
-// or benign "exit" / "exit N" ([benignExitReadOnly]).
+// segmentAllowed is true when the segment matches structured read-only CLI policy, read-only awk
+// (GoAWK parse: no print redirect, no system(), no cmd|getline), or allowlisted builtins (e.g. exit in default YAML).
+// Tools such as jq, sed, and sort use allowlist YAML (e.g. must_not for dangerous flags).
 func (w *Allowlist) segmentAllowed(seg string) bool {
-	return seg != "" && (segmentBareHelp(seg) || w.structuredLiteralSegmentOK(seg) || benignSedReadOnly(seg) || benignJqReadOnly(seg) || benignAwkReadOnly(seg) || benignSortReadOnly(seg) || benignExitReadOnly(seg))
+	return seg != "" && (w.structuredLiteralSegmentOK(seg) || benignAwkReadOnly(seg))
 }
 
 // AllowStrict: for chained/pipeline commands, splits into segments and requires every segment to match the allowlist;

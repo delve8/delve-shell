@@ -11,9 +11,8 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-// benignAwkReadOnly is true when the segment is a single invocable awk command (not gawk/mawk),
-// uses no -f/--file/-e, parses as POSIX AWK via GoAWK, and the program has no file/pipe output,
-// system(), or shell-backed getline.
+// benignAwkReadOnly is true when the segment is a single invocable awk-family command (awk, gawk, mawk, nawk),
+// uses no -f/--file/-e, parses via GoAWK, and the program has no file/pipe output, system(), or shell-backed getline.
 //
 // Residual risk: awk may still read files named in ARGV; that is out of scope for this check
 // (same as cat/grep reading paths). GoAWK is used as a static analyzer only.
@@ -34,7 +33,7 @@ func benignAwkReadOnly(seg string) bool {
 	if !ok || len(ce.Args) == 0 {
 		return false
 	}
-	if !awkInvokerAllowed(ce.Args[0]) {
+	if !awkFamilyInvokerWord(ce.Args[0]) {
 		return false
 	}
 	srcs, err := awkProgramSourcesFromCall(ce)
@@ -49,7 +48,18 @@ func benignAwkReadOnly(seg string) bool {
 	return true
 }
 
-func awkInvokerAllowed(cmd0 *syntax.Word) bool {
+// awkFamilyInvokerBase is true for common awk implementation basenames. Static analysis uses GoAWK only;
+// runtime may be gawk/mawk/nawk; same mismatch risk as plain "awk".
+func awkFamilyInvokerBase(base string) bool {
+	switch base {
+	case "awk", "gawk", "mawk", "nawk":
+		return true
+	default:
+		return false
+	}
+}
+
+func awkFamilyInvokerWord(cmd0 *syntax.Word) bool {
 	name := strings.TrimSpace(cmd0.Lit())
 	if name == "" {
 		return false
@@ -58,8 +68,7 @@ func awkInvokerAllowed(cmd0 *syntax.Word) bool {
 	if i := strings.LastIndex(name, "/"); i >= 0 {
 		base = name[i+1:]
 	}
-	// Only the portable "awk" binary name; gawk/mawk/nawk stay behind HIL.
-	return base == "awk"
+	return awkFamilyInvokerBase(base)
 }
 
 var errAwkSource = errors.New("awk source extraction rejected")
