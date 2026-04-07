@@ -74,9 +74,7 @@ const (
 	KeyDescConfig = "desc_config"
 	KeyDescHelp   = "desc_help"
 	// /config 子项说明（仅在选择 /config 后显示）
-	KeyDescConfigAllowlistUpdate = "desc_config_allowlist_update"
-	KeyDescConfigRemoveRemote    = "desc_config_remove_remote"
-	KeyAllowlistUpdateDone       = "allowlist_update_done" // format: added count
+	KeyDescConfigRemoveRemote = "desc_config_remove_remote"
 	KeyRunTagSuggested           = "run_tag_suggested"
 	KeySuggestedCopyHint         = "suggested_copy_hint"
 	KeySuggestedCopied           = "suggested_copied"
@@ -242,9 +240,6 @@ Remove an installed skill
 /config update-skill <skill_name>
 Update an installed skill from its git source (branch/tag selectable in dialog)
 
-/config update auto-run list
-Merge default allowlist
-
 /config model
 Configure model (LLM API)
 
@@ -314,9 +309,7 @@ Quit (Ctrl+C also works)`,
 		KeyDescSh:                            "Spawn bash",
 		KeyDescConfig:                        "Config subcommands",
 		KeyDescHelp:                          "Show this help",
-		KeyDescConfigAllowlistUpdate:         "Merge default allowlist",
 		KeyDescConfigRemoveRemote:            "Remove a remote",
-		KeyAllowlistUpdateDone:               "Allowlist updated: %d new pattern(s) added. Changes apply immediately.",
 		KeyRunTagSuggested:                   "suggested",
 		KeySuggestedCopyHint:                 "Select the command above to copy, or use /exec <cmd> to run it.",
 		KeySuggestedCopied:                   "Copied to clipboard.",

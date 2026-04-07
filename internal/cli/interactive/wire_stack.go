@@ -1,6 +1,7 @@
 package interactive
 
 import (
+	"log"
 	"sync/atomic"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -49,7 +50,7 @@ func wireHostStack(
 		LoadConfig: func() (*config.Config, error) {
 			return config.LoadEnsured()
 		},
-		LoadAllowlist: func() ([]config.AllowlistEntry, error) {
+		LoadAllowlist: func() (*config.LoadedAllowlist, error) {
 			return config.LoadAllowlist()
 		},
 		LoadSensitivePatterns: func() ([]string, error) {
@@ -64,6 +65,11 @@ func wireHostStack(
 		UIEvents:      ports.AgentUIChan,
 		ExecCancelHub: execCancelHub,
 	})
+
+	if _, err := config.AllowlistUpdateWithDefaults(); err != nil {
+		log.Printf("[warn] allowlist merge at startup: %v", err)
+	}
+	runners.Invalidate()
 
 	shellRequestedChan := make(chan hostcmd.ShellSnapshot, 1)
 	rt.WireSend(&app.Send{
