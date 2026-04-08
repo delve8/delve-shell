@@ -44,38 +44,38 @@ const (
 	KeyInputHintSensitive                = "input_hint_sensitive"     // placeholder when waiting for 1/2/3 (sensitive)
 	KeyInputHistBrowsingHint             = "input_hist_browsing_hint" // one line under input while walking local input history
 	// Choice menu labels (for Up/Down + Enter selection list)
-	KeyChoiceApprove            = "choice_approve"
-	KeyChoiceRefuse             = "choice_refuse"
-	KeyChoiceRunStore           = "choice_run_store"
-	KeyChoiceRunNoStore         = "choice_run_no_store"
-	KeyChoiceCopy               = "choice_copy"
-	KeyChoiceDismiss            = "choice_dismiss"
-	KeyApprovalPrompt           = "approval_prompt"
-	KeyApprovalSummary          = "approval_summary"
+	KeyChoiceApprove             = "choice_approve"
+	KeyChoiceRefuse              = "choice_refuse"
+	KeyChoiceRunStore            = "choice_run_store"
+	KeyChoiceRunNoStore          = "choice_run_no_store"
+	KeyChoiceCopy                = "choice_copy"
+	KeyChoiceDismiss             = "choice_dismiss"
+	KeyApprovalPrompt            = "approval_prompt"
+	KeyApprovalSummary           = "approval_summary"
 	KeyApprovalAutoApprovePolicy = "approval_auto_approve_policy" // section label before auto-approve Risk reason lines (Risk Hint)
-	KeyApprovalWhy              = "approval_why" // label before user-stated run purpose
-	KeyApprovalDecisionApproved = "approval_decision_approved"
-	KeyApprovalDecisionRejected = "approval_decision_rejected"
-	KeyRiskReadOnly             = "risk_read_only"
-	KeyRiskLow                  = "risk_low"
-	KeyRiskHigh                 = "risk_high"
-	KeySensitivePrompt          = "sensitive_prompt"
-	KeySensitiveChoice1         = "sensitive_choice_1"
-	KeySensitiveChoice2         = "sensitive_choice_2"
-	KeySensitiveChoice3         = "sensitive_choice_3"
-	KeyUserLabel                = "user_label" // legacy transcript prefix; prefer KeyTranscriptUserPrompt in UI
-	KeyAILabel                  = "ai_label" // legacy; AI transcript no longer prefixes with this in TUI
-	KeyTranscriptUserPrompt     = "transcript_user_prompt" // same as input prompt, e.g. "> "
-	KeyInfoLabel                = "info_label"             // non-error system hints, e.g. "Info: "
-	KeyAgentReplyEmpty          = "agent_reply_empty" // model finished with no assistant text (API/empty parse)
-	KeyDelveLabel               = "delve_label" // deprecated; use KeyInfoLabel for transcript hints
-	KeyRunLabel                 = "run_label" // legacy; prefer KeyRunLine* for execute transcript
+	KeyApprovalWhy               = "approval_why"                 // label before user-stated run purpose
+	KeyApprovalDecisionApproved  = "approval_decision_approved"
+	KeyApprovalDecisionRejected  = "approval_decision_rejected"
+	KeyRiskReadOnly              = "risk_read_only"
+	KeyRiskLow                   = "risk_low"
+	KeyRiskHigh                  = "risk_high"
+	KeySensitivePrompt           = "sensitive_prompt"
+	KeySensitiveChoice1          = "sensitive_choice_1"
+	KeySensitiveChoice2          = "sensitive_choice_2"
+	KeySensitiveChoice3          = "sensitive_choice_3"
+	KeyUserLabel                 = "user_label"             // legacy transcript prefix; prefer KeyTranscriptUserPrompt in UI
+	KeyAILabel                   = "ai_label"               // legacy; AI transcript no longer prefixes with this in TUI
+	KeyTranscriptUserPrompt      = "transcript_user_prompt" // same as input prompt, e.g. "> "
+	KeyInfoLabel                 = "info_label"             // non-error system hints, e.g. "Info: "
+	KeyAgentReplyEmpty           = "agent_reply_empty"      // model finished with no assistant text (API/empty parse)
+	KeyDelveLabel                = "delve_label"            // deprecated; use KeyInfoLabel for transcript hints
+	KeyRunLabel                  = "run_label"              // legacy; prefer KeyRunLine* for execute transcript
 	// Run line prefixes (execute_command / history replay); command follows; total width capped in UI.
 	KeyRunLineAutoAllowed = "run_line_auto_allowed" // built-in checks passed; no user approval card
 	KeyRunLineApproved    = "run_line_approved"
 	KeyRunLineDirect      = "run_line_direct"
 	KeyRunLineSuggested   = "run_line_suggested"
-	KeySkillLine                = "skill_line" // format: Skill: %s
+	KeySkillLine          = "skill_line" // format: Skill: %s
 	// Slash option descriptions (cmd as suffix for consistency)
 	KeyDescExit   = "desc_exit"
 	KeyDescRun    = "desc_run"
@@ -84,11 +84,11 @@ const (
 	KeyDescHelp   = "desc_help"
 	// /config 子项说明（仅在选择 /config 后显示）
 	KeyDescConfigRemoveRemote = "desc_config_remove_remote"
-	KeyRunTagSuggested           = "run_tag_suggested"
-	KeySuggestedCopyHint         = "suggested_copy_hint"
-	KeySuggestedCopied           = "suggested_copied"
-	KeyConfigRemoteAdded         = "config_remote_added"   // format: name, target
-	KeyConfigRemoteRemoved       = "config_remote_removed" // format: name
+	KeyRunTagSuggested        = "run_tag_suggested"
+	KeySuggestedCopyHint      = "suggested_copy_hint"
+	KeySuggestedCopied        = "suggested_copied"
+	KeyConfigRemoteAdded      = "config_remote_added"   // format: name, target
+	KeyConfigRemoteRemoved    = "config_remote_removed" // format: name
 
 	// Status bar (title): IDLE / RUNNING / pending approval / suggest card
 	KeyStatusIdle             = "status_idle"
@@ -98,32 +98,32 @@ const (
 	KeyStatusWaitingUserInput = "status_waiting_user_input"
 	KeyStatusSuggest          = "status_suggest"
 
-	KeySessionNew                      = "session_new"
-	KeySessionSwitchedTo               = "session_switched_to"    // format: "Switched to session: %s" (session id; /new banner)
-	KeyHistorySwitchedTo               = "history_switched_to"    // format: after /history <id>; transcript is not loaded
-	KeyHistoryPreviewTitle             = "history_preview_title"  // format: overlay title, e.g. "History · %s"
-	KeyHistoryPreviewEmpty             = "history_preview_empty"  // overlay body when file has no lines yet
-	KeyHistoryPreviewFooter            = "history_preview_footer" // hint under preview (Esc / scroll)
-	KeyDescSessions                    = "desc_sessions"          // slash: /history description
+	KeySessionNew           = "session_new"
+	KeySessionSwitchedTo    = "session_switched_to"    // format: "Switched to session: %s" (session id; /new banner)
+	KeyHistorySwitchedTo    = "history_switched_to"    // format: after /history <id>; transcript is not loaded
+	KeyHistoryPreviewTitle  = "history_preview_title"  // format: overlay title, e.g. "History · %s"
+	KeyHistoryPreviewEmpty  = "history_preview_empty"  // overlay body when file has no lines yet
+	KeyHistoryPreviewFooter = "history_preview_footer" // hint under preview (Esc / scroll)
+	KeyDescSessions         = "desc_sessions"          // slash: /history description
 	// KeyHistorySessionCurrentSuffix is appended after the session id in the /history picker Cmd (e.g. " [Current]").
-	KeyHistorySessionCurrentSuffix     = "history_session_current_suffix"
-	KeySessionNone                     = "session_none"
-	KeyDelRemoteNoHosts                = "del_remote_no_hosts" // slash dropdown when no remotes to remove (Cmd-only row, like KeySkillNone)
-	KeyDescRemoteOn                    = "desc_remote_on"
-	KeyDescRemoteOff                   = "desc_remote_off"
-	KeyDescAccessOffline               = "desc_access_offline"
-	KeyOfflinePasteTitle               = "offline_paste_title"
-	KeyOfflinePasteIntro               = "offline_paste_intro"
-	KeyOfflinePasteReview              = "offline_paste_review"
-	KeyOfflinePasteHint                = "offline_paste_hint"
-	KeyOfflinePasteCopyFailed          = "offline_paste_copy_failed"
-	KeyOfflinePastePlaceholder         = "offline_paste_placeholder"
-	KeyOfflineExecBashDisabled         = "offline_exec_bash_disabled"
-	KeyBashReturnNotice                = "bash_return_notice"
-	KeyOfflineSlashExecDisabled        = "offline_slash_exec_disabled"
-	KeyOfflineSlashSkillDisabled       = "offline_slash_skill_disabled"
-	KeySkillScriptsSyncRemote          = "skill_scripts_sync_remote"
-	KeyHelpTitle                       = "help_title"
+	KeyHistorySessionCurrentSuffix = "history_session_current_suffix"
+	KeySessionNone                 = "session_none"
+	KeyDelRemoteNoHosts            = "del_remote_no_hosts" // slash dropdown when no remotes to remove (Cmd-only row, like KeySkillNone)
+	KeyDescRemoteOn                = "desc_remote_on"
+	KeyDescRemoteOff               = "desc_remote_off"
+	KeyDescAccessOffline           = "desc_access_offline"
+	KeyOfflinePasteTitle           = "offline_paste_title"
+	KeyOfflinePasteIntro           = "offline_paste_intro"
+	KeyOfflinePasteReview          = "offline_paste_review"
+	KeyOfflinePasteHint            = "offline_paste_hint"
+	KeyOfflinePasteCopyFailed      = "offline_paste_copy_failed"
+	KeyOfflinePastePlaceholder     = "offline_paste_placeholder"
+	KeyOfflineExecBashDisabled     = "offline_exec_bash_disabled"
+	KeyBashReturnNotice            = "bash_return_notice"
+	KeyOfflineSlashExecDisabled    = "offline_slash_exec_disabled"
+	KeyOfflineSlashSkillDisabled   = "offline_slash_skill_disabled"
+	KeySkillScriptsSyncRemote      = "skill_scripts_sync_remote"
+	KeyHelpTitle                   = "help_title"
 	// KeyHelpOverlayFooter is fixed below the help scroll area (same chrome as history preview).
 	KeyHelpOverlayFooter               = "help_overlay_footer"
 	KeyAddRemoteTitle                  = "add_remote_title"
@@ -268,10 +268,6 @@ Config subcommands (see list below).
 
 Remove a remote.
 
-### /config add-skill
-
-Open the add-skill dialog (Git URL, ref, path in repo, local name).
-
 ### /config del-skill {skill_name}
 
 Remove an installed skill.
@@ -308,200 +304,208 @@ Start a new session.
 
 List and switch history sessions. Flow: **/history** → pick a row (Tab/Enter fills **/history {id}**) → submit opens a read-only preview → Enter in the dialog switches the active session; Esc closes without switching. Only the first word after **/history** is the session id (trailing text is ignored). Dropdown lines show a one-line summary of the first turn.
 
+### /skill
+
+Run an installed skill for the current chat turn. Skills are directories under **~/.delve-shell/skills/** (each with **SKILL.md**). Type **/skill** to open the slash list of installed skills plus **/skill New** (install dialog), or type **/skill** followed by the skill directory name. Text after the first word (the skill name) is optional; when present it is passed to the AI as extra context for that turn. To install or remove skills, use **/skill New** and **/config del-skill**.
+
 ### /skill {name} [...]
 
 Use a skill; optional extra text after the name is passed to the AI for this turn.
+
+### /skill New
+
+Open the add-skill dialog (Git URL, ref, path in repo, local name).
 
 ` + helpEnBashSection + `### /quit
 
 Quit (**Ctrl+C** also works).
 `,
-		KeyUsageRun:                          "Usage: /exec <command> (for example: /exec ls -la)",
-		KeyUnknownCmd:                        "Unknown command. Type /help for the full list.",
-		KeyDelveLabel:                        "Delve:", // legacy
-		KeyErrorPrefix:                       "Error: ",
-		KeyConfigPrefix:                      "Config: ",
-		KeyWaitOrCancel:                      "(Please wait for the current response, or press Esc to cancel)",
-		KeyCommandExecWaitOrCancel:           "(Command running — press Esc to cancel)",
-		KeyExecStreamPreviewHeader:           "Output (last lines):",
-		KeyExecStreamTranscriptTruncatedHint: "%d earlier output line(s) omitted in the transcript; full output is stored in session history.",
-		KeyPlaceholderInput:                  "Type your question or / for slash commands.",
-		KeyInputHistBrowsingHint:             "↑/↓ input history · Enter to send · any other key edits",
-		KeyInputHintApproveThree:             "1, 2 or 3",
-		KeyInputHintSensitive:                "1, 2 or 3",
-		KeyChoiceApprove:                     "Approve",
-		KeyChoiceRefuse:                      "Refuse (do not run)",
-		KeyChoiceRunStore:                    "Run, return to AI, store in history",
-		KeyChoiceRunNoStore:                  "Run, return to AI, do not store",
-		KeyChoiceCopy:                        "Copy",
-		KeyChoiceDismiss:                     "Dismiss",
-		KeyApprovalPrompt:                    "Command to run (approval required):",
-		KeyApprovalSummary:                   "Summary:",
-		KeyApprovalAutoApprovePolicy:         "Risk Hint:",
-		KeyApprovalWhy:                       "Purpose:",
-		KeyApprovalDecisionApproved:          "Decision: approved",
-		KeyApprovalDecisionRejected:          "Decision: rejected",
-		KeyRiskReadOnly:                      "READ-ONLY",
-		KeyRiskLow:                           "LOW-RISK",
-		KeyRiskHigh:                          "HIGH-RISK",
-		KeySensitivePrompt:                   "This command may access sensitive files. Choose:",
-		KeySensitiveChoice1:                  "1 = Refuse (do not run)",
-		KeySensitiveChoice2:                  "2 = Run, return result to AI, store in history",
-		KeySensitiveChoice3:                  "3 = Run, return result to AI, do not store in history",
-		KeyUserLabel:                         "User: ",
-		KeyAILabel:                           "AI: ",
-		KeyTranscriptUserPrompt:              "> ",
-		KeyInfoLabel:                         "Info: ",
-		KeyAgentReplyEmpty:                   "The model returned an empty reply (no assistant text in the API response).",
-		KeyRunLabel:                          "Run: ",
-		KeyRunLineAutoAllowed:                "Run (checks passed): ",
-		KeyRunLineApproved:                   "Run (approved): ",
-		KeyRunLineDirect:                     "Run (direct): ",
-		KeyRunLineSuggested:                  "Run (suggested): ",
-		KeySkillLine:                         "Skill: %s",
-		KeyDescExit:                          "Quit delve-shell",
-		KeyDescRun:                           "Execute a command directly (no AI)",
-		KeyDescSh:                            "Spawn bash",
-		KeyDescConfig:                        "Config subcommands",
-		KeyDescHelp:                          "Show this help",
-		KeyDescConfigRemoveRemote:            "Remove a remote",
-		KeyRunTagSuggested:                   "suggested",
-		KeySuggestedCopyHint:                 "Select the command above to copy, or use /exec <cmd> to run it.",
-		KeySuggestedCopied:                   "Copied to clipboard.",
-		KeyConfigRemoteAdded:                 "Remote added: %s.",
-		KeyConfigRemoteRemoved:               "Remote removed: %s.",
-		KeyStatusIdle:                        "[IDLE]",
-		KeyStatusExecuting:                   "[EXECUTING]",
-		KeyStatusRunning:                     "[PROCESSING]",
-		KeyStatusPendingApproval:             "[NEED APPROVAL]",
-		KeyStatusWaitingUserInput:            "[WAIT INPUT]",
-		KeyStatusSuggest:                     "[SUGGEST]",
-		KeySessionNew:                        "New session",
-		KeySessionSwitchedTo:                 "Switched to session: %s",
-		KeyHistorySwitchedTo:                 "Switched. Active history: %s",
-		KeyHistoryPreviewTitle:               "History · %s",
-		KeyHistoryPreviewEmpty:               "(No messages in this history yet.)",
-		KeyHistoryPreviewFooter:              "Enter to switch · PgUp/PgDn to scroll · Esc to cancel",
-		KeyDescSessions:                      "List and switch history sessions",
-		KeyHistorySessionCurrentSuffix:       " [Current]",
-		KeySessionNone:                       "No previous history.",
-		KeyDelRemoteNoHosts:                  "No hosts.",
-		KeyDescRemoteOn:                      "Connect to host",
-		KeyDescRemoteOff:                     "Disconnect from remote host",
-		KeyDescAccessOffline:                 "Offline mode (paste results back)",
-		KeyOfflinePasteTitle:                 "Offline — paste output in the box below",
-		KeyOfflinePasteIntro:                 "This command is not run here. Paste the results back after you run it elsewhere.",
-		KeyOfflinePasteReview:                "Review the command before running it elsewhere.",
-		KeyOfflinePasteHint:                  "Enter: submit · Esc: cancel",
-		KeyOfflinePasteCopyFailed:            "Could not copy to clipboard. Select the command line above or copy manually.",
-		KeyOfflinePastePlaceholder:           "Paste output",
-		KeyOfflineExecBashDisabled:           "/bash is not available in Offline mode.",
-		KeyBashReturnNotice:                  "Returned from embedded shell (/bash).",
-		KeyOfflineSlashExecDisabled:          "/exec is not available in Offline mode.",
-		KeyOfflineSlashSkillDisabled:         "/skill is not available in Offline mode.",
-		KeySkillScriptsSyncRemote:            "Syncing skill scripts to remote host…",
-		KeyHelpTitle:                         "Help",
-		KeyHelpOverlayFooter:                 "Esc to close · PgUp/PgDn to scroll",
-		KeyAddRemoteTitle:                    "Add Remote",
-		KeyAddRemoteScreenTitle:              "Add remote",
-		KeyAddRemoteConnecting:               "Connecting...",
-		KeyAddRemoteOverwriteHint:            "Press y to overwrite, or edit the host or username and try again.",
-		KeyAddRemoteHostLabel:                "Host (address or host:port):",
-		KeyAddRemoteUserLabel:                "Username:",
-		KeyAddRemoteKeyLabel:                 "Key path (optional):",
-		KeyAddRemoteSaveLabel:                "Save as remote (Space to toggle)",
-		KeyAddRemoteNameLabel:                "Name (optional):",
-		KeyRemoteTitleBarRemote:              "Remote",
-		KeyRemoteTitleBarOffline:             "Offline",
-		KeyRemoteAuthTitle:                   "Remote Auth",
-		KeyAddRemoteHostPlaceholder:          "host or host:22",
-		KeyAddRemoteUserPlaceholder:          "e.g. root",
-		KeyAddRemoteKeyPlaceholder:           "~/.ssh/id_rsa (optional)",
-		KeyAddRemoteNamePlaceholder:          "name (optional)",
-		KeyRemoteAuthPasswordPlaceholder:     "SSH password",
-		KeyRemoteAuthIdentityPlaceholder:     "~/.ssh/id_rsa",
-		KeyRemoteAuthUsernameTitle:           "SSH auth for %s",
-		KeyRemoteAuthMethodTitle:             "Choose authentication method:",
-		KeyRemoteAuthPasswordChoice:          "1. Password",
-		KeyRemoteAuthIdentityChoice:          "2. Key file (identity file)",
-		KeyRemoteAuthPasswordTitle:           "SSH password for %s",
-		KeyRemoteAuthIdentityTitle:           "SSH key file path for %s",
-		KeyRemoteAuthAutoIdentityTitle:       "SSH auth for %s",
-		KeyRemoteAuthHostKeyTitle:            "Host key verification",
-		KeyRemoteAuthConnecting:              "Connecting...",
-		KeyRemoteAuthConfiguredKey:           "Connecting with configured SSH key...",
-		KeyRemoteAuthKnownHostsUpdate:        "Updating known_hosts and reconnecting...",
-		KeyRemoteAuthAcceptKnownHosts:        "1. Accept and update known_hosts",
-		KeyRemoteAuthRejectKnownHosts:        "2. Reject and abort",
-		KeyRemoteAuthTargetLabel:             "Target: %s",
-		KeyRemoteAuthFingerprintLabel:        "Fingerprint: %s",
-		KeyRemoteAuthHostKeyUnknown:          "Host key is not trusted yet. Accept to add/update known_hosts or reject to abort.",
-		KeyRemoteAuthHostKeyMismatch:         "Host key mismatch detected. Accept to update known_hosts or reject to abort.",
-		KeyTitleBarLocal:                     "Local",
-		KeyConfigSavedModel:                  "Config saved.",
-		KeyConfigModelTitle:                  "Config Model",
-		KeyConfigModelBaseURLLabel:           "Base URL (optional; empty = OpenAI official API):",
-		KeyConfigModelApiKeyLabel:            "API key (optional; supports $VAR):",
-		KeyConfigModelBaseURLPlaceholder:     "https://api.openai.com/v1 (optional)",
-		KeyConfigModelApiKeyPlaceholder:      "sk-... or $API_KEY",
-		KeyConfigModelModelLabel:             "Model:",
-		KeyConfigModelMaxMessagesLabel:       "Max context messages (default 50):",
-		KeyConfigModelMaxCharsLabel:          "Max context chars (default: no limit or auto from API):",
-		KeyConfigModelModelRequired:          "Model is required.",
-		KeyConfigModelChecking:               "Checking...",
-		KeyConfigModelCheckOK:                "Model check OK.",
-		KeyConfigModelCheckFailed:            "Model check failed: %v",
-		KeyConfigModelBaseURLAutoCorrected:   "Base URL updated to %s (added /v1).",
-		KeyDescConfigModel:                   "Configure model (LLM API)",
-		KeyDescSkill:                         "Use skill; optional text after the name for the AI",
-		KeyUsageSkill:                        "Usage: /skill {name} [...] (text after the name is optional)",
-		KeySkillNotFound:                     "Skill not found.",
-		KeySkillNone:                         "No skills (add dirs with SKILL.md under ~/.delve-shell/skills/)",
-		KeyDescSkillInstall:                  "Install a skill from a git repo",
-		KeyDescSkillRemove:                   "Remove an installed skill",
-		KeyDescConfigUpdateSkill:             "Update an installed skill from its git source",
-		KeyAddSkillTitle:                     "Add skill",
-		KeyAddSkillURLLabel:                  "Git URL:",
-		KeyAddSkillRefLabel:                  "Ref — branch or tag:",
-		KeyAddSkillPathLabel:                 "Path in repo — e.g. skills/foo:",
-		KeyAddSkillNameLabel:                 "Local skill name:",
-		KeyAddSkillURLRequired:               "URL is required.",
-		KeyAddSkillURLPlaceholder:            "https://github.com/owner/repo or owner/repo",
-		KeyAddSkillRefPlaceholder:            "main",
-		KeyAddSkillPathPlaceholder:           "skills/foo",
-		KeyAddSkillNamePlaceholder:           "local skill name",
-		KeyUpdateSkillTitle:                  "Update skill",
-		KeyUpdateSkillSkillLabel:             "Skill: %s",
-		KeyUpdateSkillURLLabel:               "URL:   %s",
-		KeyUpdateSkillPathLabel:              "Path:  %s",
-		KeyUpdateSkillCurrentCommitLabel:     "Current commit: %s",
-		KeyUpdateSkillLatestCommitLabel:      "Latest commit:  %s",
-		KeySkillInstalled:                    "Skill installed: %s",
-		KeySkillRemoved:                      "Skill removed: %s",
-		KeySkillInstallFailed:                "Skill install failed: %v",
-		KeySkillRemoveFailed:                 "Skill remove failed: %v",
-		KeyUsageSkillRemove:                  "Usage: /config del-skill <skill_name>",
-		KeySkillAlreadyExists:                "Skill already exists. Remove it first or use another name, or use /config update-skill <name> to update it.",
-		KeyOverlayFormFooter:                 "Up/Down to move · Enter to apply · Esc to cancel",
-		KeyOverlayPicklistHint:               "  Up/Down to move · Enter or Tab to apply",
-		KeyOverlayUpdateSkillRefTitle:        "Ref · Up/Down to move · Enter to update · Esc to cancel:",
-		KeyOverlayEscCancel:                  "Esc to cancel",
-		KeyOverlayEnterContinueEsc:           "Enter to continue · Esc to cancel",
-		KeyOverlay12SelectEsc:                "1 or 2 to select · Esc to cancel",
-		KeyOverlayEnterSubmitEsc:             "Enter to submit · Esc to cancel",
+		KeyUsageRun:                             "Usage: /exec <command> (for example: /exec ls -la)",
+		KeyUnknownCmd:                           "Unknown command. Type /help for the full list.",
+		KeyDelveLabel:                           "Delve:", // legacy
+		KeyErrorPrefix:                          "Error: ",
+		KeyConfigPrefix:                         "Config: ",
+		KeyWaitOrCancel:                         "(Please wait for the current response, or press Esc to cancel)",
+		KeyCommandExecWaitOrCancel:              "(Command running — press Esc to cancel)",
+		KeyExecStreamPreviewHeader:              "Output (last lines):",
+		KeyExecStreamTranscriptTruncatedHint:    "%d earlier output line(s) omitted in the transcript; full output is stored in session history.",
+		KeyPlaceholderInput:                     "Type your question or / for slash commands.",
+		KeyInputHistBrowsingHint:                "↑/↓ input history · Enter to send · any other key edits",
+		KeyInputHintApproveThree:                "1, 2 or 3",
+		KeyInputHintSensitive:                   "1, 2 or 3",
+		KeyChoiceApprove:                        "Approve",
+		KeyChoiceRefuse:                         "Refuse (do not run)",
+		KeyChoiceRunStore:                       "Run, return to AI, store in history",
+		KeyChoiceRunNoStore:                     "Run, return to AI, do not store",
+		KeyChoiceCopy:                           "Copy",
+		KeyChoiceDismiss:                        "Dismiss",
+		KeyApprovalPrompt:                       "Command to run (approval required):",
+		KeyApprovalSummary:                      "Summary:",
+		KeyApprovalAutoApprovePolicy:            "Risk Hint:",
+		KeyApprovalWhy:                          "Purpose:",
+		KeyApprovalDecisionApproved:             "Decision: approved",
+		KeyApprovalDecisionRejected:             "Decision: rejected",
+		KeyRiskReadOnly:                         "READ-ONLY",
+		KeyRiskLow:                              "LOW-RISK",
+		KeyRiskHigh:                             "HIGH-RISK",
+		KeySensitivePrompt:                      "This command may access sensitive files. Choose:",
+		KeySensitiveChoice1:                     "1 = Refuse (do not run)",
+		KeySensitiveChoice2:                     "2 = Run, return result to AI, store in history",
+		KeySensitiveChoice3:                     "3 = Run, return result to AI, do not store in history",
+		KeyUserLabel:                            "User: ",
+		KeyAILabel:                              "AI: ",
+		KeyTranscriptUserPrompt:                 "> ",
+		KeyInfoLabel:                            "Info: ",
+		KeyAgentReplyEmpty:                      "The model returned an empty reply (no assistant text in the API response).",
+		KeyRunLabel:                             "Run: ",
+		KeyRunLineAutoAllowed:                   "Run (checks passed): ",
+		KeyRunLineApproved:                      "Run (approved): ",
+		KeyRunLineDirect:                        "Run (direct): ",
+		KeyRunLineSuggested:                     "Run (suggested): ",
+		KeySkillLine:                            "Skill: %s",
+		KeyDescExit:                             "Quit delve-shell",
+		KeyDescRun:                              "Execute a command directly (no AI)",
+		KeyDescSh:                               "Spawn bash",
+		KeyDescConfig:                           "Config subcommands",
+		KeyDescHelp:                             "Show this help",
+		KeyDescConfigRemoveRemote:               "Remove a remote",
+		KeyRunTagSuggested:                      "suggested",
+		KeySuggestedCopyHint:                    "Select the command above to copy, or use /exec <cmd> to run it.",
+		KeySuggestedCopied:                      "Copied to clipboard.",
+		KeyConfigRemoteAdded:                    "Remote added: %s.",
+		KeyConfigRemoteRemoved:                  "Remote removed: %s.",
+		KeyStatusIdle:                           "[IDLE]",
+		KeyStatusExecuting:                      "[EXECUTING]",
+		KeyStatusRunning:                        "[PROCESSING]",
+		KeyStatusPendingApproval:                "[NEED APPROVAL]",
+		KeyStatusWaitingUserInput:               "[WAIT INPUT]",
+		KeyStatusSuggest:                        "[SUGGEST]",
+		KeySessionNew:                           "New session",
+		KeySessionSwitchedTo:                    "Switched to session: %s",
+		KeyHistorySwitchedTo:                    "Switched. Active history: %s",
+		KeyHistoryPreviewTitle:                  "History · %s",
+		KeyHistoryPreviewEmpty:                  "(No messages in this history yet.)",
+		KeyHistoryPreviewFooter:                 "Enter to switch · PgUp/PgDn to scroll · Esc to cancel",
+		KeyDescSessions:                         "List and switch history sessions",
+		KeyHistorySessionCurrentSuffix:          " [Current]",
+		KeySessionNone:                          "No previous history.",
+		KeyDelRemoteNoHosts:                     "No hosts.",
+		KeyDescRemoteOn:                         "Connect to host",
+		KeyDescRemoteOff:                        "Disconnect from remote host",
+		KeyDescAccessOffline:                    "Offline mode (paste results back)",
+		KeyOfflinePasteTitle:                    "Offline — paste output in the box below",
+		KeyOfflinePasteIntro:                    "This command is not run here. Paste the results back after you run it elsewhere.",
+		KeyOfflinePasteReview:                   "Review the command before running it elsewhere.",
+		KeyOfflinePasteHint:                     "Enter: submit · Esc: cancel",
+		KeyOfflinePasteCopyFailed:               "Could not copy to clipboard. Select the command line above or copy manually.",
+		KeyOfflinePastePlaceholder:              "Paste output",
+		KeyOfflineExecBashDisabled:              "/bash is not available in Offline mode.",
+		KeyBashReturnNotice:                     "Returned from embedded shell (/bash).",
+		KeyOfflineSlashExecDisabled:             "/exec is not available in Offline mode.",
+		KeyOfflineSlashSkillDisabled:            "/skill is not available in Offline mode.",
+		KeySkillScriptsSyncRemote:               "Syncing skill scripts to remote host…",
+		KeyHelpTitle:                            "Help",
+		KeyHelpOverlayFooter:                    "Esc to close · PgUp/PgDn to scroll",
+		KeyAddRemoteTitle:                       "Add Remote",
+		KeyAddRemoteScreenTitle:                 "Add remote",
+		KeyAddRemoteConnecting:                  "Connecting...",
+		KeyAddRemoteOverwriteHint:               "Press y to overwrite, or edit the host or username and try again.",
+		KeyAddRemoteHostLabel:                   "Host (address or host:port):",
+		KeyAddRemoteUserLabel:                   "Username:",
+		KeyAddRemoteKeyLabel:                    "Key path (optional):",
+		KeyAddRemoteSaveLabel:                   "Save as remote (Space to toggle)",
+		KeyAddRemoteNameLabel:                   "Name (optional):",
+		KeyRemoteTitleBarRemote:                 "Remote",
+		KeyRemoteTitleBarOffline:                "Offline",
+		KeyRemoteAuthTitle:                      "Remote Auth",
+		KeyAddRemoteHostPlaceholder:             "host or host:22",
+		KeyAddRemoteUserPlaceholder:             "e.g. root",
+		KeyAddRemoteKeyPlaceholder:              "~/.ssh/id_rsa (optional)",
+		KeyAddRemoteNamePlaceholder:             "name (optional)",
+		KeyRemoteAuthPasswordPlaceholder:        "SSH password",
+		KeyRemoteAuthIdentityPlaceholder:        "~/.ssh/id_rsa",
+		KeyRemoteAuthUsernameTitle:              "SSH auth for %s",
+		KeyRemoteAuthMethodTitle:                "Choose authentication method:",
+		KeyRemoteAuthPasswordChoice:             "1. Password",
+		KeyRemoteAuthIdentityChoice:             "2. Key file (identity file)",
+		KeyRemoteAuthPasswordTitle:              "SSH password for %s",
+		KeyRemoteAuthIdentityTitle:              "SSH key file path for %s",
+		KeyRemoteAuthAutoIdentityTitle:          "SSH auth for %s",
+		KeyRemoteAuthHostKeyTitle:               "Host key verification",
+		KeyRemoteAuthConnecting:                 "Connecting...",
+		KeyRemoteAuthConfiguredKey:              "Connecting with configured SSH key...",
+		KeyRemoteAuthKnownHostsUpdate:           "Updating known_hosts and reconnecting...",
+		KeyRemoteAuthAcceptKnownHosts:           "1. Accept and update known_hosts",
+		KeyRemoteAuthRejectKnownHosts:           "2. Reject and abort",
+		KeyRemoteAuthTargetLabel:                "Target: %s",
+		KeyRemoteAuthFingerprintLabel:           "Fingerprint: %s",
+		KeyRemoteAuthHostKeyUnknown:             "Host key is not trusted yet. Accept to add/update known_hosts or reject to abort.",
+		KeyRemoteAuthHostKeyMismatch:            "Host key mismatch detected. Accept to update known_hosts or reject to abort.",
+		KeyTitleBarLocal:                        "Local",
+		KeyConfigSavedModel:                     "Config saved.",
+		KeyConfigModelTitle:                     "Config Model",
+		KeyConfigModelBaseURLLabel:              "Base URL (optional; empty = OpenAI official API):",
+		KeyConfigModelApiKeyLabel:               "API key (optional; supports $VAR):",
+		KeyConfigModelBaseURLPlaceholder:        "https://api.openai.com/v1 (optional)",
+		KeyConfigModelApiKeyPlaceholder:         "sk-... or $API_KEY",
+		KeyConfigModelModelLabel:                "Model:",
+		KeyConfigModelMaxMessagesLabel:          "Max context messages (default 50):",
+		KeyConfigModelMaxCharsLabel:             "Max context chars (default: no limit or auto from API):",
+		KeyConfigModelModelRequired:             "Model is required.",
+		KeyConfigModelChecking:                  "Checking...",
+		KeyConfigModelCheckOK:                   "Model check OK.",
+		KeyConfigModelCheckFailed:               "Model check failed: %v",
+		KeyConfigModelBaseURLAutoCorrected:      "Base URL updated to %s (added /v1).",
+		KeyDescConfigModel:                      "Configure model (LLM API)",
+		KeyDescSkill:                            "Use skill; optional text after the name for the AI",
+		KeyUsageSkill:                           "Usage: /skill {name} [...] (text after the name is optional)",
+		KeySkillNotFound:                        "Skill not found.",
+		KeySkillNone:                            "No skills (add dirs with SKILL.md under ~/.delve-shell/skills/)",
+		KeyDescSkillInstall:                     "Install a skill from a git repo",
+		KeyDescSkillRemove:                      "Remove an installed skill",
+		KeyDescConfigUpdateSkill:                "Update an installed skill from its git source",
+		KeyAddSkillTitle:                        "Add skill",
+		KeyAddSkillURLLabel:                     "Git URL:",
+		KeyAddSkillRefLabel:                     "Ref — branch or tag:",
+		KeyAddSkillPathLabel:                    "Path in repo — e.g. skills/foo:",
+		KeyAddSkillNameLabel:                    "Local skill name:",
+		KeyAddSkillURLRequired:                  "URL is required.",
+		KeyAddSkillURLPlaceholder:               "https://github.com/owner/repo or owner/repo",
+		KeyAddSkillRefPlaceholder:               "main",
+		KeyAddSkillPathPlaceholder:              "skills/foo",
+		KeyAddSkillNamePlaceholder:              "local skill name",
+		KeyUpdateSkillTitle:                     "Update skill",
+		KeyUpdateSkillSkillLabel:                "Skill: %s",
+		KeyUpdateSkillURLLabel:                  "URL:   %s",
+		KeyUpdateSkillPathLabel:                 "Path:  %s",
+		KeyUpdateSkillCurrentCommitLabel:        "Current commit: %s",
+		KeyUpdateSkillLatestCommitLabel:         "Latest commit:  %s",
+		KeySkillInstalled:                       "Skill installed: %s",
+		KeySkillRemoved:                         "Skill removed: %s",
+		KeySkillInstallFailed:                   "Skill install failed: %v",
+		KeySkillRemoveFailed:                    "Skill remove failed: %v",
+		KeyUsageSkillRemove:                     "Usage: /config del-skill <skill_name>",
+		KeySkillAlreadyExists:                   "Skill already exists. Remove it first or use another name, or use /config update-skill <name> to update it.",
+		KeyOverlayFormFooter:                    "Up/Down to move · Enter to apply · Esc to cancel",
+		KeyOverlayPicklistHint:                  "  Up/Down to move · Enter or Tab to apply",
+		KeyOverlayUpdateSkillRefTitle:           "Ref · Up/Down to move · Enter to update · Esc to cancel:",
+		KeyOverlayEscCancel:                     "Esc to cancel",
+		KeyOverlayEnterContinueEsc:              "Enter to continue · Esc to cancel",
+		KeyOverlay12SelectEsc:                   "1 or 2 to select · Esc to cancel",
+		KeyOverlayEnterSubmitEsc:                "Enter to submit · Esc to cancel",
 		KeyAutoApproveHLWriteRedirection:        "Output redirection to a file (> or >>) is not allowed for auto-approve.",
-		KeyAutoApproveHLShellParseError:        "Could not parse the command as shell: %v",
-		KeyAutoApproveHLUnsupportedConstruct:   "Cannot auto-approve: unsupported syntax, or the program name is not a fixed literal.",
-		KeyAutoApproveHLExpansionNotAllowed:    "Cannot auto-approve: shell expansion in these arguments is not allowed for this command.",
-		KeyAutoApproveHLEmptySegment:           "Empty command segment.",
-		KeyAutoApproveHLAllowlistNotLoaded:     "Allowlist is not available.",
-		KeyAutoApproveHLCommandNotInAllowlist:  "Command is not on the allowlist: %s",
-		KeyAutoApproveHLArgsPolicyMismatch:     "Arguments do not match the allowlist policy for %s.",
-		KeyAutoApproveHLOpaqueArgv0:            "The command name is not a fixed literal.",
+		KeyAutoApproveHLShellParseError:         "Could not parse the command as shell: %v",
+		KeyAutoApproveHLUnsupportedConstruct:    "Cannot auto-approve: unsupported syntax, or the program name is not a fixed literal.",
+		KeyAutoApproveHLExpansionNotAllowed:     "Cannot auto-approve: shell expansion in these arguments is not allowed for this command.",
+		KeyAutoApproveHLEmptySegment:            "Empty command segment.",
+		KeyAutoApproveHLAllowlistNotLoaded:      "Allowlist is not available.",
+		KeyAutoApproveHLCommandNotInAllowlist:   "Command is not on the allowlist: %s",
+		KeyAutoApproveHLArgsPolicyMismatch:      "Arguments do not match the allowlist policy for %s.",
+		KeyAutoApproveHLOpaqueArgv0:             "The command name is not a fixed literal.",
 		KeyAutoApproveHLSegmentParseOrExpansion: "This part could not be matched to the allowlist (parsing or expansion).",
-		KeyAutoApproveHLAwkFromFileOrFlags:     "awk: program from a file (-f) or unsupported options.",
-		KeyAutoApproveHLAwkSourceError:         "awk: %v",
-		KeyAutoApproveHLAwkReadonlyFailed:      "awk: the script failed the read-only check (for example: system(), writing to a file, or getline from a shell pipe).",
+		KeyAutoApproveHLAwkFromFileOrFlags:      "awk: program from a file (-f) or unsupported options.",
+		KeyAutoApproveHLAwkSourceError:          "awk: %v",
+		KeyAutoApproveHLAwkReadonlyFailed:       "awk: the script failed the read-only check (for example: system(), writing to a file, or getline from a shell pipe).",
 	},
 }
 

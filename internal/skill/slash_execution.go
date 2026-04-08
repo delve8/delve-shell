@@ -9,6 +9,7 @@ import (
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/input/lifecycletype"
 	"delve-shell/internal/skill/store"
+	slashskill "delve-shell/internal/slash/skill"
 	"delve-shell/internal/ui"
 )
 
@@ -16,6 +17,8 @@ func registerSlashExecutionProvider() {
 	ui.RegisterSlashExecutionProvider(func(req ui.SlashExecutionRequest) (inputlifecycletype.ProcessResult, bool, error) {
 		text := strings.TrimSpace(req.RawText)
 		switch {
+		case text == slashskill.Command(slashskill.ReservedNew):
+			return overlayOpenResult(OverlayOpenKeyAdd, nil), true, nil
 		case strings.HasPrefix(text, "/config add-skill"):
 			return overlayOpenResult(OverlayOpenKeyAdd, nil), true, nil
 		case strings.HasPrefix(text, "/config update-skill"):
@@ -27,8 +30,8 @@ func registerSlashExecutionProvider() {
 		case strings.HasPrefix(text, "/config del-skill "):
 			name := strings.TrimSpace(strings.TrimPrefix(text, "/config del-skill "))
 			return handleSlashConfigDelSkillPrefix(name), true, nil
-		case strings.HasPrefix(text, "/"+SlashSubcommand+" "):
-			return executeSkillInvocation(req, strings.TrimSpace(strings.TrimPrefix(text, "/"+SlashSubcommand+" "))), true, nil
+		case strings.HasPrefix(text, slashskill.Prefix):
+			return executeSkillInvocation(req, strings.TrimSpace(strings.TrimPrefix(text, slashskill.Prefix))), true, nil
 		default:
 			return inputlifecycletype.ProcessResult{}, false, nil
 		}

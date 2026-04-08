@@ -248,3 +248,14 @@ func TestBlackboxSlashSkillOfflineShowsError(t *testing.T) {
 	default:
 	}
 }
+
+func TestBlackboxSlashSkillNewOpensAddSkillOverlay(t *testing.T) {
+	f := newBlackboxFixture(t)
+	got := enterText(f.model, "/skill New")
+	if !got.Overlay.Active {
+		t.Fatalf("expected /skill New to open add-skill overlay")
+	}
+	if got.Overlay.Key == "" {
+		t.Fatalf("expected add-skill overlay key to be set")
+	}
+}

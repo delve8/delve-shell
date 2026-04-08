@@ -118,6 +118,21 @@ func TestVisibleIndices_AccessNewReservedVsHost(t *testing.T) {
 	}
 }
 
+func TestVisibleIndices_SkillNewReservedVsInstalledSkill(t *testing.T) {
+	opts := []Option{
+		{Cmd: "/skill New"},
+		{Cmd: "/skill new", FillValue: "/skill new"},
+	}
+	got := VisibleIndices("/skill New", opts)
+	if len(got) != 1 || got[0] != 0 {
+		t.Fatalf("Title New: want reserved row only, got %#v", got)
+	}
+	got = VisibleIndices("/skill new", opts)
+	if len(got) != 2 {
+		t.Fatalf("lowercase new: want reserved + skill row, got %#v", got)
+	}
+}
+
 func TestVisibleIndices_ConfigDelRemoteHostPrefix(t *testing.T) {
 	opts := []Option{
 		{Cmd: "/config del-remote prod"},

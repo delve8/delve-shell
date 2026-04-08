@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"delve-shell/internal/slash/access"
+	slashskill "delve-shell/internal/slash/skill"
 )
 
 // parseAccessRest returns text after "/access " (input without leading slash). ok is false if input is not an /access command.
@@ -22,7 +23,23 @@ func parseAccessRest(input string) (rest string, ok bool) {
 	return strings.TrimSpace(parts[1]), true
 }
 
-func accessReservedRowMatch(rest, displayToken, lowerToken string) bool {
+// parseSkillRest returns text after "/skill " (input without leading slash). ok is false if input is not a /skill command.
+func parseSkillRest(input string) (rest string, ok bool) {
+	input = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(input), "/"))
+	if input == "" {
+		return "", false
+	}
+	parts := strings.SplitN(input, " ", 2)
+	if len(parts) == 0 || !strings.EqualFold(parts[0], slashskill.Subcommand) {
+		return "", false
+	}
+	if len(parts) == 1 {
+		return "", true
+	}
+	return strings.TrimSpace(parts[1]), true
+}
+
+func reservedRowMatch(rest, displayToken, lowerToken string) bool {
 	if rest == "" {
 		return true
 	}
@@ -73,13 +90,52 @@ func accessTargetMatch(input, inputLower, cmd string) bool {
 	}
 	switch suffix {
 	case slashaccess.ReservedLocal:
-		return accessReservedRowMatch(rest, slashaccess.ReservedLocal, slashaccess.FilterLocal)
+		return reservedRowMatch(rest, slashaccess.ReservedLocal, slashaccess.FilterLocal)
 	case slashaccess.ReservedNew:
-		return accessReservedRowMatch(rest, slashaccess.ReservedNew, slashaccess.FilterNew)
+		return reservedRowMatch(rest, slashaccess.ReservedNew, slashaccess.FilterNew)
 	case slashaccess.ReservedOffline:
-		return accessReservedRowMatch(rest, slashaccess.ReservedOffline, slashaccess.FilterOffline)
+		return reservedRowMatch(rest, slashaccess.ReservedOffline, slashaccess.FilterOffline)
 	default:
 		return accessHostRowMatch(rest, suffix)
+	}
+}
+
+func skillInstalledRowMatch(rest, skillSuffix string) bool {
+	if rest == "" {
+		return true
+	}
+	token := rest
+	if fields := strings.Fields(rest); len(fields) > 0 {
+		token = fields[0]
+	}
+	if strings.ContainsAny(token, " \t") {
+		return false
+	}
+	// Exact Title-case reserved token only matches the reserved row, not a skill named "new".
+	if token == slashskill.ReservedNew {
+		return false
+	}
+	return strings.HasPrefix(strings.ToLower(skillSuffix), strings.ToLower(token))
+}
+
+// skillTargetMatch matches /skill rows: reserved "New" uses case rules; installed skills are matched by first token prefix.
+func skillTargetMatch(input, cmd string) bool {
+	rest, isSkill := parseSkillRest(input)
+	if !isSkill {
+		return false
+	}
+	if !strings.HasPrefix(cmd, slashskill.Prefix) {
+		return false
+	}
+	suffix := strings.TrimPrefix(cmd, slashskill.Prefix)
+	if suffix == "" {
+		return false
+	}
+	switch suffix {
+	case slashskill.ReservedNew:
+		return reservedRowMatch(rest, slashskill.ReservedNew, slashskill.FilterNew)
+	default:
+		return skillInstalledRowMatch(rest, suffix)
 	}
 }
 
@@ -125,6 +181,21 @@ func VisibleIndices(input string, opts []Option) []int {
 				}
 			default:
 				// e.g. /a narrows to /access without spelling "access"
+				if strings.HasPrefix(base, inputLower) || strings.HasPrefix(strings.ToLower(opt.Cmd), "/"+inputLower) {
+					out = append(out, i)
+				}
+			}
+			continue
+		}
+		if strings.HasPrefix(opt.Cmd, slashskill.Prefix) {
+			switch {
+			case inputLower == "":
+				out = append(out, i)
+			case strings.HasPrefix(inputLower, slashskill.Subcommand):
+				if skillTargetMatch(input, opt.Cmd) {
+					out = append(out, i)
+				}
+			default:
 				if strings.HasPrefix(base, inputLower) || strings.HasPrefix(strings.ToLower(opt.Cmd), "/"+inputLower) {
 					out = append(out, i)
 				}

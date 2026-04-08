@@ -52,7 +52,7 @@ func registerSlashOptionsProviders() {
 func rootSlashOptions(lang string) []ui.SlashOption {
 	opts := []ui.SlashOption{
 		{Cmd: "/access", Desc: i18n.T(i18n.KeyDescRemoteOn)},
-		{Cmd: "/skill {name} [...]", Desc: i18n.T(i18n.KeyDescSkill)},
+		{Cmd: "/skill", Desc: i18n.T(i18n.KeyDescSkill)},
 		// Hidden from root / picker for now; direct /exec still works. Uncomment to show again.
 		// {Cmd: slashExecUsageOption, Desc: i18n.T(i18n.KeyDescRun)},
 	}
@@ -70,7 +70,6 @@ func rootSlashOptions(lang string) []ui.SlashOption {
 func configSlashOptions() []ui.SlashOption {
 	return []ui.SlashOption{
 		{Cmd: "/config del-remote", Desc: i18n.T(i18n.KeyDescConfigRemoveRemote)},
-		{Cmd: "/config add-skill", Desc: i18n.T(i18n.KeyDescSkillInstall)},
 		{Cmd: "/config del-skill", Desc: i18n.T(i18n.KeyDescSkillRemove)},
 		{Cmd: "/config update-skill", Desc: i18n.T(i18n.KeyDescConfigUpdateSkill)},
 		{Cmd: "/config model", Desc: i18n.T(i18n.KeyDescConfigModel)},

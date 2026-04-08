@@ -18,8 +18,8 @@ const (
 	inputTextareaMaxHeight   = 5
 	// inputBelowStableRows: fixed lines below the input so the separator above the input and the footer
 	// stay in a stable vertical band across idle / processing / slash-open (padded with blanks when needed).
-	inputBelowStableRows     = 5
-	maxInputHistoryEntries   = 200
+	inputBelowStableRows   = 5
+	maxInputHistoryEntries = 200
 )
 
 // ReadModel provides host-derived read-only state needed by UI rendering and local decisions.
@@ -335,7 +335,11 @@ func finalizeUpdate(prevOverlayActive bool, m *Model, cmd tea.Cmd) (tea.Model, t
 		)
 	}
 	if prevOverlayActive && !m.Overlay.Active {
-		printCmd := m.printTranscriptCmd(false)
+		// The main screen restored by ExitAltScreen can be stale relative to the current model
+		// (for example, slash input was cleared before opening the overlay). Force a repaint by
+		// replaying transcript printing from the top after leaving alt-screen.
+		m.printedMessages = 0
+		printCmd := m.printTranscriptCmd(true)
 		return m, tea.Sequence(
 			teaCmdForMsg(tea.ExitAltScreen()),
 			// Reset terminal mouse tracking after leaving the alt-screen overlay (viewport may have
