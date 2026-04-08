@@ -5,9 +5,9 @@ type OutputEventKind string
 
 const (
 	OutputTranscriptAppend OutputEventKind = "transcript_append"
-	OutputSlashExecute     OutputEventKind = "slash_execute"
 	OutputOverlayOpen      OutputEventKind = "overlay_open"
 	OutputOverlayClose     OutputEventKind = "overlay_close"
+	OutputPreInputSet      OutputEventKind = "pre_input_set"
 	OutputPreInputClear    OutputEventKind = "pre_input_clear"
 	OutputStatusChange     OutputEventKind = "status_change"
 	OutputCommandExecution OutputEventKind = "command_execution"
@@ -42,11 +42,9 @@ type TranscriptLine struct {
 	Text string
 }
 
-// SlashExecutionPayload describes a normalized slash execution request for the local runtime.
-type SlashExecutionPayload struct {
-	RawText       string
-	InputLine     string
-	SelectedIndex int
+// PreInputPayload describes a requested pre-input mutation, such as filling a slash command.
+type PreInputPayload struct {
+	Value string
 }
 
 // OverlayPayload describes an overlay open/close effect.
@@ -88,7 +86,7 @@ type OutputEvent struct {
 	Text string
 
 	Transcript  *TranscriptPayload
-	Slash       *SlashExecutionPayload
+	PreInput    *PreInputPayload
 	Overlay     *OverlayPayload
 	Status      *StatusPayload
 	CommandExec *CommandExecutionPayload

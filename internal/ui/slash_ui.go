@@ -3,12 +3,9 @@ package ui
 import (
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
-
 	"delve-shell/internal/hil/approvalview"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/input/maininput"
-	"delve-shell/internal/slash/dispatch"
 	"delve-shell/internal/slash/view"
 	"delve-shell/internal/textwrap"
 	"delve-shell/internal/ui/registry"
@@ -22,8 +19,6 @@ type SlashOption struct {
 	Desc      string
 	FillValue string
 }
-
-var slashRuntime = slashdispatch.NewRuntime[*Model, tea.Cmd]()
 
 const inputBelowReserveRows = 4
 

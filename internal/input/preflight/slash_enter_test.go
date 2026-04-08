@@ -47,16 +47,16 @@ func TestPlanSlashEnter(t *testing.T) {
 		}
 	})
 
-	t.Run("quit becomes control submission", func(t *testing.T) {
+	t.Run("quit stays slash submission", func(t *testing.T) {
 		got := PlanSlashEnter("/quit", slashview.Option{Cmd: "/quit"}, true, 5)
 		if got.Kind != EnterPlanSubmit {
 			t.Fatalf("Kind=%q want submit", got.Kind)
 		}
-		if got.Submission.Kind != inputlifecycletype.SubmissionControl {
-			t.Fatalf("Submission.Kind=%q want control", got.Submission.Kind)
+		if got.Submission.Kind != inputlifecycletype.SubmissionSlash {
+			t.Fatalf("Submission.Kind=%q want slash", got.Submission.Kind)
 		}
-		if got.Submission.ControlSignal != inputlifecycletype.ControlSignalQuit {
-			t.Fatalf("ControlSignal=%q want quit", got.Submission.ControlSignal)
+		if got.Submission.SelectedIndex != 5 {
+			t.Fatalf("SelectedIndex=%d want 5", got.Submission.SelectedIndex)
 		}
 	})
 }

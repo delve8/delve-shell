@@ -330,19 +330,22 @@ func (m *Model) handleSlashEnterKey(inputVal string) (*Model, tea.Cmd, bool) {
 		m.syncInputHeight()
 		return m, nil, true
 	case inputpreflight.EnterPlanSubmit:
+		trimmed := strings.TrimSpace(plan.Submission.RawText)
+		var printCmd tea.Cmd
+		// Mirror normal Enter: slash submissions echo before execution so all runtime paths,
+		// including /quit and /bash shell snapshots, observe the same transcript/history state.
+		if plan.Submission.Kind == inputlifecycletype.SubmissionSlash {
+			m.appendUserSubmittedEcho(trimmed)
+			printCmd = m.printTranscriptCmd(false)
+		}
 		if res, handled, err := m.lifecycleEngine().RouteSubmission(plan.Submission); handled {
 			if err != nil {
 				var cmd tea.Cmd
 				m, cmd = m.appendSubmissionError(err)
+				if printCmd != nil {
+					return m, tea.Sequence(printCmd, cmd), true
+				}
 				return m, cmd, true
-			}
-			trimmed := strings.TrimSpace(plan.Submission.RawText)
-			var printCmd tea.Cmd
-			// Mirror normal Enter: every submitted slash command echoes the user line before
-			// lifecycle effects so transcript and input history stay consistent.
-			if plan.Submission.Kind == inputlifecycletype.SubmissionSlash {
-				m.appendUserSubmittedEcho(trimmed)
-				printCmd = m.printTranscriptCmd(false)
 			}
 			m.clearSlashInput()
 			returned, cmd := m.applyLifecycleResult(res)

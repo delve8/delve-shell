@@ -40,6 +40,26 @@ func TestBlackboxSlashNewSubmitsCommand(t *testing.T) {
 	}
 }
 
+func TestBlackboxSlashQuitEchoesAndReturnsQuitCmd(t *testing.T) {
+	f := newBlackboxFixture(t)
+	m := f.model
+	m.Input.SetValue("/quit")
+	m.Input.CursorEnd()
+
+	next, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	got := next.(*ui.Model)
+	if cmd == nil {
+		t.Fatalf("expected /quit to return a quit command")
+	}
+	transcript := strings.Join(got.TranscriptLines(), "\n")
+	if !strings.Contains(transcript, "/quit") {
+		t.Fatalf("expected user echo for /quit, got %q", transcript)
+	}
+	if strings.TrimSpace(got.Input.Value()) != "" {
+		t.Fatalf("expected input cleared after /quit, got %q", got.Input.Value())
+	}
+}
+
 func TestBlackboxSlashHistoryPrefixPreviewThenEnterSwitches(t *testing.T) {
 	f := newBlackboxFixture(t)
 	got := enterText(f.model, "/history demo")

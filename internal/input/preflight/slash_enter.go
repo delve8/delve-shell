@@ -31,19 +31,6 @@ func PlanSlashEnter(inputVal string, selected slashview.Option, hasSelected bool
 	if trimmed == "" {
 		return EnterPlan{Kind: EnterPlanNone}
 	}
-	if trimmed == "/quit" {
-		return EnterPlan{
-			Kind: EnterPlanSubmit,
-			Submission: inputlifecycletype.InputSubmission{
-				Kind:          inputlifecycletype.SubmissionControl,
-				Source:        inputlifecycletype.SourceSlashEarlyEnter,
-				RawText:       trimmed,
-				InputLine:     inputVal,
-				SelectedIndex: -1,
-				ControlSignal: inputlifecycletype.ControlSignalQuit,
-			},
-		}
-	}
 
 	result := slashflow.EvaluateSlashEnter(inputVal, trimmed, selected, hasSelected)
 	switch result.Action {

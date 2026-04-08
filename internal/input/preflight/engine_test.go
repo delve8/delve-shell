@@ -71,16 +71,16 @@ func TestEngineOnEnter(t *testing.T) {
 		}
 	})
 
-	t.Run("quit control submission", func(t *testing.T) {
+	t.Run("quit slash submission", func(t *testing.T) {
 		got, ok := engine.OnEnter(" /quit ", 7)
 		if !ok {
-			t.Fatal("expected control submission")
+			t.Fatal("expected slash submission")
 		}
-		if got.Kind != inputlifecycletype.SubmissionControl {
-			t.Fatalf("Kind=%q want control", got.Kind)
+		if got.Kind != inputlifecycletype.SubmissionSlash {
+			t.Fatalf("Kind=%q want slash", got.Kind)
 		}
-		if got.ControlSignal != inputlifecycletype.ControlSignalQuit {
-			t.Fatalf("ControlSignal=%q want quit", got.ControlSignal)
+		if got.SelectedIndex != 7 {
+			t.Fatalf("SelectedIndex=%d want 7", got.SelectedIndex)
 		}
 	})
 }

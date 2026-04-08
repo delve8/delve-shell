@@ -46,9 +46,9 @@ func cloneOutputEvent(event OutputEvent) OutputEvent {
 		}
 		cloned.Transcript = &payload
 	}
-	if event.Slash != nil {
-		payload := *event.Slash
-		cloned.Slash = &payload
+	if event.PreInput != nil {
+		payload := *event.PreInput
+		cloned.PreInput = &payload
 	}
 	if event.Overlay != nil {
 		payload := *event.Overlay

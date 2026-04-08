@@ -9,11 +9,14 @@ import (
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/input/lifecycle"
 	"delve-shell/internal/input/lifecycletype"
+	"delve-shell/internal/input/maininput"
 	"delve-shell/internal/input/output"
 	"delve-shell/internal/input/preflight"
 	"delve-shell/internal/input/process/chatproc"
 	"delve-shell/internal/input/process/controlproc"
 	"delve-shell/internal/input/process/slashproc"
+	"delve-shell/internal/slash/view"
+	"delve-shell/internal/ui/flow/enterflow"
 
 	"delve-shell/internal/ui/uivm"
 	tea "github.com/charmbracelet/bubbletea"
@@ -39,12 +42,18 @@ func hasSlashPreInputState(m *Model) bool {
 	return inputVal != "" && inputVal[0] == '/'
 }
 
-type slashRuntimeExecutor struct {
-	sender CommandSender
-	read   ReadModel
+type slashExecutor struct {
+	sender            CommandSender
+	read              ReadModel
+	suggestionContext func(input string) ([]int, []slashview.Option)
+	sessionNoneMsg    string
+	delRemoteNoneMsg  string
+	transcriptLines   func() []string
+	inputHistory      func() []string
+	remoteActive      func() bool
 }
 
-func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inputlifecycletype.ProcessResult, error) {
+func (e slashExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inputlifecycletype.ProcessResult, error) {
 	trimmed := strings.TrimSpace(req.RawText)
 	offline := false
 	if e.read != nil {
@@ -71,32 +80,44 @@ func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inpu
 				Markdown: true,
 			},
 		}), nil
+	case trimmed == "/quit":
+		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+			Kind: inputlifecycletype.OutputQuit,
+		}), nil
 	case trimmed == "/new":
 		if e.sender == nil || !e.sender.Send(hostcmd.SessionNew{}) {
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 		}
 		return inputlifecycletype.ConsumedResult(), nil
+	case trimmed == "/bash":
+		if offline {
+			return slashTranscriptErrorResult(i18n.T(i18n.KeyOfflineExecBashDisabled)), nil
+		}
+		mode := hostcmd.SubshellModeLocalBash
+		if e.remoteActive != nil && e.remoteActive() {
+			mode = hostcmd.SubshellModeRemoteSSH
+		}
+		if e.sender != nil {
+			var msgs []string
+			if e.transcriptLines != nil {
+				msgs = append([]string(nil), e.transcriptLines()...)
+			}
+			var hist []string
+			if e.inputHistory != nil {
+				hist = append([]string(nil), e.inputHistory()...)
+			}
+			_ = e.sender.Send(hostcmd.ShellSnapshot{Messages: msgs, InputHistory: hist, Mode: mode})
+		}
+		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+			Kind: inputlifecycletype.OutputQuit,
+		}), nil
 	case strings.HasPrefix(trimmed, "/exec "):
 		cmd := strings.TrimSpace(strings.TrimPrefix(trimmed, "/exec "))
 		if cmd == "" {
-			return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-				Kind: inputlifecycletype.OutputTranscriptAppend,
-				Transcript: &inputlifecycletype.TranscriptPayload{
-					Lines: []inputlifecycletype.TranscriptLine{
-						{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.T(i18n.KeyUsageRun)},
-					},
-				},
-			}), nil
+			return slashTranscriptErrorResult(i18n.T(i18n.KeyUsageRun)), nil
 		}
 		if e.read != nil && e.read.OfflineExecutionMode() {
-			return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-				Kind: inputlifecycletype.OutputTranscriptAppend,
-				Transcript: &inputlifecycletype.TranscriptPayload{
-					Lines: []inputlifecycletype.TranscriptLine{
-						{Kind: inputlifecycletype.TranscriptLineSystemError, Text: i18n.T(i18n.KeyOfflineSlashExecDisabled)},
-					},
-				},
-			}), nil
+			return slashTranscriptErrorResult(i18n.T(i18n.KeyOfflineSlashExecDisabled)), nil
 		}
 		if e.sender == nil || !e.sender.Send(hostcmd.ExecDirect{Command: cmd}) {
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
@@ -110,14 +131,28 @@ func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inpu
 			return inputlifecycletype.ConsumedResult(), nil
 		}
 	}
-	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-		Kind: inputlifecycletype.OutputSlashExecute,
-		Slash: &inputlifecycletype.SlashExecutionPayload{
-			RawText:       trimmed,
-			InputLine:     req.InputLine,
-			SelectedIndex: req.SelectedIndex,
-		},
-	}), nil
+	if e.suggestionContext != nil {
+		inputLine := strings.TrimSpace(req.InputLine)
+		if inputLine == "" {
+			inputLine = trimmed
+		}
+		vis, viewOpts := e.suggestionContext(inputLine)
+		plan := enterflow.PlanAfterSlashDispatches(trimmed, req.SelectedIndex, viewOpts, vis, e.sessionNoneMsg, e.delRemoteNoneMsg)
+		switch plan.Kind {
+		case maininput.MainEnterShowSessionNone:
+			return slashTranscriptSuggestResult(e.sessionNoneMsg), nil
+		case maininput.MainEnterShowDelRemoteNone:
+			return slashTranscriptSuggestResult(e.delRemoteNoneMsg), nil
+		case maininput.MainEnterResolveSelected:
+			return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+				Kind:     inputlifecycletype.OutputPreInputSet,
+				PreInput: &inputlifecycletype.PreInputPayload{Value: slashview.ChosenToInputValue(plan.Selected)},
+			}), nil
+		case maininput.MainEnterUnknownSlash:
+			return slashTranscriptErrorResult(i18n.T(i18n.KeyUnknownCmd)), nil
+		}
+	}
+	return slashTranscriptErrorResult(i18n.T(i18n.KeyUnknownCmd)), nil
 }
 
 type uiChatSubmissionExecutor struct {
@@ -188,7 +223,23 @@ func (e uiControlActionExecutor) ExecuteControl(action inputlifecycletype.Contro
 func (m *Model) lifecycleEngine() inputlifecycle.Engine {
 	router := inputlifecycle.NewRouter(
 		controlproc.New(uiControlContexts{m: m}, uiControlActionExecutor{sender: m.CommandSender}),
-		slashproc.New(slashRuntimeExecutor{sender: m.CommandSender, read: m.ReadModel}),
+		slashproc.New(slashExecutor{
+			sender: m.CommandSender,
+			read:   m.ReadModel,
+			suggestionContext: func(input string) ([]int, []slashview.Option) {
+				_, vis, viewOpts := m.slashSuggestionContext(input)
+				return vis, viewOpts
+			},
+			sessionNoneMsg:   i18n.T(i18n.KeySessionNone),
+			delRemoteNoneMsg: i18n.T(i18n.KeyDelRemoteNoHosts),
+			transcriptLines:  m.TranscriptLines,
+			inputHistory: func() []string {
+				out := make([]string, len(m.Interaction.inputHistory))
+				copy(out, m.Interaction.inputHistory)
+				return out
+			},
+			remoteActive: func() bool { return m.Remote.Active },
+		}),
 		chatproc.New(uiChatSubmissionExecutor{sender: m.CommandSender}),
 	)
 	return inputlifecycle.NewEngine(inputpreflight.Engine{}, router)
@@ -204,17 +255,6 @@ func (m *Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (*Mod
 					lines = append(lines, uivm.Line{Kind: uivm.LineKind(line.Kind), Text: line.Text})
 				}
 				return m.handleTranscriptAppendMsg(TranscriptAppendMsg{Lines: lines})
-			}
-		case inputlifecycletype.OutputSlashExecute:
-			if out.Slash != nil {
-				if out.Slash.InputLine != "" {
-					m2, cmd, handled := m.executeSlashEarlySubmission(out.Slash.InputLine)
-					if handled {
-						return m2, cmd
-					}
-					return m.executeSlashSubmission(out.Slash.InputLine, out.Slash.SelectedIndex)
-				}
-				return m.executeSlashSubmission(out.Slash.RawText, out.Slash.SelectedIndex)
 			}
 		case inputlifecycletype.OutputOverlayOpen:
 			if out.Overlay != nil {
@@ -251,6 +291,13 @@ func (m *Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (*Mod
 		case inputlifecycletype.OutputPreInputClear:
 			m.clearSlashInput()
 			return m, nil
+		case inputlifecycletype.OutputPreInputSet:
+			if out.PreInput != nil {
+				m.Input.SetValue(out.PreInput.Value)
+				m.Input.CursorEnd()
+				m.syncInputHeight()
+				return m, nil
+			}
 		}
 	}
 	patch, cmd := inputoutput.ApplyResult(res)
@@ -261,4 +308,22 @@ func (m *Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (*Mod
 		m.Interaction.CommandExecuting = *patch.CommandExecuting
 	}
 	return m, cmd
+}
+
+func slashTranscriptSuggestResult(text string) inputlifecycletype.ProcessResult {
+	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+		Kind: inputlifecycletype.OutputTranscriptAppend,
+		Transcript: &inputlifecycletype.TranscriptPayload{Lines: []inputlifecycletype.TranscriptLine{
+			{Kind: inputlifecycletype.TranscriptLineSystemSuggest, Text: text},
+		}},
+	})
+}
+
+func slashTranscriptErrorResult(text string) inputlifecycletype.ProcessResult {
+	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
+		Kind: inputlifecycletype.OutputTranscriptAppend,
+		Transcript: &inputlifecycletype.TranscriptPayload{Lines: []inputlifecycletype.TranscriptLine{
+			{Kind: inputlifecycletype.TranscriptLineSystemError, Text: text},
+		}},
+	})
 }
