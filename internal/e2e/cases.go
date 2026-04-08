@@ -37,7 +37,7 @@ var TerminalCases = []Case{
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second}, // wait for TUI ready
-			{Input: "/help", Expect: []string{"Slash commands", "斜杠命令", "Quit", "退出", "/quit", "/exec", "/help"}, Timeout: 5 * time.Second},
+			{Input: "/help", Expect: []string{"What it does", "Quick start", "Esc to close", "/quit", "/exec"}, Timeout: 5 * time.Second},
 			{Input: "/quit", Expect: []string{}, Timeout: 2 * time.Second},
 		},
 	},

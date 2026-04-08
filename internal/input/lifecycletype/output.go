@@ -55,6 +55,8 @@ type OverlayPayload struct {
 	Title   string
 	Content string
 	Params  map[string]string
+	// Markdown when true: Content is GitHub-flavored Markdown rendered for the help-style scroll overlay.
+	Markdown bool
 }
 
 // StatusPayload describes a UI status update such as idle/running/pending.

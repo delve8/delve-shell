@@ -124,6 +124,8 @@ const (
 	KeyOfflineSlashSkillDisabled       = "offline_slash_skill_disabled"
 	KeySkillScriptsSyncRemote          = "skill_scripts_sync_remote"
 	KeyHelpTitle                       = "help_title"
+	// KeyHelpOverlayFooter is fixed below the help scroll area (same chrome as history preview).
+	KeyHelpOverlayFooter               = "help_overlay_footer"
 	KeyAddRemoteTitle                  = "add_remote_title"
 	KeyAddRemoteScreenTitle            = "add_remote_screen_title"
 	KeyAddRemoteConnecting             = "add_remote_connecting"
@@ -233,68 +235,87 @@ const (
 
 var messages = map[string]map[string]string{
 	"en": {
-		KeyHelpText: `delve-shell — AI-assisted ops. Commands run only after HIL approval (cards or allowlist path).
+		KeyHelpText: `# delve-shell
 
-What it does:
-  Natural-language tasks drive suggested commands. Allowlisted commands with no shell write redirection run without a card; others show a card (Run, Dismiss, or Copy). An empty allowlist matches nothing, so every command shows the card. Runs are recorded in session history for audit.
+AI-assisted ops. Commands run only after HIL approval (cards or allowlist path).
 
-Quick start:
-  1. Enter a task in the input line and press Enter to send.
-  2. Multi-line input: Shift+Enter, Alt+Enter, or Ctrl+J inserts a newline; Enter sends. Many terminals map Shift+Enter like Enter—Alt+Enter or Ctrl+J is the reliable newline.
-  3. On a command card: 1 runs, 2 dismisses without running, 3 copies the command.
-  4. Up/Down recall recent submitted lines (chat and slash). While a recalled line starts with /, Up/Down continues history; slash completion resumes after any non–↑/↓ key or after leaving history browse.
-  5. / opens slash suggestions (Up/Down on a / line; Tab or Enter inserts the highlighted row; Enter submits a complete slash command).
-  6. PgUp/PgDown scrolls the log; /help opens this panel.
+## What it does
 
-Slash commands (command line, then description; blank line between entries):
+Natural-language tasks drive suggested commands. Allowlisted commands with no shell write redirection run without a card; others show a card (Run, Dismiss, or Copy). An empty allowlist matches nothing, so every command shows the card. Runs are recorded in session history for audit.
 
-/help
-Show this help
+## Quick start
 
-/config
-Config subcommands (see list below)
+1. Enter a task in the input line and press **Enter** to send.
+2. Multi-line input: **Shift+Enter**, **Alt+Enter**, or **Ctrl+J** inserts a newline; **Enter** sends. Many terminals map Shift+Enter like Enter—**Alt+Enter** or **Ctrl+J** is the reliable newline.
+3. On a command card: **1** runs, **2** dismisses without running, **3** copies the command.
+4. **Up/Down** recall recent submitted lines (chat and slash). While a recalled line starts with a slash, Up/Down continues history; slash completion resumes after any other key or after leaving history browse.
+5. Type **/** to open slash suggestions (Up/Down on a slash line; Tab or Enter inserts the highlighted row; Enter submits a complete slash command).
+6. **PgUp/PgDown** scrolls the log; **/help** opens this panel.
 
-/config del-remote
-Remove a remote
+## Slash commands
 
-/config add-skill <url> [ref] [path]
-Install a skill from a git repo (path = subpath if the repo has multiple skills, e.g. skills/foo)
+**/exec** is not listed in the **/** menu; type **/exec {cmd}** directly when you need a one-off command without the AI.
 
-/config del-skill <skill_name>
-Remove an installed skill
+### /help
 
-/config update-skill <skill_name>
-Update an installed skill from its git source (branch/tag selectable in dialog)
+Show this help.
 
-/config model
-Configure model (LLM API)
+### /config
 
-/access
-Connect over SSH: dropdown lists saved hosts first, then /access New (add target), then /access Local (use local executor). Host segment in saved targets must be lowercase so /access Local and /access New do not collide with host names.
+Config subcommands (see list below).
 
-/access New
-Open Add Remote (new SSH target; optional save to config)
+### /config del-remote
 
-/access Local
-Disconnect from remote and run commands locally
+Remove a remote.
 
-/access [user@host or host]
-Connect to a saved host or enter user@host
+### /config add-skill
 
-/new
-Start a new session
+Open the add-skill dialog (Git URL, ref, path in repo, local name). You can also submit **/config add-skill** with arguments on the same line to pre-fill the form: `{url}` optional **`[ref]`** and **`[path]`** (path = subpath when the repo has multiple skills, e.g. skills/foo).
 
-/history
-List and switch history sessions. Flow: /history → pick a row (Tab/Enter fills /history <id>) → submit opens a read-only preview → Enter in the dialog switches the active session; Esc closes without switching. Only the first word after /history is the session id (trailing text is ignored). Dropdown lines show a one-line summary of the first turn (line breaks as \n; long text ends with ...).
+### /config del-skill {skill_name}
 
-/skill <name> [detail]
-Use skill; optional detail for the AI
+Remove an installed skill.
 
-/exec <cmd>
-Run one command directly (no AI)
+### /config update-skill {skill_name}
 
-` + helpEnBashSection + `/quit
-Quit (Ctrl+C also works)`,
+Update an installed skill from its git source (branch/tag selectable in dialog).
+
+### /config model
+
+Configure model (LLM API).
+
+### /access
+
+Connect over SSH: dropdown lists saved hosts first, then **/access New** (add target), then **/access Local** (use local executor). Host segment in saved targets must be lowercase so **/access Local** and **/access New** do not collide with host names.
+
+### /access New
+
+Open Add Remote (new SSH target; optional save to config).
+
+### /access Local
+
+Disconnect from remote and run commands locally.
+
+### /access [user@host or host]
+
+Connect to a saved host or enter user@host.
+
+### /new
+
+Start a new session.
+
+### /history
+
+List and switch history sessions. Flow: **/history** → pick a row (Tab/Enter fills **/history {id}**) → submit opens a read-only preview → Enter in the dialog switches the active session; Esc closes without switching. Only the first word after **/history** is the session id (trailing text is ignored). Dropdown lines show a one-line summary of the first turn.
+
+### /skill {name} [...]
+
+Use a skill; optional extra text after the name is passed to the AI for this turn.
+
+` + helpEnBashSection + `### /quit
+
+Quit (**Ctrl+C** also works).
+`,
 		KeyUsageRun:                          "Usage: /exec <command> (for example: /exec ls -la)",
 		KeyUnknownCmd:                        "Unknown command. Type /help for the full list.",
 		KeyDelveLabel:                        "Delve:", // legacy
@@ -380,6 +401,7 @@ Quit (Ctrl+C also works)`,
 		KeyOfflineSlashSkillDisabled:         "/skill is not available in Offline mode.",
 		KeySkillScriptsSyncRemote:            "Syncing skill scripts to remote host…",
 		KeyHelpTitle:                         "Help",
+		KeyHelpOverlayFooter:                 "Esc to close · PgUp/PgDn to scroll",
 		KeyAddRemoteTitle:                    "Add Remote",
 		KeyAddRemoteScreenTitle:              "Add remote",
 		KeyAddRemoteConnecting:               "Connecting...",
@@ -431,8 +453,8 @@ Quit (Ctrl+C also works)`,
 		KeyConfigModelCheckFailed:            "Model check failed: %v",
 		KeyConfigModelBaseURLAutoCorrected:   "Base URL updated to %s (added /v1).",
 		KeyDescConfigModel:                   "Configure model (LLM API)",
-		KeyDescSkill:                         "Use skill; optional detail for the AI",
-		KeyUsageSkill:                        "Usage: /skill <name> [detail] (text after the name is optional)",
+		KeyDescSkill:                         "Use skill; optional text after the name for the AI",
+		KeyUsageSkill:                        "Usage: /skill {name} [...] (text after the name is optional)",
 		KeySkillNotFound:                     "Skill not found.",
 		KeySkillNone:                         "No skills (add dirs with SKILL.md under ~/.delve-shell/skills/)",
 		KeyDescSkillInstall:                  "Install a skill from a git repo",

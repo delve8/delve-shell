@@ -139,6 +139,16 @@ func (m *Model) OpenOverlayFeature(key, title, content string) {
 	m.openOverlayFeature(key, title, content, "")
 }
 
+// openMarkdownScrollOverlay opens the help-style overlay: Content is rendered from Markdown on each layout refresh.
+func (m *Model) openMarkdownScrollOverlay(title, markdownSource, footer string) {
+	m.Overlay.Active = true
+	m.Overlay.Key = ""
+	m.Overlay.Title = title
+	m.Overlay.MarkdownSource = markdownSource
+	m.Overlay.Footer = footer
+	m.InitOverlayViewport()
+}
+
 // openOverlayFeature sets optional Footer: fixed hint lines below the scroll viewport (not part of scrolled text).
 func (m *Model) openOverlayFeature(key, title, content, footer string) {
 	m.Overlay.Active = true
@@ -146,6 +156,7 @@ func (m *Model) openOverlayFeature(key, title, content, footer string) {
 	m.Overlay.Title = title
 	m.Overlay.Content = content
 	m.Overlay.Footer = footer
+	m.Overlay.MarkdownSource = ""
 }
 
 // CloseOverlayVisual closes overlay chrome only.
@@ -156,6 +167,7 @@ func (m *Model) CloseOverlayVisual() {
 	m.Overlay.Title = ""
 	m.Overlay.Content = ""
 	m.Overlay.Footer = ""
+	m.Overlay.MarkdownSource = ""
 }
 
 // overlayFixedBelowViewportLineCount is rows below the scroll area: dim separator + footer hint (plain line count).
@@ -168,6 +180,10 @@ func overlayFixedBelowViewportLineCount(footer string) int {
 
 // InitOverlayViewport initializes the generic overlay viewport from current layout.
 func (m *Model) InitOverlayViewport() {
+	if m.Overlay.MarkdownSource != "" {
+		inner := overlayHistoryPreviewWrapWidth(m.layout.Width)
+		m.Overlay.Content = RenderHelpMarkdown(m.Overlay.MarkdownSource, inner)
+	}
 	w := m.layout.Width - minOverlayLayoutWidth
 	baseH := min(m.layout.Height-minOverlayLayoutHeight, maxOverlayViewportHeight)
 	if n := overlayFixedBelowViewportLineCount(m.Overlay.Footer); n > 0 {

@@ -66,8 +66,9 @@ func (e slashRuntimeExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inpu
 		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
 			Kind: inputlifecycletype.OutputOverlayOpen,
 			Overlay: &inputlifecycletype.OverlayPayload{
-				Title:   i18n.T(i18n.KeyHelpTitle),
-				Content: i18n.T(i18n.KeyHelpText),
+				Title:    i18n.T(i18n.KeyHelpTitle),
+				Content:  i18n.T(i18n.KeyHelpText),
+				Markdown: true,
 			},
 		}), nil
 	case trimmed == "/new":
@@ -218,10 +219,11 @@ func (m *Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (*Mod
 		case inputlifecycletype.OutputOverlayOpen:
 			if out.Overlay != nil {
 				req := OverlayOpenRequest{
-					Key:     out.Overlay.Key,
-					Params:  out.Overlay.Params,
-					Title:   out.Overlay.Title,
-					Content: out.Overlay.Content,
+					Key:      out.Overlay.Key,
+					Params:   out.Overlay.Params,
+					Title:    out.Overlay.Title,
+					Content:  out.Overlay.Content,
+					Markdown: out.Overlay.Markdown,
 				}
 				for _, entry := range overlayFeatures() {
 					if entry.feature.Open == nil {
@@ -230,6 +232,11 @@ func (m *Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (*Mod
 					if m2, cmd, handled := entry.feature.Open(m, req); handled {
 						return m2, cmd
 					}
+				}
+				if req.Markdown && strings.TrimSpace(req.Content) != "" {
+					i18n.SetLang(m.getLang())
+					m.openMarkdownScrollOverlay(req.Title, req.Content, i18n.T(i18n.KeyHelpOverlayFooter))
+					return m, nil
 				}
 				if req.Title != "" || req.Content != "" {
 					m.OpenOverlayFeature("", req.Title, req.Content)

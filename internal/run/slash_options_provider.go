@@ -52,7 +52,7 @@ func registerSlashOptionsProviders() {
 func rootSlashOptions(lang string) []ui.SlashOption {
 	opts := []ui.SlashOption{
 		{Cmd: "/access", Desc: i18n.T(i18n.KeyDescRemoteOn)},
-		{Cmd: "/skill <name> [detail]", Desc: i18n.T(i18n.KeyDescSkill)},
+		{Cmd: "/skill {name} [...]", Desc: i18n.T(i18n.KeyDescSkill)},
 		// Hidden from root / picker for now; direct /exec still works. Uncomment to show again.
 		// {Cmd: slashExecUsageOption, Desc: i18n.T(i18n.KeyDescRun)},
 	}

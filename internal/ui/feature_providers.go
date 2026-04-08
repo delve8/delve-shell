@@ -77,10 +77,11 @@ type OverlayContentProvider func(m *Model) (content string, handled bool)
 
 // OverlayOpenRequest describes a structured request to open an overlay feature.
 type OverlayOpenRequest struct {
-	Key     string
-	Params  map[string]string
-	Title   string
-	Content string
+	Key      string
+	Params   map[string]string
+	Title    string
+	Content  string
+	Markdown bool
 }
 
 // OverlayOpenProvider handles a structured overlay-open request.

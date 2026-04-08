@@ -113,8 +113,10 @@ type OverlayState struct {
 	Title    string
 	Content  string
 	// Footer is optional: shown below the scroll viewport (not scrolled), e.g. history preview shortcuts.
-	Footer   string
-	Viewport viewport.Model
+	Footer string
+	// MarkdownSource when non-empty: Content is re-rendered from this via [RenderHelpMarkdown] on open and resize.
+	MarkdownSource string
+	Viewport       viewport.Model
 }
 
 type RemoteState struct {
