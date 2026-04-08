@@ -32,17 +32,17 @@ func (m *Model) slashRuntimeDeps() slashdispatch.ExecDeps[*Model, tea.Cmd] {
 			return mm
 		},
 		AppendSessionNone: func(mm *Model) *Model {
-			mm.AppendTranscriptLines(suggestStyle.Render(mm.delveMsg(i18n.T(i18n.KeySessionNone))))
+			mm.AppendTranscriptLines(infoStyle.Render(mm.infoMsg(i18n.T(i18n.KeySessionNone))))
 			mm.clearSlashInput()
 			return mm
 		},
 		AppendDelRemoteNone: func(mm *Model) *Model {
-			mm.AppendTranscriptLines(suggestStyle.Render(mm.delveMsg(i18n.T(i18n.KeyDelRemoteNoHosts))))
+			mm.AppendTranscriptLines(infoStyle.Render(mm.infoMsg(i18n.T(i18n.KeyDelRemoteNoHosts))))
 			mm.clearSlashInput()
 			return mm
 		},
 		AppendUnknownSlash: func(mm *Model) *Model {
-			mm.AppendTranscriptLines(errStyle.Render(mm.delveMsg(i18n.T(i18n.KeyUnknownCmd))))
+			mm.AppendTranscriptLines(errStyle.Render(i18n.T(i18n.KeyUnknownCmd)))
 			return mm
 		},
 		EchoSubmitted: func(mm *Model, text string) *Model {

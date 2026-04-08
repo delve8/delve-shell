@@ -63,10 +63,12 @@ const (
 	KeySensitiveChoice1         = "sensitive_choice_1"
 	KeySensitiveChoice2         = "sensitive_choice_2"
 	KeySensitiveChoice3         = "sensitive_choice_3"
-	KeyUserLabel                = "user_label"
-	KeyAILabel                  = "ai_label"
+	KeyUserLabel                = "user_label" // legacy transcript prefix; prefer KeyTranscriptUserPrompt in UI
+	KeyAILabel                  = "ai_label" // legacy; AI transcript no longer prefixes with this in TUI
+	KeyTranscriptUserPrompt     = "transcript_user_prompt" // same as input prompt, e.g. "> "
+	KeyInfoLabel                = "info_label"             // non-error system hints, e.g. "Info: "
 	KeyAgentReplyEmpty          = "agent_reply_empty" // model finished with no assistant text (API/empty parse)
-	KeyDelveLabel               = "delve_label" // tool/system message prefix, e.g. "Delve:"
+	KeyDelveLabel               = "delve_label" // deprecated; use KeyInfoLabel for transcript hints
 	KeyRunLabel                 = "run_label" // legacy; prefer KeyRunLine* for execute transcript
 	// Run line prefixes (execute_command / history replay); command follows; total width capped in UI.
 	KeyRunLineAutoAllowed = "run_line_auto_allowed" // built-in checks passed; no user approval card
@@ -293,7 +295,7 @@ Run one command directly (no AI)
 Quit (Ctrl+C also works)`,
 		KeyUsageRun:                          "Usage: /exec <command> (for example: /exec ls -la)",
 		KeyUnknownCmd:                        "Unknown command. Type /help for the full list.",
-		KeyDelveLabel:                        "Delve:",
+		KeyDelveLabel:                        "Delve:", // legacy
 		KeyErrorPrefix:                       "Error: ",
 		KeyConfigPrefix:                      "Config: ",
 		KeyWaitOrCancel:                      "(Please wait for the current response, or press Esc to cancel)",
@@ -325,6 +327,8 @@ Quit (Ctrl+C also works)`,
 		KeySensitiveChoice3:                  "3 = Run, return result to AI, do not store in history",
 		KeyUserLabel:                         "User: ",
 		KeyAILabel:                           "AI: ",
+		KeyTranscriptUserPrompt:              "> ",
+		KeyInfoLabel:                         "Info: ",
 		KeyAgentReplyEmpty:                   "The model returned an empty reply (no assistant text in the API response).",
 		KeyRunLabel:                          "Run: ",
 		KeyRunLineAutoAllowed:                "Run (checks passed): ",

@@ -136,7 +136,7 @@ func (m *Model) withInputHistoryCommitted(line string) {
 	m.Interaction.inputHistScratch = ""
 }
 
-// appendUserSubmittedEcho appends the same "User: …" transcript line as the main Enter path.
+// appendUserSubmittedEcho appends the same user transcript echo ("> …" with band style) as the main Enter path.
 func (m *Model) appendUserSubmittedEcho(text string) {
 	text = strings.TrimSpace(text)
 	if text == "" {
@@ -146,7 +146,7 @@ func (m *Model) appendUserSubmittedEcho(text string) {
 	m.appendUserTranscriptLine(text)
 }
 
-// appendUserTranscriptLine appends the "User: …" transcript row only (no input history).
+// appendUserTranscriptLine appends the user transcript row only (no input history).
 // Used when [withInputHistoryCommitted] or equivalent already ran (e.g. slash Enter before /bash quit).
 func (m *Model) appendUserTranscriptLine(text string) {
 	text = strings.TrimSpace(text)
@@ -155,7 +155,7 @@ func (m *Model) appendUserTranscriptLine(text string) {
 	}
 	w := m.contentWidth()
 	sepLine := renderSeparator(w)
-	m.messages = maininput.AppendUserInputLines(m.messages, i18n.T(i18n.KeyUserLabel), text, w, sepLine)
+	m.messages = appendTranscriptUserLines(m.messages, i18n.T(i18n.KeyTranscriptUserPrompt), text, w, sepLine)
 }
 
 func (m *Model) appendSubmissionError(err error) (*Model, tea.Cmd) {
@@ -163,7 +163,7 @@ func (m *Model) appendSubmissionError(err error) (*Model, tea.Cmd) {
 		return m, nil
 	}
 	m.Interaction.WaitingForAI = false
-	m.AppendTranscriptLines(errStyle.Render(m.delveMsg(err.Error())))
+	m.AppendTranscriptLines(errStyle.Render(i18n.T(i18n.KeyErrorPrefix) + err.Error()))
 	return m, m.printTranscriptCmd(false)
 }
 

@@ -130,9 +130,9 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 			if name != "" {
 				display = name + " (" + host + ")"
 			}
-			delvPrefix := i18n.T(i18n.KeyDelveLabel) + " "
+			infoPrefix := i18n.T(i18n.KeyInfoLabel)
 			m.AppendTranscriptLines(
-				ui.SuggestStyleRender(delvPrefix+i18n.Tf(i18n.KeyConfigRemoteAdded, display)),
+				ui.InfoStyleRender(infoPrefix+i18n.Tf(i18n.KeyConfigRemoteAdded, display)),
 				"",
 			)
 			m.CloseOverlayVisual()
@@ -201,9 +201,9 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 			if name != "" {
 				display = name + " (" + host + ")"
 			}
-			delvPrefix := i18n.T(i18n.KeyDelveLabel) + " "
+			infoPrefix := i18n.T(i18n.KeyInfoLabel)
 			m.AppendTranscriptLines(
-				ui.SuggestStyleRender(delvPrefix+i18n.Tf(i18n.KeyConfigRemoteAdded, display)),
+				ui.InfoStyleRender(infoPrefix+i18n.Tf(i18n.KeyConfigRemoteAdded, display)),
 				"",
 			)
 			if m.CommandSender != nil {

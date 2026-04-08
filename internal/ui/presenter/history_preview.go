@@ -17,7 +17,7 @@ func plainTranscriptVM(lines []uivm.Line, wrapWidth int) string {
 		wrapWidth = historyPreviewWrapWidth
 	}
 	var b strings.Builder
-	delve := i18n.T(i18n.KeyDelveLabel)
+	info := i18n.T(i18n.KeyInfoLabel)
 	for _, l := range lines {
 		switch l.Kind {
 		case uivm.LineBlank:
@@ -30,16 +30,16 @@ func plainTranscriptVM(lines []uivm.Line, wrapWidth int) string {
 			b.WriteString(strings.Repeat("─", sepW))
 			b.WriteByte('\n')
 		case uivm.LineUser:
-			b.WriteString(textwrap.WrapString(i18n.T(i18n.KeyUserLabel)+l.Text, wrapWidth))
+			b.WriteString(textwrap.WrapString(i18n.T(i18n.KeyTranscriptUserPrompt)+l.Text, wrapWidth))
 			b.WriteByte('\n')
 		case uivm.LineAI:
-			b.WriteString(textwrap.WrapString(i18n.T(i18n.KeyAILabel)+l.Text, wrapWidth))
+			b.WriteString(textwrap.WrapString(l.Text, wrapWidth))
 			b.WriteByte('\n')
 		case uivm.LineSystemSuggest:
-			b.WriteString(textwrap.WrapString(delve+l.Text, wrapWidth))
+			b.WriteString(textwrap.WrapString(info+l.Text, wrapWidth))
 			b.WriteByte('\n')
 		case uivm.LineSystemError:
-			b.WriteString(textwrap.WrapString(delve+i18n.T(i18n.KeyErrorPrefix)+l.Text, wrapWidth))
+			b.WriteString(textwrap.WrapString(i18n.T(i18n.KeyErrorPrefix)+l.Text, wrapWidth))
 			b.WriteByte('\n')
 		case uivm.LineExec:
 			b.WriteString(textwrap.WrapString(l.Text, wrapWidth))

@@ -290,8 +290,8 @@ func TestBashReturnTranscriptLineNonEmpty(t *testing.T) {
 	if s == "" {
 		t.Fatal("BashReturnTranscriptLine should be non-empty")
 	}
-	if !strings.Contains(s, "Delve") && !strings.Contains(s, "delve") {
-		t.Fatalf("expected Delve prefix in styled line: %q", s)
+	if !strings.Contains(s, "Info:") {
+		t.Fatalf("expected Info prefix in styled line: %q", s)
 	}
 }
 

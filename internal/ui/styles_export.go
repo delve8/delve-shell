@@ -30,6 +30,16 @@ func RenderOverlayUpdateSkillRefTitleLine() string {
 	return hintStyle.Render(i18n.T(i18n.KeyOverlayUpdateSkillRefTitle)) + "\n"
 }
 
+// InfoMsg prefixes a message with the localized info label (e.g. "Info: ").
+func InfoMsg(msg string) string {
+	return i18n.T(i18n.KeyInfoLabel) + msg
+}
+
+// InfoStyleRender renders text using the dim info style (non-error system hints).
+func InfoStyleRender(s string) string {
+	return infoStyle.Render(s)
+}
+
 // SuggestStyleRender renders text using suggestion style.
 func SuggestStyleRender(s string) string {
 	return suggestStyle.Render(s)

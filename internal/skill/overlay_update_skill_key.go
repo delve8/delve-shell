@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 
 	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/skill/git"
@@ -14,8 +13,6 @@ import (
 	"delve-shell/internal/teakey"
 	"delve-shell/internal/ui"
 )
-
-var suggestStyleUpdate = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
 
 func handleUpdateSkillOverlayKey(m *ui.Model, key string) (*ui.Model, tea.Cmd, bool) {
 	state := getSkillOverlayState()
@@ -63,14 +60,14 @@ func handleUpdateSkillOverlayKey(m *ui.Model, key string) (*ui.Model, tea.Cmd, b
 			shortCommit = shortCommit[:7]
 		}
 		if shortCommit != "" {
-			m.AppendTranscriptLines(suggestStyleUpdate.Render(delveMsg(fmt.Sprintf(
+			m.AppendTranscriptLines(ui.InfoStyleRender(ui.InfoMsg(fmt.Sprintf(
 				"Skill %s updated to %s@%s.",
 				state.UpdateSkill.Name,
 				selectedRef,
 				shortCommit,
 			))))
 		} else {
-			m.AppendTranscriptLines(suggestStyleUpdate.Render(delveMsg(fmt.Sprintf(
+			m.AppendTranscriptLines(ui.InfoStyleRender(ui.InfoMsg(fmt.Sprintf(
 				"Skill %s updated to %s.",
 				state.UpdateSkill.Name,
 				selectedRef,

@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/skill/git"
@@ -16,13 +15,7 @@ import (
 	"delve-shell/internal/ui"
 )
 
-var suggestStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
-
 const addSkillFieldCount = 4
-
-func delveMsg(msg string) string {
-	return i18n.T(i18n.KeyDelveLabel) + " " + msg
-}
 
 func filterByPrefix(s []string, prefix string) []string {
 	if prefix == "" {
@@ -184,7 +177,7 @@ func handleAddSkillOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mode
 		m.CloseOverlayVisual()
 		state.AddSkill.Active = false
 		m.Input.Focus()
-		m.AppendTranscriptLines(suggestStyle.Render(delveMsg(i18n.Tf(i18n.KeySkillInstalled, name))))
+		m.AppendTranscriptLines(ui.InfoStyleRender(ui.InfoMsg(i18n.Tf(i18n.KeySkillInstalled, name))))
 		return ret(m, nil, true)
 	}
 

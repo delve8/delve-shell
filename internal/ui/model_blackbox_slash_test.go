@@ -42,8 +42,8 @@ func TestBlackboxSlashBashSendsMessagesToShell(t *testing.T) {
 			t.Fatalf("expected local bash subshell mode, got %v", snap.Mode)
 		}
 		joined := strings.Join(msgs, "\n")
-		if !strings.Contains(joined, "User: /bash") {
-			t.Fatalf("expected User echo for /bash in snapshot, got %#v", msgs)
+		if !strings.Contains(joined, "> /bash") {
+			t.Fatalf("expected user echo for /bash in snapshot, got %#v", msgs)
 		}
 	default:
 		t.Fatalf("expected /bash to send message snapshot")

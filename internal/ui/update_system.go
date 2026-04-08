@@ -226,13 +226,13 @@ func (m *Model) renderTranscriptLines(lines []uivm.Line) []string {
 		case uivm.LineSeparator:
 			rendered = append(rendered, renderSeparator(w))
 		case uivm.LineUser:
-			rendered = append(rendered, textwrap.WrapString(i18n.T(i18n.KeyUserLabel)+l.Text, w))
+			rendered = append(rendered, formatUserTranscriptLines(i18n.T(i18n.KeyTranscriptUserPrompt), l.Text, w)...)
 		case uivm.LineAI:
-			rendered = append(rendered, textwrap.WrapString(i18n.T(i18n.KeyAILabel)+l.Text, w))
+			rendered = append(rendered, renderAILineTranscript(l.Text, w)...)
 		case uivm.LineSystemSuggest:
-			rendered = append(rendered, suggestStyle.Render(m.delveMsg(textwrap.WrapString(l.Text, w))))
+			rendered = append(rendered, infoStyle.Render(m.infoMsg(textwrap.WrapString(l.Text, w))))
 		case uivm.LineSystemError:
-			rendered = append(rendered, errStyle.Render(m.delveMsg(i18n.T(i18n.KeyErrorPrefix)+l.Text)))
+			rendered = append(rendered, errStyle.Render(i18n.T(i18n.KeyErrorPrefix)+l.Text))
 		case uivm.LineExec:
 			txt := l.Text
 			if IsRunTranscriptExecLine(txt) {

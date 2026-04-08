@@ -6,7 +6,7 @@ import "github.com/charmbracelet/lipgloss"
 //
 // Layout roles (pick from here; avoid one-off lipgloss in feature code):
 //   - Footer/title bar: titleStyle, status*Style, pendingActionStyle (fixed bottom band; not transcript).
-//   - Transcript — primary: execStyle, resultStyle; system: suggestStyle, errStyle, delveMsg.
+//   - Transcript — primary: execStyle, resultStyle; user: userTranscriptStyle; system: infoStyle, suggestStyle, errStyle; InfoMsg.
 //   - Approval card — T1 title: approvalHeaderStyle; T2 risk band: riskReadOnlyStyle / riskLowStyle / riskHighStyle;
 //     T3 command: execStyle (+ execAuto* for auto-approve spans); T4 section labels: metaLabelStyle;
 //     T5 section body: metaDetailStyle; T6 choice rows under input: suggestStyle / suggestHi.
@@ -27,6 +27,15 @@ var (
 	execAutoSafeStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Italic(true)
 	execAutoRiskStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true).Italic(true)
 	execAutoNeutralStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("246")).Italic(true)
+)
+
+var (
+	// User-submitted echo in transcript: same prompt as input ("> ") with gray band (ANSI 256).
+	userTranscriptStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("252")).
+				Background(lipgloss.Color("240"))
+	// Non-error system hints (Info: …); dimmer than primary transcript text.
+	infoStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
 )
 
 var (

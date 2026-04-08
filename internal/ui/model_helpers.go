@@ -331,7 +331,7 @@ func terminalWrappedRows(text string, width int) int {
 		width = 1
 	}
 	// Do not short-circuit text=="" : strings.Split("", "\n") is []string{""}, one blank display row,
-	// matching tea.Println("") and the trailing "" appended by AppendUserInputLines after each user line.
+	// matching tea.Println("") and the trailing "" appended after each user transcript block.
 	parts := strings.Split(text, "\n")
 	total := 0
 	for _, part := range parts {

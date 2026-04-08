@@ -36,18 +36,41 @@ func (w *Allowlist) argv0PermitsVarArgs(argv0 string) bool {
 }
 
 // ContainsWriteRedirection reports whether the command contains write redirection (>, >>, 2>, etc.).
-// Outside single quotes, > not part of >= or => is a redirect unless the target is a discard/dup only:
+// Outside single- and double-quoted spans, > not part of >= or => is a redirect unless the target is a discard/dup only:
 // /dev/null, or &fd (e.g. 2>&1). Other targets still require user approval.
 func ContainsWriteRedirection(command string) bool {
 	const devNull = "/dev/null"
 	inSingle := false
+	inDouble := false
+	escapeDouble := false
 	for i := 0; i < len(command); i++ {
 		c := command[i]
-		if c == '\'' {
-			inSingle = !inSingle
+		if inSingle {
+			if c == '\'' {
+				inSingle = false
+			}
 			continue
 		}
-		if inSingle {
+		if inDouble {
+			if escapeDouble {
+				escapeDouble = false
+				continue
+			}
+			if c == '\\' {
+				escapeDouble = true
+				continue
+			}
+			if c == '"' {
+				inDouble = false
+			}
+			continue
+		}
+		if c == '\'' {
+			inSingle = true
+			continue
+		}
+		if c == '"' {
+			inDouble = true
 			continue
 		}
 		if c != '>' {

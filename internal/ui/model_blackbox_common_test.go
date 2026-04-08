@@ -236,7 +236,7 @@ func TestBlackboxSystemErrorClearsProcessingState(t *testing.T) {
 	if next.Interaction.WaitingForAI {
 		t.Fatal("expected system error to clear waiting state")
 	}
-	if !strings.Contains(strings.Join(next.TranscriptLines(), "\n"), "Delve: Error: backend failed") {
+	if !strings.Contains(strings.Join(next.TranscriptLines(), "\n"), "Error: backend failed") {
 		t.Fatalf("expected submit error to be appended to transcript, got %q", strings.Join(next.TranscriptLines(), "\n"))
 	}
 }

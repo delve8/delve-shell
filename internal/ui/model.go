@@ -147,9 +147,9 @@ func (m *Model) GetLang() string {
 	return m.getLang()
 }
 
-// delveMsg prefixes msg with "Delve: " for tool/system messages (config, session, notify, etc.).
-func (m *Model) delveMsg(msg string) string {
-	return i18n.T(i18n.KeyDelveLabel) + " " + msg
+// infoMsg prefixes non-error system transcript lines with "Info: " (see KeyInfoLabel).
+func (m *Model) infoMsg(msg string) string {
+	return i18n.T(i18n.KeyInfoLabel) + msg
 }
 
 // Update implements tea.Model.

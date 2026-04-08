@@ -8,6 +8,6 @@ import (
 // so scrollback shows a clear boundary before the restored session continues.
 func BashReturnTranscriptLine() string {
 	i18n.SetLang(languageFromConfig())
-	msg := i18n.T(i18n.KeyDelveLabel) + " " + i18n.T(i18n.KeyBashReturnNotice)
-	return suggestStyle.Render(msg)
+	msg := i18n.T(i18n.KeyInfoLabel) + i18n.T(i18n.KeyBashReturnNotice)
+	return infoStyle.Render(msg)
 }
