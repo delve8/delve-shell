@@ -204,6 +204,21 @@ const (
 	KeyOverlayEnterContinueEsc    = "overlay_enter_continue_esc"
 	KeyOverlay12SelectEsc         = "overlay_12_select_esc"
 	KeyOverlayEnterSubmitEsc      = "overlay_enter_submit_esc"
+
+	// Auto-approve highlight: why a span is Risk ([T] / [Tf] for localized Reason text).
+	KeyAutoApproveHLWriteRedirection        = "auto_approve_hl_write_redirection"
+	KeyAutoApproveHLShellParseError         = "auto_approve_hl_shell_parse_error"
+	KeyAutoApproveHLUnsupportedConstruct    = "auto_approve_hl_unsupported_construct"
+	KeyAutoApproveHLExpansionNotAllowed     = "auto_approve_hl_expansion_not_allowed"
+	KeyAutoApproveHLEmptySegment            = "auto_approve_hl_empty_segment"
+	KeyAutoApproveHLAllowlistNotLoaded      = "auto_approve_hl_allowlist_not_loaded"
+	KeyAutoApproveHLCommandNotInAllowlist   = "auto_approve_hl_command_not_in_allowlist"
+	KeyAutoApproveHLArgsPolicyMismatch      = "auto_approve_hl_args_policy_mismatch"
+	KeyAutoApproveHLOpaqueArgv0             = "auto_approve_hl_opaque_argv0"
+	KeyAutoApproveHLSegmentParseOrExpansion = "auto_approve_hl_segment_parse_or_expansion"
+	KeyAutoApproveHLAwkFromFileOrFlags      = "auto_approve_hl_awk_from_file_or_flags"
+	KeyAutoApproveHLAwkSourceError          = "auto_approve_hl_awk_source_error"
+	KeyAutoApproveHLAwkReadonlyFailed       = "auto_approve_hl_awk_readonly_failed"
 )
 
 var messages = map[string]map[string]string{
@@ -434,6 +449,19 @@ Quit (Ctrl+C also works)`,
 		KeyOverlayEnterContinueEsc:           "Enter to continue · Esc to cancel",
 		KeyOverlay12SelectEsc:                "1 or 2 to select · Esc to cancel",
 		KeyOverlayEnterSubmitEsc:             "Enter to submit · Esc to cancel",
+		KeyAutoApproveHLWriteRedirection:        "Output redirection to a file (> or >>) is not allowed for auto-approve.",
+		KeyAutoApproveHLShellParseError:        "Could not parse the command as shell: %v",
+		KeyAutoApproveHLUnsupportedConstruct:   "Cannot auto-approve: unsupported syntax, or the program name is not a fixed literal.",
+		KeyAutoApproveHLExpansionNotAllowed:    "Cannot auto-approve: shell expansion in these arguments is not allowed for this command.",
+		KeyAutoApproveHLEmptySegment:           "Empty command segment.",
+		KeyAutoApproveHLAllowlistNotLoaded:     "Allowlist is not available.",
+		KeyAutoApproveHLCommandNotInAllowlist:  "Command is not on the allowlist: %s",
+		KeyAutoApproveHLArgsPolicyMismatch:     "Arguments do not match the allowlist policy for %s.",
+		KeyAutoApproveHLOpaqueArgv0:            "The command name is not a fixed literal.",
+		KeyAutoApproveHLSegmentParseOrExpansion: "This part could not be matched to the allowlist (parsing or expansion).",
+		KeyAutoApproveHLAwkFromFileOrFlags:     "awk: program from a file (-f) or unsupported options.",
+		KeyAutoApproveHLAwkSourceError:         "awk: %v",
+		KeyAutoApproveHLAwkReadonlyFailed:      "awk: the script failed the read-only check (for example: system(), writing to a file, or getline from a shell pipe).",
 	},
 }
 

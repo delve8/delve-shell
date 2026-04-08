@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"delve-shell/internal/i18n"
 	"github.com/benhoyt/goawk/lexer"
 	"github.com/benhoyt/goawk/parser"
 	"mvdan.cc/sh/v3/syntax"
@@ -17,35 +18,47 @@ import (
 // Residual risk: awk may still read files named in ARGV; that is out of scope for this check
 // (same as cat/grep reading paths). GoAWK is used as a static analyzer only.
 func benignAwkReadOnly(seg string) bool {
+	isAwk, reason := awkBenignRejectReason(seg)
+	return isAwk && reason == ""
+}
+
+// awkBenignRejectReason returns isAwkFamily true when argv0 is awk/gawk/mawk/nawk. If isAwkFamily, reason is empty
+// when the segment passes benign read-only checks; otherwise reason explains the rejection. When isAwkFamily is false,
+// reason is always empty (caller should use allowlist/structured reasons).
+func awkBenignRejectReason(seg string) (isAwkFamily bool, reason string) {
 	seg = strings.TrimSpace(seg)
 	if seg == "" {
-		return false
+		return false, ""
 	}
 	f, err := parseShell(seg)
 	if err != nil || len(f.Stmts) != 1 {
-		return false
+		return false, ""
 	}
 	st := f.Stmts[0]
 	if st == nil || st.Cmd == nil {
-		return false
+		return false, ""
 	}
 	ce, ok := st.Cmd.(*syntax.CallExpr)
 	if !ok || len(ce.Args) == 0 {
-		return false
+		return false, ""
 	}
 	if !awkFamilyInvokerWord(ce.Args[0]) {
-		return false
+		return false, ""
 	}
+	isAwkFamily = true
 	srcs, err := awkProgramSourcesFromCall(ce)
 	if err != nil {
-		return false
+		if errors.Is(err, errAwkSource) {
+			return true, i18n.T(i18n.KeyAutoApproveHLAwkFromFileOrFlags)
+		}
+		return true, i18n.Tf(i18n.KeyAutoApproveHLAwkSourceError, err)
 	}
 	for _, src := range srcs {
 		if !goawkProgramReadOnly(src) {
-			return false
+			return true, i18n.T(i18n.KeyAutoApproveHLAwkReadonlyFailed)
 		}
 	}
-	return true
+	return true, ""
 }
 
 // awkFamilyInvokerBase is true for common awk implementation basenames. Static analysis uses GoAWK only;

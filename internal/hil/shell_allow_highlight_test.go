@@ -49,4 +49,7 @@ func TestCommandAutoApproveHighlight_dynamicArgv0StillFullRisk(t *testing.T) {
 	if len(spans) != 1 || spans[0].Start != 0 || spans[0].End != len(cmd) || spans[0].Kind != hiltypes.AutoApproveHighlightRisk {
 		t.Fatalf("want single full-line risk for dynamic argv0, got %+v", spans)
 	}
+	if spans[0].Reason == "" {
+		t.Fatal("expected non-empty Risk Reason for full-line rejection")
+	}
 }

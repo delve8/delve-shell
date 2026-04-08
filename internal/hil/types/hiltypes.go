@@ -25,9 +25,11 @@ const (
 )
 
 // AutoApproveHighlightSpan is a half-open byte range [Start, End) into the same command string shown on the approval card.
+// Reason is set for Risk spans when Kind is AutoApproveHighlightRisk (why auto-approve was not granted); empty otherwise.
 type AutoApproveHighlightSpan struct {
 	Start, End int
 	Kind       AutoApproveHighlightKind
+	Reason     string
 }
 
 // ApprovalRequest is sent to HIL: pending command and response channel.
