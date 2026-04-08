@@ -52,7 +52,8 @@ const (
 	KeyChoiceDismiss            = "choice_dismiss"
 	KeyApprovalPrompt           = "approval_prompt"
 	KeyApprovalSummary          = "approval_summary"
-	KeyApprovalWhy              = "approval_why"
+	KeyApprovalAutoApprovePolicy = "approval_auto_approve_policy" // section label before auto-approve Risk reason lines (Risk Hint)
+	KeyApprovalWhy              = "approval_why" // label before user-stated run purpose
 	KeyApprovalDecisionApproved = "approval_decision_approved"
 	KeyApprovalDecisionRejected = "approval_decision_rejected"
 	KeyRiskReadOnly             = "risk_read_only"
@@ -66,7 +67,12 @@ const (
 	KeyAILabel                  = "ai_label"
 	KeyAgentReplyEmpty          = "agent_reply_empty" // model finished with no assistant text (API/empty parse)
 	KeyDelveLabel               = "delve_label" // tool/system message prefix, e.g. "Delve:"
-	KeyRunLabel                 = "run_label"
+	KeyRunLabel                 = "run_label" // legacy; prefer KeyRunLine* for execute transcript
+	// Run line prefixes (execute_command / history replay); command follows; total width capped in UI.
+	KeyRunLineAutoAllowed = "run_line_auto_allowed" // built-in checks passed; no user approval card
+	KeyRunLineApproved    = "run_line_approved"
+	KeyRunLineDirect      = "run_line_direct"
+	KeyRunLineSuggested   = "run_line_suggested"
 	KeySkillLine                = "skill_line" // format: Skill: %s
 	// Slash option descriptions (cmd as suffix for consistency)
 	KeyDescExit   = "desc_exit"
@@ -306,7 +312,8 @@ Quit (Ctrl+C also works)`,
 		KeyChoiceDismiss:                     "Dismiss",
 		KeyApprovalPrompt:                    "Command to run (approval required):",
 		KeyApprovalSummary:                   "Summary:",
-		KeyApprovalWhy:                       "Why:",
+		KeyApprovalAutoApprovePolicy:         "Risk Hint:",
+		KeyApprovalWhy:                       "Purpose:",
 		KeyApprovalDecisionApproved:          "Decision: approved",
 		KeyApprovalDecisionRejected:          "Decision: rejected",
 		KeyRiskReadOnly:                      "READ-ONLY",
@@ -320,6 +327,10 @@ Quit (Ctrl+C also works)`,
 		KeyAILabel:                           "AI: ",
 		KeyAgentReplyEmpty:                   "The model returned an empty reply (no assistant text in the API response).",
 		KeyRunLabel:                          "Run: ",
+		KeyRunLineAutoAllowed:                "Run (checks passed): ",
+		KeyRunLineApproved:                   "Run (approved): ",
+		KeyRunLineDirect:                     "Run (direct): ",
+		KeyRunLineSuggested:                  "Run (suggested): ",
 		KeySkillLine:                         "Skill: %s",
 		KeyDescExit:                          "Quit delve-shell",
 		KeyDescRun:                           "Execute a command directly (no AI)",

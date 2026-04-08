@@ -30,6 +30,8 @@ func (m *Model) appendPendingChoiceCardToMessages() {
 		ExecAutoSafe:    execAutoSafeStyle,
 		ExecAutoRisk:    execAutoRiskStyle,
 		ExecAutoNeutral: execAutoNeutralStyle,
+		MetaLabel:       metaLabelStyle,
+		MetaDetail:      metaDetailStyle,
 	})
 	m.appendRenderedLinesToMessages(rendered)
 }
@@ -38,6 +40,8 @@ func (m *Model) appendRenderedLinesToMessages(rendered string) {
 	if rendered == "" {
 		return
 	}
+	// One tea.Println per physical row. Do not ansi.Hardwrap here: approval exec lines use lipgloss
+	// multi-span styling (auto-approve highlight); Hardwrap can break ANSI and interleave with later rows.
 	for _, line := range strings.Split(rendered, "\n") {
 		m.messages = append(m.messages, line)
 	}

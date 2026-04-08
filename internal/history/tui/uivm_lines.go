@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"delve-shell/internal/history"
+	"delve-shell/internal/i18n"
+	"delve-shell/internal/ui"
 	"delve-shell/internal/ui/uivm"
 )
 
@@ -42,11 +44,11 @@ func EventsToTranscriptLines(events []history.Event) []uivm.Line {
 			if p.Kind == history.CommandPayloadKindSkill && strings.TrimSpace(p.SkillName) != "" {
 				out = append(out, uivm.Line{Kind: uivm.LineSystemSuggest, Text: "Skill: " + strings.TrimSpace(p.SkillName)})
 			}
-			tag := "approved"
+			prefix := i18n.T(i18n.KeyRunLineApproved)
 			if p.Suggested {
-				tag = "suggested"
+				prefix = i18n.T(i18n.KeyRunLineSuggested)
 			}
-			out = append(out, uivm.Line{Kind: uivm.LineExec, Text: "Run: " + p.Command + " (" + tag + ")"})
+			out = append(out, uivm.Line{Kind: uivm.LineExec, Text: ui.FormatRunTranscriptLine(prefix, p.Command)})
 		case history.EventTypeCommandResult:
 			var p struct {
 				Stdout string `json:"stdout"`

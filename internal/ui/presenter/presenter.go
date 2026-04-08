@@ -128,21 +128,26 @@ func (p *Presenter) CommandExecutedDirect(cmd, result string) {
 	p.CommandExecutedFromTool(cmd, false, result, false, false, true)
 }
 
-func execRunTag(allowed, suggested, direct bool) string {
-	tag := "approved"
+func runLinePrefix(allowed, suggested, direct bool) string {
 	if direct {
-		tag = "direct"
-	} else if suggested {
-		tag = "suggested"
-	} else if allowed {
-		tag = "allowlist"
+		return i18n.T(i18n.KeyRunLineDirect)
 	}
-	return tag
+	if suggested {
+		return i18n.T(i18n.KeyRunLineSuggested)
+	}
+	if allowed {
+		return i18n.T(i18n.KeyRunLineAutoAllowed)
+	}
+	return i18n.T(i18n.KeyRunLineApproved)
+}
+
+func formatRunExecLine(cmd string, allowed, suggested, direct bool) string {
+	return ui.FormatRunTranscriptLine(runLinePrefix(allowed, suggested, direct), cmd)
 }
 
 func (p *Presenter) CommandExecutedFromTool(cmd string, allowed bool, result string, sensitive, suggested, direct bool) {
 	// Presenter builds transcript semantics; UI owns styling and wrapping.
-	runLine := "Run: " + cmd + " (" + execRunTag(allowed, suggested, direct) + ")"
+	runLine := formatRunExecLine(cmd, allowed, suggested, direct)
 	lines := []uivm.Line{{Kind: uivm.LineExec, Text: runLine}}
 	if sensitive {
 		lines = append(lines, uivm.Line{Kind: uivm.LineSystemSuggest, Text: "Result contains sensitive data."})
@@ -154,9 +159,9 @@ func (p *Presenter) CommandExecutedFromTool(cmd string, allowed bool, result str
 	p.Raw(ui.TranscriptAppendMsg{Lines: lines})
 }
 
-// ExecStreamBegin appends the Run: line before streamed stdout/stderr lines.
+// ExecStreamBegin appends the Run (...) line before streamed stdout/stderr lines.
 func (p *Presenter) ExecStreamBegin(cmd string, allowed, suggested, direct bool) {
-	runLine := "Run: " + cmd + " (" + execRunTag(allowed, suggested, direct) + ")"
+	runLine := formatRunExecLine(cmd, allowed, suggested, direct)
 	p.Raw(ui.TranscriptAppendMsg{Lines: []uivm.Line{{Kind: uivm.LineExec, Text: runLine}}})
 	p.Raw(ui.ExecStreamWindowOpenMsg{})
 }

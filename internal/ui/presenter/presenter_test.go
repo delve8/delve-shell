@@ -91,6 +91,7 @@ func TestPresenter_AgentReply(t *testing.T) {
 }
 
 func TestPresenter_CommandExecutedDirect_usesDirectTag(t *testing.T) {
+	i18n.SetLang("en")
 	var r recordSender
 	p := New(&r)
 	p.CommandExecutedDirect("ls", "out")
@@ -101,12 +102,13 @@ func TestPresenter_CommandExecutedDirect_usesDirectTag(t *testing.T) {
 	if !ok || len(ta.Lines) < 1 {
 		t.Fatalf("want TranscriptAppendMsg with lines, got %#v", r.msgs[0])
 	}
-	if ta.Lines[0].Text != "Run: ls (direct)" {
-		t.Fatalf("want direct tag, got %q", ta.Lines[0].Text)
+	if ta.Lines[0].Text != "Run (direct): ls" {
+		t.Fatalf("want direct run line, got %q", ta.Lines[0].Text)
 	}
 }
 
 func TestPresenter_DispatchAgentUI(t *testing.T) {
+	i18n.SetLang("en")
 	var r recordSender
 	p := New(&r)
 
@@ -128,8 +130,8 @@ func TestPresenter_DispatchAgentUI(t *testing.T) {
 	if !ok {
 		t.Fatalf("msg2 type %T %+v", r.msgs[2], r.msgs[2])
 	}
-	if len(ta.Lines) < 1 || ta.Lines[0].Text != "Run: x (allowlist)" {
-		t.Fatalf("ExecEvent allowlist tag: got %#v", ta.Lines)
+	if len(ta.Lines) < 1 || ta.Lines[0].Text != "Run (checks passed): x" {
+		t.Fatalf("ExecEvent allowlist run line: got %#v", ta.Lines)
 	}
 	if _, ok := r.msgs[3].(ui.CommandExecutionStateMsg); !ok {
 		t.Fatalf("msg3 type %T", r.msgs[3])
@@ -166,6 +168,7 @@ func TestPresenter_DispatchAgentUI_StreamedExecTail(t *testing.T) {
 }
 
 func TestPresenter_DispatchAgentUI_ExecStream(t *testing.T) {
+	i18n.SetLang("en")
 	var r recordSender
 	p := New(&r)
 	p.DispatchAgentUI(hiltypes.ExecStreamStart{Command: "c", Allowed: false})
@@ -175,7 +178,7 @@ func TestPresenter_DispatchAgentUI_ExecStream(t *testing.T) {
 		t.Fatalf("want 4 msgs, got %d", len(r.msgs))
 	}
 	m0 := r.msgs[0].(ui.TranscriptAppendMsg)
-	if m0.Lines[0].Text != "Run: c (approved)" {
+	if m0.Lines[0].Text != "Run (approved): c" {
 		t.Fatalf("run line: %#v", m0.Lines[0])
 	}
 	if _, ok := r.msgs[1].(ui.ExecStreamWindowOpenMsg); !ok {

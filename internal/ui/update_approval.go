@@ -50,6 +50,8 @@ func (m *Model) appendDecisionLines(decision approvalview.DecisionKind) {
 	for _, line := range lines {
 		rendered := line.Text
 		switch line.Kind {
+		case approvalview.LineSpacer:
+			rendered = ""
 		case approvalview.LineHeader:
 			rendered = approvalHeaderStyle.Render(line.Text)
 		case approvalview.LineExec:
@@ -91,6 +93,10 @@ func (m *Model) appendDecisionLines(decision approvalview.DecisionKind) {
 			rendered = riskLowStyle.Render(line.Text)
 		case approvalview.LineRiskHigh:
 			rendered = riskHighStyle.Render(line.Text)
+		case approvalview.LineMetaLabel:
+			rendered = metaLabelStyle.Render(line.Text)
+		case approvalview.LineMetaDetail:
+			rendered = metaDetailStyle.Render(line.Text)
 		}
 		m.messages = append(m.messages, rendered)
 	}

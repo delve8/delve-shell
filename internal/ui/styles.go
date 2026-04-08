@@ -3,6 +3,13 @@ package ui
 import "github.com/charmbracelet/lipgloss"
 
 // TUI styles. All use lipgloss; colors are ANSI 256 (e.g. 1=red, 2=green, 8=dim gray).
+//
+// Layout roles (pick from here; avoid one-off lipgloss in feature code):
+//   - Footer/title bar: titleStyle, status*Style, pendingActionStyle (fixed bottom band; not transcript).
+//   - Transcript — primary: execStyle, resultStyle; system: suggestStyle, errStyle, delveMsg.
+//   - Approval card — T1 title: approvalHeaderStyle; T2 risk band: riskReadOnlyStyle / riskLowStyle / riskHighStyle;
+//     T3 command: execStyle (+ execAuto* for auto-approve spans); T4 section labels: metaLabelStyle;
+//     T5 section body: metaDetailStyle; T6 choice rows under input: suggestStyle / suggestHi.
 
 var (
 	// Footer/status and layout
@@ -47,6 +54,9 @@ var (
 	approvalDecisionRejectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true)  // Decision: rejected
 	// Dismiss: distinct from approve/reject and from neutral card lines (Why/Summary).
 	approvalDecisionDismissStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("245")).Bold(true).Italic(true)
+	// Approval card: section labels (Risk Hint / Summary / Purpose) vs body lines (policy, summary, purpose text).
+	metaLabelStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Bold(true)
+	metaDetailStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
 )
 
 var (

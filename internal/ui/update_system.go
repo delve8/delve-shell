@@ -124,8 +124,50 @@ func (m *Model) handleTranscriptAppendMsg(msg TranscriptAppendMsg) (*Model, tea.
 		return m, nil
 	}
 	rendered := m.renderTranscriptLines(msg.Lines)
+	rendered = dropDuplicateRunTranscriptPrefix(m.messages, msg.Lines, rendered)
+	if len(rendered) == 0 {
+		return m, nil
+	}
 	m.AppendTranscriptLines(rendered...)
 	return m, m.printTranscriptCmd(false)
+}
+
+// transcriptRunLineDedupeLookback is how many prior printed transcript rows to scan when suppressing
+// a second identical "Run (...): ..." line (e.g. stream ExecStreamBegin plus a mistaken non-stream ExecEvent).
+const transcriptRunLineDedupeLookback = 20
+
+func dropDuplicateRunTranscriptPrefix(messages []string, semantic []uivm.Line, rendered []string) []string {
+	if len(rendered) == 0 || len(semantic) == 0 {
+		return rendered
+	}
+	if semantic[0].Kind != uivm.LineExec || !IsRunTranscriptExecLine(semantic[0].Text) {
+		return rendered
+	}
+	if !isRecentDuplicateRunTranscriptLine(messages, rendered[0]) {
+		return rendered
+	}
+	if len(rendered) == 1 {
+		return nil
+	}
+	return rendered[1:]
+}
+
+func isRecentDuplicateRunTranscriptLine(messages []string, newRenderedLine string) bool {
+	newPlain := ansi.Strip(newRenderedLine)
+	start := len(messages) - transcriptRunLineDedupeLookback
+	if start < 0 {
+		start = 0
+	}
+	for i := len(messages) - 1; i >= start; i-- {
+		prev := messages[i]
+		if !IsRunTranscriptExecLine(prev) {
+			continue
+		}
+		if ansi.Strip(prev) == newPlain {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Model) handleTranscriptReplaceMsg(msg TranscriptReplaceMsg) (*Model, tea.Cmd) {
@@ -192,7 +234,13 @@ func (m *Model) renderTranscriptLines(lines []uivm.Line) []string {
 		case uivm.LineSystemError:
 			rendered = append(rendered, errStyle.Render(m.delveMsg(i18n.T(i18n.KeyErrorPrefix)+l.Text)))
 		case uivm.LineExec:
-			rendered = append(rendered, execStyle.Render(textwrap.WrapString(l.Text, w)))
+			txt := l.Text
+			if IsRunTranscriptExecLine(txt) {
+				txt = ClampRunTranscriptPlain(txt, RunTranscriptDisplayMaxCells(w))
+				rendered = append(rendered, execStyle.Render(txt))
+			} else {
+				rendered = append(rendered, execStyle.Render(textwrap.WrapString(l.Text, w)))
+			}
 		case uivm.LineResult:
 			// Command/tool stdout may include ANSI (e.g. kubectl color). Bubble Tea queues Println lines
 			// without truncating when width >= terminal; the terminal soft-wraps while the renderer still

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"delve-shell/internal/hil/types"
+	"delve-shell/internal/i18n"
 	"delve-shell/internal/remote/execenv"
 	"delve-shell/internal/ui"
 )
@@ -145,6 +146,7 @@ func (f *fakeStreamExec) RunStreaming(ctx context.Context, command string, stdou
 }
 
 func TestHandleExecDirect_StreamingRunner(t *testing.T) {
+	i18n.SetLang("en")
 	s := &recordSender{}
 	c := newTestControllerWithPresenter(s)
 	fx := &fakeStreamExec{}
@@ -161,7 +163,7 @@ func TestHandleExecDirect_StreamingRunner(t *testing.T) {
 		if !ok || len(ta.Lines) != 1 {
 			continue
 		}
-		if ta.Lines[0].Text == "Run: echo hi (direct)" {
+		if ta.Lines[0].Text == "Run (direct): echo hi" {
 			found = true
 			break
 		}

@@ -3,7 +3,7 @@ package approvalview
 import (
 	"strings"
 
-	"delve-shell/internal/hil/types"
+	hiltypes "delve-shell/internal/hil/types"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/ui/uivm"
 )
@@ -17,6 +17,12 @@ const (
 	LineRiskReadOnly
 	LineRiskLow
 	LineRiskHigh
+	// LineSpacer inserts a blank line (e.g. between command and metadata sections).
+	LineSpacer
+	// LineMetaLabel is a section title only, same pattern as "Summary:" / "Purpose:" / risk hint label.
+	LineMetaLabel
+	// LineMetaDetail is body text under a meta label (policy lines, summary, purpose).
+	LineMetaDetail
 )
 
 type Line struct {
@@ -101,13 +107,70 @@ func Build(
 	default:
 		lines = append(lines, execLine())
 	}
-	if pending.Summary != "" {
-		lines = append(lines, Line{Kind: LineSuggest, Text: i18n.T(i18n.KeyApprovalSummary) + " " + pending.Summary})
+	if hasApprovalMetaSections(pending) {
+		lines = append(lines, Line{Kind: LineSpacer})
 	}
-	if pending.Reason != "" {
-		lines = append(lines, Line{Kind: LineSuggest, Text: i18n.T(i18n.KeyApprovalWhy) + " " + pending.Reason})
+	riskReasons := dedupeAutoApproveRiskReasons(pending.AutoApproveHighlight)
+	if len(riskReasons) > 0 {
+		lines = append(lines,
+			Line{Kind: LineMetaLabel, Text: w(i18n.T(i18n.KeyApprovalAutoApprovePolicy))},
+			Line{Kind: LineMetaDetail, Text: w(strings.Join(riskReasons, "\n"))},
+		)
+	}
+	summary := strings.TrimSpace(pending.Summary)
+	if summary != "" {
+		lines = append(lines,
+			Line{Kind: LineMetaLabel, Text: w(i18n.T(i18n.KeyApprovalSummary))},
+			Line{Kind: LineMetaDetail, Text: w(summary)},
+		)
+	}
+	reason := strings.TrimSpace(pending.Reason)
+	if reason != "" {
+		if len(riskReasons) > 0 && summary == "" {
+			lines = append(lines, Line{Kind: LineSpacer})
+		}
+		lines = append(lines,
+			Line{Kind: LineMetaLabel, Text: w(i18n.T(i18n.KeyApprovalWhy))},
+			Line{Kind: LineMetaDetail, Text: w(reason)},
+		)
 	}
 	return lines, true
+}
+
+func hasApprovalMetaSections(pending *uivm.PendingApproval) bool {
+	if pending == nil {
+		return false
+	}
+	if len(dedupeAutoApproveRiskReasons(pending.AutoApproveHighlight)) > 0 {
+		return true
+	}
+	if strings.TrimSpace(pending.Summary) != "" {
+		return true
+	}
+	if strings.TrimSpace(pending.Reason) != "" {
+		return true
+	}
+	return false
+}
+
+func dedupeAutoApproveRiskReasons(spans []hiltypes.AutoApproveHighlightSpan) []string {
+	seen := make(map[string]struct{})
+	var out []string
+	for _, sp := range spans {
+		if sp.Kind != hiltypes.AutoApproveHighlightRisk {
+			continue
+		}
+		r := strings.TrimSpace(sp.Reason)
+		if r == "" {
+			continue
+		}
+		if _, ok := seen[r]; ok {
+			continue
+		}
+		seen[r] = struct{}{}
+		out = append(out, r)
+	}
+	return out
 }
 
 // BuildDecision returns ordered lines for persisted decision summary blocks.

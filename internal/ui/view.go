@@ -3,7 +3,6 @@ package ui
 import (
 	"delve-shell/internal/hil/approvalview"
 	"delve-shell/internal/i18n"
-	"delve-shell/internal/textwrap"
 	"delve-shell/internal/ui/widget"
 	"strings"
 
@@ -50,12 +49,11 @@ func (m *Model) renderScreenSnapshot() string {
 
 // appendSuggestedLine appends the run line and copy hint for a suggested command (when dismissing the card).
 func (m *Model) appendSuggestedLine(command string) {
-	tag := i18n.T(i18n.KeyRunTagSuggested)
-	line := i18n.T(i18n.KeyRunLabel) + command + " (" + tag + ")"
-	w := m.contentWidth()
+	line := FormatRunTranscriptLine(i18n.T(i18n.KeyRunLineSuggested), command)
+	line = ClampRunTranscriptPlain(line, RunTranscriptDisplayMaxCells(m.contentWidth()))
 	m.messages = append(
 		m.messages,
-		execStyle.Render(textwrap.WrapString(line, w)),
+		execStyle.Render(line),
 		hintStyle.Render(i18n.T(i18n.KeySuggestedCopyHint)),
 	)
 }

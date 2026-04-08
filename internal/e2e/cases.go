@@ -57,7 +57,7 @@ var TerminalCases = []Case{
 		Timeout: DefaultStepTimeout,
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
-			{Input: "/exec echo 1", Expect: []string{"Run:", "echo 1", "exit_code", "direct", "直接执行"}, Timeout: 5 * time.Second},
+			{Input: "/exec echo 1", Expect: []string{"Run (direct):", "echo 1", "exit_code", "直接执行"}, Timeout: 5 * time.Second},
 			{Input: "/quit", Expect: []string{}, Timeout: 2 * time.Second},
 		},
 	},
@@ -68,7 +68,7 @@ var TerminalCases = []Case{
 		Steps: []Step{
 			{Input: "", Expect: tuiReadyExpect, Timeout: 5 * time.Second},
 			{Input: "Use execute_command to run `pwd` and then tell me the result.", Expect: []string{"Command to run", "待执行的命令", "1=Run", "1=approve", "2=Dismiss", "2=reject", "3=Copy"}, Timeout: 18 * time.Second},
-			{Input: "1", Expect: []string{"exit_code", "Run:", "pwd"}, Timeout: 10 * time.Second},
+			{Input: "1", Expect: []string{"exit_code", "Run (approved):", "pwd"}, Timeout: 10 * time.Second},
 		},
 	},
 }
