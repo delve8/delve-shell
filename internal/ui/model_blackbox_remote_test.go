@@ -34,6 +34,10 @@ func TestBlackboxSlashNewSubmitsCommand(t *testing.T) {
 	if got.Input.Value() != "" {
 		t.Fatalf("expected input to be cleared after /new, got %q", got.Input.Value())
 	}
+	transcript := strings.Join(got.TranscriptLines(), "\n")
+	if !strings.Contains(transcript, "/new") {
+		t.Fatalf("expected user echo for /new, got %q", transcript)
+	}
 }
 
 func TestBlackboxSlashHistoryPrefixPreviewThenEnterSwitches(t *testing.T) {

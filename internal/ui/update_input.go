@@ -337,16 +337,12 @@ func (m *Model) handleSlashEnterKey(inputVal string) (*Model, tea.Cmd, bool) {
 				return m, cmd, true
 			}
 			trimmed := strings.TrimSpace(plan.Submission.RawText)
-			// /skill … submits chat via host without going through main Enter's appendUserSubmittedEcho.
-			// Mirror normal chat: print the user line to scrollback before lifecycle effects so
-			// printedMessages stays aligned with tea.Println (fixes AI reply + footer drift).
 			var printCmd tea.Cmd
-			if strings.HasPrefix(trimmed, "/skill ") {
+			// Mirror normal Enter: every submitted slash command echoes the user line before
+			// lifecycle effects so transcript and input history stay consistent.
+			if plan.Submission.Kind == inputlifecycletype.SubmissionSlash {
 				m.appendUserSubmittedEcho(trimmed)
 				printCmd = m.printTranscriptCmd(false)
-			} else {
-				// Other slash submits: no user echo line here, but still record for Up/Down recall (incl. /help, /exec …).
-				m.withInputHistoryCommitted(trimmed)
 			}
 			m.clearSlashInput()
 			returned, cmd := m.applyLifecycleResult(res)
