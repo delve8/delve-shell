@@ -1,6 +1,6 @@
 // Package historytui bridges persisted session history to the Bubble Tea shell: /history slash
 // suggestions, transcript line shaping for previews and switches, and the active session path
-// used to filter picker rows. Core jsonl read/write remains in package history.
+// for marking the current session in the picker. Core jsonl read/write remains in package history.
 package historytui
 
 import (
@@ -42,11 +42,11 @@ func getSessionSlashOptions(filter string) []ui.SlashOption {
 	currentSessionPath := getCurrentSessionPath()
 	var opts []ui.SlashOption
 	for _, s := range summaries {
-		if s.Path == currentSessionPath {
-			continue
-		}
 		if filterLower != "" {
 			line := s.ID
+			if s.Path == currentSessionPath {
+				line += i18n.T(i18n.KeyHistorySessionCurrentSuffix)
+			}
 			if s.Snippet != "" {
 				line += " " + s.Snippet
 			}
@@ -56,6 +56,9 @@ func getSessionSlashOptions(filter string) []ui.SlashOption {
 		}
 
 		cmd := "/history " + s.ID
+		if s.Path == currentSessionPath {
+			cmd += i18n.T(i18n.KeyHistorySessionCurrentSuffix)
+		}
 		desc := s.Snippet
 		opts = append(opts, ui.SlashOption{Cmd: cmd, Desc: desc})
 	}

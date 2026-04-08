@@ -16,6 +16,8 @@ func TestSwitchSessionIDFromSlashLine(t *testing.T) {
 		{"/history ", "", false},
 		{"/historybook", "", false},
 		{"  /history x ", "x", true},
+		{"/history abc123 [Current]", "abc123", true},
+		{"/history  id2  [Current]  extra", "id2", true},
 	}
 	for _, tt := range tests {
 		got, ok := SwitchSessionIDFromSlashLine(tt.in)

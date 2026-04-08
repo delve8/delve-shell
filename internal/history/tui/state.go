@@ -19,7 +19,7 @@ func getCurrentSessionPath() string {
 	return currentSessionState.path
 }
 
-// SetCurrentSessionPath is used by the host loop so /history slash options can exclude the active session file.
+// SetCurrentSessionPath is used by the host loop so /history slash options can mark the active session (see KeyHistorySessionCurrentSuffix).
 func SetCurrentSessionPath(path string) {
 	setCurrentSessionPath(path)
 }

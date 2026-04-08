@@ -28,6 +28,12 @@ func FormatRunTranscriptLine(prefix, cmd string) string {
 	return ansi.Truncate(s, RunTranscriptLineMaxWidth, "....")
 }
 
+// FormatRunTranscriptLineFull is like [FormatRunTranscriptLine] but never truncates the command;
+// use for read-only overlays (e.g. /history preview) where the full command must be visible.
+func FormatRunTranscriptLineFull(prefix, cmd string) string {
+	return prefix + strings.TrimSpace(cmd)
+}
+
 // RunTranscriptDisplayMaxCells is the display cap for a printed Run line: never wider than
 // [RunTranscriptLineMaxWidth], and never wider than the terminal content width so tea.Println does not
 // soft-wrap into extra rows (which desyncs [Model.printedTranscriptLineCount] and can merge the next

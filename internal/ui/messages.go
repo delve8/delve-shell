@@ -33,10 +33,13 @@ type OverlayShowMsg struct {
 }
 
 // HistoryPreviewOverlayMsg opens the /history preview modal; Enter sends SessionSwitch for SessionID, Esc closes without switching.
+// When Lines is non-empty, the UI builds styled body text from Lines (aligned with the main transcript, full commands/output).
+// Content is used when Lines is empty (tests and legacy callers).
 type HistoryPreviewOverlayMsg struct {
 	SessionID string
 	Title     string
 	Content   string
+	Lines     []uivm.Line
 }
 
 // transcriptPrintedMsg is emitted after a batch of tea.Println lines has been applied to the

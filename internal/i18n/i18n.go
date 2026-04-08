@@ -105,6 +105,8 @@ const (
 	KeyHistoryPreviewEmpty             = "history_preview_empty"  // overlay body when file has no lines yet
 	KeyHistoryPreviewFooter            = "history_preview_footer" // hint under preview (Esc / scroll)
 	KeyDescSessions                    = "desc_sessions"          // slash: /history description
+	// KeyHistorySessionCurrentSuffix is appended after the session id in the /history picker Cmd (e.g. " [Current]").
+	KeyHistorySessionCurrentSuffix     = "history_session_current_suffix"
 	KeySessionNone                     = "session_none"
 	KeyDelRemoteNoHosts                = "del_remote_no_hosts" // slash dropdown when no remotes to remove (Cmd-only row, like KeySkillNone)
 	KeyDescRemoteOn                    = "desc_remote_on"
@@ -360,6 +362,7 @@ Quit (Ctrl+C also works)`,
 		KeyHistoryPreviewEmpty:               "(No messages in this history yet.)",
 		KeyHistoryPreviewFooter:              "Enter to switch · PgUp/PgDn to scroll · Esc to cancel",
 		KeyDescSessions:                      "List and switch history sessions",
+		KeyHistorySessionCurrentSuffix:       " [Current]",
 		KeySessionNone:                       "No previous history.",
 		KeyDelRemoteNoHosts:                  "No hosts.",
 		KeyDescRemoteOn:                      "Connect to host",

@@ -51,7 +51,7 @@ func (c *Controller) handleHistoryPreviewOpen(sessionID string) {
 		lang = cfg.Language
 	}
 	events, _ := history.ReadRecent(sessionPath, agent.MaxConversationEvents)
-	vmLines := historytui.EventsToTranscriptLines(events)
+	vmLines := historytui.EventsToTranscriptLinesForHistoryPreview(events)
 	i18n.SetLang(lang)
 	c.ui.ShowHistoryPreviewDialog(vmLines, sessionID)
 }

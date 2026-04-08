@@ -50,10 +50,13 @@ func TestBlackboxSlashHistoryPrefixPreviewThenEnterSwitches(t *testing.T) {
 	if strings.TrimSpace(got.Input.Value()) != "" {
 		t.Fatalf("expected input cleared after prefix slash execution, got %q", got.Input.Value())
 	}
-	withOverlay, _ := got.Update(ui.HistoryPreviewOverlayMsg{SessionID: "demo", Title: "H", Content: "preview\n\nfooter"})
+	withOverlay, _ := got.Update(ui.HistoryPreviewOverlayMsg{SessionID: "demo", Title: "H", Content: "preview"})
 	m2 := withOverlay.(*ui.Model)
 	if !m2.Overlay.Active {
 		t.Fatalf("expected overlay after HistoryPreviewOverlayMsg")
+	}
+	if strings.TrimSpace(m2.Overlay.Footer) == "" {
+		t.Fatalf("expected fixed footer hint below scroll area")
 	}
 	next, _ := m2.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m3 := next.(*ui.Model)

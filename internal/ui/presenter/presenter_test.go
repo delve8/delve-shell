@@ -35,8 +35,8 @@ func TestPresenter_ShowHistoryPreviewDialog_emitsOverlayMsg(t *testing.T) {
 		t.Fatalf("want 1 msg, got %d", len(r.msgs))
 	}
 	ov, ok := r.msgs[0].(ui.HistoryPreviewOverlayMsg)
-	if !ok || ov.SessionID != "abc123" || ov.Title == "" || ov.Content == "" {
-		t.Fatalf("want HistoryPreviewOverlayMsg, got %#v", r.msgs[0])
+	if !ok || ov.SessionID != "abc123" || ov.Title == "" || len(ov.Lines) != 1 || ov.Lines[0].Text != "hi" {
+		t.Fatalf("want HistoryPreviewOverlayMsg with Lines, got %#v", r.msgs[0])
 	}
 }
 

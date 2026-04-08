@@ -112,6 +112,8 @@ type OverlayState struct {
 	Key      string
 	Title    string
 	Content  string
+	// Footer is optional: shown below the scroll viewport (not scrolled), e.g. history preview shortcuts.
+	Footer   string
 	Viewport viewport.Model
 }
 

@@ -28,6 +28,15 @@ func TestIsRunTranscriptExecLine(t *testing.T) {
 	}
 }
 
+func TestFormatRunTranscriptLineFull_neverTruncates(t *testing.T) {
+	cmd := strings.Repeat("x", RunTranscriptLineMaxWidth+50)
+	got := FormatRunTranscriptLineFull("Run (approved): ", cmd)
+	wantLen := ansi.StringWidth("Run (approved): ") + len(cmd)
+	if ansi.StringWidth(got) != wantLen {
+		t.Fatalf("full line width %d, want %d", ansi.StringWidth(got), wantLen)
+	}
+}
+
 func TestFormatRunTranscriptLine_truncatesLongLine(t *testing.T) {
 	cmd := strings.Repeat("x", RunTranscriptLineMaxWidth+50)
 	got := FormatRunTranscriptLine("Run (checks passed): ", cmd)

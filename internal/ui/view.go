@@ -158,6 +158,10 @@ func (m *Model) renderOverlay(base string) string {
 	}
 	if content == "" {
 		content = m.Overlay.Viewport.View()
+		if strings.TrimSpace(m.Overlay.Footer) != "" {
+			sepW := overlayHistoryPreviewWrapWidth(m.layout.Width)
+			content = content + "\n" + renderSeparator(sepW) + "\n" + hintStyle.Render(m.Overlay.Footer)
+		}
 	}
 
 	out := widget.RenderCenteredModal(w, h, overlayBoxMaxWidth, m.Overlay.Title, content)

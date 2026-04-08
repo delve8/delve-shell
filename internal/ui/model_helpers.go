@@ -136,10 +136,16 @@ func (m *Model) withTranscriptReplaced(lines []string) {
 
 // OpenOverlayFeature opens a feature-owned overlay and records its active key.
 func (m *Model) OpenOverlayFeature(key, title, content string) {
+	m.openOverlayFeature(key, title, content, "")
+}
+
+// openOverlayFeature sets optional Footer: fixed hint lines below the scroll viewport (not part of scrolled text).
+func (m *Model) openOverlayFeature(key, title, content, footer string) {
 	m.Overlay.Active = true
 	m.Overlay.Key = key
 	m.Overlay.Title = title
 	m.Overlay.Content = content
+	m.Overlay.Footer = footer
 }
 
 // CloseOverlayVisual closes overlay chrome only.
@@ -149,11 +155,28 @@ func (m *Model) CloseOverlayVisual() {
 	m.Overlay.Key = ""
 	m.Overlay.Title = ""
 	m.Overlay.Content = ""
+	m.Overlay.Footer = ""
+}
+
+// overlayFixedBelowViewportLineCount is rows below the scroll area: dim separator + footer hint (plain line count).
+func overlayFixedBelowViewportLineCount(footer string) int {
+	if footer == "" {
+		return 0
+	}
+	return 1 + strings.Count(footer, "\n") + 1
 }
 
 // InitOverlayViewport initializes the generic overlay viewport from current layout.
 func (m *Model) InitOverlayViewport() {
-	m.Overlay.Viewport = viewport.New(m.layout.Width-minOverlayLayoutWidth, min(m.layout.Height-minOverlayLayoutHeight, maxOverlayViewportHeight))
+	w := m.layout.Width - minOverlayLayoutWidth
+	baseH := min(m.layout.Height-minOverlayLayoutHeight, maxOverlayViewportHeight)
+	if n := overlayFixedBelowViewportLineCount(m.Overlay.Footer); n > 0 {
+		baseH -= n
+		if baseH < 3 {
+			baseH = 3
+		}
+	}
+	m.Overlay.Viewport = viewport.New(w, baseH)
 	m.Overlay.Viewport.SetContent(m.Overlay.Content)
 }
 

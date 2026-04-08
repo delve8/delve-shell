@@ -2,10 +2,29 @@ package historytui
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"delve-shell/internal/history"
+	"delve-shell/internal/ui/uivm"
 )
+
+func TestEventsToTranscriptLinesForHistoryPreview_fullCommandText(t *testing.T) {
+	longCmd := strings.Repeat("c", 200)
+	events := []history.Event{
+		{Type: history.EventTypeCommand, Payload: json.RawMessage(`{"command":"` + longCmd + `","approved":true,"suggested":false}`)},
+	}
+	lines := EventsToTranscriptLinesForHistoryPreview(events)
+	if len(lines) < 1 {
+		t.Fatal("expected exec line")
+	}
+	if lines[0].Kind != uivm.LineExec {
+		t.Fatalf("want LineExec, got %v", lines[0].Kind)
+	}
+	if len(lines[0].Text) < len(longCmd) {
+		t.Fatalf("command truncated in preview line: len %d", len(lines[0].Text))
+	}
+}
 
 func TestEventsToTranscriptLines_ConvertsEventsToSemanticLines(t *testing.T) {
 	events := []history.Event{

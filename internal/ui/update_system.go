@@ -191,11 +191,25 @@ func (m *Model) handleOverlayShowMsg(msg OverlayShowMsg) (*Model, tea.Cmd) {
 
 func (m *Model) handleHistoryPreviewOverlayMsg(msg HistoryPreviewOverlayMsg) (*Model, tea.Cmd) {
 	fields := strings.Fields(strings.TrimSpace(msg.SessionID))
-	if len(fields) == 0 || (msg.Title == "" && strings.TrimSpace(msg.Content) == "") {
+	if len(fields) == 0 || msg.Title == "" {
 		return m, nil
 	}
+	footer := i18n.T(i18n.KeyHistoryPreviewFooter)
+	var body string
+	if len(msg.Lines) > 0 {
+		w := overlayHistoryPreviewWrapWidth(m.layout.Width)
+		body = RenderHistoryPreviewTranscript(msg.Lines, w)
+		if strings.TrimSpace(body) == "" {
+			body = i18n.T(i18n.KeyHistoryPreviewEmpty)
+		}
+	} else {
+		body = msg.Content
+		if strings.TrimSpace(body) == "" {
+			body = i18n.T(i18n.KeyHistoryPreviewEmpty)
+		}
+	}
 	m.Interaction.pendingHistorySwitchID = fields[0]
-	m.OpenOverlayFeature(HistoryPreviewOverlayKey, msg.Title, msg.Content)
+	m.openOverlayFeature(HistoryPreviewOverlayKey, msg.Title, body, footer)
 	m.InitOverlayViewport()
 	return m, nil
 }
