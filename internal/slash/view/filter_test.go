@@ -54,6 +54,13 @@ func TestChosenToInputValue_StripsPlaceholder(t *testing.T) {
 	}
 }
 
+func TestChosenToInputValue_StripsBracePlaceholder(t *testing.T) {
+	got := ChosenToInputValue(Option{Cmd: "/skill {name} [...]"})
+	if got != "/skill " {
+		t.Fatalf("unexpected value: %q", got)
+	}
+}
+
 func TestChosenToInputValue_trailingSpaceOnPlainCmd(t *testing.T) {
 	got := ChosenToInputValue(Option{Cmd: "/config"})
 	if got != "/config " {

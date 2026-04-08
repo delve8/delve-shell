@@ -270,7 +270,7 @@ Remove a remote.
 
 ### /config add-skill
 
-Open the add-skill dialog (Git URL, ref, path in repo, local name). You can also submit **/config add-skill** with arguments on the same line to pre-fill the form: `{url}` optional **`[ref]`** and **`[path]`** (path = subpath when the repo has multiple skills, e.g. skills/foo).
+Open the add-skill dialog (Git URL, ref, path in repo, local name).
 
 ### /config del-skill {skill_name}
 

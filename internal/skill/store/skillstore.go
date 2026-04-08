@@ -206,7 +206,7 @@ func findSkillDirsRecursive(root string, depth, maxDepth int) ([]string, error) 
 // ErrNotFound if none found; error if multiple (hint to use explicit path).
 var (
 	ErrSkillDirNotFound  = fmt.Errorf("no skill directory found (no SKILL.md in conventional locations or below)")
-	ErrSkillDirAmbiguous = fmt.Errorf("multiple skill directories found; specify path explicitly (e.g. /config add-skill <url> [ref] <path>)")
+	ErrSkillDirAmbiguous = fmt.Errorf("multiple skill directories found; set Path in repo in the add-skill dialog to choose one")
 )
 
 func DiscoverSkillDir(repoRoot string) (subpath string, err error) {

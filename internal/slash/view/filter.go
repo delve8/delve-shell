@@ -156,10 +156,11 @@ func ChosenToInputValue(chosen Option) string {
 	var s string
 	if chosen.FillValue != "" {
 		s = chosen.FillValue
-	} else if strings.Contains(chosen.Cmd, " <") {
-		if i := strings.Index(chosen.Cmd, " <"); i > 0 {
-			s = chosen.Cmd[:i] + " "
-		}
+	} else if i := strings.Index(chosen.Cmd, " <"); i > 0 {
+		s = chosen.Cmd[:i] + " "
+	} else if i := strings.Index(chosen.Cmd, " {"); i > 0 {
+		// e.g. "/skill {name} [...]" — fill only the command prefix, not display placeholders
+		s = chosen.Cmd[:i] + " "
 	}
 	if s == "" {
 		s = chosen.Cmd

@@ -16,15 +16,8 @@ func registerSlashExecutionProvider() {
 	ui.RegisterSlashExecutionProvider(func(req ui.SlashExecutionRequest) (inputlifecycletype.ProcessResult, bool, error) {
 		text := strings.TrimSpace(req.RawText)
 		switch {
-		case text == "/config add-skill":
-			return overlayOpenResult(OverlayOpenKeyAdd, nil), true, nil
 		case strings.HasPrefix(text, "/config add-skill"):
-			url, ref, path := parseAddSkillArgs(strings.TrimSpace(strings.TrimPrefix(text, "/config add-skill")))
-			return overlayOpenResult(OverlayOpenKeyAdd, map[string]string{
-				"url":  url,
-				"ref":  ref,
-				"path": path,
-			}), true, nil
+			return overlayOpenResult(OverlayOpenKeyAdd, nil), true, nil
 		case strings.HasPrefix(text, "/config update-skill"):
 			name := strings.TrimSpace(strings.TrimPrefix(text, "/config update-skill"))
 			if name == "" {
@@ -40,28 +33,6 @@ func registerSlashExecutionProvider() {
 			return inputlifecycletype.ProcessResult{}, false, nil
 		}
 	})
-}
-
-func parseAddSkillArgs(rest string) (url, ref, path string) {
-	if rest == "" {
-		return "", "", ""
-	}
-	fields := strings.Fields(rest)
-	if len(fields) >= 1 {
-		url = fields[0]
-	}
-	if len(fields) >= 2 {
-		if strings.Contains(fields[1], "/") {
-			path = fields[1]
-		} else {
-			ref = fields[1]
-		}
-	}
-	if len(fields) >= 3 {
-		ref = fields[1]
-		path = fields[2]
-	}
-	return url, ref, path
 }
 
 func executeSkillInvocation(req ui.SlashExecutionRequest, rest string) inputlifecycletype.ProcessResult {
