@@ -29,7 +29,7 @@ type RunSkillTool struct {
 	RequestSensitiveConfirmation func(command string) hiltypes.SensitiveChoice
 	SensitiveMatcher             *hil.SensitiveMatcher
 	Session                      *history.Session
-	OnExec                       func(command string, allowed bool, result string, sensitive bool, suggested bool, streamed bool)
+	OnExec                       func(command string, allowed bool, result string, sensitive bool, suggested bool, offlineManual bool, streamed bool)
 	// OnExecStream optional; when set and executor supports streaming, same path as execute_command (live lines in transcript).
 	OnExecStream     func(any)
 	UIEvents         chan<- any
@@ -247,7 +247,7 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 	}
 	if cancelled {
 		if t.OnExec != nil {
-			t.OnExec(cmd, false, "", sensitive, false, streamed)
+			t.OnExec(cmd, false, "", sensitive, false, false, streamed)
 		}
 		return "The skill command was cancelled.", nil
 	}
@@ -268,7 +268,7 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 		}
 	}
 	if t.OnExec != nil {
-		t.OnExec(cmd, false, resultForUI, sensitive, false, streamed)
+		t.OnExec(cmd, false, resultForUI, sensitive, false, false, streamed)
 	}
 	if sensitive {
 		return history.RedactedToolResultMessage(outStr, errStr, exitCode, err), nil

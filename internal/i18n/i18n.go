@@ -72,11 +72,12 @@ const (
 	KeyDelveLabel                = "delve_label"            // deprecated; use KeyInfoLabel for transcript hints
 	KeyRunLabel                  = "run_label"              // legacy; prefer KeyRunLine* for execute transcript
 	// Run line prefixes (execute_command / history replay); command follows; total width capped in UI.
-	KeyRunLineAutoAllowed = "run_line_auto_allowed" // built-in checks passed; no user approval card
-	KeyRunLineApproved    = "run_line_approved"
-	KeyRunLineDirect      = "run_line_direct"
-	KeyRunLineSuggested   = "run_line_suggested"
-	KeySkillLine          = "skill_line" // format: Skill: %s
+	KeyRunLineAutoAllowed   = "run_line_auto_allowed" // built-in checks passed; no user approval card
+	KeyRunLineApproved      = "run_line_approved"
+	KeyRunLineDirect        = "run_line_direct"
+	KeyRunLineOfflineManual = "run_line_offline_manual"
+	KeyRunLineSuggested     = "run_line_suggested"
+	KeySkillLine            = "skill_line" // format: Skill: %s
 	// Slash option descriptions (cmd as suffix for consistency)
 	KeyDescExit   = "desc_exit"
 	KeyDescRun    = "desc_run"
@@ -363,6 +364,7 @@ Quit (**Ctrl+C** also works).
 		KeyRunLineAutoAllowed:                   "Run (checks passed): ",
 		KeyRunLineApproved:                      "Run (approved): ",
 		KeyRunLineDirect:                        "Run (direct): ",
+		KeyRunLineOfflineManual:                 "Run (manual): ",
 		KeyRunLineSuggested:                     "Run (suggested): ",
 		KeySkillLine:                            "Skill: %s",
 		KeyDescExit:                             "Quit delve-shell",

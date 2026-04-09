@@ -119,9 +119,9 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		RequestOfflinePaste:          requestOfflinePaste,
 		OfflineMode:                  func() bool { return offline },
 		Session:                      opts.Session.Session,
-		OnExec: func(cmd string, allowed bool, result string, sensitive bool, suggested bool, streamed bool) {
+		OnExec: func(cmd string, allowed bool, result string, sensitive bool, suggested bool, offlineManual bool, streamed bool) {
 			if uiEvents != nil {
-				uiEvents <- hiltypes.ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested, Streamed: streamed}
+				uiEvents <- hiltypes.ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested, OfflineManual: offlineManual, Streamed: streamed}
 			}
 		},
 		OnExecStream: func(x any) {
@@ -150,9 +150,9 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 			RequestSensitiveConfirmation: requestSensitiveConfirmation,
 			SensitiveMatcher:             opts.HIL.SensitiveMatcher,
 			Session:                      opts.Session.Session,
-			OnExec: func(cmd string, allowed bool, result string, sensitive bool, suggested bool, streamed bool) {
+			OnExec: func(cmd string, allowed bool, result string, sensitive bool, suggested bool, offlineManual bool, streamed bool) {
 				if uiEvents != nil {
-					uiEvents <- hiltypes.ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested, Streamed: streamed}
+					uiEvents <- hiltypes.ExecEvent{Command: cmd, Allowed: allowed, Result: result, Sensitive: sensitive, Suggested: suggested, OfflineManual: offlineManual, Streamed: streamed}
 				}
 			},
 			OnExecStream: func(x any) {

@@ -138,6 +138,29 @@ func TestPresenter_DispatchAgentUI(t *testing.T) {
 	}
 }
 
+func TestPresenter_DispatchAgentUI_OfflineManualExec(t *testing.T) {
+	i18n.SetLang("en")
+	var r recordSender
+	p := New(&r)
+
+	p.DispatchAgentUI(hiltypes.ExecEvent{
+		Command:       "kubectl get pods",
+		Result:        "NAME\npod-1",
+		OfflineManual: true,
+	})
+
+	if len(r.msgs) != 1 {
+		t.Fatalf("want 1 msg, got %d", len(r.msgs))
+	}
+	ta, ok := r.msgs[0].(ui.TranscriptAppendMsg)
+	if !ok || len(ta.Lines) < 2 {
+		t.Fatalf("want TranscriptAppendMsg with lines, got %#v", r.msgs[0])
+	}
+	if ta.Lines[0].Text != "Run (manual): kubectl get pods" {
+		t.Fatalf("manual run line: got %#v", ta.Lines[0])
+	}
+}
+
 func TestPresenter_DispatchAgentUI_AgentNotify(t *testing.T) {
 	var r recordSender
 	p := New(&r)

@@ -277,6 +277,13 @@ func (m *Model) renderTranscriptLines(lines []uivm.Line) []string {
 	return rendered
 }
 
+func (m *Model) appendSemanticTranscriptLines(lines ...uivm.Line) {
+	if len(lines) == 0 {
+		return
+	}
+	m.AppendTranscriptLines(m.renderTranscriptLines(lines)...)
+}
+
 func transcriptHasSystemError(lines []uivm.Line) bool {
 	for _, line := range lines {
 		if line.Kind == uivm.LineSystemError {

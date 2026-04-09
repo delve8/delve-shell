@@ -53,12 +53,12 @@ var hostEventHandlers = map[bus.Kind]func(*Controller, bus.Event){
 		if v.Streamed {
 			c.ui.CommandExecutedStreamEnd(v.Sensitive, v.Result)
 		} else {
-			c.ui.CommandExecutedFromTool(v.Command, v.Allowed, v.Result, v.Sensitive, v.Suggested, false)
+			c.ui.CommandExecutedFromTool(v.Command, v.Allowed, v.Result, v.Sensitive, v.Suggested, false, v.OfflineManual)
 		}
 	},
 	bus.KindAgentExecStreamStart: func(c *Controller, e bus.Event) {
 		v := e.ExecStreamStart
-		c.ui.ExecStreamBegin(v.Command, v.Allowed, v.Suggested, v.Direct)
+		c.ui.ExecStreamBegin(v.Command, v.Allowed, v.Suggested, v.Direct, false)
 	},
 	bus.KindAgentExecStreamLine: func(c *Controller, e bus.Event) {
 		v := e.ExecStreamLine

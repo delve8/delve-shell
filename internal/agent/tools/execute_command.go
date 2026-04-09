@@ -26,7 +26,7 @@ type ExecuteCommandTool struct {
 	RequestApproval              func(command, summary, reason, riskLevel, skillName string, autoApproveHL []hiltypes.AutoApproveHighlightSpan) hiltypes.ApprovalResponse
 	RequestSensitiveConfirmation func(command string) hiltypes.SensitiveChoice
 	Session                      *history.Session
-	OnExec                       func(command string, allowed bool, result string, sensitive bool, suggested bool, streamed bool)
+	OnExec                       func(command string, allowed bool, result string, sensitive bool, suggested bool, offlineManual bool, streamed bool)
 	// OnExecStream delivers [hiltypes.ExecStreamStart] and [hiltypes.ExecStreamLine] when streaming is used; nil disables streaming.
 	OnExecStream func(any)
 	// UIEvents optional; used with [CommandExecutionState] for [EXECUTING] chrome during run.
@@ -164,9 +164,9 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 		// Empty tail: "Execution cancelled." is shown when the host handles Esc; avoid duplicate Delve-prefixed lines.
 		if t.OnExec != nil {
 			if useStream {
-				t.OnExec(command, allowed, "", sensitive || !storeResult, false, true)
+				t.OnExec(command, allowed, "", sensitive || !storeResult, false, false, true)
 			} else {
-				t.OnExec(command, allowed, "", sensitive || !storeResult, false, false)
+				t.OnExec(command, allowed, "", sensitive || !storeResult, false, false, false)
 			}
 		}
 		return "The command was cancelled.", nil
@@ -188,7 +188,7 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 		}
 	}
 	if t.OnExec != nil {
-		t.OnExec(command, allowed, resultForUI, sensitive || !storeResult, false, useStream)
+		t.OnExec(command, allowed, resultForUI, sensitive || !storeResult, false, false, useStream)
 	}
 	if sensitive {
 		return history.RedactedToolResultMessage(outStr, errStr, exitCode, err), nil
@@ -246,7 +246,7 @@ func (t *ExecuteCommandTool) invokableRunOffline(ctx context.Context, command, r
 		resultForUI = manualPasteNoteForUI
 	}
 	if t.OnExec != nil {
-		t.OnExec(command, false, resultForUI, sensitive || !storeResult, false, false)
+		t.OnExec(command, false, resultForUI, sensitive || !storeResult, false, true, false)
 	}
 	if sensitive {
 		if pasted == "" {

@@ -12,6 +12,7 @@ import (
 	"delve-shell/internal/input/preflight"
 	"delve-shell/internal/slash/view"
 	"delve-shell/internal/teakey"
+	"delve-shell/internal/ui/uivm"
 )
 
 // keySession narrows keyboard handling for [Model.handleKeyMsg] so update_input does not
@@ -162,7 +163,7 @@ func (m *Model) appendSubmissionError(err error) (*Model, tea.Cmd) {
 		return m, nil
 	}
 	m.Interaction.WaitingForAI = false
-	m.AppendTranscriptLines(errStyle.Render(i18n.T(i18n.KeyErrorPrefix) + err.Error()))
+	m.appendSemanticTranscriptLines(uivm.Line{Kind: uivm.LineSystemError, Text: err.Error()})
 	return m, m.printTranscriptCmd(false)
 }
 

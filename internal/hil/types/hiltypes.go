@@ -85,11 +85,12 @@ type ExecStreamLine struct {
 
 // ExecEvent is emitted after command execution for TUI to show HIL process and result.
 type ExecEvent struct {
-	Command   string
-	Allowed   bool   // matched allowlist, no approval needed
-	Result    string // full stdout+stderr+exit, or exit/footer only when Streamed is true
-	Sensitive bool   // if true, result contains private data, not stored and LLM sees "done"
-	Suggested bool   // if true, command was only suggested (suggest mode), not executed
+	Command       string
+	Allowed       bool   // matched allowlist, no approval needed
+	Result        string // full stdout+stderr+exit, or exit/footer only when Streamed is true
+	Sensitive     bool   // if true, result contains private data, not stored and LLM sees "done"
+	Suggested     bool   // if true, command was only suggested (suggest mode), not executed
+	OfflineManual bool   // if true, command was manually run by the user and relayed back in offline mode
 	// Streamed when true: stdout/stderr were appended incrementally; Result is exit code / error footer only.
 	Streamed bool
 }

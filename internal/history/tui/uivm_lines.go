@@ -10,6 +10,16 @@ import (
 	"delve-shell/internal/ui/uivm"
 )
 
+func historyRunLinePrefix(suggested bool, execution string, offlineMode bool) string {
+	if offlineMode || strings.EqualFold(strings.TrimSpace(execution), "offline_manual") {
+		return i18n.T(i18n.KeyRunLineOfflineManual)
+	}
+	if suggested {
+		return i18n.T(i18n.KeyRunLineSuggested)
+	}
+	return i18n.T(i18n.KeyRunLineApproved)
+}
+
 // EventsToTranscriptLinesForHistoryPreview converts session events into transcript lines for the
 // /history read-only preview: full command text and full stdout/stderr (no Run-line width cap;
 // command output not trimmed away beyond normal JSON payload).
@@ -34,10 +44,12 @@ func EventsToTranscriptLinesForHistoryPreview(events []history.Event) []uivm.Lin
 			}
 		case history.EventTypeCommand:
 			var p struct {
-				Command   string `json:"command"`
-				Suggested bool   `json:"suggested"`
-				Kind      string `json:"kind"`
-				SkillName string `json:"skill_name"`
+				Command     string `json:"command"`
+				Suggested   bool   `json:"suggested"`
+				Kind        string `json:"kind"`
+				SkillName   string `json:"skill_name"`
+				Execution   string `json:"execution"`
+				OfflineMode bool   `json:"offline_mode"`
 			}
 			if json.Unmarshal(ev.Payload, &p) != nil || strings.TrimSpace(p.Command) == "" {
 				continue
@@ -45,10 +57,7 @@ func EventsToTranscriptLinesForHistoryPreview(events []history.Event) []uivm.Lin
 			if p.Kind == history.CommandPayloadKindSkill && strings.TrimSpace(p.SkillName) != "" {
 				out = append(out, uivm.Line{Kind: uivm.LineSystemSuggest, Text: "Skill: " + strings.TrimSpace(p.SkillName)})
 			}
-			prefix := i18n.T(i18n.KeyRunLineApproved)
-			if p.Suggested {
-				prefix = i18n.T(i18n.KeyRunLineSuggested)
-			}
+			prefix := historyRunLinePrefix(p.Suggested, p.Execution, p.OfflineMode)
 			out = append(out, uivm.Line{Kind: uivm.LineExec, Text: ui.FormatRunTranscriptLineFull(prefix, p.Command)})
 		case history.EventTypeCommandResult:
 			var p struct {
@@ -100,10 +109,12 @@ func EventsToTranscriptLines(events []history.Event) []uivm.Line {
 			}
 		case history.EventTypeCommand:
 			var p struct {
-				Command   string `json:"command"`
-				Suggested bool   `json:"suggested"`
-				Kind      string `json:"kind"`
-				SkillName string `json:"skill_name"`
+				Command     string `json:"command"`
+				Suggested   bool   `json:"suggested"`
+				Kind        string `json:"kind"`
+				SkillName   string `json:"skill_name"`
+				Execution   string `json:"execution"`
+				OfflineMode bool   `json:"offline_mode"`
 			}
 			if json.Unmarshal(ev.Payload, &p) != nil || strings.TrimSpace(p.Command) == "" {
 				continue
@@ -111,10 +122,7 @@ func EventsToTranscriptLines(events []history.Event) []uivm.Line {
 			if p.Kind == history.CommandPayloadKindSkill && strings.TrimSpace(p.SkillName) != "" {
 				out = append(out, uivm.Line{Kind: uivm.LineSystemSuggest, Text: "Skill: " + strings.TrimSpace(p.SkillName)})
 			}
-			prefix := i18n.T(i18n.KeyRunLineApproved)
-			if p.Suggested {
-				prefix = i18n.T(i18n.KeyRunLineSuggested)
-			}
+			prefix := historyRunLinePrefix(p.Suggested, p.Execution, p.OfflineMode)
 			out = append(out, uivm.Line{Kind: uivm.LineExec, Text: ui.FormatRunTranscriptLine(prefix, p.Command)})
 		case history.EventTypeCommandResult:
 			var p struct {

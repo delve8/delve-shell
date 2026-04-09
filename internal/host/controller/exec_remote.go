@@ -44,7 +44,7 @@ func (c *Controller) handleExecDirect(cmd string) {
 func (c *Controller) runDirectExecWithContext(ctx context.Context, cmd string) {
 	executor := c.getExec()
 	if sr, ok := executor.(execenv.StreamingRunner); ok {
-		c.ui.ExecStreamBegin(cmd, false, false, true)
+		c.ui.ExecStreamBegin(cmd, false, false, true, false)
 		var outBuf, errBuf bytes.Buffer
 		lineOut := execenv.NewLineEmitWriter(func(line string) {
 			c.ui.ExecStreamLineOut(line, false)

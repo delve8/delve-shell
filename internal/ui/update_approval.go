@@ -156,7 +156,7 @@ func (m *Model) applyApprovalDecision(d approvalflow.Decision) (*Model, tea.Cmd,
 		if doCopy {
 			_ = clipboard.WriteAll(m.ChoiceCard.pending.Command)
 			m.appendSuggestedLine(m.ChoiceCard.pending.Command)
-			m.messages = append(m.messages, infoStyle.Render(m.infoMsg(i18n.T(i18n.KeySuggestedCopied))))
+			m.appendSemanticTranscriptLines(uivm.Line{Kind: uivm.LineSystemSuggest, Text: i18n.T(i18n.KeySuggestedCopied)})
 		}
 		if m.ChoiceCard.pending.Respond != nil {
 			m.ChoiceCard.pending.Respond(resp)
