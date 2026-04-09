@@ -155,3 +155,14 @@ Main files:
 2. Enter a natural-language task or a slash command.
 3. Approve non-allowlisted commands when prompted.
 4. Review transcript, tool output, and session history in the same TUI.
+
+## Transcript And History Behavior
+
+- Closing an overlay triggers a full screen refresh: delve-shell clears the visible terminal content, then replays the recent transcript so the main shell returns to a clean, deterministic state.
+- Replay is capped to the latest `100000` transcript lines. If the session is longer, the shell prints a temporary banner at the top explaining that older content was truncated from the replay.
+- Older content is still preserved in session history. Use `/history` to inspect or switch sessions when you need transcript content that is older than the replay window.
+
+## Skill Shortcuts
+
+- Type `/skill` to open the installed-skill dropdown.
+- The dropdown includes `/skill New` as the install entry and keeps regular `/skill {name} [...]` entries separate from a real skill whose name is `new`.
