@@ -15,6 +15,17 @@ func (m *Model) View() string {
 }
 
 func (m *Model) renderBaseScreen() string {
+	bottomBlock := m.renderBottomBlock()
+	// Choice cards (approval / sensitive / offline paste) render their body via m.messages + tea.Println,
+	// same as chat; View() only draws this bottom chrome. Top padding aligns with printed transcript rows.
+	padLines := m.normalModeTopPaddingLines(bottomBlock)
+	if padLines <= 0 {
+		return bottomBlock
+	}
+	return strings.Repeat("\n", padLines) + bottomBlock
+}
+
+func (m *Model) renderBottomBlock() string {
 	sepW := m.layout.Width
 	if sepW <= 0 {
 		sepW = 40
@@ -28,14 +39,7 @@ func (m *Model) renderBaseScreen() string {
 		inputSeparator = "\n"
 	}
 	preview := m.renderExecStreamPreviewBlock()
-	bottomBlock := preview + sepLine + "\n" + m.primaryInputView() + inputSeparator + m.inputBelowBlock(inChoice) + footer
-	// Choice cards (approval / sensitive / offline paste) render their body via m.messages + tea.Println,
-	// same as chat; View() only draws this bottom chrome. Top padding aligns with printed transcript rows.
-	padLines := m.normalModeTopPaddingLines(bottomBlock)
-	if padLines <= 0 {
-		return bottomBlock
-	}
-	return strings.Repeat("\n", padLines) + bottomBlock
+	return preview + sepLine + "\n" + m.primaryInputView() + inputSeparator + m.inputBelowBlock(inChoice) + footer
 }
 
 func (m *Model) renderScreenSnapshot() string {

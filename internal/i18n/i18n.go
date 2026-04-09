@@ -39,6 +39,7 @@ const (
 	KeyCommandExecWaitOrCancel           = "command_exec_wait_or_cancel"
 	KeyExecStreamPreviewHeader           = "exec_stream_preview_header"
 	KeyExecStreamTranscriptTruncatedHint = "exec_stream_transcript_truncated_hint"
+	KeyTranscriptReplayTruncatedNotice   = "transcript_replay_truncated_notice"
 	KeyPlaceholderInput                  = "placeholder_input"
 	KeyInputHintApproveThree             = "input_hint_approve_three" // placeholder when waiting for 1/2/3 (Run/Dismiss/Copy)
 	KeyInputHintSensitive                = "input_hint_sensitive"     // placeholder when waiting for 1/2/3 (sensitive)
@@ -329,6 +330,7 @@ Quit (**Ctrl+C** also works).
 		KeyCommandExecWaitOrCancel:              "(Command running — press Esc to cancel)",
 		KeyExecStreamPreviewHeader:              "Output (last lines):",
 		KeyExecStreamTranscriptTruncatedHint:    "%d earlier output line(s) omitted in the transcript; full output is stored in session history.",
+		KeyTranscriptReplayTruncatedNotice:      "------ Replay truncated to the latest %d lines. Use /history to view older content. ------",
 		KeyPlaceholderInput:                     "Type your question or / for slash commands.",
 		KeyInputHistBrowsingHint:                "↑/↓ input history · Enter to send · any other key edits",
 		KeyInputHintApproveThree:                "1, 2 or 3",

@@ -27,6 +27,14 @@ type Model struct {
 	Input           textarea.Model
 	messages        []string
 	printedMessages int
+	// screenTranscriptStart is the earliest transcript line known to be present on the current
+	// screen/scrollback since the last clear+replay. Normal incremental printing keeps this at 0;
+	// replaying only the recent transcript tail advances it so View() pads against the replayed tail
+	// instead of the full historical transcript.
+	screenTranscriptStart int
+	// screenPrefixRows counts non-transcript replay rows currently occupying space above the bottom chrome,
+	// e.g. a temporary "replay truncated" banner printed before the replayed transcript tail.
+	screenPrefixRows int
 	// recenterStartupTitleOnce: first WindowSize replaces the default-width-centered title with contentWidth().
 	recenterStartupTitleOnce bool
 	ChoiceCard               ChoiceCardState
@@ -108,10 +116,10 @@ func (m *Model) LayoutHeight() int {
 
 // OverlayState stores generic modal overlay state shared across features.
 type OverlayState struct {
-	Active   bool
-	Key      string
-	Title    string
-	Content  string
+	Active  bool
+	Key     string
+	Title   string
+	Content string
 	// Footer is optional: shown below the scroll viewport (not scrolled), e.g. history preview shortcuts.
 	Footer string
 	// MarkdownSource when non-empty: Content is re-rendered from this via [RenderHelpMarkdown] on open and resize.

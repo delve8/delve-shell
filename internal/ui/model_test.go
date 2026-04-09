@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -320,6 +321,112 @@ func TestTerminalWrappedRowsAccountsForSoftWrap(t *testing.T) {
 	}
 	if got := terminalWrappedRows(text, 3); got != 4 {
 		t.Fatalf("expected 4 display lines at width 3, got %d", got)
+	}
+}
+
+func TestPrintedTranscriptLineCountUsesScreenTranscriptStart(t *testing.T) {
+	m := NewModel(nil, nil)
+	m.layout.Width = 20
+	m.WithTranscriptLines([]string{
+		"1111111111",
+		"2222222222",
+		"3333333333",
+		"4444444444",
+	})
+	m.printedMessages = len(m.messages)
+	m.screenTranscriptStart = 2
+
+	if got := m.printedTranscriptLineCount(); got != 2 {
+		t.Fatalf("printedTranscriptLineCount=%d want 2 from replayed tail only", got)
+	}
+}
+
+func TestRecentTranscriptReplayStartCapsToLatest100k(t *testing.T) {
+	end := maxFullTranscriptReplayLines + 5
+	if got := recentTranscriptReplayStart(0, end); got != 5 {
+		t.Fatalf("recentTranscriptReplayStart=%d want 5", got)
+	}
+	if got := recentTranscriptReplayStart(10, end); got != 10 {
+		t.Fatalf("recentTranscriptReplayStart must not move before explicit start, got %d", got)
+	}
+}
+
+func TestPrintTranscriptFromCmdUsesBulkWriteChunks(t *testing.T) {
+	m := NewModel(nil, nil)
+	lines := make([]string, transcriptBulkPrintChunkLines*2+1)
+	for i := range lines {
+		lines[i] = strings.Repeat("z", 18)
+	}
+	m.WithTranscriptLines(lines)
+	cmd := m.printTranscriptFromCmd(0, false)
+	if cmd == nil {
+		t.Fatal("expected non-nil print cmd")
+	}
+	msg := cmd()
+	v := reflect.ValueOf(msg)
+	if v.Kind() != reflect.Slice {
+		t.Fatalf("expected sequence message slice, got %T", msg)
+	}
+	wantCmds := 3 + 1 // three bulk prints + transcriptPrintedMsg
+	if got := v.Len(); got != wantCmds {
+		t.Fatalf("bulk print cmd count=%d want %d", got, wantCmds)
+	}
+}
+
+func TestClearScrollbackCmdEmitsEraseEntireDisplay(t *testing.T) {
+	cmd := clearScrollbackCmd()
+	if cmd == nil {
+		t.Fatal("expected clear scrollback cmd")
+	}
+	msg := cmd()
+	v := reflect.ValueOf(msg)
+	if v.Kind() != reflect.Struct {
+		t.Fatalf("expected printLineMessage struct, got %T", msg)
+	}
+	body := v.FieldByName("messageBody")
+	if !body.IsValid() || body.Kind() != reflect.String {
+		t.Fatalf("expected messageBody field on %T", msg)
+	}
+	got := body.String()
+	if !strings.Contains(got, ansi.EraseEntireDisplay) {
+		t.Fatalf("clearScrollbackCmd body %q missing erase-entire-display sequence", got)
+	}
+}
+
+func TestReplayTruncatedNoticeLinesShownOnlyWhenCapped(t *testing.T) {
+	m := NewModel(nil, nil)
+	m.layout.Width = 80
+	if got := m.replayTruncatedNoticeLines(0); got != nil {
+		t.Fatalf("expected no replay notice without truncation, got %#v", got)
+	}
+	got := m.replayTruncatedNoticeLines(1)
+	if len(got) != 3 {
+		t.Fatalf("expected three notice lines, got %d", len(got))
+	}
+	if !strings.Contains(ansi.Strip(got[1]), "/history") {
+		t.Fatalf("expected replay notice to mention /history, got %q", got[1])
+	}
+}
+
+func TestFinalizeUpdateOverlayCloseReplaysLatest100kLines(t *testing.T) {
+	m := NewModel(nil, nil)
+	lines := make([]string, maxFullTranscriptReplayLines+5)
+	for i := range lines {
+		lines[i] = "line"
+	}
+	m.WithTranscriptLines(lines)
+	m.printedMessages = len(m.messages)
+	m.Overlay.Active = false
+
+	_, cmd := finalizeUpdate(true, m, nil)
+	if cmd == nil {
+		t.Fatal("expected overlay close to schedule replay")
+	}
+	if m.screenTranscriptStart != 5 {
+		t.Fatalf("screenTranscriptStart=%d want 5", m.screenTranscriptStart)
+	}
+	if m.screenPrefixRows <= 0 {
+		t.Fatalf("screenPrefixRows=%d want > 0 for truncated replay banner", m.screenPrefixRows)
 	}
 }
 

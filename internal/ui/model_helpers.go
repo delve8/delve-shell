@@ -6,6 +6,9 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
+
+	"delve-shell/internal/i18n"
+	"delve-shell/internal/textwrap"
 )
 
 const (
@@ -20,6 +23,12 @@ const (
 	// stay in a stable vertical band across idle / processing / slash-open (padded with blanks when needed).
 	inputBelowStableRows   = 5
 	maxInputHistoryEntries = 200
+	// maxFullTranscriptReplayLines caps clear+replay work so overlay close does not become pathological
+	// on very long histories. Older transcript stays in logical history; only replay is capped.
+	maxFullTranscriptReplayLines = 100000
+	// transcriptBulkPrintChunkLines groups multiple transcript rows into one tea.Println during replay.
+	// Bubble Tea still splits by '\n', but this avoids one tea.Msg per logical transcript line.
+	transcriptBulkPrintChunkLines = 512
 )
 
 // ReadModel provides host-derived read-only state needed by UI rendering and local decisions.
@@ -87,12 +96,16 @@ func (m *Model) TranscriptLines() []string {
 func (m *Model) WithTranscriptLines(lines []string) {
 	if len(lines) == 0 {
 		m.messages = nil
+		m.screenTranscriptStart = 0
+		m.screenPrefixRows = 0
 		m.recenterStartupTitleOnce = false
 		return
 	}
 	out := make([]string, len(lines))
 	copy(out, lines)
 	m.messages = out
+	m.screenTranscriptStart = 0
+	m.screenPrefixRows = 0
 	m.recenterStartupTitleOnce = false
 }
 
@@ -108,17 +121,54 @@ func teaCmdForMsg(msg tea.Msg) tea.Cmd {
 	return func() tea.Msg { return msg }
 }
 
+func clearScrollbackCmd() tea.Cmd {
+	// Best-effort: many terminals honor CSI 3J to clear scrollback, but some multiplexers/IDE
+	// terminals ignore it. Follow with normal clear+replay so the current screen is deterministic.
+	return tea.Printf("%s%s", ansi.EraseEntireDisplay, ansi.CursorHomePosition)
+}
+
 func (m *Model) printTranscriptCmd(clearFirst bool) tea.Cmd {
-	if m.Overlay.Active || m.printedMessages >= len(m.messages) {
+	return m.printTranscriptFromCmd(m.printedMessages, clearFirst)
+}
+
+func (m *Model) printTranscriptFromCmd(start int, clearFirst bool) tea.Cmd {
+	return m.printTranscriptWithPrefixCmd(start, clearFirst, nil)
+}
+
+func (m *Model) printTranscriptWithPrefixCmd(start int, clearFirst bool, prefix []string) tea.Cmd {
+	if m.Overlay.Active {
 		return nil
 	}
-	cmds := make([]tea.Cmd, 0, len(m.messages)-m.printedMessages+1)
+	end := len(m.messages)
+	if start < 0 {
+		start = 0
+	}
+	if start > end {
+		start = end
+	}
+	if clearFirst {
+		start = recentTranscriptReplayStart(start, end)
+	}
+	if !clearFirst && start >= end {
+		return nil
+	}
+	cmds := make([]tea.Cmd, 0, (end-start)/max(1, transcriptBulkPrintChunkLines)+2)
 	if clearFirst {
 		cmds = append(cmds, teaCmdForMsg(tea.ClearScreen()))
+		m.screenTranscriptStart = start
+		m.screenPrefixRows = renderedLineRows(prefix, m.contentWidth())
+	} else if len(prefix) > 0 {
+		m.screenPrefixRows += renderedLineRows(prefix, m.contentWidth())
 	}
-	end := len(m.messages)
-	for _, line := range m.messages[m.printedMessages:end] {
+	for _, line := range prefix {
 		cmds = append(cmds, tea.Println(line))
+	}
+	for i := start; i < end; i += transcriptBulkPrintChunkLines {
+		j := i + transcriptBulkPrintChunkLines
+		if j > end {
+			j = end
+		}
+		cmds = append(cmds, tea.Println(strings.Join(m.messages[i:j], "\n")))
 	}
 	// Sync printed count before async cmds run: a second WindowSize (or other Update) can arrive
 	// after this return but before transcriptPrintedMsg; without this, the same lines are enqueued twice.
@@ -127,6 +177,45 @@ func (m *Model) printTranscriptCmd(clearFirst bool) tea.Cmd {
 		return transcriptPrintedMsg{upTo: end}
 	})
 	return tea.Sequence(cmds...)
+}
+
+func recentTranscriptReplayStart(start, end int) int {
+	if start < 0 {
+		start = 0
+	}
+	if end < start {
+		return start
+	}
+	if maxFullTranscriptReplayLines > 0 {
+		floor := end - maxFullTranscriptReplayLines
+		if floor > start {
+			start = floor
+		}
+	}
+	return start
+}
+
+func renderedLineRows(lines []string, width int) int {
+	total := 0
+	for _, line := range lines {
+		total += terminalWrappedRows(line, width)
+	}
+	return total
+}
+
+func (m *Model) replayTruncatedNoticeLines(start int) []string {
+	if start <= 0 {
+		return nil
+	}
+	msg := hintStyle.Render(textwrap.WrapString(
+		i18n.Tf(i18n.KeyTranscriptReplayTruncatedNotice, maxFullTranscriptReplayLines),
+		m.contentWidth(),
+	))
+	return []string{
+		renderSeparator(m.contentWidth()),
+		msg,
+		renderSeparator(m.contentWidth()),
+	}
 }
 
 func (m *Model) withTranscriptReplaced(lines []string) {
@@ -281,14 +370,21 @@ func (m *Model) primaryInputLineCount() int {
 
 func (m *Model) printedTranscriptLineCount() int {
 	if m.printedMessages <= 0 || len(m.messages) == 0 {
-		return 0
+		return m.screenPrefixRows
 	}
 	limit := m.printedMessages
 	if limit > len(m.messages) {
 		limit = len(m.messages)
 	}
-	total := 0
-	for _, line := range m.messages[:limit] {
+	start := m.screenTranscriptStart
+	if start < 0 {
+		start = 0
+	}
+	if start > limit {
+		start = limit
+	}
+	total := m.screenPrefixRows
+	for _, line := range m.messages[start:limit] {
 		total += terminalWrappedRows(line, m.contentWidth())
 	}
 	return total
@@ -335,16 +431,17 @@ func finalizeUpdate(prevOverlayActive bool, m *Model, cmd tea.Cmd) (tea.Model, t
 		)
 	}
 	if prevOverlayActive && !m.Overlay.Active {
-		// The main screen restored by ExitAltScreen can be stale relative to the current model
-		// (for example, slash input was cleared before opening the overlay). Force a repaint by
-		// replaying transcript printing from the top after leaving alt-screen.
-		m.printedMessages = 0
-		printCmd := m.printTranscriptCmd(true)
+		// The main screen restored by ExitAltScreen can be stale relative to the current model.
+		// Replay the recent transcript tail from the top; older history remains in logical transcript
+		// but is intentionally not redrawn to keep replay work bounded.
+		start := recentTranscriptReplayStart(0, len(m.messages))
+		printCmd := m.printTranscriptWithPrefixCmd(start, true, m.replayTruncatedNoticeLines(start))
 		return m, tea.Sequence(
 			teaCmdForMsg(tea.ExitAltScreen()),
 			// Reset terminal mouse tracking after leaving the alt-screen overlay (viewport may have
 			// left modes like SGR mouse enabled on some emulators after auth / multi-field dialogs).
 			teaCmdForMsg(tea.DisableMouse()),
+			clearScrollbackCmd(),
 			cmd,
 			printCmd,
 		)
