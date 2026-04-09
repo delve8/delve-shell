@@ -51,7 +51,7 @@ func registerSlashOptionsProviders() {
 
 func rootSlashOptions(lang string) []ui.SlashOption {
 	opts := []ui.SlashOption{
-		{Cmd: "/access", Desc: i18n.T(i18n.KeyDescRemoteOn)},
+		{Cmd: "/access", Desc: i18n.T(i18n.KeyDescAccess)},
 		{Cmd: "/skill", Desc: i18n.T(i18n.KeyDescSkill)},
 		// Hidden from root / picker for now; direct /exec still works. Uncomment to show again.
 		// {Cmd: slashExecUsageOption, Desc: i18n.T(i18n.KeyDescRun)},
@@ -59,7 +59,7 @@ func rootSlashOptions(lang string) []ui.SlashOption {
 	opts = append(opts, bashRootSlashOptions(lang)...)
 	opts = append(opts, []ui.SlashOption{
 		{Cmd: "/config", Desc: i18n.T(i18n.KeyDescConfig)},
-		{Cmd: "/new", Desc: i18n.T(i18n.KeySessionNew)},
+		{Cmd: "/new", Desc: i18n.T(i18n.KeyDescNewSession)},
 		{Cmd: "/history", Desc: i18n.T(i18n.KeyDescSessions)},
 		{Cmd: "/help", Desc: i18n.T(i18n.KeyDescHelp)},
 		{Cmd: "/quit", Desc: i18n.T(i18n.KeyDescExit)},

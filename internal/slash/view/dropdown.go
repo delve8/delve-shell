@@ -2,7 +2,8 @@ package slashview
 
 import (
 	"fmt"
-	"strings"
+
+	"github.com/mattn/go-runewidth"
 )
 
 type Row struct {
@@ -50,86 +51,31 @@ func BuildDropdownRows(opts []Option, vis []int, suggestIndex int, layoutWidth i
 	if layoutWidth > 4 {
 		maxLineLen = layoutWidth - 4
 	}
-	remainingLines := maxVisible
 	rows := make([]Row, 0, maxVisible)
-	for i := start; i < end && remainingLines > 0; i++ {
+	for i := start; i < end; i++ {
 		vi := vis[i]
 		opt := opts[vi]
-		cmdText := opt.Cmd
-
-		if opt.Desc != "" && maxLineLen > 0 {
-			descRunes := []rune(opt.Desc)
-			prefixRunes := 3 + cmdWidth + 2
-			descFirstW := maxLineLen - prefixRunes
-			if descFirstW < 8 {
-				rows = append(rows, Row{Text: fmt.Sprintf("%-*s", cmdWidth, cmdText), Highlight: i == hiIdx})
-				remainingLines--
-				if remainingLines <= 0 {
-					break
-				}
-				indent := strings.Repeat(" ", cmdWidth) + "  "
-				descW := maxLineLen - len([]rune("   "+indent))
-				if descW < 10 {
-					descW = 10
-				}
-				if descW > len(descRunes) {
-					descW = len(descRunes)
-				}
-				if descW < 1 {
-					descW = 1
-				}
-				for j := 0; j < len(descRunes) && remainingLines > 0; j += descW {
-					endJ := j + descW
-					if endJ > len(descRunes) {
-						endJ = len(descRunes)
-					}
-					rows = append(rows, Row{Text: indent + string(descRunes[j:endJ])})
-					remainingLines--
-				}
-				continue
-			}
-
-			if descFirstW > len(descRunes) {
-				descFirstW = len(descRunes)
-			}
-			firstChunk := string(descRunes[:descFirstW])
-			rows = append(rows, Row{
-				Text:      fmt.Sprintf("%-*s  %s", cmdWidth, cmdText, firstChunk),
-				Highlight: i == hiIdx,
-			})
-			remainingLines--
-			if remainingLines <= 0 {
-				break
-			}
-			rest := descRunes[descFirstW:]
-			if len(rest) > 0 {
-				indent := strings.Repeat(" ", cmdWidth) + "  "
-				descW := maxLineLen - len([]rune("   "+indent))
-				if descW < 10 {
-					descW = 10
-				}
-				if descW > len(rest) {
-					descW = len(rest)
-				}
-				if descW < 1 {
-					descW = 1
-				}
-				for j := 0; j < len(rest) && remainingLines > 0; j += descW {
-					endJ := j + descW
-					if endJ > len(rest) {
-						endJ = len(rest)
-					}
-					rows = append(rows, Row{Text: indent + string(rest[j:endJ])})
-					remainingLines--
-				}
-			}
-		} else {
-			rows = append(rows, Row{
-				Text:      fmt.Sprintf("%-*s", cmdWidth, cmdText),
-				Highlight: i == hiIdx,
-			})
-			remainingLines--
+		line := fmt.Sprintf("%-*s", cmdWidth, opt.Cmd)
+		if opt.Desc != "" {
+			line += "  " + opt.Desc
 		}
+		if maxLineLen > 0 {
+			line = truncateDropdownLine(line, maxLineLen)
+		}
+		rows = append(rows, Row{Text: line, Highlight: i == hiIdx})
 	}
 	return rows
+}
+
+func truncateDropdownLine(s string, maxWidth int) string {
+	if maxWidth <= 0 {
+		return ""
+	}
+	if runewidth.StringWidth(s) <= maxWidth {
+		return s
+	}
+	if maxWidth <= 3 {
+		return runewidth.Truncate(s, maxWidth, "")
+	}
+	return runewidth.Truncate(s, maxWidth, "...")
 }

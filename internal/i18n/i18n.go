@@ -107,9 +107,12 @@ const (
 	KeyHistoryPreviewEmpty  = "history_preview_empty"  // overlay body when file has no lines yet
 	KeyHistoryPreviewFooter = "history_preview_footer" // hint under preview (Esc / scroll)
 	KeyDescSessions         = "desc_sessions"          // slash: /history description
+	KeyDescNewSession       = "desc_new_session"
 	// KeyHistorySessionCurrentSuffix is appended after the session id in the /history picker Cmd (e.g. " [Current]").
 	KeyHistorySessionCurrentSuffix = "history_session_current_suffix"
 	KeySessionNone                 = "session_none"
+	KeyDescAccess                  = "desc_access"
+	KeyDescAccessNew               = "desc_access_new"
 	KeyDelRemoteNoHosts            = "del_remote_no_hosts" // slash dropdown when no remotes to remove (Cmd-only row, like KeySkillNone)
 	KeyDescRemoteOn                = "desc_remote_on"
 	KeyDescRemoteOff               = "desc_remote_off"
@@ -264,11 +267,11 @@ Show this help.
 
 ### /config
 
-Config subcommands (see list below).
+Manage models, hosts and skills.
 
 ### /config del-remote
 
-Remove a remote.
+Remove a remote host.
 
 ### /config del-skill {skill_name}
 
@@ -276,27 +279,27 @@ Remove an installed skill.
 
 ### /config update-skill {skill_name}
 
-Update an installed skill from its git source (branch/tag selectable in dialog).
+Update an installed skill.
 
 ### /config model
 
-Configure model (LLM API).
+Configure model settings.
 
 ### /access
 
-Connect over SSH: dropdown lists saved hosts first, then **/access New** (add target), then **/access Local** (use local executor). Host segment in saved targets must be lowercase so **/access Local** and **/access New** do not collide with host names.
+Switch the execution target. The dropdown lists saved hosts first, then **/access New** (add a host), **/access Local** (use the local executor), and **/access Offline** (manual relay mode). Host segments in saved targets must be lowercase so reserved rows like **/access Local** and **/access New** do not collide with host names.
 
 ### /access New
 
-Open Add Remote (new SSH target; optional save to config).
+Add a remote host.
 
 ### /access Local
 
-Disconnect from remote and run commands locally.
+Switch to local execution.
 
-### /access [user@host or host]
+### /access {user@host or host}
 
-Connect to a saved host or enter user@host.
+Connect to a saved host or enter a new host.
 
 ### /new
 
@@ -304,15 +307,15 @@ Start a new session.
 
 ### /history
 
-List and switch history sessions. Flow: **/history** → pick a row (Tab/Enter fills **/history {id}**) → submit opens a read-only preview → Enter in the dialog switches the active session; Esc closes without switching. Only the first word after **/history** is the session id (trailing text is ignored). Dropdown lines show a one-line summary of the first turn.
+Browse and switch sessions. Flow: **/history** → pick a row (Tab/Enter fills **/history {id}**) → submit opens a read-only preview → Enter in the dialog switches the active session; Esc closes without switching. Only the first word after **/history** is the session id (trailing text is ignored). Dropdown lines show a one-line summary of the first turn.
 
 ### /skill
 
-Run an installed skill for the current chat turn. Skills are directories under **~/.delve-shell/skills/** (each with **SKILL.md**). Type **/skill** to open the slash list of installed skills plus **/skill New** (install dialog), or type **/skill** followed by the skill directory name. Text after the first word (the skill name) is optional; when present it is passed to the AI as extra context for that turn. To install or remove skills, use **/skill New** and **/config del-skill**.
+Use an installed skill for the current turn. Skills are directories under **~/.delve-shell/skills/** (each with **SKILL.md**). Type **/skill** to open the slash list of installed skills plus **/skill New** (install dialog), or type **/skill** followed by the skill directory name. Text after the first word (the skill name) is optional; when present it is passed to the AI as extra context for that turn. To install or remove skills, use **/skill New** and **/config del-skill**.
 
-### /skill {name} [...]
+### /skill {name} [text]
 
-Use a skill; optional extra text after the name is passed to the AI for this turn.
+Use a skill. Optional text after the name is passed to the AI for this turn.
 
 ### /skill New
 
@@ -370,9 +373,9 @@ Quit (**Ctrl+C** also works).
 		KeyDescExit:                             "Quit delve-shell",
 		KeyDescRun:                              "Execute a command directly (no AI)",
 		KeyDescSh:                               "Spawn bash",
-		KeyDescConfig:                           "Config subcommands",
-		KeyDescHelp:                             "Show this help",
-		KeyDescConfigRemoveRemote:               "Remove a remote",
+		KeyDescConfig:                           "Manage models, hosts and skills",
+		KeyDescHelp:                             "Show help",
+		KeyDescConfigRemoveRemote:               "Remove a remote host",
 		KeyRunTagSuggested:                      "suggested",
 		KeySuggestedCopyHint:                    "Select the command above to copy, or use /exec <cmd> to run it.",
 		KeySuggestedCopied:                      "Copied to clipboard.",
@@ -390,13 +393,16 @@ Quit (**Ctrl+C** also works).
 		KeyHistoryPreviewTitle:                  "History · %s",
 		KeyHistoryPreviewEmpty:                  "(No messages in this history yet.)",
 		KeyHistoryPreviewFooter:                 "Enter to switch · PgUp/PgDn to scroll · Esc to cancel",
-		KeyDescSessions:                         "List and switch history sessions",
+		KeyDescSessions:                         "Browse and switch sessions",
+		KeyDescNewSession:                       "Start a new session",
 		KeyHistorySessionCurrentSuffix:          " [Current]",
 		KeySessionNone:                          "No previous history.",
+		KeyDescAccess:                           "Switch execution target",
+		KeyDescAccessNew:                        "Add a remote host",
 		KeyDelRemoteNoHosts:                     "No hosts.",
-		KeyDescRemoteOn:                         "Connect to host",
-		KeyDescRemoteOff:                        "Disconnect from remote host",
-		KeyDescAccessOffline:                    "Offline mode (paste results back)",
+		KeyDescRemoteOn:                         "Connect to a host",
+		KeyDescRemoteOff:                        "Switch to local execution",
+		KeyDescAccessOffline:                    "Work offline and paste results",
 		KeyOfflinePasteTitle:                    "Offline — paste output in the box below",
 		KeyOfflinePasteIntro:                    "This command is not run here. Paste the results back after you run it elsewhere.",
 		KeyOfflinePasteReview:                   "Review the command before running it elsewhere.",
@@ -460,14 +466,14 @@ Quit (**Ctrl+C** also works).
 		KeyConfigModelCheckOK:                   "Model check OK.",
 		KeyConfigModelCheckFailed:               "Model check failed: %v",
 		KeyConfigModelBaseURLAutoCorrected:      "Base URL updated to %s (added /v1).",
-		KeyDescConfigModel:                      "Configure model (LLM API)",
-		KeyDescSkill:                            "Use skill; optional text after the name for the AI",
-		KeyUsageSkill:                           "Usage: /skill {name} [...] (text after the name is optional)",
+		KeyDescConfigModel:                      "Configure model settings",
+		KeyDescSkill:                            "Use a skill",
+		KeyUsageSkill:                           "Usage: /skill {name} [text] (text after the name is optional)",
 		KeySkillNotFound:                        "Skill not found.",
 		KeySkillNone:                            "No skills (add dirs with SKILL.md under ~/.delve-shell/skills/)",
 		KeyDescSkillInstall:                     "Install a skill from a git repo",
 		KeyDescSkillRemove:                      "Remove an installed skill",
-		KeyDescConfigUpdateSkill:                "Update an installed skill from its git source",
+		KeyDescConfigUpdateSkill:                "Update an installed skill",
 		KeyAddSkillTitle:                        "Add skill",
 		KeyAddSkillURLLabel:                     "Git URL:",
 		KeyAddSkillRefLabel:                     "Ref — branch or tag:",
