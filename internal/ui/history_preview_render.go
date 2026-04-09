@@ -52,6 +52,8 @@ func RenderHistoryPreviewTranscript(lines []uivm.Line, width int) string {
 			rendered = append(rendered, formatUserTranscriptLines(i18n.T(i18n.KeyTranscriptUserPrompt), l.Text, width)...)
 		case uivm.LineAI:
 			rendered = append(rendered, renderAILineTranscript(l.Text, width)...)
+		case uivm.LineHint:
+			rendered = append(rendered, hintStyle.Render(textwrap.WrapString(l.Text, width)))
 		case uivm.LineSystemSuggest:
 			rendered = append(rendered, infoStyle.Render(i18n.T(i18n.KeyInfoLabel)+textwrap.WrapString(l.Text, width)))
 		case uivm.LineSystemError:

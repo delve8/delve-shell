@@ -354,6 +354,34 @@ func TestAppendTranscriptUserLinesTreatsOldSeparatorWidthAsSameSeparator(t *test
 	}
 }
 
+func TestAppendUserTranscriptLineKeepsSingleSeparator(t *testing.T) {
+	m := NewModel(nil, nil)
+	m.WithTranscriptLines([]string{"existing", renderShortSeparator(20)})
+	m.appendUserTranscriptLine("hello")
+	count := 0
+	for _, line := range m.messages {
+		if isRenderedShortSeparator(line) {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("separator count=%d want 1 in %#v", count, m.messages)
+	}
+}
+
+func TestAppendSuggestedLineRendersHintWithoutInfoPrefix(t *testing.T) {
+	m := NewModel(nil, nil)
+	m.layout.Width = 80
+	m.WithTranscriptLines(nil)
+	m.appendSuggestedLine("echo hi")
+	if len(m.messages) < 2 {
+		t.Fatalf("want run line + hint, got %#v", m.messages)
+	}
+	if strings.Contains(ansi.Strip(m.messages[1]), "Info:") {
+		t.Fatalf("suggested hint should not gain info prefix: %q", m.messages[1])
+	}
+}
+
 func TestTerminalWrappedRowsAccountsForSoftWrap(t *testing.T) {
 	if got := terminalWrappedRows("", 10); got != 1 {
 		t.Fatalf("empty message is one blank row (tea.Println), got %d", got)
@@ -489,6 +517,9 @@ func TestFinalizeUpdateOverlayCloseReplaysLatest100kLines(t *testing.T) {
 	}
 	if m.screenPrefixRows <= 0 {
 		t.Fatalf("screenPrefixRows=%d want > 0 for truncated replay banner", m.screenPrefixRows)
+	}
+	if strings.Contains(strings.Join(m.messages, "\n"), "/history") {
+		t.Fatalf("replay truncated notice must not be stored in transcript: %#v", m.messages)
 	}
 }
 

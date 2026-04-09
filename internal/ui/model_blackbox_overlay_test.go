@@ -34,6 +34,17 @@ func TestBlackboxOverlayEscRunsFeatureResetHook(t *testing.T) {
 	}
 }
 
+func TestBlackboxOverlayEscKeepsSingleTranscriptEcho(t *testing.T) {
+	f := newBlackboxFixture(t)
+	m := enterText(f.model, "/access New")
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	got := next.(*ui.Model)
+	transcript := strings.Join(got.TranscriptLines(), "\n")
+	if strings.Count(transcript, "/access New") != 1 {
+		t.Fatalf("expected one preserved user echo after overlay close, got %q", transcript)
+	}
+}
+
 func TestBlackboxEscSendsCancelRequest(t *testing.T) {
 	f := newBlackboxFixture(t)
 	f.model.Interaction.WaitingForAI = true

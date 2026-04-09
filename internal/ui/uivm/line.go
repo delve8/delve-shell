@@ -11,6 +11,7 @@ const (
 
 	LineUser
 	LineAI
+	LineHint
 	LineSystemSuggest
 	LineSystemError
 

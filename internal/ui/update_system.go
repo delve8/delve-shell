@@ -243,6 +243,8 @@ func (m *Model) renderTranscriptLines(lines []uivm.Line) []string {
 			rendered = append(rendered, formatUserTranscriptLines(i18n.T(i18n.KeyTranscriptUserPrompt), l.Text, w)...)
 		case uivm.LineAI:
 			rendered = append(rendered, renderAILineTranscript(l.Text, w)...)
+		case uivm.LineHint:
+			rendered = append(rendered, hintStyle.Render(textwrap.WrapString(l.Text, w)))
 		case uivm.LineSystemSuggest:
 			rendered = append(rendered, infoStyle.Render(m.infoMsg(textwrap.WrapString(l.Text, w))))
 		case uivm.LineSystemError:

@@ -55,8 +55,10 @@ func (m *Model) renderScreenSnapshot() string {
 // appendSuggestedLine appends the run line and copy hint for a suggested command (when dismissing the card).
 func (m *Model) appendSuggestedLine(command string) {
 	line := FormatRunTranscriptLine(i18n.T(i18n.KeyRunLineSuggested), command)
-	m.appendSemanticTranscriptLines(uivm.Line{Kind: uivm.LineExec, Text: line})
-	m.AppendTranscriptLines(hintStyle.Render(i18n.T(i18n.KeySuggestedCopyHint)))
+	m.appendSemanticTranscriptLines(
+		uivm.Line{Kind: uivm.LineExec, Text: line},
+		uivm.Line{Kind: uivm.LineHint, Text: i18n.T(i18n.KeySuggestedCopyHint)},
+	)
 }
 
 func (m *Model) titleBarStatus() widget.TitleBarStatus {

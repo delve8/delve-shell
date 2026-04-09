@@ -6,7 +6,6 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 
-	"delve-shell/internal/i18n"
 	"delve-shell/internal/input/lifecycletype"
 	"delve-shell/internal/input/maininput"
 	"delve-shell/internal/input/preflight"
@@ -154,8 +153,15 @@ func (m *Model) appendUserTranscriptLine(text string) {
 	if text == "" {
 		return
 	}
-	w := m.contentWidth()
-	m.messages = appendTranscriptUserLines(m.messages, i18n.T(i18n.KeyTranscriptUserPrompt), text, w)
+	lines := make([]uivm.Line, 0, 3)
+	if len(m.messages) > 0 && !isRenderedShortSeparator(m.messages[len(m.messages)-1]) {
+		lines = append(lines, uivm.Line{Kind: uivm.LineSeparator})
+	}
+	lines = append(lines,
+		uivm.Line{Kind: uivm.LineUser, Text: text},
+		uivm.Line{Kind: uivm.LineBlank},
+	)
+	m.appendSemanticTranscriptLines(lines...)
 }
 
 func (m *Model) appendSubmissionError(err error) (*Model, tea.Cmd) {
