@@ -154,7 +154,7 @@ func (m *Model) appendUserTranscriptLine(text string) {
 		return
 	}
 	w := m.contentWidth()
-	sepLine := renderSeparator(w)
+	sepLine := renderShortSeparator(w)
 	m.messages = appendTranscriptUserLines(m.messages, i18n.T(i18n.KeyTranscriptUserPrompt), text, w, sepLine)
 }
 

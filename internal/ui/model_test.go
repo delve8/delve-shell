@@ -136,7 +136,7 @@ func TestBottomChromeReserveRowsAtLeastInputChromeHeight(t *testing.T) {
 	m := NewModel(nil, nil)
 	m.layout.Width = 80
 	m.layout.Height = 24
-	bottom := renderSeparator(m.layout.Width) + "\n" + m.Input.View() + m.inputBelowBlock(false) + m.footerLine()
+	bottom := renderShortSeparator(m.layout.Width) + "\n" + m.Input.View() + m.inputBelowBlock(false) + m.footerLine()
 	if got := m.bottomChromeReserveRows(bottom); got < m.inputChromeHeight() {
 		t.Fatalf("bottomChromeReserveRows=%d want >= inputChromeHeight=%d", got, m.inputChromeHeight())
 	}
@@ -160,7 +160,7 @@ func TestMainTopPaddingLinesShrinksAsTranscriptPrints(t *testing.T) {
 	m := NewModel(nil, nil)
 	m.layout.Width = 80
 	m.layout.Height = 24
-	bottom := renderSeparator(m.layout.Width) + "\n" + m.Input.View() + m.inputBelowBlock(false) + m.footerLine()
+	bottom := renderShortSeparator(m.layout.Width) + "\n" + m.Input.View() + m.inputBelowBlock(false) + m.footerLine()
 
 	initialPad := m.normalModeTopPaddingLines(bottom)
 	if initialPad <= 0 {
@@ -183,14 +183,14 @@ func TestMainTopPaddingLinesAccountsForTerminalWidth(t *testing.T) {
 	line := strings.Repeat("x", 60)
 	wide.WithTranscriptLines([]string{line})
 	wide.printedMessages = len(wide.messages)
-	wideBottom := renderSeparator(wide.layout.Width) + "\n" + wide.Input.View() + wide.inputBelowBlock(false) + wide.footerLine()
+	wideBottom := renderShortSeparator(wide.layout.Width) + "\n" + wide.Input.View() + wide.inputBelowBlock(false) + wide.footerLine()
 
 	narrow := NewModel(nil, nil)
 	narrow.layout.Width = 20
 	narrow.layout.Height = 24
 	narrow.WithTranscriptLines([]string{line})
 	narrow.printedMessages = len(narrow.messages)
-	narrowBottom := renderSeparator(narrow.layout.Width) + "\n" + narrow.Input.View() + narrow.inputBelowBlock(false) + narrow.footerLine()
+	narrowBottom := renderShortSeparator(narrow.layout.Width) + "\n" + narrow.Input.View() + narrow.inputBelowBlock(false) + narrow.footerLine()
 
 	if narrow.normalModeTopPaddingLines(narrowBottom) >= wide.normalModeTopPaddingLines(wideBottom) {
 		t.Fatalf("expected narrower terminal to leave less top padding, wide=%d narrow=%d", wide.normalModeTopPaddingLines(wideBottom), narrow.normalModeTopPaddingLines(narrowBottom))

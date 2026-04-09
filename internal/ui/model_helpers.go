@@ -29,6 +29,9 @@ const (
 	// transcriptBulkPrintChunkLines groups multiple transcript rows into one tea.Println during replay.
 	// Bubble Tea still splits by '\n', but this avoids one tea.Msg per logical transcript line.
 	transcriptBulkPrintChunkLines = 512
+	// shortSeparatorMaxWidth keeps transcript/chrome separators visually stable on resize instead of
+	// drawing nearly full-width rules that can look messy near the terminal edge.
+	shortSeparatorMaxWidth = 48
 )
 
 // ReadModel provides host-derived read-only state needed by UI rendering and local decisions.
@@ -212,9 +215,9 @@ func (m *Model) replayTruncatedNoticeLines(start int) []string {
 		m.contentWidth(),
 	))
 	return []string{
-		renderSeparator(m.contentWidth()),
+		renderShortSeparator(m.contentWidth()),
 		msg,
-		renderSeparator(m.contentWidth()),
+		renderShortSeparator(m.contentWidth()),
 	}
 }
 
@@ -458,6 +461,26 @@ func renderSeparator(width int) string {
 	// a full-width line, which breaks our bottom-block line accounting.
 	if width > 1 {
 		width--
+	}
+	return separatorStyle.Render(strings.Repeat("─", width))
+}
+
+func renderShortSeparator(width int) string {
+	if width < 1 {
+		width = 1
+	}
+	if width > 1 {
+		width--
+	}
+	half := width / 2
+	if half < 1 {
+		half = 1
+	}
+	if width > half {
+		width = half
+	}
+	if width > shortSeparatorMaxWidth {
+		width = shortSeparatorMaxWidth
 	}
 	return separatorStyle.Render(strings.Repeat("─", width))
 }

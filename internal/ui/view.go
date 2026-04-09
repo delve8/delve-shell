@@ -30,7 +30,7 @@ func (m *Model) renderBottomBlock() string {
 	if sepW <= 0 {
 		sepW = 40
 	}
-	sepLine := renderSeparator(sepW)
+	sepLine := renderShortSeparator(sepW)
 	footer := m.footerLine()
 
 	inChoice := m.hasPendingChoiceCard()

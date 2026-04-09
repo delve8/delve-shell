@@ -238,7 +238,7 @@ func (m *Model) renderTranscriptLines(lines []uivm.Line) []string {
 		case uivm.LineBlank:
 			rendered = append(rendered, "")
 		case uivm.LineSeparator:
-			rendered = append(rendered, renderSeparator(w))
+			rendered = append(rendered, renderShortSeparator(w))
 		case uivm.LineUser:
 			rendered = append(rendered, formatUserTranscriptLines(i18n.T(i18n.KeyTranscriptUserPrompt), l.Text, w)...)
 		case uivm.LineAI:
