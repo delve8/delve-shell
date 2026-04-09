@@ -2,6 +2,7 @@ package i18n
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -9,6 +10,115 @@ var (
 	langMu      sync.RWMutex
 	currentLang = "en"
 )
+
+const (
+	helpConfigSectionEN            = `Manage models, hosts and skills.`
+	helpConfigDelRemoteSectionEN   = `Remove a remote host.`
+	helpConfigDelSkillSectionEN    = `Remove an installed skill.`
+	helpConfigUpdateSkillSectionEN = `Update an installed skill.`
+	helpConfigModelSectionEN       = `Configure model settings.`
+	helpAccessSectionEN            = `Switch the execution target. The dropdown lists saved hosts first, then **/access New** (add a host), **/access Local** (use the local executor), and **/access Offline** (manual relay mode). Host segments in saved targets must be lowercase so reserved rows like **/access Local** and **/access New** do not collide with host names.`
+	helpAccessNewSectionEN         = `Add a remote host.`
+	helpAccessLocalSectionEN       = `Switch to local execution.`
+	helpAccessHostSectionEN        = `Connect to a saved host or enter a new host.`
+	helpNewSectionEN               = `Start a new session.`
+	helpHistorySectionEN           = `Browse and switch sessions. Flow: **/history** → pick a row (Tab/Enter fills **/history {id}**) → submit opens a read-only preview → Enter in the dialog switches the active session; Esc closes without switching. Only the first word after **/history** is the session id (trailing text is ignored). Dropdown lines show a one-line summary of the first turn.`
+	helpSkillSectionEN             = `Use an installed skill for the current turn. Skills are directories under **~/.delve-shell/skills/** (each with **SKILL.md**). Type **/skill** to open the slash list of installed skills plus **/skill New** (install dialog), or type **/skill** followed by the skill directory name. Text after the first word (the skill name) is optional; when present it is passed to the AI as extra context for that turn. To install or remove skills, use **/skill New** and **/config del-skill**.`
+	helpSkillNameSectionEN         = `Use a skill. Optional text after the name is passed to the AI for this turn.`
+	helpSkillNewSectionEN          = `Open the add-skill dialog (Git URL, ref, path in repo, local name).`
+	helpHelpSectionEN              = `Show help.`
+	helpQuitSectionEN              = `Quit (**Ctrl+C** also works).`
+)
+
+func englishHelpText() string {
+	var b strings.Builder
+	b.WriteString(`# delve-shell
+
+AI-assisted ops. Commands run only after HIL approval (cards or allowlist path).
+
+## What it does
+
+Natural-language tasks drive suggested commands. Allowlisted commands with no shell write redirection run without a card; others show a card (Run, Dismiss, or Copy). An empty allowlist matches nothing, so every command shows the card. Runs are recorded in session history for audit.
+
+## Quick start
+
+1. Enter a task in the input line and press **Enter** to send.
+2. Multi-line input: **Shift+Enter**, **Alt+Enter**, or **Ctrl+J** inserts a newline; **Enter** sends. Many terminals map Shift+Enter like Enter—**Alt+Enter** or **Ctrl+J** is the reliable newline.
+3. On a command card: **1** runs, **2** dismisses without running, **3** copies the command.
+4. **Up/Down** recall recent submitted lines (chat and slash). While a recalled line starts with a slash, Up/Down continues history; slash completion resumes after any other key or after leaving history browse.
+5. Type **/** to open slash suggestions (Up/Down on a slash line; Tab or Enter inserts the highlighted row; Enter submits a complete slash command).
+6. **PgUp/PgDown** scrolls the log; **/help** opens this panel.
+
+## Slash commands
+
+**/exec** is not listed in the **/** menu; type **/exec {cmd}** directly when you need a one-off command without the AI.
+
+### /help
+
+` + helpHelpSectionEN + `
+
+### /config
+
+` + helpConfigSectionEN + `
+
+### /config del-remote
+
+` + helpConfigDelRemoteSectionEN + `
+
+### /config del-skill {skill_name}
+
+` + helpConfigDelSkillSectionEN + `
+
+### /config update-skill {skill_name}
+
+` + helpConfigUpdateSkillSectionEN + `
+
+### /config model
+
+` + helpConfigModelSectionEN + `
+
+### /access
+
+` + helpAccessSectionEN + `
+
+### /access New
+
+` + helpAccessNewSectionEN + `
+
+### /access Local
+
+` + helpAccessLocalSectionEN + `
+
+### /access {user@host or host}
+
+` + helpAccessHostSectionEN + `
+
+### /new
+
+` + helpNewSectionEN + `
+
+### /history
+
+` + helpHistorySectionEN + `
+
+### /skill
+
+` + helpSkillSectionEN + `
+
+### /skill {name} [text]
+
+` + helpSkillNameSectionEN + `
+
+### /skill New
+
+` + helpSkillNewSectionEN + `
+
+` + helpEnBashSection + `### /quit
+
+` + helpQuitSectionEN + `
+`)
+	return b.String()
+}
 
 // SetLang sets the active locale for [T] and [Tf]. Empty lang defaults to "en".
 func SetLang(lang string) {
@@ -240,91 +350,7 @@ const (
 
 var messages = map[string]map[string]string{
 	"en": {
-		KeyHelpText: `# delve-shell
-
-AI-assisted ops. Commands run only after HIL approval (cards or allowlist path).
-
-## What it does
-
-Natural-language tasks drive suggested commands. Allowlisted commands with no shell write redirection run without a card; others show a card (Run, Dismiss, or Copy). An empty allowlist matches nothing, so every command shows the card. Runs are recorded in session history for audit.
-
-## Quick start
-
-1. Enter a task in the input line and press **Enter** to send.
-2. Multi-line input: **Shift+Enter**, **Alt+Enter**, or **Ctrl+J** inserts a newline; **Enter** sends. Many terminals map Shift+Enter like Enter—**Alt+Enter** or **Ctrl+J** is the reliable newline.
-3. On a command card: **1** runs, **2** dismisses without running, **3** copies the command.
-4. **Up/Down** recall recent submitted lines (chat and slash). While a recalled line starts with a slash, Up/Down continues history; slash completion resumes after any other key or after leaving history browse.
-5. Type **/** to open slash suggestions (Up/Down on a slash line; Tab or Enter inserts the highlighted row; Enter submits a complete slash command).
-6. **PgUp/PgDown** scrolls the log; **/help** opens this panel.
-
-## Slash commands
-
-**/exec** is not listed in the **/** menu; type **/exec {cmd}** directly when you need a one-off command without the AI.
-
-### /help
-
-Show this help.
-
-### /config
-
-Manage models, hosts and skills.
-
-### /config del-remote
-
-Remove a remote host.
-
-### /config del-skill {skill_name}
-
-Remove an installed skill.
-
-### /config update-skill {skill_name}
-
-Update an installed skill.
-
-### /config model
-
-Configure model settings.
-
-### /access
-
-Switch the execution target. The dropdown lists saved hosts first, then **/access New** (add a host), **/access Local** (use the local executor), and **/access Offline** (manual relay mode). Host segments in saved targets must be lowercase so reserved rows like **/access Local** and **/access New** do not collide with host names.
-
-### /access New
-
-Add a remote host.
-
-### /access Local
-
-Switch to local execution.
-
-### /access {user@host or host}
-
-Connect to a saved host or enter a new host.
-
-### /new
-
-Start a new session.
-
-### /history
-
-Browse and switch sessions. Flow: **/history** → pick a row (Tab/Enter fills **/history {id}**) → submit opens a read-only preview → Enter in the dialog switches the active session; Esc closes without switching. Only the first word after **/history** is the session id (trailing text is ignored). Dropdown lines show a one-line summary of the first turn.
-
-### /skill
-
-Use an installed skill for the current turn. Skills are directories under **~/.delve-shell/skills/** (each with **SKILL.md**). Type **/skill** to open the slash list of installed skills plus **/skill New** (install dialog), or type **/skill** followed by the skill directory name. Text after the first word (the skill name) is optional; when present it is passed to the AI as extra context for that turn. To install or remove skills, use **/skill New** and **/config del-skill**.
-
-### /skill {name} [text]
-
-Use a skill. Optional text after the name is passed to the AI for this turn.
-
-### /skill New
-
-Open the add-skill dialog (Git URL, ref, path in repo, local name).
-
-` + helpEnBashSection + `### /quit
-
-Quit (**Ctrl+C** also works).
-`,
+		KeyHelpText:                             englishHelpText(),
 		KeyUsageRun:                             "Usage: /exec <command> (for example: /exec ls -la)",
 		KeyUnknownCmd:                           "Unknown command. Type /help for the full list.",
 		KeyDelveLabel:                           "Delve:", // legacy
