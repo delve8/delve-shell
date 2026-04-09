@@ -1,6 +1,8 @@
 package ui_test
 
 import (
+	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -9,6 +11,7 @@ import (
 
 	"delve-shell/internal/config"
 	"delve-shell/internal/host/cmd"
+	"delve-shell/internal/i18n"
 	"delve-shell/internal/remote"
 	"delve-shell/internal/ui"
 )
@@ -214,6 +217,91 @@ func TestBlackboxSlashAccessOfflineSendsIntent(t *testing.T) {
 	case <-f.accessOffline:
 	default:
 		t.Fatal("expected /access Offline to emit AccessOffline intent")
+	}
+}
+
+func TestBlackboxSlashAccessLocalSendsIntent(t *testing.T) {
+	f := newBlackboxFixture(t)
+	got := enterText(f.model, "/access Local")
+	select {
+	case <-f.remoteOff:
+	default:
+		t.Fatal("expected /access Local to emit AccessLocal intent")
+	}
+	transcript := strings.Join(got.TranscriptLines(), "\n")
+	if !strings.Contains(transcript, "/access Local") {
+		t.Fatalf("expected user echo for /access Local, got %q", transcript)
+	}
+}
+
+func TestBlackboxSlashAccessRemoteHostSendsIntent(t *testing.T) {
+	f := newBlackboxFixture(t)
+	got := enterText(f.model, "/access prod")
+	select {
+	case target := <-f.remoteOn:
+		if target != "prod" {
+			t.Fatalf("expected /access prod target, got %q", target)
+		}
+	default:
+		t.Fatal("expected /access prod to emit AccessRemote intent")
+	}
+	transcript := strings.Join(got.TranscriptLines(), "\n")
+	if !strings.Contains(transcript, "/access prod") {
+		t.Fatalf("expected user echo for /access prod, got %q", transcript)
+	}
+}
+
+func TestBlackboxSlashConfigDelRemoteAppendsImmediateSuccess(t *testing.T) {
+	i18n.SetLang("en")
+	dir := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", dir)
+	if err := config.EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	if err := config.AddRemote("ops@prod", "Production", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	f := newBlackboxFixture(t)
+	got := enterText(f.model, "/config del-remote prod")
+	transcript := strings.Join(got.TranscriptLines(), "\n")
+	want := i18n.Tf(i18n.KeyConfigRemoteRemoved, "prod")
+	if !strings.Contains(transcript, want) {
+		t.Fatalf("expected remove-remote success in transcript, got %q", transcript)
+	}
+	remotes, err := config.LoadRemotes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(remotes) != 0 {
+		t.Fatalf("expected remote removed, got %#v", remotes)
+	}
+}
+
+func TestBlackboxSlashConfigDelSkillAppendsImmediateSuccess(t *testing.T) {
+	i18n.SetLang("en")
+	dir := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", dir)
+	if err := config.EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	skillDir := filepath.Join(config.SkillsDir(), "demo")
+	if err := os.MkdirAll(skillDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# demo"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	f := newBlackboxFixture(t)
+	got := enterText(f.model, "/config del-skill demo")
+	transcript := strings.Join(got.TranscriptLines(), "\n")
+	want := i18n.Tf(i18n.KeySkillRemoved, "demo")
+	if !strings.Contains(transcript, want) {
+		t.Fatalf("expected remove-skill success in transcript, got %q", transcript)
+	}
+	if _, err := os.Stat(skillDir); !os.IsNotExist(err) {
+		t.Fatalf("expected skill dir removed, stat err=%v", err)
 	}
 }
 

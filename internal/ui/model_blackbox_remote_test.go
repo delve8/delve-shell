@@ -23,6 +23,18 @@ func TestBlackboxSlashUpdateSkillEnterDoesNotSilentlyDrop(t *testing.T) {
 	}
 }
 
+func TestBlackboxSlashConfigModelOpensOverlay(t *testing.T) {
+	f := newBlackboxFixture(t)
+	got := enterText(f.model, "/config model")
+	if !got.Overlay.Active || !configllm.OverlayActive() {
+		t.Fatalf("expected /config model to open config model overlay")
+	}
+	transcript := strings.Join(got.TranscriptLines(), "\n")
+	if !strings.Contains(transcript, "/config model") {
+		t.Fatalf("expected user echo for /config model, got %q", transcript)
+	}
+}
+
 func TestBlackboxSlashNewSubmitsCommand(t *testing.T) {
 	f := newBlackboxFixture(t)
 	got := enterText(f.model, "/new")

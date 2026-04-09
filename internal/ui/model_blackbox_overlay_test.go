@@ -15,6 +15,10 @@ func TestBlackboxSlashRemoteOnOpensOverlay(t *testing.T) {
 	if !got.Overlay.Active {
 		t.Fatalf("expected /access New to open add-remote overlay")
 	}
+	transcript := strings.Join(got.TranscriptLines(), "\n")
+	if !strings.Contains(transcript, "/access New") {
+		t.Fatalf("expected user echo for /access New, got %q", transcript)
+	}
 }
 
 func TestBlackboxOverlayEscRunsFeatureResetHook(t *testing.T) {

@@ -18,15 +18,15 @@ func registerSlashExecutionProvider() {
 		text := strings.TrimSpace(req.RawText)
 		switch {
 		case text == slashskill.Command(slashskill.ReservedNew):
-			return overlayOpenResult(OverlayOpenKeyAdd, nil), true, nil
+			return ui.SlashOverlayOpenResult(OverlayOpenKeyAdd, "", "", false, nil), true, nil
 		case strings.HasPrefix(text, "/config add-skill"):
-			return overlayOpenResult(OverlayOpenKeyAdd, nil), true, nil
+			return ui.SlashOverlayOpenResult(OverlayOpenKeyAdd, "", "", false, nil), true, nil
 		case strings.HasPrefix(text, "/config update-skill"):
 			name := strings.TrimSpace(strings.TrimPrefix(text, "/config update-skill"))
 			if name == "" {
-				return transcriptErrorResult(i18n.T(i18n.KeyDescConfigUpdateSkill)), true, nil
+				return ui.SlashTranscriptErrorResult(i18n.T(i18n.KeyDescConfigUpdateSkill)), true, nil
 			}
-			return overlayOpenResult(OverlayOpenKeyUpdate, map[string]string{"name": name}), true, nil
+			return ui.SlashOverlayOpenResult(OverlayOpenKeyUpdate, "", "", false, map[string]string{"name": name}), true, nil
 		case strings.HasPrefix(text, "/config del-skill "):
 			name := strings.TrimSpace(strings.TrimPrefix(text, "/config del-skill "))
 			return handleSlashConfigDelSkillPrefix(name), true, nil
@@ -40,11 +40,11 @@ func registerSlashExecutionProvider() {
 
 func executeSkillInvocation(req ui.SlashExecutionRequest, rest string) inputlifecycletype.ProcessResult {
 	if req.OfflineExecutionMode {
-		return transcriptErrorResult(i18n.T(i18n.KeyOfflineSlashSkillDisabled))
+		return ui.SlashTranscriptErrorResult(i18n.T(i18n.KeyOfflineSlashSkillDisabled))
 	}
 	fields := strings.Fields(rest)
 	if len(fields) < 1 {
-		return transcriptErrorResult(i18n.T(i18n.KeyUsageSkill))
+		return ui.SlashTranscriptErrorResult(i18n.T(i18n.KeyUsageSkill))
 	}
 	skillName := fields[0]
 	naturalLanguage := strings.TrimSpace(strings.TrimPrefix(rest, skillName))
@@ -53,11 +53,11 @@ func executeSkillInvocation(req ui.SlashExecutionRequest, rest string) inputlife
 	}
 	skillDir := skillstore.SkillDir(skillName)
 	if _, err := os.Stat(filepath.Join(skillDir, "SKILL.md")); err != nil {
-		return transcriptErrorResult(i18n.T(i18n.KeySkillNotFound))
+		return ui.SlashTranscriptErrorResult(i18n.T(i18n.KeySkillNotFound))
 	}
 	skillContent, err := skillstore.ReadSKILLContent(skillDir)
 	if err != nil {
-		return transcriptErrorResult(i18n.Tf(i18n.KeySkillInstallFailed, err))
+		return ui.SlashTranscriptErrorResult(i18n.Tf(i18n.KeySkillInstallFailed, err))
 	}
 	payload := skillInvocationPrompt(skillName, skillContent, naturalLanguage)
 	userLine := strings.TrimSpace(req.RawText)
@@ -72,29 +72,5 @@ func executeSkillInvocation(req ui.SlashExecutionRequest, rest string) inputlife
 	}) {
 		return inputlifecycletype.ProcessResult{}
 	}
-	res := inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-		Kind:   inputlifecycletype.OutputStatusChange,
-		Status: &inputlifecycletype.StatusPayload{Key: "processing"},
-	})
-	res.WaitingForAI = true
-	return res
-}
-
-func overlayOpenResult(key string, params map[string]string) inputlifecycletype.ProcessResult {
-	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-		Kind: inputlifecycletype.OutputOverlayOpen,
-		Overlay: &inputlifecycletype.OverlayPayload{
-			Key:    key,
-			Params: params,
-		},
-	})
-}
-
-func transcriptErrorResult(text string) inputlifecycletype.ProcessResult {
-	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-		Kind: inputlifecycletype.OutputTranscriptAppend,
-		Transcript: &inputlifecycletype.TranscriptPayload{Lines: []inputlifecycletype.TranscriptLine{
-			{Kind: inputlifecycletype.TranscriptLineSystemError, Text: text},
-		}},
-	})
+	return ui.SlashProcessingResult()
 }

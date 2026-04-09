@@ -72,26 +72,17 @@ func (e slashExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inputlifecy
 	}
 	switch {
 	case trimmed == "/help":
-		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-			Kind: inputlifecycletype.OutputOverlayOpen,
-			Overlay: &inputlifecycletype.OverlayPayload{
-				Title:    i18n.T(i18n.KeyHelpTitle),
-				Content:  i18n.T(i18n.KeyHelpText),
-				Markdown: true,
-			},
-		}), nil
+		return SlashOverlayOpenResult("", i18n.T(i18n.KeyHelpTitle), i18n.T(i18n.KeyHelpText), true, nil), nil
 	case trimmed == "/quit":
-		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-			Kind: inputlifecycletype.OutputQuit,
-		}), nil
+		return SlashQuitResult(), nil
 	case trimmed == "/new":
-		if e.sender == nil || !e.sender.Send(hostcmd.SessionNew{}) {
+		if !SlashTryHostIntent(e.sender, hostcmd.SessionNew{}) {
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 		}
 		return inputlifecycletype.ConsumedResult(), nil
 	case trimmed == "/bash":
 		if offline {
-			return slashTranscriptErrorResult(i18n.T(i18n.KeyOfflineExecBashDisabled)), nil
+			return SlashTranscriptErrorResult(i18n.T(i18n.KeyOfflineExecBashDisabled)), nil
 		}
 		mode := hostcmd.SubshellModeLocalBash
 		if e.remoteActive != nil && e.remoteActive() {
@@ -108,24 +99,22 @@ func (e slashExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inputlifecy
 			}
 			_ = e.sender.Send(hostcmd.ShellSnapshot{Messages: msgs, InputHistory: hist, Mode: mode})
 		}
-		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-			Kind: inputlifecycletype.OutputQuit,
-		}), nil
+		return SlashQuitResult(), nil
 	case strings.HasPrefix(trimmed, "/exec "):
 		cmd := strings.TrimSpace(strings.TrimPrefix(trimmed, "/exec "))
 		if cmd == "" {
-			return slashTranscriptErrorResult(i18n.T(i18n.KeyUsageRun)), nil
+			return SlashTranscriptErrorResult(i18n.T(i18n.KeyUsageRun)), nil
 		}
 		if e.read != nil && e.read.OfflineExecutionMode() {
-			return slashTranscriptErrorResult(i18n.T(i18n.KeyOfflineSlashExecDisabled)), nil
+			return SlashTranscriptErrorResult(i18n.T(i18n.KeyOfflineSlashExecDisabled)), nil
 		}
-		if e.sender == nil || !e.sender.Send(hostcmd.ExecDirect{Command: cmd}) {
+		if !SlashTryHostIntent(e.sender, hostcmd.ExecDirect{Command: cmd}) {
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 		}
 		return inputlifecycletype.ConsumedResult(), nil
 	default:
 		if sessionID, ok := history.SwitchSessionIDFromSlashLine(trimmed); ok {
-			if e.sender == nil || !e.sender.Send(hostcmd.HistoryPreviewOpen{SessionID: sessionID}) {
+			if !SlashTryHostIntent(e.sender, hostcmd.HistoryPreviewOpen{SessionID: sessionID}) {
 				return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 			}
 			return inputlifecycletype.ConsumedResult(), nil
@@ -140,19 +129,16 @@ func (e slashExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inputlifecy
 		plan := enterflow.PlanAfterSlashDispatches(trimmed, req.SelectedIndex, viewOpts, vis, e.sessionNoneMsg, e.delRemoteNoneMsg)
 		switch plan.Kind {
 		case maininput.MainEnterShowSessionNone:
-			return slashTranscriptSuggestResult(e.sessionNoneMsg), nil
+			return SlashTranscriptSuggestResult(e.sessionNoneMsg), nil
 		case maininput.MainEnterShowDelRemoteNone:
-			return slashTranscriptSuggestResult(e.delRemoteNoneMsg), nil
+			return SlashTranscriptSuggestResult(e.delRemoteNoneMsg), nil
 		case maininput.MainEnterResolveSelected:
-			return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-				Kind:     inputlifecycletype.OutputPreInputSet,
-				PreInput: &inputlifecycletype.PreInputPayload{Value: slashview.ChosenToInputValue(plan.Selected)},
-			}), nil
+			return SlashPreInputSetResult(slashview.ChosenToInputValue(plan.Selected)), nil
 		case maininput.MainEnterUnknownSlash:
-			return slashTranscriptErrorResult(i18n.T(i18n.KeyUnknownCmd)), nil
+			return SlashTranscriptErrorResult(i18n.T(i18n.KeyUnknownCmd)), nil
 		}
 	}
-	return slashTranscriptErrorResult(i18n.T(i18n.KeyUnknownCmd)), nil
+	return SlashTranscriptErrorResult(i18n.T(i18n.KeyUnknownCmd)), nil
 }
 
 type uiChatSubmissionExecutor struct {
@@ -166,12 +152,7 @@ func (e uiChatSubmissionExecutor) ExecuteChat(sub inputlifecycletype.InputSubmis
 	if !e.sender.Send(hostcmd.Submission{Submission: sub}) {
 		return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 	}
-	res := inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-		Kind:   inputlifecycletype.OutputStatusChange,
-		Status: &inputlifecycletype.StatusPayload{Key: "processing"},
-	})
-	res.WaitingForAI = true
-	return res, nil
+	return SlashProcessingResult(), nil
 }
 
 type uiControlActionExecutor struct {
@@ -308,22 +289,4 @@ func (m *Model) applyLifecycleResult(res inputlifecycletype.ProcessResult) (*Mod
 		m.Interaction.CommandExecuting = *patch.CommandExecuting
 	}
 	return m, cmd
-}
-
-func slashTranscriptSuggestResult(text string) inputlifecycletype.ProcessResult {
-	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-		Kind: inputlifecycletype.OutputTranscriptAppend,
-		Transcript: &inputlifecycletype.TranscriptPayload{Lines: []inputlifecycletype.TranscriptLine{
-			{Kind: inputlifecycletype.TranscriptLineSystemSuggest, Text: text},
-		}},
-	})
-}
-
-func slashTranscriptErrorResult(text string) inputlifecycletype.ProcessResult {
-	return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-		Kind: inputlifecycletype.OutputTranscriptAppend,
-		Transcript: &inputlifecycletype.TranscriptPayload{Lines: []inputlifecycletype.TranscriptLine{
-			{Kind: inputlifecycletype.TranscriptLineSystemError, Text: text},
-		}},
-	})
 }

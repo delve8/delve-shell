@@ -17,28 +17,22 @@ func registerSlashExecutionProvider() {
 			nameOrTarget := strings.TrimSpace(strings.TrimPrefix(text, "/config del-remote "))
 			return applyConfigRemoveRemote(nameOrTarget), true, nil
 		case text == slashaccess.Command(slashaccess.ReservedNew):
-			return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-				Kind: inputlifecycletype.OutputOverlayOpen,
-				Overlay: &inputlifecycletype.OverlayPayload{
-					Key: OverlayOpenKeyAddRemote,
-					Params: map[string]string{
-						"save": "false",
-					},
-				},
+			return ui.SlashOverlayOpenResult(OverlayOpenKeyAddRemote, "", "", false, map[string]string{
+				"save": "false",
 			}), true, nil
 		case text == slashaccess.Command(slashaccess.ReservedLocal):
-			if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.AccessLocal{}) {
+			if !ui.SlashTryHostIntent(req.CommandSender, hostcmd.AccessLocal{}) {
 				return inputlifecycletype.ProcessResult{}, true, nil
 			}
 			return inputlifecycletype.ConsumedResult(), true, nil
 		case text == slashaccess.Command(slashaccess.ReservedOffline):
-			if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.AccessOffline{}) {
+			if !ui.SlashTryHostIntent(req.CommandSender, hostcmd.AccessOffline{}) {
 				return inputlifecycletype.ProcessResult{}, true, nil
 			}
 			return inputlifecycletype.ConsumedResult(), true, nil
 		case strings.HasPrefix(text, "/access "):
 			target := strings.TrimSpace(strings.TrimPrefix(text, "/access "))
-			if req.CommandSender == nil || !req.CommandSender.Send(hostcmd.AccessRemote{Target: target}) {
+			if !ui.SlashTryHostIntent(req.CommandSender, hostcmd.AccessRemote{Target: target}) {
 				return inputlifecycletype.ProcessResult{}, true, nil
 			}
 			return inputlifecycletype.ConsumedResult(), true, nil
