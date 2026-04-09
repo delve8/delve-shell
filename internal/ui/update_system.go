@@ -197,7 +197,7 @@ func (m *Model) handleHistoryPreviewOverlayMsg(msg HistoryPreviewOverlayMsg) (*M
 	footer := i18n.T(i18n.KeyHistoryPreviewFooter)
 	var body string
 	if len(msg.Lines) > 0 {
-		w := overlayHistoryPreviewWrapWidth(m.layout.Width)
+		w := overlayInnerWidth(m.layout.Width)
 		body = RenderHistoryPreviewTranscript(msg.Lines, w)
 		if strings.TrimSpace(body) == "" {
 			body = i18n.T(i18n.KeyHistoryPreviewEmpty)

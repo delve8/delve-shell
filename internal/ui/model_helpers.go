@@ -12,13 +12,11 @@ import (
 )
 
 const (
-	minInputLayoutWidth      = 4
-	minContentWidthFallback  = 80
-	minOverlayLayoutWidth    = 4
-	minOverlayLayoutHeight   = 6
-	maxOverlayViewportHeight = 20
-	inputTextareaMinHeight   = 1
-	inputTextareaMaxHeight   = 5
+	minInputLayoutWidth     = 4
+	minContentWidthFallback = 80
+	minOverlayLayoutHeight  = 6
+	inputTextareaMinHeight  = 1
+	inputTextareaMaxHeight  = 5
 	// inputBelowStableRows: fixed lines below the input so the separator above the input and the footer
 	// stay in a stable vertical band across idle / processing / slash-open (padded with blanks when needed).
 	inputBelowStableRows   = 5
@@ -270,21 +268,24 @@ func overlayFixedBelowViewportLineCount(footer string) int {
 	return 1 + strings.Count(footer, "\n") + 1
 }
 
+func overlayViewportHeight(layoutH int, footer string) int {
+	baseH := layoutH - minOverlayLayoutHeight
+	if n := overlayFixedBelowViewportLineCount(footer); n > 0 {
+		baseH -= n
+	}
+	if baseH < 3 {
+		return 3
+	}
+	return baseH
+}
+
 // InitOverlayViewport initializes the generic overlay viewport from current layout.
 func (m *Model) InitOverlayViewport() {
 	if m.Overlay.MarkdownSource != "" {
-		inner := overlayHistoryPreviewWrapWidth(m.layout.Width)
+		inner := overlayInnerWidth(m.layout.Width)
 		m.Overlay.Content = RenderHelpMarkdown(m.Overlay.MarkdownSource, inner)
 	}
-	w := m.layout.Width - minOverlayLayoutWidth
-	baseH := min(m.layout.Height-minOverlayLayoutHeight, maxOverlayViewportHeight)
-	if n := overlayFixedBelowViewportLineCount(m.Overlay.Footer); n > 0 {
-		baseH -= n
-		if baseH < 3 {
-			baseH = 3
-		}
-	}
-	m.Overlay.Viewport = viewport.New(w, baseH)
+	m.Overlay.Viewport = viewport.New(overlayInnerWidth(m.layout.Width), overlayViewportHeight(m.layout.Height, m.Overlay.Footer))
 	m.Overlay.Viewport.SetContent(m.Overlay.Content)
 }
 

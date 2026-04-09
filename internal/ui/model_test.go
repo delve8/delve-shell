@@ -351,6 +351,25 @@ func TestRecentTranscriptReplayStartCapsToLatest100k(t *testing.T) {
 	}
 }
 
+func TestOverlayInnerWidthUsesWiderModal(t *testing.T) {
+	if got := overlayInnerWidth(120); got != 108 {
+		t.Fatalf("overlayInnerWidth(120)=%d want 108", got)
+	}
+	if got := overlayInnerWidth(200); got != 116 {
+		t.Fatalf("overlayInnerWidth(200)=%d want 116", got)
+	}
+}
+
+func TestOverlayViewportHeightUsesAvailableScreenHeight(t *testing.T) {
+	if got := overlayViewportHeight(40, ""); got != 34 {
+		t.Fatalf("overlayViewportHeight(40)=%d want 34", got)
+	}
+	footer := "line1\nline2"
+	if got := overlayViewportHeight(40, footer); got != 31 {
+		t.Fatalf("overlayViewportHeight(40, footer)=%d want 31", got)
+	}
+}
+
 func TestPrintTranscriptFromCmdUsesBulkWriteChunks(t *testing.T) {
 	m := NewModel(nil, nil)
 	lines := make([]string, transcriptBulkPrintChunkLines*2+1)

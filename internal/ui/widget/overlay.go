@@ -2,8 +2,9 @@ package widget
 
 import "github.com/charmbracelet/lipgloss"
 
-// DefaultOverlayBoxMaxWidth caps overlay width so hint lines do not wrap excessively.
-const DefaultOverlayBoxMaxWidth = 70
+// DefaultOverlayBoxMaxWidth keeps centered overlays comfortably readable on wide terminals
+// without wasting too much horizontal space.
+const DefaultOverlayBoxMaxWidth = 120
 
 // RenderCenteredModal draws a titled modal with border and centers it in layoutW×layoutH cells.
 // For very small terminals it returns an empty string (caller should fall back to base content).

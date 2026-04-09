@@ -10,9 +10,7 @@ import (
 	"delve-shell/internal/ui/uivm"
 )
 
-// overlayHistoryPreviewWrapWidth matches the inner width of the history preview modal
-// (see [widget.RenderCenteredModal] and overlay box max width).
-func overlayHistoryPreviewWrapWidth(layoutW int) int {
+func overlayBoxWidth(layoutW int) int {
 	if layoutW < 20 {
 		return 40
 	}
@@ -20,6 +18,16 @@ func overlayHistoryPreviewWrapWidth(layoutW int) int {
 	if boxW > overlayBoxMaxWidth {
 		boxW = overlayBoxMaxWidth
 	}
+	if boxW < 20 {
+		boxW = 20
+	}
+	return boxW
+}
+
+// overlayInnerWidth matches the inner content width of the centered modal
+// (see [widget.RenderCenteredModal] and overlay box max width).
+func overlayInnerWidth(layoutW int) int {
+	boxW := overlayBoxWidth(layoutW)
 	inner := boxW - 4
 	if inner < 20 {
 		inner = 20
