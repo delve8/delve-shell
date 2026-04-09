@@ -51,10 +51,8 @@ func longestUserTranscriptLineWidth(lines []string) int {
 
 // appendTranscriptUserLines mirrors the previous maininput.AppendUserInputLines behavior:
 // optional separator, then wrapped user lines, then a blank row.
-func appendTranscriptUserLines(messages []string, prompt, text string, width int, sepLine string) []string {
-	if len(messages) > 0 && messages[len(messages)-1] != sepLine {
-		messages = append(messages, sepLine)
-	}
+func appendTranscriptUserLines(messages []string, prompt, text string, width int) []string {
+	messages = appendShortTranscriptSeparator(messages, width)
 	messages = append(messages, formatUserTranscriptLines(prompt, text, width)...)
 	messages = append(messages, "")
 	return messages

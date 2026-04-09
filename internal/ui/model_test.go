@@ -334,6 +334,26 @@ func TestFormatUserTranscriptLinesDoesNotPadWhenBlockExceedsSeparatorWidth(t *te
 	}
 }
 
+func TestShortSeparatorDisplayWidthCapsAt80(t *testing.T) {
+	if got := shortSeparatorDisplayWidth(400); got != 80 {
+		t.Fatalf("shortSeparatorDisplayWidth(400)=%d want 80", got)
+	}
+}
+
+func TestAppendTranscriptUserLinesTreatsOldSeparatorWidthAsSameSeparator(t *testing.T) {
+	oldSep := renderShortSeparator(20)
+	got := appendTranscriptUserLines([]string{"existing", oldSep}, "> ", "hello", 120)
+	count := 0
+	for _, line := range got {
+		if isRenderedShortSeparator(line) {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("separator count=%d want 1 in %#v", count, got)
+	}
+}
+
 func TestTerminalWrappedRowsAccountsForSoftWrap(t *testing.T) {
 	if got := terminalWrappedRows("", 10); got != 1 {
 		t.Fatalf("empty message is one blank row (tea.Println), got %d", got)

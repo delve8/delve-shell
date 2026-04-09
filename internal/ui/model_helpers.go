@@ -470,6 +470,29 @@ func renderShortSeparator(width int) string {
 	return separatorStyle.Render(strings.Repeat("─", shortSeparatorDisplayWidth(width)))
 }
 
+func isRenderedShortSeparator(line string) bool {
+	plain := ansi.Strip(line)
+	if plain == "" {
+		return false
+	}
+	for _, r := range plain {
+		if r != '─' {
+			return false
+		}
+	}
+	return true
+}
+
+func appendShortTranscriptSeparator(messages []string, width int) []string {
+	if len(messages) == 0 {
+		return messages
+	}
+	if isRenderedShortSeparator(messages[len(messages)-1]) {
+		return messages
+	}
+	return append(messages, renderShortSeparator(width))
+}
+
 func shortSeparatorDisplayWidth(width int) int {
 	if width < 1 {
 		width = 1
