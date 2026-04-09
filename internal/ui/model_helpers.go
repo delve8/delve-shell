@@ -29,7 +29,7 @@ const (
 	transcriptBulkPrintChunkLines = 512
 	// shortSeparatorMaxWidth keeps transcript/chrome separators visually stable on resize instead of
 	// drawing nearly full-width rules that can look messy near the terminal edge.
-	shortSeparatorMaxWidth = 48
+	shortSeparatorMaxWidth = 80
 )
 
 // ReadModel provides host-derived read-only state needed by UI rendering and local decisions.
@@ -467,6 +467,10 @@ func renderSeparator(width int) string {
 }
 
 func renderShortSeparator(width int) string {
+	return separatorStyle.Render(strings.Repeat("─", shortSeparatorDisplayWidth(width)))
+}
+
+func shortSeparatorDisplayWidth(width int) int {
 	if width < 1 {
 		width = 1
 	}
@@ -483,7 +487,7 @@ func renderShortSeparator(width int) string {
 	if width > shortSeparatorMaxWidth {
 		width = shortSeparatorMaxWidth
 	}
-	return separatorStyle.Render(strings.Repeat("─", width))
+	return width
 }
 
 // terminalWrappedRows returns how many terminal rows a string occupies at the given width,

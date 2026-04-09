@@ -31,6 +31,7 @@ func handleSlashConfigDelSkillPrefix(rest string) inputlifecycletype.ProcessResu
 		Kind: inputlifecycletype.OutputTranscriptAppend,
 		Transcript: &inputlifecycletype.TranscriptPayload{Lines: []inputlifecycletype.TranscriptLine{
 			{Kind: inputlifecycletype.TranscriptLineSystemSuggest, Text: i18n.Tf(i18n.KeySkillRemoved, name)},
+			{Kind: inputlifecycletype.TranscriptLineBlank},
 		}},
 	})
 }

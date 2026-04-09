@@ -8,10 +8,16 @@ import (
 	"testing"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
+
+	"delve-shell/internal/config"
 	"delve-shell/internal/hil/types"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/remote/execenv"
+	"delve-shell/internal/runtime/executormgr"
+	"delve-shell/internal/runtime/runnermgr"
 	"delve-shell/internal/ui"
+	"delve-shell/internal/ui/uivm"
 )
 
 func waitUntil(t *testing.T, pred func() bool, d time.Duration) {
@@ -176,6 +182,72 @@ func TestHandleExecDirect_StreamingRunner(t *testing.T) {
 	}
 }
 
+func TestHandleAccessLocal_AppendsSystemNotify(t *testing.T) {
+	s := &recordSender{}
+	c := newTestControllerWithPresenter(s)
+	c.executors = executormgr.New()
+
+	c.handleAccessLocal()
+
+	msg := latestTranscriptAppendMsg(t, s.msgs)
+	if len(msg.Lines) < 2 {
+		t.Fatalf("want notify + blank, got %#v", msg.Lines)
+	}
+	if msg.Lines[0].Kind != uivm.LineSystemSuggest || msg.Lines[0].Text != "Switched back to local executor." {
+		t.Fatalf("unexpected local notify: %#v", msg.Lines)
+	}
+	if msg.Lines[1].Kind != uivm.LineBlank {
+		t.Fatalf("want trailing blank, got %#v", msg.Lines)
+	}
+}
+
+func TestHandleAccessOffline_AppendsSystemNotify(t *testing.T) {
+	s := &recordSender{}
+	c := newTestControllerWithPresenter(s)
+	c.executors = executormgr.New()
+
+	c.handleAccessOffline()
+
+	msg := latestTranscriptAppendMsg(t, s.msgs)
+	if len(msg.Lines) < 2 {
+		t.Fatalf("want notify + blank, got %#v", msg.Lines)
+	}
+	if msg.Lines[0].Kind != uivm.LineSystemSuggest {
+		t.Fatalf("unexpected offline notify kind: %#v", msg.Lines)
+	}
+	if msg.Lines[0].Text != "Offline mode: commands are shown only, not executed here. Paste the results back and review them before running them elsewhere." {
+		t.Fatalf("unexpected offline notify: %#v", msg.Lines)
+	}
+	if msg.Lines[1].Kind != uivm.LineBlank {
+		t.Fatalf("want trailing blank, got %#v", msg.Lines)
+	}
+}
+
+func TestHandleSubmitNewSession_ReplacesTranscriptWithSessionBanner(t *testing.T) {
+	i18n.SetLang("en")
+	root := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", root)
+	if err := config.EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	s := &recordSender{}
+	c := newTestControllerWithPresenter(s)
+	c.runners = runnermgr.New(runnermgr.Options{})
+
+	c.handleSubmitNewSession()
+
+	msg := latestTranscriptReplaceMsg(t, s.msgs)
+	if len(msg.Lines) < 2 {
+		t.Fatalf("want session banner + blank, got %#v", msg.Lines)
+	}
+	if msg.Lines[len(msg.Lines)-2].Kind != uivm.LineSessionBanner {
+		t.Fatalf("want session banner near tail, got %#v", msg.Lines)
+	}
+	if msg.Lines[len(msg.Lines)-1].Kind != uivm.LineBlank {
+		t.Fatalf("want trailing blank, got %#v", msg.Lines)
+	}
+}
+
 func TestHandleAgentUI_ApprovalRequest(t *testing.T) {
 	s := &recordSender{}
 	c := newTestControllerWithPresenter(s)
@@ -188,6 +260,28 @@ func TestHandleAgentUI_ApprovalRequest(t *testing.T) {
 	if !ok || got.PendingApproval == nil || got.PendingApproval.Command != "ls" {
 		t.Fatalf("unexpected message: %T %#v", s.msgs[0], s.msgs[0])
 	}
+}
+
+func latestTranscriptAppendMsg(t *testing.T, msgs []tea.Msg) ui.TranscriptAppendMsg {
+	t.Helper()
+	for i := len(msgs) - 1; i >= 0; i-- {
+		if msg, ok := msgs[i].(ui.TranscriptAppendMsg); ok {
+			return msg
+		}
+	}
+	t.Fatalf("no TranscriptAppendMsg in %#v", msgs)
+	return ui.TranscriptAppendMsg{}
+}
+
+func latestTranscriptReplaceMsg(t *testing.T, msgs []tea.Msg) ui.TranscriptReplaceMsg {
+	t.Helper()
+	for i := len(msgs) - 1; i >= 0; i-- {
+		if msg, ok := msgs[i].(ui.TranscriptReplaceMsg); ok {
+			return msg
+		}
+	}
+	t.Fatalf("no TranscriptReplaceMsg in %#v", msgs)
+	return ui.TranscriptReplaceMsg{}
 }
 
 func TestHandleAgentUI_SensitiveRequest(t *testing.T) {

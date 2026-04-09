@@ -311,6 +311,29 @@ func TestRenderTranscriptLines_LineResultFitsWidthWithANSI(t *testing.T) {
 	}
 }
 
+func TestFormatUserTranscriptLinesDoesNotPadStoredRowsToFullWidth(t *testing.T) {
+	lines := formatUserTranscriptLines("> ", "hello", 20)
+	if len(lines) != 1 {
+		t.Fatalf("line count=%d want 1", len(lines))
+	}
+	if got := ansi.StringWidth(lines[0]); got != shortSeparatorDisplayWidth(20) {
+		t.Fatalf("stored user row width=%d want %d", got, shortSeparatorDisplayWidth(20))
+	}
+	if got := ansi.StringWidth(lines[0]); got >= 20 {
+		t.Fatalf("stored user row width=%d must stay below full width", got)
+	}
+}
+
+func TestFormatUserTranscriptLinesDoesNotPadWhenBlockExceedsSeparatorWidth(t *testing.T) {
+	lines := formatUserTranscriptLines("> ", strings.Repeat("x", 12), 20)
+	if len(lines) != 1 {
+		t.Fatalf("line count=%d want 1", len(lines))
+	}
+	if got := ansi.StringWidth(lines[0]); got != len("> ")+12 {
+		t.Fatalf("stored user row width=%d want %d", got, len("> ")+12)
+	}
+}
+
 func TestTerminalWrappedRowsAccountsForSoftWrap(t *testing.T) {
 	if got := terminalWrappedRows("", 10); got != 1 {
 		t.Fatalf("empty message is one blank row (tea.Println), got %d", got)
