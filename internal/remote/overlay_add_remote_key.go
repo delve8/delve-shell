@@ -228,6 +228,8 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 				_ = m.CommandSender.Send(hostcmd.ConfigUpdated{})
 			}
 		}
+		rememberLastAddRemoteUsername(user)
+		rememberLastAddRemoteIdentityFile(keyPath)
 		state.AddRemote.Connecting = true
 		state.AddRemote.Error = ""
 		if m.CommandSender == nil || !m.CommandSender.Send(hostcmd.AccessRemote{Target: target}) {
@@ -296,6 +298,8 @@ func handleAddRemoteOverwriteConfirm(
 		ui.InfoStyleRender(infoPrefix+i18n.Tf(i18n.KeyConfigRemoteAdded, display)),
 		"",
 	)
+	rememberLastAddRemoteUsername(user)
+	rememberLastAddRemoteIdentityFile(keyPath)
 	m.CloseOverlayVisual()
 	state.AddRemote.Active = false
 	state.AddRemote.Error = ""
@@ -306,4 +310,20 @@ func handleAddRemoteOverwriteConfirm(
 		_ = m.CommandSender.Send(hostcmd.ConfigUpdated{})
 	}
 	return ret(m, nil, true)
+}
+
+func rememberLastAddRemoteIdentityFile(path string) {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return
+	}
+	_ = config.SetLastIdentityFile(path)
+}
+
+func rememberLastAddRemoteUsername(username string) {
+	username = strings.TrimSpace(username)
+	if username == "" {
+		return
+	}
+	_ = config.SetLastUsername(username)
 }

@@ -284,3 +284,59 @@ func TestUpdateRemote(t *testing.T) {
 		t.Error("UpdateRemote unknown target should error")
 	}
 }
+
+func TestLoadLastIdentityFile_SetLastIdentityFile_roundtrip(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", dir)
+	defer t.Setenv("DELVE_SHELL_ROOT", "")
+
+	if err := EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	if err := SetLastIdentityFile(" ~/.ssh/id_ed25519 "); err != nil {
+		t.Fatal(err)
+	}
+	got, err := LoadLastIdentityFile()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "~/.ssh/id_ed25519" {
+		t.Fatalf("last identity file=%q want %q", got, "~/.ssh/id_ed25519")
+	}
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.LastIdentityFile != "~/.ssh/id_ed25519" {
+		t.Fatalf("config last_identity_file=%q want %q", cfg.LastIdentityFile, "~/.ssh/id_ed25519")
+	}
+}
+
+func TestLoadLastUsername_SetLastUsername_roundtrip(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", dir)
+	defer t.Setenv("DELVE_SHELL_ROOT", "")
+
+	if err := EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	if err := SetLastUsername(" alice "); err != nil {
+		t.Fatal(err)
+	}
+	got, err := LoadLastUsername()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "alice" {
+		t.Fatalf("last username=%q want %q", got, "alice")
+	}
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.LastUsername != "alice" {
+		t.Fatalf("config last_username=%q want %q", cfg.LastUsername, "alice")
+	}
+}

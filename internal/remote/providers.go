@@ -4,6 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/config"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/pathcomplete"
 	"delve-shell/internal/ui"
@@ -35,10 +36,18 @@ func registerProviders() {
 			state.AddRemote.HostInput.Focus()
 			state.AddRemote.UserInput = textinput.New()
 			state.AddRemote.UserInput.Placeholder = i18n.T(i18n.KeyAddRemoteUserPlaceholder)
+			if lastUsername, err := config.LoadLastUsername(); err == nil && lastUsername != "" {
+				state.AddRemote.UserInput.SetValue(lastUsername)
+				state.AddRemote.UserInput.CursorEnd()
+			}
 			state.AddRemote.NameInput = textinput.New()
 			state.AddRemote.NameInput.Placeholder = i18n.T(i18n.KeyAddRemoteNamePlaceholder)
 			state.AddRemote.KeyInput = textinput.New()
 			state.AddRemote.KeyInput.Placeholder = i18n.T(i18n.KeyAddRemoteKeyPlaceholder)
+			if lastIdentityFile, err := config.LoadLastIdentityFile(); err == nil && lastIdentityFile != "" {
+				state.AddRemote.KeyInput.SetValue(lastIdentityFile)
+				state.AddRemote.KeyInput.CursorEnd()
+			}
 			setRemoteOverlayState(state)
 			return m, nil, true
 		},

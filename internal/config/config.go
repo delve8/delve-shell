@@ -11,6 +11,10 @@ import (
 type Config struct {
 	// Language for UI, e.g. en, zh; default en
 	Language string `yaml:"language"`
+	// LastUsername is the most recently submitted SSH username in Add Remote; used only to prefill the input.
+	LastUsername string `yaml:"last_username,omitempty"`
+	// LastIdentityFile is the most recently submitted SSH key path in Add Remote; used only to prefill the input.
+	LastIdentityFile string `yaml:"last_identity_file,omitempty"`
 	// LLM API config; strings support $VAR or ${VAR} env expansion
 	LLM LLMConfig `yaml:"llm"`
 	// History retention policy
@@ -63,10 +67,12 @@ func Load() (*Config, error) {
 	}
 	// Decode with optional remotes for migration from old config.yaml.
 	var file struct {
-		Language string         `yaml:"language"`
-		Remotes  []RemoteTarget `yaml:"remotes,omitempty"`
-		LLM      LLMConfig      `yaml:"llm"`
-		History  HistoryConfig  `yaml:"history"`
+		Language         string         `yaml:"language"`
+		LastUsername     string         `yaml:"last_username,omitempty"`
+		LastIdentityFile string         `yaml:"last_identity_file,omitempty"`
+		Remotes          []RemoteTarget `yaml:"remotes,omitempty"`
+		LLM              LLMConfig      `yaml:"llm"`
+		History          HistoryConfig  `yaml:"history"`
 	}
 	if err := yaml.Unmarshal(data, &file); err != nil {
 		return nil, err
@@ -84,9 +90,11 @@ func Load() (*Config, error) {
 		}
 	}
 	c := &Config{
-		Language: file.Language,
-		LLM:      file.LLM,
-		History:  file.History,
+		Language:         file.Language,
+		LastUsername:     strings.TrimSpace(file.LastUsername),
+		LastIdentityFile: strings.TrimSpace(file.LastIdentityFile),
+		LLM:              file.LLM,
+		History:          file.History,
 	}
 	return c, nil
 }
@@ -146,4 +154,42 @@ func Write(c *Config) error {
 		return err
 	}
 	return os.WriteFile(ConfigPath(), data, 0600)
+}
+
+// LoadLastIdentityFile returns the last remembered SSH key path for Add Remote input prefill.
+func LoadLastIdentityFile() (string, error) {
+	cfg, err := LoadEnsured()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(cfg.LastIdentityFile), nil
+}
+
+// LoadLastUsername returns the last remembered SSH username for Add Remote input prefill.
+func LoadLastUsername() (string, error) {
+	cfg, err := LoadEnsured()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(cfg.LastUsername), nil
+}
+
+// SetLastIdentityFile updates the remembered SSH key path used to prefill Add Remote.
+func SetLastIdentityFile(path string) error {
+	cfg, err := LoadEnsured()
+	if err != nil {
+		return err
+	}
+	cfg.LastIdentityFile = strings.TrimSpace(path)
+	return Write(cfg)
+}
+
+// SetLastUsername updates the remembered SSH username used to prefill Add Remote.
+func SetLastUsername(username string) error {
+	cfg, err := LoadEnsured()
+	if err != nil {
+		return err
+	}
+	cfg.LastUsername = strings.TrimSpace(username)
+	return Write(cfg)
 }

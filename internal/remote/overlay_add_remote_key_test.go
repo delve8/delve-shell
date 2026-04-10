@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/config"
 	"delve-shell/internal/pathcomplete"
 	"delve-shell/internal/ui"
 )
@@ -151,5 +152,65 @@ func TestFirstIncompleteAddRemoteField_UsernameIsRequired(t *testing.T) {
 	}
 	if idx != 1 {
 		t.Fatalf("missing field idx=%d want 1", idx)
+	}
+}
+
+func TestRememberLastAddRemoteIdentityFile_IgnoresEmpty(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", dir)
+	defer t.Setenv("DELVE_SHELL_ROOT", "")
+
+	rememberLastAddRemoteIdentityFile("")
+	got, err := config.LoadLastIdentityFile()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "" {
+		t.Fatalf("last identity file=%q want empty", got)
+	}
+}
+
+func TestRememberLastAddRemoteIdentityFile_WritesConfigMemory(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", dir)
+	defer t.Setenv("DELVE_SHELL_ROOT", "")
+
+	rememberLastAddRemoteIdentityFile(" ~/.ssh/id_ed25519 ")
+	got, err := config.LoadLastIdentityFile()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "~/.ssh/id_ed25519" {
+		t.Fatalf("last identity file=%q want %q", got, "~/.ssh/id_ed25519")
+	}
+}
+
+func TestRememberLastAddRemoteUsername_IgnoresEmpty(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", dir)
+	defer t.Setenv("DELVE_SHELL_ROOT", "")
+
+	rememberLastAddRemoteUsername("")
+	got, err := config.LoadLastUsername()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "" {
+		t.Fatalf("last username=%q want empty", got)
+	}
+}
+
+func TestRememberLastAddRemoteUsername_WritesConfigMemory(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", dir)
+	defer t.Setenv("DELVE_SHELL_ROOT", "")
+
+	rememberLastAddRemoteUsername(" alice ")
+	got, err := config.LoadLastUsername()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "alice" {
+		t.Fatalf("last username=%q want %q", got, "alice")
 	}
 }
