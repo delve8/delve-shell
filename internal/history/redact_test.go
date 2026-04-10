@@ -1,6 +1,9 @@
 package history
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestRedactText_Empty(t *testing.T) {
 	if got := RedactText(""); got != "" {
@@ -95,6 +98,17 @@ func TestRedactedToolResultMessage(t *testing.T) {
 	}
 	if !contains(got, "exit_code: 0") || !contains(got, "stderr:") {
 		t.Fatalf("expected shape: %q", got)
+	}
+}
+
+func TestRedactedToolResultMessage_TruncatesLargeOutput(t *testing.T) {
+	stdout := "password=abc\n" + strings.Repeat("x", ToolOutputMaxBytes+2048)
+	got := RedactedToolResultMessage(stdout, "", 0, nil)
+	if contains(got, "abc") {
+		t.Fatalf("stdout secret leaked: %q", got)
+	}
+	if !contains(got, "[truncated, omitted ") {
+		t.Fatalf("expected truncation marker: %q", got)
 	}
 }
 

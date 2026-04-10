@@ -42,7 +42,7 @@ var _ tool.InvokableTool = (*RunSkillTool)(nil)
 func (t *RunSkillTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 	return &schema.ToolInfo{
 		Name: "run_skill",
-		Desc: "Run a script from an installed skill. Skills are under ~/.delve-shell/skills/<skill_name>/ with SKILL.md and scripts/ subdir. Use list_skills to discover skills and their scripts. When the user started the turn with /skill <name> for the same skill, approval is skipped; otherwise an approval card is shown. The command runs in the skill's scripts/ directory. Prefer scripts that print concise, task-relevant summaries rather than large raw dumps. Set result_contains_secrets when output may include secrets: history is not stored for that run, the user sees a short redacted transcript, and the model receives redacted stdout/stderr (heuristic, not guaranteed).",
+		Desc: "Run a script from an installed skill. Skills are under ~/.delve-shell/skills/<skill_name>/ with SKILL.md and scripts/ subdir. Use list_skills to discover skills and their scripts. When the user started the turn with /skill <name> for the same skill, approval is skipped; otherwise an approval card is shown. The command runs in the skill's scripts/ directory. Prefer scripts that print concise, task-relevant summaries rather than large raw dumps. stdout/stderr larger than 64 KiB are middle-truncated before they are shown to the model or stored in session history: the start and end are kept, and the omitted middle is replaced with a truncation notice. Set result_contains_secrets when output may include secrets: history is not stored for that run, the user sees a short redacted transcript, and the model receives redacted stdout/stderr (heuristic, not guaranteed).",
 		ParamsOneOf: schema.NewParamsOneOfByParams(map[string]*schema.ParameterInfo{
 			"skill_name": {
 				Type:     schema.String,
@@ -75,7 +75,7 @@ func (t *RunSkillTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 			},
 			"result_contains_secrets": {
 				Type:     schema.Boolean,
-				Desc:     "Set true if output may contain secrets. Result is not stored in session history; model receives redacted stdout/stderr (same shape as normal tool output).",
+				Desc:     "Set true if output may contain secrets. Result is not stored in session history; model receives redacted stdout/stderr (same shape as normal tool output). Large stdout/stderr are still middle-truncated to 64 KiB with head/tail preserved.",
 				Required: false,
 			},
 		}),
@@ -251,20 +251,22 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 		}
 		return "The skill command was cancelled.", nil
 	}
+	uiOutStr := history.TruncateToolOutput(outStr)
+	uiErrStr := history.TruncateToolOutput(errStr)
 	var resultForUI string
 	if streamed {
 		resultForUI = "exit_code: " + strconv.Itoa(exitCode)
 		if err != nil && exitCode == 0 {
-			resultForUI += "\nerror: " + err.Error()
+			resultForUI += "\nerror: " + history.TruncateToolOutput(err.Error())
 		}
 	} else {
-		resultForUI = outStr
-		if errStr != "" {
-			resultForUI += "\nstderr:\n" + errStr
+		resultForUI = uiOutStr
+		if uiErrStr != "" {
+			resultForUI += "\nstderr:\n" + uiErrStr
 		}
 		resultForUI += "\nexit_code: " + strconv.Itoa(exitCode)
 		if err != nil && exitCode == 0 {
-			resultForUI += "\nerror: " + err.Error()
+			resultForUI += "\nerror: " + history.TruncateToolOutput(err.Error())
 		}
 	}
 	if t.OnExec != nil {
@@ -273,13 +275,5 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 	if sensitive {
 		return history.RedactedToolResultMessage(outStr, errStr, exitCode, err), nil
 	}
-	msg := "stdout:\n" + outStr
-	if errStr != "" {
-		msg += "\nstderr:\n" + errStr
-	}
-	msg += "\nexit_code: " + strconv.Itoa(exitCode)
-	if err != nil && exitCode == 0 {
-		msg += "\nerror: " + err.Error()
-	}
-	return msg, nil
+	return history.ToolResultMessage(outStr, errStr, exitCode, err), nil
 }

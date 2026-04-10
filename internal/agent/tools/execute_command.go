@@ -48,7 +48,7 @@ var _ tool.InvokableTool = (*ExecuteCommandTool)(nil)
 func (t *ExecuteCommandTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 	return &schema.ToolInfo{
 		Name: "execute_command",
-		Desc: "Execute a shell command or script in the user's environment. Prefer shell commands to accomplish tasks; use Python or other scripting only when shell is not sufficient. Prefer pipelines and filters (grep, awk, jq/jsonpath, head/tail, etc.) so stdout contains only the information you need—full verbose output is returned to the model and consumes context. If the command is not on the allowlist, the tool waits for user approval before running. If output may contain secrets, set result_contains_secrets to true: the transcript is minimized for the user, the result is not stored in session history, and the model still receives stdout/stderr with heuristic redaction (patterns like tokens, JWTs, labeled passwords)—redaction is not guaranteed complete, so avoid printing raw secrets in commands.",
+		Desc: "Execute a shell command or script in the user's environment. Prefer shell commands to accomplish tasks; use Python or other scripting only when shell is not sufficient. Prefer pipelines and filters (grep, awk, jq/jsonpath, head/tail, etc.) so stdout contains only the information you need. stdout/stderr larger than 64 KiB are middle-truncated before they are shown to the model or stored in session history: the start and end are kept, and the omitted middle is replaced with a truncation notice. If the command is not on the allowlist, the tool waits for user approval before running. If output may contain secrets, set result_contains_secrets to true: the transcript is minimized for the user, the result is not stored in session history, and the model still receives stdout/stderr with heuristic redaction (patterns like tokens, JWTs, labeled passwords)—redaction is not guaranteed complete, so avoid printing raw secrets in commands.",
 		ParamsOneOf: schema.NewParamsOneOfByParams(map[string]*schema.ParameterInfo{
 			"command": {
 				Type:     schema.String,
@@ -67,7 +67,7 @@ func (t *ExecuteCommandTool) Info(ctx context.Context) (*schema.ToolInfo, error)
 			},
 			"result_contains_secrets": {
 				Type:     schema.Boolean,
-				Desc:     "Set to true if the command output may contain secrets or private data. When true, the result is not stored in session history; the user sees a short redacted transcript; the model receives the same stdout/stderr shape with heuristic redaction (not a cryptographic guarantee).",
+				Desc:     "Set to true if the command output may contain secrets or private data. When true, the result is not stored in session history; the user sees a short redacted transcript; the model receives the same stdout/stderr shape with heuristic redaction (not a cryptographic guarantee). Large stdout/stderr are still middle-truncated to 64 KiB with head/tail preserved.",
 				Required: false,
 			},
 		}),
@@ -171,20 +171,22 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 		}
 		return "The command was cancelled.", nil
 	}
+	uiOutStr := history.TruncateToolOutput(outStr)
+	uiErrStr := history.TruncateToolOutput(errStr)
 	var resultForUI string
 	if useStream {
 		resultForUI = "exit_code: " + strconv.Itoa(exitCode)
 		if err != nil && exitCode == 0 {
-			resultForUI += "\nerror: " + err.Error()
+			resultForUI += "\nerror: " + history.TruncateToolOutput(err.Error())
 		}
 	} else {
-		resultForUI = outStr
-		if errStr != "" {
-			resultForUI += "\nstderr:\n" + errStr
+		resultForUI = uiOutStr
+		if uiErrStr != "" {
+			resultForUI += "\nstderr:\n" + uiErrStr
 		}
 		resultForUI += "\nexit_code: " + strconv.Itoa(exitCode)
 		if err != nil && exitCode == 0 {
-			resultForUI += "\nerror: " + err.Error()
+			resultForUI += "\nerror: " + history.TruncateToolOutput(err.Error())
 		}
 	}
 	if t.OnExec != nil {
@@ -193,15 +195,7 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 	if sensitive {
 		return history.RedactedToolResultMessage(outStr, errStr, exitCode, err), nil
 	}
-	msg := "stdout:\n" + outStr
-	if errStr != "" {
-		msg += "\nstderr:\n" + errStr
-	}
-	msg += "\nexit_code: " + strconv.Itoa(exitCode)
-	if err != nil && exitCode == 0 {
-		msg += "\nerror: " + err.Error()
-	}
-	return msg, nil
+	return history.ToolResultMessage(outStr, errStr, exitCode, err), nil
 }
 
 const manualPasteNoteForUI = "Manual paste — may be edited or mistaken."
@@ -239,7 +233,7 @@ func (t *ExecuteCommandTool) invokableRunOffline(ctx context.Context, command, r
 			_ = t.Session.AppendOfflinePasteResult(command, pasted)
 		}
 	}
-	resultForUI := pasted
+	resultForUI := history.TruncateToolOutput(pasted)
 	if resultForUI != "" {
 		resultForUI += "\n\n" + manualPasteNoteForUI
 	} else {
@@ -252,10 +246,10 @@ func (t *ExecuteCommandTool) invokableRunOffline(ctx context.Context, command, r
 		if pasted == "" {
 			return "The user submitted empty pasted output for: " + command + ".", nil
 		}
-		return "stdout:\n" + history.RedactText(pasted), nil
+		return "stdout:\n" + history.RedactAndTruncateToolOutput(pasted), nil
 	}
 	if pasted == "" {
 		return "The user submitted empty pasted output for: " + command + ".", nil
 	}
-	return "stdout:\n" + pasted, nil
+	return "stdout:\n" + history.TruncateToolOutput(pasted), nil
 }

@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"io"
+	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -12,6 +14,7 @@ import (
 
 	"delve-shell/internal/config"
 	"delve-shell/internal/hil/types"
+	"delve-shell/internal/history"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/remote/execenv"
 	"delve-shell/internal/runtime/executormgr"
@@ -245,6 +248,72 @@ func TestHandleSubmitNewSession_ReplacesTranscriptWithSessionBanner(t *testing.T
 	}
 	if msg.Lines[len(msg.Lines)-1].Kind != uivm.LineBlank {
 		t.Fatalf("want trailing blank, got %#v", msg.Lines)
+	}
+}
+
+func TestHandleHistoryPreviewOpen_ReadsFullSession(t *testing.T) {
+	i18n.SetLang("en")
+	root := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", root)
+	if err := config.EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+
+	sess, err := history.NewSession()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := sess.AppendCommand("bash run.sh", true, "run demo skill", "low", history.CommandPayloadKindSkill, "demo"); err != nil {
+		t.Fatal(err)
+	}
+	if err := sess.AppendCommandResult("bash run.sh", "needle-output", "", 0); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 205; i++ {
+		if err := sess.AppendUserInput("filler"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := sess.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	sessionID := strings.TrimSuffix(filepath.Base(sess.Path()), ".jsonl")
+	sender := &recordSender{}
+	c := newTestControllerWithPresenter(sender)
+
+	c.handleHistoryPreviewOpen(sessionID)
+
+	var msg ui.HistoryPreviewOverlayMsg
+	found := false
+	for _, raw := range sender.msgs {
+		ov, ok := raw.(ui.HistoryPreviewOverlayMsg)
+		if !ok {
+			continue
+		}
+		msg = ov
+		found = true
+		break
+	}
+	if !found {
+		t.Fatalf("no HistoryPreviewOverlayMsg in %#v", sender.msgs)
+	}
+
+	hasSkillLine := false
+	hasResult := false
+	for _, line := range msg.Lines {
+		if line.Kind == uivm.LineSystemSuggest && line.Text == "Skill: demo" {
+			hasSkillLine = true
+		}
+		if line.Kind == uivm.LineResult && strings.Contains(line.Text, "needle-output") {
+			hasResult = true
+		}
+	}
+	if !hasSkillLine {
+		t.Fatalf("expected skill line in preview, got %#v", msg.Lines)
+	}
+	if !hasResult {
+		t.Fatalf("expected early command result in preview, got %#v", msg.Lines)
 	}
 }
 

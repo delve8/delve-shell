@@ -50,7 +50,9 @@ func (c *Controller) handleHistoryPreviewOpen(sessionID string) {
 	if cfg, err := config.Load(); err == nil && cfg != nil && cfg.Language != "" {
 		lang = cfg.Language
 	}
-	events, _ := history.ReadRecent(sessionPath, agent.MaxConversationEvents)
+	// History preview is an explicit user-inspection path, so it should show the full session
+	// rather than reusing the LLM context window cap.
+	events, _ := history.ReadRecent(sessionPath, 0)
 	vmLines := historytui.EventsToTranscriptLinesForHistoryPreview(events)
 	i18n.SetLang(lang)
 	c.ui.ShowHistoryPreviewDialog(vmLines, sessionID)

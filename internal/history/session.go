@@ -145,8 +145,8 @@ func (s *Session) AppendSuggestedCommand(command, reason, riskLevel, kind, skill
 
 // AppendCommandResult records command execution result.
 func (s *Session) AppendCommandResult(command string, stdout, stderr string, exitCode int) error {
-	redactedStdout := RedactText(stdout)
-	redactedStderr := RedactText(stderr)
+	redactedStdout := RedactAndTruncateToolOutput(stdout)
+	redactedStderr := RedactAndTruncateToolOutput(stderr)
 	return s.append(EventTypeCommandResult, map[string]interface{}{
 		"command":   command,
 		"stdout":    redactedStdout,
@@ -178,7 +178,7 @@ func (s *Session) AppendOfflineCommandProposal(command, reason, riskLevel string
 func (s *Session) AppendOfflinePasteResult(command, pasted string) error {
 	return s.append(EventTypeCommandResult, map[string]interface{}{
 		"command":      command,
-		"stdout":       RedactText(pasted),
+		"stdout":       RedactAndTruncateToolOutput(pasted),
 		"manual_paste": true,
 		"offline_mode": true,
 		"note":         manualPasteNoteEN,

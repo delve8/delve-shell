@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"delve-shell/internal/hil/types"
@@ -88,6 +89,54 @@ func TestSession_AppendCommandResult_RedactsBeforeWrite(t *testing.T) {
 	if contains(gotStderr, "xyz") || contains(gotStderr, "JWT_SECRET=xyz") {
 		t.Errorf("stderr still contains secret, got %q", gotStderr)
 	}
+}
+
+func TestSession_AppendCommandResult_TruncatesBeforeWrite(t *testing.T) {
+	dir := t.TempDir()
+	s := &Session{
+		id:   "truncate",
+		path: filepath.Join(dir, "truncate.jsonl"),
+	}
+	defer s.Close()
+
+	stdout := strings.Repeat("H", 40*1024) + strings.Repeat("M", 40*1024) + strings.Repeat("T", 40*1024)
+	if err := s.AppendCommandResult("echo test", stdout, "", 0); err != nil {
+		t.Fatalf("AppendCommandResult error: %v", err)
+	}
+
+	data, err := os.ReadFile(s.path)
+	if err != nil {
+		t.Fatalf("read session file: %v", err)
+	}
+	var ev Event
+	if err := json.Unmarshal([]byte(firstLine(string(data))), &ev); err != nil {
+		t.Fatalf("unmarshal event: %v", err)
+	}
+	var payload map[string]interface{}
+	if err := json.Unmarshal(ev.Payload, &payload); err != nil {
+		t.Fatalf("unmarshal payload: %v", err)
+	}
+
+	gotStdout, _ := payload["stdout"].(string)
+	if len(gotStdout) > ToolOutputMaxBytes {
+		t.Fatalf("stdout len=%d want <= %d", len(gotStdout), ToolOutputMaxBytes)
+	}
+	if !contains(gotStdout, "[truncated, omitted ") {
+		t.Fatalf("expected truncation marker in %q", gotStdout[:minIntSessionTest(len(gotStdout), 200)])
+	}
+	if !contains(gotStdout, strings.Repeat("H", 1024)) {
+		t.Fatalf("expected preserved head")
+	}
+	if !contains(gotStdout, strings.Repeat("T", 1024)) {
+		t.Fatalf("expected preserved tail")
+	}
+}
+
+func minIntSessionTest(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func firstLine(s string) string {

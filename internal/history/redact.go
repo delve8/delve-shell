@@ -24,15 +24,15 @@ func RedactText(s string) string {
 // with stdout, stderr, and error text passed through [RedactText]. Used when the user marks
 // result_contains_secrets (or equivalent) so the model still receives structure without raw secrets.
 func RedactedToolResultMessage(stdout, stderr string, exitCode int, execErr error) string {
-	stdout = RedactText(stdout)
-	stderr = RedactText(stderr)
+	stdout = RedactAndTruncateToolOutput(stdout)
+	stderr = RedactAndTruncateToolOutput(stderr)
 	msg := "stdout:\n" + stdout
 	if stderr != "" {
 		msg += "\nstderr:\n" + stderr
 	}
 	msg += "\nexit_code: " + strconv.Itoa(exitCode)
 	if execErr != nil && exitCode == 0 {
-		msg += "\nerror: " + RedactText(execErr.Error())
+		msg += "\nerror: " + RedactAndTruncateToolOutput(execErr.Error())
 	}
 	return msg
 }
