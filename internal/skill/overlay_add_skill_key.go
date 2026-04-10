@@ -17,6 +17,33 @@ import (
 
 const addSkillFieldCount = 4
 
+func applyAddSkillFieldFocus(state *AddSkillOverlayState) {
+	state.URLInput.Blur()
+	state.RefInput.Blur()
+	state.PathInput.Blur()
+	state.NameInput.Blur()
+	switch state.FieldIndex {
+	case 0:
+		state.URLInput.Focus()
+	case 1:
+		state.RefInput.Focus()
+	case 2:
+		state.PathInput.Focus()
+	case 3:
+		state.NameInput.Focus()
+	}
+}
+
+func firstIncompleteAddSkillField(state AddSkillOverlayState) (idx int, msg string, missing bool) {
+	if strings.TrimSpace(state.URLInput.Value()) == "" {
+		return 0, i18n.T(i18n.KeyAddSkillURLRequired), true
+	}
+	if strings.TrimSpace(state.NameInput.Value()) == "" {
+		return 3, "name is required", true
+	}
+	return 0, "", false
+}
+
 func filterByPrefix(s []string, prefix string) []string {
 	if prefix == "" {
 		return s
@@ -80,6 +107,25 @@ func handleAddSkillOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mode
 			state.AddSkill.PathIndex = 0
 			return ret(m, nil, true)
 		}
+		state.AddSkill.FieldIndex = (state.AddSkill.FieldIndex + 1 + addSkillFieldCount) % addSkillFieldCount
+		applyAddSkillFieldFocus(&state.AddSkill)
+		if state.AddSkill.FieldIndex == 1 {
+			state.AddSkill.RefCandidates = nil
+			state.AddSkill.RefIndex = 0
+			urlForRefs := strings.TrimSpace(state.AddSkill.URLInput.Value())
+			if urlForRefs != "" {
+				return ret(m, runListRefsCmd(urlForRefs), true)
+			}
+		}
+		if state.AddSkill.FieldIndex == 2 {
+			state = updateAddSkillPathCandidates(state)
+			urlForPaths := strings.TrimSpace(state.AddSkill.URLInput.Value())
+			if urlForPaths != "" {
+				refForPaths := strings.TrimSpace(state.AddSkill.RefInput.Value())
+				return ret(m, runListPathsCmd(urlForPaths, refForPaths), true)
+			}
+		}
+		return ret(m, nil, true)
 	case teakey.Up, teakey.Down:
 		dir := 1
 		if key == teakey.Up {
@@ -94,15 +140,9 @@ func handleAddSkillOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mode
 			return ret(m, nil, true)
 		}
 		state.AddSkill.FieldIndex = (state.AddSkill.FieldIndex + dir + addSkillFieldCount) % addSkillFieldCount
-		state.AddSkill.URLInput.Blur()
-		state.AddSkill.RefInput.Blur()
-		state.AddSkill.PathInput.Blur()
-		state.AddSkill.NameInput.Blur()
+		applyAddSkillFieldFocus(&state.AddSkill)
 		switch state.AddSkill.FieldIndex {
-		case 0:
-			state.AddSkill.URLInput.Focus()
 		case 1:
-			state.AddSkill.RefInput.Focus()
 			state.AddSkill.RefCandidates = nil
 			state.AddSkill.RefIndex = 0
 			urlForRefs := strings.TrimSpace(state.AddSkill.URLInput.Value())
@@ -110,15 +150,12 @@ func handleAddSkillOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mode
 				return ret(m, runListRefsCmd(urlForRefs), true)
 			}
 		case 2:
-			state.AddSkill.PathInput.Focus()
 			state = updateAddSkillPathCandidates(state)
 			urlForPaths := strings.TrimSpace(state.AddSkill.URLInput.Value())
 			if urlForPaths != "" {
 				refForPaths := strings.TrimSpace(state.AddSkill.RefInput.Value())
 				return ret(m, runListPathsCmd(urlForPaths, refForPaths), true)
 			}
-		case 3:
-			state.AddSkill.NameInput.Focus()
 		}
 		return ret(m, nil, true)
 	case teakey.Enter:
@@ -152,6 +189,27 @@ func handleAddSkillOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mode
 			}
 			return ret(m, nil, true)
 		}
+		if state.AddSkill.FieldIndex != addSkillFieldCount-1 {
+			state.AddSkill.FieldIndex = (state.AddSkill.FieldIndex + 1 + addSkillFieldCount) % addSkillFieldCount
+			applyAddSkillFieldFocus(&state.AddSkill)
+			if state.AddSkill.FieldIndex == 1 {
+				state.AddSkill.RefCandidates = nil
+				state.AddSkill.RefIndex = 0
+				urlForRefs := strings.TrimSpace(state.AddSkill.URLInput.Value())
+				if urlForRefs != "" {
+					return ret(m, runListRefsCmd(urlForRefs), true)
+				}
+			}
+			if state.AddSkill.FieldIndex == 2 {
+				state = updateAddSkillPathCandidates(state)
+				urlForPaths := strings.TrimSpace(state.AddSkill.URLInput.Value())
+				if urlForPaths != "" {
+					refForPaths := strings.TrimSpace(state.AddSkill.RefInput.Value())
+					return ret(m, runListPathsCmd(urlForPaths, refForPaths), true)
+				}
+			}
+			return ret(m, nil, true)
+		}
 		// Submit form
 		url := strings.TrimSpace(state.AddSkill.URLInput.Value())
 		ref := strings.TrimSpace(state.AddSkill.RefInput.Value())
@@ -160,8 +218,16 @@ func handleAddSkillOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mode
 		if path == "." {
 			path = ""
 		}
-		if url == "" {
-			state.AddSkill.Error = i18n.T(i18n.KeyAddSkillURLRequired)
+		if missingIdx, msg := func() (int, string) {
+			idx, msg, missing := firstIncompleteAddSkillField(state.AddSkill)
+			if !missing {
+				return -1, ""
+			}
+			return idx, msg
+		}(); missingIdx >= 0 {
+			state.AddSkill.FieldIndex = missingIdx
+			applyAddSkillFieldFocus(&state.AddSkill)
+			state.AddSkill.Error = msg
 			return ret(m, nil, true)
 		}
 		state.AddSkill.Error = ""
@@ -186,13 +252,16 @@ func handleAddSkillOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mode
 	switch state.AddSkill.FieldIndex {
 	case 0:
 		state.AddSkill.URLInput, cmd = state.AddSkill.URLInput.Update(msg)
+		state.AddSkill.Error = ""
 	case 1:
 		state.AddSkill.RefInput, cmd = state.AddSkill.RefInput.Update(msg)
 		state.AddSkill.RefCandidates = filterByPrefix(state.AddSkill.RefsFullList, state.AddSkill.RefInput.Value())
 		state.AddSkill.RefIndex = 0
+		state.AddSkill.Error = ""
 	case 2:
 		state.AddSkill.PathInput, cmd = state.AddSkill.PathInput.Update(msg)
 		state = updateAddSkillPathCandidates(state)
+		state.AddSkill.Error = ""
 		// Auto-fill local name from path last segment when name is empty.
 		if strings.TrimSpace(state.AddSkill.NameInput.Value()) == "" {
 			if p := strings.TrimSpace(state.AddSkill.PathInput.Value()); p != "" {
@@ -205,6 +274,7 @@ func handleAddSkillOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mode
 		}
 	case 3:
 		state.AddSkill.NameInput, cmd = state.AddSkill.NameInput.Update(msg)
+		state.AddSkill.Error = ""
 	}
 	return ret(m, cmd, true)
 }

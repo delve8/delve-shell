@@ -16,6 +16,33 @@ import (
 
 const configModelFieldCount = 5
 
+func applyOverlayFieldFocus(st *overlayState) {
+	st.BaseURLInput.Blur()
+	st.ApiKeyInput.Blur()
+	st.ModelInput.Blur()
+	st.MaxMessagesInput.Blur()
+	st.MaxCharsInput.Blur()
+	switch st.FieldIndex {
+	case 0:
+		st.BaseURLInput.Focus()
+	case 1:
+		st.ApiKeyInput.Focus()
+	case 2:
+		st.ModelInput.Focus()
+	case 3:
+		st.MaxMessagesInput.Focus()
+	case 4:
+		st.MaxCharsInput.Focus()
+	}
+}
+
+func firstIncompleteOverlayField(st overlayState) (idx int, missing bool) {
+	if strings.TrimSpace(st.ModelInput.Value()) == "" {
+		return 2, true
+	}
+	return 0, false
+}
+
 func handleOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Model, tea.Cmd, bool) {
 	st := getOverlayState()
 	if !st.Active {
@@ -23,33 +50,23 @@ func handleOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Model, tea.C
 	}
 
 	switch key {
-	case teakey.Up, teakey.Down:
+	case teakey.Up, teakey.Down, teakey.Tab:
 		dir := 1
 		if key == teakey.Up {
 			dir = -1
 		}
 		st.FieldIndex = (st.FieldIndex + dir + configModelFieldCount) % configModelFieldCount
-		st.BaseURLInput.Blur()
-		st.ApiKeyInput.Blur()
-		st.ModelInput.Blur()
-		st.MaxMessagesInput.Blur()
-		st.MaxCharsInput.Blur()
-		switch st.FieldIndex {
-		case 0:
-			st.BaseURLInput.Focus()
-		case 1:
-			st.ApiKeyInput.Focus()
-		case 2:
-			st.ModelInput.Focus()
-		case 3:
-			st.MaxMessagesInput.Focus()
-		case 4:
-			st.MaxCharsInput.Focus()
-		}
+		applyOverlayFieldFocus(&st)
 		setOverlayState(st)
 		return m, nil, true
 	case teakey.Enter:
 		if st.Checking {
+			return m, nil, true
+		}
+		if st.FieldIndex != configModelFieldCount-1 {
+			st.FieldIndex = (st.FieldIndex + 1 + configModelFieldCount) % configModelFieldCount
+			applyOverlayFieldFocus(&st)
+			setOverlayState(st)
 			return m, nil, true
 		}
 		baseURL := strings.TrimSpace(st.BaseURLInput.Value())
@@ -57,7 +74,9 @@ func handleOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Model, tea.C
 		model := strings.TrimSpace(st.ModelInput.Value())
 		maxMessagesStr := strings.TrimSpace(st.MaxMessagesInput.Value())
 		maxCharsStr := strings.TrimSpace(st.MaxCharsInput.Value())
-		if model == "" {
+		if missingIdx, missing := firstIncompleteOverlayField(st); missing {
+			st.FieldIndex = missingIdx
+			applyOverlayFieldFocus(&st)
 			st.Error = i18n.T(i18n.KeyConfigModelModelRequired)
 			setOverlayState(st)
 			return m, nil, true
@@ -122,6 +141,7 @@ func handleOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Model, tea.C
 	case 4:
 		st.MaxCharsInput, cmd = st.MaxCharsInput.Update(msg)
 	}
+	st.Error = ""
 	setOverlayState(st)
 	return m, cmd, true
 }

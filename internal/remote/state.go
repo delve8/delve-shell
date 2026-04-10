@@ -12,6 +12,7 @@ type RemoteAuthOverlayState struct {
 	Step          string
 	Target        string
 	Error         string
+	ChoiceIndex   int // 0-based selection for two-choice auth steps (host-key trust, password vs key)
 	HostKeyHost   string
 	HostKeyFP     string
 	Username      string          // username to use when submitting (default root)

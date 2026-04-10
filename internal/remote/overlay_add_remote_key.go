@@ -41,6 +41,33 @@ func applyAddRemoteFieldFocus(state *AddRemoteOverlayState) {
 	}
 }
 
+func moveAddRemoteField(state *AddRemoteOverlayState, dir int, pcState *pathcomplete.State) {
+	fieldCount := addRemoteFieldCount(*state)
+	state.FieldIndex = (state.FieldIndex + dir + fieldCount) % fieldCount
+	applyAddRemoteFieldFocus(state)
+	if state.FieldIndex != 2 {
+		pcState.Candidates = nil
+		pcState.Index = -1
+	} else {
+		pcState.Candidates = pathcomplete.Candidates(state.KeyInput.Value())
+		if len(pcState.Candidates) > 0 {
+			pcState.Index = 0
+		} else {
+			pcState.Index = -1
+		}
+	}
+}
+
+func firstIncompleteAddRemoteField(state AddRemoteOverlayState) (idx int, missing bool) {
+	if strings.TrimSpace(state.HostInput.Value()) == "" {
+		return 0, true
+	}
+	if state.Save && strings.TrimSpace(state.NameInput.Value()) == "" {
+		return 4, true
+	}
+	return 0, false
+}
+
 func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Model, tea.Cmd, bool) {
 	state := getRemoteOverlayState()
 	pcState := pathcomplete.GetState()
@@ -68,6 +95,9 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 				return ret(m, nil, true)
 			}
 		}
+		moveAddRemoteField(&state.AddRemote, 1, &pcState)
+		pathcomplete.SetState(pcState)
+		return ret(m, nil, true)
 
 	case teakey.Up, teakey.Down:
 		if state.AddRemote.FieldIndex == 2 && len(pcState.Candidates) > 0 {
@@ -91,20 +121,7 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 		if key == teakey.Up {
 			dir = -1
 		}
-		fieldCount := addRemoteFieldCount(state.AddRemote)
-		state.AddRemote.FieldIndex = (state.AddRemote.FieldIndex + dir + fieldCount) % fieldCount
-		applyAddRemoteFieldFocus(&state.AddRemote)
-		if state.AddRemote.FieldIndex != 2 {
-			pcState.Candidates = nil
-			pcState.Index = -1
-		} else {
-			pcState.Candidates = pathcomplete.Candidates(state.AddRemote.KeyInput.Value())
-			if len(pcState.Candidates) > 0 {
-				pcState.Index = 0
-			} else {
-				pcState.Index = -1
-			}
-		}
+		moveAddRemoteField(&state.AddRemote, dir, &pcState)
 		pathcomplete.SetState(pcState)
 		return ret(m, nil, true)
 
@@ -149,6 +166,9 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 	case " ":
 		if state.AddRemote.FieldIndex == 3 {
 			state.AddRemote.Save = !state.AddRemote.Save
+			if state.AddRemote.Save {
+				state.AddRemote.FieldIndex = 4
+			}
 			applyAddRemoteFieldFocus(&state.AddRemote)
 			return ret(m, nil, true)
 		}
@@ -171,6 +191,11 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 				return ret(m, nil, true)
 			}
 		}
+		if state.AddRemote.FieldIndex != addRemoteFieldCount(state.AddRemote)-1 {
+			moveAddRemoteField(&state.AddRemote, 1, &pcState)
+			pathcomplete.SetState(pcState)
+			return ret(m, nil, true)
+		}
 
 		host := strings.TrimSpace(state.AddRemote.HostInput.Value())
 		user := strings.TrimSpace(state.AddRemote.UserInput.Value())
@@ -180,8 +205,14 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 		name := strings.TrimSpace(state.AddRemote.NameInput.Value())
 		keyPath := strings.TrimSpace(state.AddRemote.KeyInput.Value())
 
-		if host == "" {
-			state.AddRemote.Error = "host is required"
+		if missingIdx, missing := firstIncompleteAddRemoteField(state.AddRemote); missing {
+			state.AddRemote.FieldIndex = missingIdx
+			applyAddRemoteFieldFocus(&state.AddRemote)
+			if missingIdx == 0 {
+				state.AddRemote.Error = "host is required"
+			} else {
+				state.AddRemote.Error = "name is required when saving"
+			}
 			return ret(m, nil, true)
 		}
 		if strings.Contains(host, "@") {
@@ -222,10 +253,16 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 	switch state.AddRemote.FieldIndex {
 	case 0:
 		state.AddRemote.HostInput, cmd = state.AddRemote.HostInput.Update(msg)
+		state.AddRemote.Error = ""
+		state.AddRemote.OfferOverwrite = false
 	case 1:
 		state.AddRemote.UserInput, cmd = state.AddRemote.UserInput.Update(msg)
+		state.AddRemote.Error = ""
+		state.AddRemote.OfferOverwrite = false
 	case 2:
 		state.AddRemote.KeyInput, cmd = state.AddRemote.KeyInput.Update(msg)
+		state.AddRemote.Error = ""
+		state.AddRemote.OfferOverwrite = false
 		pcState.Candidates = pathcomplete.Candidates(state.AddRemote.KeyInput.Value())
 		if len(pcState.Candidates) > 0 {
 			pcState.Index = 0
@@ -236,6 +273,8 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 		cmd = nil
 	case 4:
 		state.AddRemote.NameInput, cmd = state.AddRemote.NameInput.Update(msg)
+		state.AddRemote.Error = ""
+		state.AddRemote.OfferOverwrite = false
 	}
 	pathcomplete.SetState(pcState)
 	_ = msg

@@ -330,7 +330,9 @@ const (
 	KeyOverlayEscCancel           = "overlay_esc_cancel"
 	KeyOverlayEnterContinueEsc    = "overlay_enter_continue_esc"
 	KeyOverlay12SelectEsc         = "overlay_12_select_esc"
+	KeyOverlayChoiceSelectEsc     = "overlay_choice_select_esc"
 	KeyOverlayEnterSubmitEsc      = "overlay_enter_submit_esc"
+	KeyOverlayEnterUpdateEsc      = "overlay_enter_update_esc"
 
 	// Auto-approve highlight: why a span is Risk ([T] / [Tf] for localized Reason text).
 	KeyAutoApproveHLWriteRedirection        = "auto_approve_hl_write_redirection"
@@ -528,7 +530,9 @@ var messages = map[string]map[string]string{
 		KeyOverlayEscCancel:                     "Esc to cancel",
 		KeyOverlayEnterContinueEsc:              "Enter to continue · Esc to cancel",
 		KeyOverlay12SelectEsc:                   "1 or 2 to select · Esc to cancel",
+		KeyOverlayChoiceSelectEsc:               "Up/Down to move · Enter to select · 1/2 also work · Esc to cancel",
 		KeyOverlayEnterSubmitEsc:                "Enter to submit · Esc to cancel",
+		KeyOverlayEnterUpdateEsc:                "Up/Down to move · Enter to update · Esc to cancel",
 		KeyAutoApproveHLWriteRedirection:        "Output redirection to a file (> or >>) is not allowed for auto-approve.",
 		KeyAutoApproveHLShellParseError:         "Could not parse the command as shell: %v",
 		KeyAutoApproveHLUnsupportedConstruct:    "Cannot auto-approve: unsupported syntax, or the program name is not a fixed literal.",

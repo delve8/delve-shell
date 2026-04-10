@@ -73,6 +73,7 @@ func remoteConnectUIHandler(m *ui.Model, msg tea.Msg) (*ui.Model, tea.Cmd, bool)
 		m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyRemoteAuthTitle), "")
 		state.RemoteAuth.Target = t.Target
 		state.RemoteAuth.Error = t.Err
+		state.RemoteAuth.ChoiceIndex = 0
 		state.RemoteAuth.HostKeyHost = t.HostKeyHost
 		state.RemoteAuth.HostKeyFP = t.HostKeyFingerprint
 		m.Interaction.ChoiceIndex = 0

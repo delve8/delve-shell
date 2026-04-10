@@ -28,6 +28,32 @@ func handleRemoteAuthOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mo
 			return ret(m, nil, true)
 		}
 		switch key {
+		case teakey.Up:
+			state.RemoteAuth.ChoiceIndex = remoteAuthToggleChoice(state.RemoteAuth.ChoiceIndex)
+			return ret(m, nil, true)
+		case teakey.Down:
+			state.RemoteAuth.ChoiceIndex = remoteAuthToggleChoice(state.RemoteAuth.ChoiceIndex)
+			return ret(m, nil, true)
+		case teakey.Enter:
+			if state.RemoteAuth.ChoiceIndex == 0 {
+				state.RemoteAuth.Connecting = true
+				if m.CommandSender != nil {
+					_ = m.CommandSender.Send(hostcmd.RemoteAuthReply{Response: remoteauth.Response{
+						Target: state.RemoteAuth.Target,
+						Kind:   remoteauth.ResponseKindHostKeyAccept,
+					}})
+				}
+				return ret(m, nil, true)
+			}
+			if m.CommandSender != nil {
+				_ = m.CommandSender.Send(hostcmd.RemoteAuthReply{Response: remoteauth.Response{
+					Target: state.RemoteAuth.Target,
+					Kind:   remoteauth.ResponseKindHostKeyReject,
+				}})
+			}
+			m.CloseOverlayVisual()
+			state.RemoteAuth = RemoteAuthOverlayState{}
+			return ret(m, nil, true)
 		case "1":
 			state.RemoteAuth.Connecting = true
 			if m.CommandSender != nil {
@@ -60,6 +86,7 @@ func handleRemoteAuthOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mo
 				state.RemoteAuth.Username = "root"
 			}
 			state.RemoteAuth.Step = AuthStepChoose
+			state.RemoteAuth.ChoiceIndex = 0
 			return ret(m, nil, true)
 		}
 		var cmd tea.Cmd
@@ -68,6 +95,30 @@ func handleRemoteAuthOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mo
 
 	case AuthStepChoose:
 		switch key {
+		case teakey.Up:
+			state.RemoteAuth.ChoiceIndex = remoteAuthToggleChoice(state.RemoteAuth.ChoiceIndex)
+			return ret(m, nil, true)
+		case teakey.Down:
+			state.RemoteAuth.ChoiceIndex = remoteAuthToggleChoice(state.RemoteAuth.ChoiceIndex)
+			return ret(m, nil, true)
+		case teakey.Enter:
+			if state.RemoteAuth.ChoiceIndex == 0 {
+				state.RemoteAuth.Step = AuthStepPassword
+				state.RemoteAuth.Input = textinput.New()
+				state.RemoteAuth.Input.Placeholder = i18n.T(i18n.KeyRemoteAuthPasswordPlaceholder)
+				state.RemoteAuth.Input.EchoMode = textinput.EchoPassword
+				state.RemoteAuth.Input.Focus()
+				return ret(m, nil, true)
+			}
+			state.RemoteAuth.Step = AuthStepIdentity
+			state.RemoteAuth.Input = textinput.New()
+			state.RemoteAuth.Input.Placeholder = i18n.T(i18n.KeyRemoteAuthIdentityPlaceholder)
+			state.RemoteAuth.Input.EchoMode = textinput.EchoNormal
+			state.RemoteAuth.Input.Focus()
+			pcState.Candidates = nil
+			pcState.Index = -1
+			pathcomplete.SetState(pcState)
+			return ret(m, nil, true)
 		case "1":
 			state.RemoteAuth.Step = AuthStepPassword
 			state.RemoteAuth.Input = textinput.New()
@@ -96,7 +147,7 @@ func handleRemoteAuthOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mo
 			input := state.RemoteAuth.Input.Value()
 			if input == "" {
 				state.RemoteAuth.Step = AuthStepChoose
-				m.Interaction.ChoiceIndex = 0
+				state.RemoteAuth.ChoiceIndex = 0
 				return ret(m, nil, true)
 			}
 
@@ -159,7 +210,7 @@ func handleRemoteAuthOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mo
 			input := state.RemoteAuth.Input.Value()
 			if input == "" {
 				state.RemoteAuth.Step = AuthStepChoose
-				m.Interaction.ChoiceIndex = 0
+				state.RemoteAuth.ChoiceIndex = 0
 				pcState.Candidates = nil
 				pcState.Index = -1
 				pathcomplete.SetState(pcState)
@@ -201,4 +252,11 @@ func handleRemoteAuthOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mo
 	}
 
 	return ret(m, nil, true)
+}
+
+func remoteAuthToggleChoice(choiceIndex int) int {
+	if choiceIndex == 1 {
+		return 0
+	}
+	return 1
 }

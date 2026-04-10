@@ -162,9 +162,10 @@ func buildRemoteAuthChoiceContent(state remoteOverlayState) string {
 	var b strings.Builder
 	appendRemoteAuthError(&b, state.RemoteAuth.Error)
 	b.WriteString(i18n.T(i18n.KeyRemoteAuthMethodTitle) + "\n")
-	b.WriteString("  " + i18n.T(i18n.KeyRemoteAuthPasswordChoice) + "\n")
-	b.WriteString("  " + i18n.T(i18n.KeyRemoteAuthIdentityChoice) + "\n\n")
-	b.WriteString(ui.RenderOverlayHintLine(i18n.KeyOverlay12SelectEsc))
+	appendRemoteAuthChoiceLine(&b, 0, state.RemoteAuth.ChoiceIndex, i18n.T(i18n.KeyRemoteAuthPasswordChoice))
+	appendRemoteAuthChoiceLine(&b, 1, state.RemoteAuth.ChoiceIndex, i18n.T(i18n.KeyRemoteAuthIdentityChoice))
+	b.WriteString("\n")
+	b.WriteString(ui.RenderOverlayHintLine(i18n.KeyOverlayChoiceSelectEsc))
 	return b.String()
 }
 
@@ -227,9 +228,10 @@ func buildRemoteAuthHostKeyContent(state remoteOverlayState) string {
 		b.WriteString(ui.RenderOverlayHintLine(i18n.KeyOverlayEscCancel))
 		return b.String()
 	}
-	b.WriteString(i18n.T(i18n.KeyRemoteAuthAcceptKnownHosts) + "\n")
-	b.WriteString(i18n.T(i18n.KeyRemoteAuthRejectKnownHosts) + "\n\n")
-	b.WriteString(ui.RenderOverlayHintLine(i18n.KeyOverlay12SelectEsc))
+	appendRemoteAuthChoiceLine(&b, 0, state.RemoteAuth.ChoiceIndex, i18n.T(i18n.KeyRemoteAuthAcceptKnownHosts))
+	appendRemoteAuthChoiceLine(&b, 1, state.RemoteAuth.ChoiceIndex, i18n.T(i18n.KeyRemoteAuthRejectKnownHosts))
+	b.WriteString("\n")
+	b.WriteString(ui.RenderOverlayHintLine(i18n.KeyOverlayChoiceSelectEsc))
 	return b.String()
 }
 
@@ -242,4 +244,13 @@ func appendRemoteAuthError(b *strings.Builder, errText string) {
 
 func remoteAuthHostLabel(state remoteOverlayState) string {
 	return config.HostFromTarget(state.RemoteAuth.Target)
+}
+
+func appendRemoteAuthChoiceLine(b *strings.Builder, choiceIndex int, selectedIndex int, label string) {
+	line := "  " + label
+	if choiceIndex == selectedIndex {
+		b.WriteString(ui.SuggestHiRender(line) + "\n")
+		return
+	}
+	b.WriteString(ui.SuggestStyleRender(line) + "\n")
 }
