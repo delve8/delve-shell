@@ -90,3 +90,66 @@ func TestHandleAddRemoteOverlayKey_SpaceOnSaveMovesToNameWhenEnabled(t *testing.
 		t.Fatalf("field index=%d want 4", got.AddRemote.FieldIndex)
 	}
 }
+
+func TestHandleAddRemoteOverlayKey_OverwriteChoiceDownEnterKeepsEditing(t *testing.T) {
+	m := ui.NewModel(nil, nil)
+	state := getRemoteOverlayState()
+	state.AddRemote.Active = true
+	state.AddRemote.OfferOverwrite = true
+	state.AddRemote.Error = "remote target already exists: root@example.com"
+	setRemoteOverlayState(state)
+	t.Cleanup(resetRemoteOverlayState)
+
+	_, _, handled := handleAddRemoteOverlayKey(m, tea.KeyDown.String(), tea.KeyMsg{Type: tea.KeyDown})
+	if !handled {
+		t.Fatal("expected down to be handled")
+	}
+	got := getRemoteOverlayState()
+	if got.AddRemote.ChoiceIndex != 1 {
+		t.Fatalf("choice index=%d want 1", got.AddRemote.ChoiceIndex)
+	}
+
+	_, _, handled = handleAddRemoteOverlayKey(m, tea.KeyEnter.String(), tea.KeyMsg{Type: tea.KeyEnter})
+	if !handled {
+		t.Fatal("expected enter to be handled")
+	}
+	got = getRemoteOverlayState()
+	if got.AddRemote.OfferOverwrite {
+		t.Fatal("expected overwrite prompt to be cleared")
+	}
+	if got.AddRemote.Error != "" {
+		t.Fatalf("expected overwrite error to be cleared, got %q", got.AddRemote.Error)
+	}
+}
+
+func TestFirstIncompleteAddRemoteField_NameRemainsOptionalWhenSaving(t *testing.T) {
+	state := AddRemoteOverlayState{
+		Save:      true,
+		HostInput: textinput.New(),
+		UserInput: textinput.New(),
+		NameInput: textinput.New(),
+	}
+	state.HostInput.SetValue("example.com")
+	state.UserInput.SetValue("alice")
+
+	idx, missing := firstIncompleteAddRemoteField(state)
+	if missing {
+		t.Fatalf("unexpected missing field idx=%d", idx)
+	}
+}
+
+func TestFirstIncompleteAddRemoteField_UsernameIsRequired(t *testing.T) {
+	state := AddRemoteOverlayState{
+		HostInput: textinput.New(),
+		UserInput: textinput.New(),
+	}
+	state.HostInput.SetValue("example.com")
+
+	idx, missing := firstIncompleteAddRemoteField(state)
+	if !missing {
+		t.Fatal("expected missing username")
+	}
+	if idx != 1 {
+		t.Fatalf("missing field idx=%d want 1", idx)
+	}
+}

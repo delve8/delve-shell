@@ -16,7 +16,7 @@ type Prompt struct {
 // Response carries user-provided credentials from the remote auth overlay back to the host.
 //
 // Kind uses [ResponseKindPassword], [ResponseKindIdentity], [ResponseKindHostKeyAccept], or [ResponseKindHostKeyReject].
-// Username is optional; when set, the executor combines it with the host from Target (e.g. overlay default "root").
+// Username is optional; when set, the executor combines it with the host from Target.
 type Response struct {
 	Target   string
 	Username string

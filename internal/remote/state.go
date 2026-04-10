@@ -15,7 +15,7 @@ type RemoteAuthOverlayState struct {
 	ChoiceIndex   int // 0-based selection for two-choice auth steps (host-key trust, password vs key)
 	HostKeyHost   string
 	HostKeyFP     string
-	Username      string          // username to use when submitting (default root)
+	Username      string          // username to use when submitting
 	UsernameInput textinput.Model // username input in choose step
 	Input         textinput.Model // for password or identity path
 	Connecting    bool            // true while waiting for remote auth result ("Connecting..." state)
@@ -30,7 +30,8 @@ type AddRemoteOverlayState struct {
 	KeyInput       textinput.Model
 	FieldIndex     int
 	Error          string
-	OfferOverwrite bool // when true, error was "already exists"; show overwrite hint and accept O to overwrite
+	ChoiceIndex    int  // 0-based selection for overwrite confirmation choices
+	OfferOverwrite bool // when true, error was "already exists"; show overwrite choices
 	Save           bool // true = save/update remote config before connect (for /access New overlay)
 	Connecting     bool // true while waiting for connection result (show "Connecting...")
 }

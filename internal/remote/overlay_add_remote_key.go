@@ -62,8 +62,8 @@ func firstIncompleteAddRemoteField(state AddRemoteOverlayState) (idx int, missin
 	if strings.TrimSpace(state.HostInput.Value()) == "" {
 		return 0, true
 	}
-	if state.Save && strings.TrimSpace(state.NameInput.Value()) == "" {
-		return 4, true
+	if strings.TrimSpace(state.UserInput.Value()) == "" {
+		return 1, true
 	}
 	return 0, false
 }
@@ -74,6 +74,30 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 	ret := func(model *ui.Model, cmd tea.Cmd, handled bool) (*ui.Model, tea.Cmd, bool) {
 		setRemoteOverlayState(state)
 		return model, cmd, handled
+	}
+
+	if state.AddRemote.OfferOverwrite {
+		switch key {
+		case teakey.Up, teakey.Down:
+			state.AddRemote.ChoiceIndex = remoteAuthToggleChoice(state.AddRemote.ChoiceIndex)
+			return ret(m, nil, true)
+		case teakey.Enter:
+			if state.AddRemote.ChoiceIndex == 0 {
+				return handleAddRemoteOverwriteConfirm(m, state, ret)
+			}
+			state.AddRemote.Error = ""
+			state.AddRemote.OfferOverwrite = false
+			state.AddRemote.ChoiceIndex = 0
+			return ret(m, nil, true)
+		case "1":
+			state.AddRemote.ChoiceIndex = 0
+			return handleAddRemoteOverwriteConfirm(m, state, ret)
+		case "2":
+			state.AddRemote.Error = ""
+			state.AddRemote.OfferOverwrite = false
+			state.AddRemote.ChoiceIndex = 0
+			return ret(m, nil, true)
+		}
 	}
 
 	switch key {
@@ -125,44 +149,6 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 		pathcomplete.SetState(pcState)
 		return ret(m, nil, true)
 
-	case "y", "Y":
-		if state.AddRemote.OfferOverwrite {
-			host := strings.TrimSpace(state.AddRemote.HostInput.Value())
-			user := strings.TrimSpace(state.AddRemote.UserInput.Value())
-			if user == "" {
-				user = "root"
-			}
-			name := strings.TrimSpace(state.AddRemote.NameInput.Value())
-			keyPath := strings.TrimSpace(state.AddRemote.KeyInput.Value())
-			if host == "" {
-				return ret(m, nil, true)
-			}
-			target := user + "@" + host
-			if err := config.UpdateRemote(target, name, keyPath); err != nil {
-				state.AddRemote.Error = err.Error()
-				state.AddRemote.OfferOverwrite = false
-				return ret(m, nil, true)
-			}
-			display := host
-			if name != "" {
-				display = name + " (" + host + ")"
-			}
-			infoPrefix := i18n.T(i18n.KeyInfoLabel)
-			m.AppendTranscriptLines(
-				ui.InfoStyleRender(infoPrefix+i18n.Tf(i18n.KeyConfigRemoteAdded, display)),
-				"",
-			)
-			m.CloseOverlayVisual()
-			state.AddRemote.Active = false
-			state.AddRemote.Error = ""
-			state.AddRemote.OfferOverwrite = false
-			m.Input.Focus()
-			if m.CommandSender != nil {
-				_ = m.CommandSender.Send(hostcmd.ConfigUpdated{})
-			}
-			return ret(m, nil, true)
-		}
-
 	case " ":
 		if state.AddRemote.FieldIndex == 3 {
 			state.AddRemote.Save = !state.AddRemote.Save
@@ -199,9 +185,6 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 
 		host := strings.TrimSpace(state.AddRemote.HostInput.Value())
 		user := strings.TrimSpace(state.AddRemote.UserInput.Value())
-		if user == "" {
-			user = "root"
-		}
 		name := strings.TrimSpace(state.AddRemote.NameInput.Value())
 		keyPath := strings.TrimSpace(state.AddRemote.KeyInput.Value())
 
@@ -211,7 +194,7 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 			if missingIdx == 0 {
 				state.AddRemote.Error = "host is required"
 			} else {
-				state.AddRemote.Error = "name is required when saving"
+				state.AddRemote.Error = "username is required"
 			}
 			return ret(m, nil, true)
 		}
@@ -225,9 +208,13 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 			if err := config.AddRemote(target, name, keyPath); err != nil {
 				state.AddRemote.Error = err.Error()
 				state.AddRemote.OfferOverwrite = strings.Contains(err.Error(), "already exists")
+				if state.AddRemote.OfferOverwrite {
+					state.AddRemote.ChoiceIndex = 0
+				}
 				return ret(m, nil, true)
 			}
 			state.AddRemote.OfferOverwrite = false
+			state.AddRemote.ChoiceIndex = 0
 			display := host
 			if name != "" {
 				display = name + " (" + host + ")"
@@ -279,4 +266,44 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 	pathcomplete.SetState(pcState)
 	_ = msg
 	return ret(m, cmd, true)
+}
+
+func handleAddRemoteOverwriteConfirm(
+	m *ui.Model,
+	state remoteOverlayState,
+	ret func(*ui.Model, tea.Cmd, bool) (*ui.Model, tea.Cmd, bool),
+) (*ui.Model, tea.Cmd, bool) {
+	host := strings.TrimSpace(state.AddRemote.HostInput.Value())
+	user := strings.TrimSpace(state.AddRemote.UserInput.Value())
+	name := strings.TrimSpace(state.AddRemote.NameInput.Value())
+	keyPath := strings.TrimSpace(state.AddRemote.KeyInput.Value())
+	if host == "" {
+		return ret(m, nil, true)
+	}
+	target := user + "@" + host
+	if err := config.UpdateRemote(target, name, keyPath); err != nil {
+		state.AddRemote.Error = err.Error()
+		state.AddRemote.OfferOverwrite = false
+		state.AddRemote.ChoiceIndex = 0
+		return ret(m, nil, true)
+	}
+	display := host
+	if name != "" {
+		display = name + " (" + host + ")"
+	}
+	infoPrefix := i18n.T(i18n.KeyInfoLabel)
+	m.AppendTranscriptLines(
+		ui.InfoStyleRender(infoPrefix+i18n.Tf(i18n.KeyConfigRemoteAdded, display)),
+		"",
+	)
+	m.CloseOverlayVisual()
+	state.AddRemote.Active = false
+	state.AddRemote.Error = ""
+	state.AddRemote.OfferOverwrite = false
+	state.AddRemote.ChoiceIndex = 0
+	m.Input.Focus()
+	if m.CommandSender != nil {
+		_ = m.CommandSender.Send(hostcmd.ConfigUpdated{})
+	}
+	return ret(m, nil, true)
 }

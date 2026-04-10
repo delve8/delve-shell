@@ -95,8 +95,6 @@ func remoteConnectUIHandler(m *ui.Model, msg tea.Msg) (*ui.Model, tea.Cmd, bool)
 		state.RemoteAuth.UsernameInput.Placeholder = i18n.T(i18n.KeyAddRemoteUserPlaceholder)
 		if i := strings.Index(t.Target, "@"); i > 0 && i < len(t.Target)-1 {
 			state.RemoteAuth.UsernameInput.SetValue(t.Target[:i])
-		} else {
-			state.RemoteAuth.UsernameInput.SetValue("root")
 		}
 		state.RemoteAuth.UsernameInput.Focus()
 		setRemoteOverlayState(state)

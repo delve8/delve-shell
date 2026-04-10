@@ -3,6 +3,7 @@ package remote
 import (
 	"testing"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
 	hostcmd "delve-shell/internal/host/cmd"
@@ -125,5 +126,26 @@ func TestHandleRemoteAuthOverlayKey_ChooseNumericShortcutStillWorks(t *testing.T
 	got := getRemoteOverlayState()
 	if got.RemoteAuth.Step != AuthStepPassword {
 		t.Fatalf("step=%q want %q", got.RemoteAuth.Step, AuthStepPassword)
+	}
+}
+
+func TestHandleRemoteAuthOverlayKey_UsernameEnterRequiresExplicitUsername(t *testing.T) {
+	m := ui.NewModel(nil, nil)
+	state := getRemoteOverlayState()
+	state.RemoteAuth.Step = AuthStepUsername
+	state.RemoteAuth.UsernameInput = textinput.New()
+	setRemoteOverlayState(state)
+	t.Cleanup(resetRemoteOverlayState)
+
+	_, _, handled := handleRemoteAuthOverlayKey(m, tea.KeyEnter.String(), tea.KeyMsg{Type: tea.KeyEnter})
+	if !handled {
+		t.Fatal("expected enter to be handled")
+	}
+	got := getRemoteOverlayState()
+	if got.RemoteAuth.Step != AuthStepUsername {
+		t.Fatalf("step=%q want %q", got.RemoteAuth.Step, AuthStepUsername)
+	}
+	if got.RemoteAuth.Error != "username is required" {
+		t.Fatalf("error=%q want %q", got.RemoteAuth.Error, "username is required")
 	}
 }

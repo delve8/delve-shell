@@ -25,6 +25,7 @@ func registerProviders() {
 			state.AddRemote.Active = true
 			state.RemoteAuth = RemoteAuthOverlayState{}
 			state.AddRemote.Error = ""
+			state.AddRemote.ChoiceIndex = 0
 			state.AddRemote.OfferOverwrite = false
 			state.AddRemote.Save = req.Params["save"] == "true"
 			pathcomplete.SetState(pathcomplete.State{Index: -1})
@@ -34,7 +35,6 @@ func registerProviders() {
 			state.AddRemote.HostInput.Focus()
 			state.AddRemote.UserInput = textinput.New()
 			state.AddRemote.UserInput.Placeholder = i18n.T(i18n.KeyAddRemoteUserPlaceholder)
-			state.AddRemote.UserInput.SetValue("root")
 			state.AddRemote.NameInput = textinput.New()
 			state.AddRemote.NameInput.Placeholder = i18n.T(i18n.KeyAddRemoteNamePlaceholder)
 			state.AddRemote.KeyInput = textinput.New()

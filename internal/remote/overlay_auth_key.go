@@ -83,14 +83,17 @@ func handleRemoteAuthOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mo
 		if key == teakey.Enter {
 			state.RemoteAuth.Username = strings.TrimSpace(state.RemoteAuth.UsernameInput.Value())
 			if state.RemoteAuth.Username == "" {
-				state.RemoteAuth.Username = "root"
+				state.RemoteAuth.Error = "username is required"
+				return ret(m, nil, true)
 			}
+			state.RemoteAuth.Error = ""
 			state.RemoteAuth.Step = AuthStepChoose
 			state.RemoteAuth.ChoiceIndex = 0
 			return ret(m, nil, true)
 		}
 		var cmd tea.Cmd
 		state.RemoteAuth.UsernameInput, cmd = state.RemoteAuth.UsernameInput.Update(msg)
+		state.RemoteAuth.Error = ""
 		return ret(m, cmd, true)
 
 	case AuthStepChoose:

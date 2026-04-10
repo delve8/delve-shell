@@ -245,6 +245,8 @@ const (
 	KeyAddRemoteScreenTitle            = "add_remote_screen_title"
 	KeyAddRemoteConnecting             = "add_remote_connecting"
 	KeyAddRemoteOverwriteHint          = "add_remote_overwrite_hint"
+	KeyAddRemoteOverwriteChoice        = "add_remote_overwrite_choice"
+	KeyAddRemoteKeepEditingChoice      = "add_remote_keep_editing_choice"
 	KeyAddRemoteHostLabel              = "add_remote_host_label"
 	KeyAddRemoteUserLabel              = "add_remote_user_label"
 	KeyAddRemoteKeyLabel               = "add_remote_key_label"
@@ -447,7 +449,9 @@ var messages = map[string]map[string]string{
 		KeyAddRemoteTitle:                       "Add Remote",
 		KeyAddRemoteScreenTitle:                 "Add remote",
 		KeyAddRemoteConnecting:                  "Connecting...",
-		KeyAddRemoteOverwriteHint:               "Press y to overwrite, or edit the host or username and try again.",
+		KeyAddRemoteOverwriteHint:               "A saved remote with this target already exists. Choose an action:",
+		KeyAddRemoteOverwriteChoice:             "1. Overwrite saved remote",
+		KeyAddRemoteKeepEditingChoice:           "2. Keep editing",
 		KeyAddRemoteHostLabel:                   "Host (address or host:port):",
 		KeyAddRemoteUserLabel:                   "Username:",
 		KeyAddRemoteKeyLabel:                    "Key path (optional):",

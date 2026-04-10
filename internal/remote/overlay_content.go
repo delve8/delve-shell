@@ -87,7 +87,12 @@ func buildRemoteOverlayContent(m *ui.Model) (string, bool) {
 		if state.AddRemote.Error != "" {
 			b.WriteString(ui.ErrStyleRender(state.AddRemote.Error) + "\n\n")
 			if state.AddRemote.OfferOverwrite {
-				b.WriteString(i18n.T(i18n.KeyAddRemoteOverwriteHint) + "\n\n")
+				b.WriteString(i18n.T(i18n.KeyAddRemoteOverwriteHint) + "\n")
+				appendRemoteAuthChoiceLine(&b, 0, state.AddRemote.ChoiceIndex, i18n.T(i18n.KeyAddRemoteOverwriteChoice))
+				appendRemoteAuthChoiceLine(&b, 1, state.AddRemote.ChoiceIndex, i18n.T(i18n.KeyAddRemoteKeepEditingChoice))
+				b.WriteString("\n")
+				b.WriteString(ui.RenderOverlayHintLine(i18n.KeyOverlayChoiceSelectEsc))
+				b.WriteString("\n")
 			}
 		}
 		b.WriteString(i18n.T(i18n.KeyAddRemoteHostLabel) + "\n")

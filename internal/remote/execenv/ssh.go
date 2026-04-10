@@ -52,7 +52,7 @@ func (e *HostKeyMismatchError) Error() string {
 	return fmt.Sprintf("ssh host key mismatch (%s)", e.Fingerprint)
 }
 
-// NewSSHExecutor creates an SSHExecutor for target (user@host or host[:port]).
+// NewSSHExecutor creates an SSHExecutor for target (user@host[:port]).
 // identityFile, when non-empty, is used as a private key; when empty, ~/.ssh/id_rsa
 // is tried first (like OpenSSH client), then SSH agent.
 func NewSSHExecutor(target, identityFile string) (*SSHExecutor, string, error) {
@@ -299,24 +299,21 @@ func (e *SSHExecutor) Close() error {
 	return nil
 }
 
-// parseUserHost parses "user@host[:port]" or "host[:port]" into user and host:port.
-// When user is missing, it falls back to $USER.
+// parseUserHost parses "user@host[:port]" into user and host:port.
+// The user must be explicit; it does not fall back to environment defaults.
 func parseUserHost(target string) (string, string, error) {
 	target = strings.TrimSpace(target)
 	if target == "" {
 		return "", "", errors.New("empty SSH target")
 	}
-	user := os.Getenv("USER")
-	hostPart := target
-	if strings.Contains(target, "@") {
-		parts := strings.SplitN(target, "@", 2)
-		if parts[0] != "" {
-			user = parts[0]
-		}
-		hostPart = parts[1]
+	if !strings.Contains(target, "@") {
+		return "", "", errors.New("ssh target must include username (user@host or user@host:port)")
 	}
-	if user == "" {
-		return "", "", errors.New("cannot determine SSH user (no user in target and $USER is empty)")
+	parts := strings.SplitN(target, "@", 2)
+	user := strings.TrimSpace(parts[0])
+	hostPart := strings.TrimSpace(parts[1])
+	if user == "" || hostPart == "" {
+		return "", "", errors.New("ssh target must include username (user@host or user@host:port)")
 	}
 	if !strings.Contains(hostPart, ":") {
 		hostPart = net.JoinHostPort(hostPart, "22")
