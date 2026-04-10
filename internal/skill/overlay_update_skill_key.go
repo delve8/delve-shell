@@ -60,20 +60,19 @@ func handleUpdateSkillOverlayKey(m *ui.Model, key string) (*ui.Model, tea.Cmd, b
 			shortCommit = shortCommit[:7]
 		}
 		if shortCommit != "" {
-			m.AppendTranscriptLines(ui.InfoStyleRender(ui.InfoMsg(fmt.Sprintf(
+			m.AppendInfoNotice(fmt.Sprintf(
 				"Skill %s updated to %s@%s.",
 				state.UpdateSkill.Name,
 				selectedRef,
 				shortCommit,
-			))))
+			))
 		} else {
-			m.AppendTranscriptLines(ui.InfoStyleRender(ui.InfoMsg(fmt.Sprintf(
+			m.AppendInfoNotice(fmt.Sprintf(
 				"Skill %s updated to %s.",
 				state.UpdateSkill.Name,
 				selectedRef,
-			))))
+			))
 		}
-		m.AppendTranscriptLines("")
 		m.Input.Focus()
 		if m.CommandSender != nil {
 			_ = m.CommandSender.Send(hostcmd.ConfigUpdated{})

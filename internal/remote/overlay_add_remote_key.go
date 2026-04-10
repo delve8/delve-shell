@@ -219,11 +219,7 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 			if name != "" {
 				display = name + " (" + host + ")"
 			}
-			infoPrefix := i18n.T(i18n.KeyInfoLabel)
-			m.AppendTranscriptLines(
-				ui.InfoStyleRender(infoPrefix+i18n.Tf(i18n.KeyConfigRemoteAdded, display)),
-				"",
-			)
+			m.AppendInfoNotice(i18n.Tf(i18n.KeyConfigRemoteAdded, display))
 			if m.CommandSender != nil {
 				_ = m.CommandSender.Send(hostcmd.ConfigUpdated{})
 			}
@@ -293,11 +289,7 @@ func handleAddRemoteOverwriteConfirm(
 	if name != "" {
 		display = name + " (" + host + ")"
 	}
-	infoPrefix := i18n.T(i18n.KeyInfoLabel)
-	m.AppendTranscriptLines(
-		ui.InfoStyleRender(infoPrefix+i18n.Tf(i18n.KeyConfigRemoteAdded, display)),
-		"",
-	)
+	m.AppendInfoNotice(i18n.Tf(i18n.KeyConfigRemoteAdded, display))
 	rememberLastAddRemoteUsername(user)
 	rememberLastAddRemoteIdentityFile(keyPath)
 	m.CloseOverlayVisual()

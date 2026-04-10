@@ -243,7 +243,7 @@ func handleAddSkillOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mode
 		m.CloseOverlayVisual()
 		state.AddSkill.Active = false
 		m.Input.Focus()
-		m.AppendTranscriptLines(ui.InfoStyleRender(ui.InfoMsg(i18n.Tf(i18n.KeySkillInstalled, name))))
+		m.AppendInfoNotice(i18n.Tf(i18n.KeySkillInstalled, name))
 		return ret(m, nil, true)
 	}
 

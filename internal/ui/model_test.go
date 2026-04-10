@@ -296,6 +296,21 @@ func TestBashReturnTranscriptLineNonEmpty(t *testing.T) {
 	}
 }
 
+func TestAppendInfoNotice_AppendsStyledLineAndBlank(t *testing.T) {
+	m := NewModel(nil, nil)
+	before := len(m.messages)
+	m.AppendInfoNotice("saved")
+	if len(m.messages) != before+2 {
+		t.Fatalf("messages=%d want %d", len(m.messages), before+2)
+	}
+	if !strings.Contains(m.messages[before], "Info:") || !strings.Contains(m.messages[before], "saved") {
+		t.Fatalf("unexpected info line: %q", m.messages[before])
+	}
+	if m.messages[before+1] != "" {
+		t.Fatalf("want trailing blank line, got %q", m.messages[before+1])
+	}
+}
+
 func TestRenderTranscriptLines_LineResultFitsWidthWithANSI(t *testing.T) {
 	m := NewModel(nil, nil)
 	m.layout.Width = 48

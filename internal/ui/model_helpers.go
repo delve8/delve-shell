@@ -118,6 +118,15 @@ func (m *Model) AppendTranscriptLines(lines ...string) {
 	m.messages = append(m.messages, lines...)
 }
 
+// AppendInfoNotice appends one standard info transcript notice followed by a blank line.
+// Use for short user-visible outcomes after local UI actions such as overlay submissions.
+func (m *Model) AppendInfoNotice(msg string) {
+	if strings.TrimSpace(msg) == "" {
+		return
+	}
+	m.AppendTranscriptLines(InfoStyleRender(InfoMsg(msg)), "")
+}
+
 func teaCmdForMsg(msg tea.Msg) tea.Cmd {
 	return func() tea.Msg { return msg }
 }
