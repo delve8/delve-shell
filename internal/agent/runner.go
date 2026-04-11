@@ -159,6 +159,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		}
 		updateHostMemoryTool := &agenttools.UpdateHostMemoryTool{
 			CurrentContext: opts.Memory.CurrentHostMemoryContext,
+			UIEvents:       uiEvents,
 		}
 		listSkillsTool := &agenttools.ListSkillsTool{}
 		getSkillTool := &agenttools.GetSkillTool{}

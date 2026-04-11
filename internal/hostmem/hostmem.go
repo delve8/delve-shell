@@ -44,13 +44,15 @@ type Memory struct {
 }
 
 type MachineMemory struct {
-	OSFamily       string    `json:"os_family,omitempty"`
-	Role           string    `json:"role,omitempty"`
-	RoleConfidence float64   `json:"role_confidence,omitempty"`
-	Tags           []string  `json:"tags,omitempty"`
-	Notes          []string  `json:"notes,omitempty"`
-	Evidence       []string  `json:"evidence,omitempty"`
-	ObservedAt     time.Time `json:"observed_at,omitempty"`
+	OSFamily         string    `json:"os_family,omitempty"`
+	Role             string    `json:"role,omitempty"`
+	RoleConfidence   float64   `json:"role_confidence,omitempty"`
+	Capabilities     []string  `json:"capabilities,omitempty"`
+	Responsibilities []string  `json:"responsibilities,omitempty"`
+	Tags             []string  `json:"tags,omitempty"`
+	Notes            []string  `json:"notes,omitempty"`
+	Evidence         []string  `json:"evidence,omitempty"`
+	ObservedAt       time.Time `json:"observed_at,omitempty"`
 }
 
 type ExecProfile struct {
@@ -63,15 +65,17 @@ type ExecProfile struct {
 }
 
 type UpdatePatch struct {
-	Role               string   `json:"role,omitempty"`
-	RoleConfidence     float64  `json:"role_confidence,omitempty"`
-	TagsAdd            []string `json:"tags_add,omitempty"`
-	NotesAdd           []string `json:"notes_add,omitempty"`
-	EvidenceAdd        []string `json:"evidence_add,omitempty"`
-	AvailableAdd       []string `json:"available_commands_add,omitempty"`
-	MissingAdd         []string `json:"missing_commands_add,omitempty"`
-	PackageManagersAdd []string `json:"package_managers_add,omitempty"`
-	OSFamily           string   `json:"os_family,omitempty"`
+	Role                string   `json:"role,omitempty"`
+	RoleConfidence      float64  `json:"role_confidence,omitempty"`
+	CapabilitiesAdd     []string `json:"capabilities_add,omitempty"`
+	ResponsibilitiesAdd []string `json:"responsibilities_add,omitempty"`
+	TagsAdd             []string `json:"tags_add,omitempty"`
+	NotesAdd            []string `json:"notes_add,omitempty"`
+	EvidenceAdd         []string `json:"evidence_add,omitempty"`
+	AvailableAdd        []string `json:"available_commands_add,omitempty"`
+	MissingAdd          []string `json:"missing_commands_add,omitempty"`
+	PackageManagersAdd  []string `json:"package_managers_add,omitempty"`
+	OSFamily            string   `json:"os_family,omitempty"`
 }
 
 type ProbeResult struct {
@@ -220,6 +224,8 @@ func Update(ctx Context, patch UpdatePatch) (string, error) {
 		}
 		mem.Machine.RoleConfidence = patch.RoleConfidence
 	}
+	mem.Machine.Capabilities = mergeUnique(mem.Machine.Capabilities, patch.CapabilitiesAdd, 32)
+	mem.Machine.Responsibilities = mergeUnique(mem.Machine.Responsibilities, patch.ResponsibilitiesAdd, 32)
 	mem.Machine.Tags = mergeUnique(mem.Machine.Tags, patch.TagsAdd, 32)
 	mem.Machine.Notes = mergeUnique(mem.Machine.Notes, patch.NotesAdd, 32)
 	mem.Machine.Evidence = mergeUnique(mem.Machine.Evidence, patch.EvidenceAdd, 64)
@@ -276,6 +282,12 @@ func Summary(mem *Memory, profileKey string) string {
 			line += fmt.Sprintf(" (confidence %.2f)", mem.Machine.RoleConfidence)
 		}
 		lines = append(lines, line)
+	}
+	if len(mem.Machine.Capabilities) > 0 {
+		lines = append(lines, "Capabilities: "+strings.Join(limitList(mem.Machine.Capabilities, 8), ", "))
+	}
+	if len(mem.Machine.Responsibilities) > 0 {
+		lines = append(lines, "Responsibilities: "+strings.Join(limitList(mem.Machine.Responsibilities, 8), ", "))
 	}
 	if len(mem.Machine.Tags) > 0 {
 		lines = append(lines, "Tags: "+strings.Join(limitList(mem.Machine.Tags, 8), ", "))
@@ -677,7 +689,7 @@ func firstNonEmpty(vals ...string) string {
 }
 
 func hasMachinePatch(p UpdatePatch) bool {
-	return p.Role != "" || p.RoleConfidence > 0 || p.OSFamily != "" || len(p.TagsAdd) > 0 || len(p.NotesAdd) > 0 || len(p.EvidenceAdd) > 0
+	return p.Role != "" || p.RoleConfidence > 0 || p.OSFamily != "" || len(p.CapabilitiesAdd) > 0 || len(p.ResponsibilitiesAdd) > 0 || len(p.TagsAdd) > 0 || len(p.NotesAdd) > 0 || len(p.EvidenceAdd) > 0
 }
 
 func hasProfilePatch(p UpdatePatch) bool {

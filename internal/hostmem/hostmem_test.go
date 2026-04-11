@@ -97,11 +97,13 @@ func TestUpdateAndProbeRefresh(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := Update(ctx, UpdatePatch{
-		Role:           "k8s_control_plane",
-		RoleConfidence: 0.88,
-		TagsAdd:        []string{"k8s", "control-plane"},
-		EvidenceAdd:    []string{"/etc/kubernetes/manifests/kube-apiserver.yaml exists"},
-		MissingAdd:     []string{"yq"},
+		Role:                "k8s_control_plane",
+		RoleConfidence:      0.88,
+		CapabilitiesAdd:     []string{"runs_kubernetes_control_plane", "hosts_kubectl"},
+		ResponsibilitiesAdd: []string{"cluster_administration"},
+		TagsAdd:             []string{"k8s", "control-plane"},
+		EvidenceAdd:         []string{"/etc/kubernetes/manifests/kube-apiserver.yaml exists"},
+		MissingAdd:          []string{"yq"},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -111,6 +113,12 @@ func TestUpdateAndProbeRefresh(t *testing.T) {
 	}
 	if mem.Machine.Role != "k8s_control_plane" {
 		t.Fatalf("role = %q", mem.Machine.Role)
+	}
+	if !contains(mem.Machine.Capabilities, "runs_kubernetes_control_plane") {
+		t.Fatalf("capabilities = %#v", mem.Machine.Capabilities)
+	}
+	if !contains(mem.Machine.Responsibilities, "cluster_administration") {
+		t.Fatalf("responsibilities = %#v", mem.Machine.Responsibilities)
 	}
 	if !contains(mem.Profiles["root"].Missing, "yq") {
 		t.Fatalf("missing = %#v", mem.Profiles["root"].Missing)
@@ -136,7 +144,7 @@ func TestUpdateAndProbeRefresh(t *testing.T) {
 		t.Fatalf("newly available command should be removed from missing, got %#v", profile.Missing)
 	}
 	summary := Summary(mem, "root")
-	if !strings.Contains(summary, "Role: k8s_control_plane") || !strings.Contains(summary, "Available commands: bash, tar, yq") {
+	if !strings.Contains(summary, "Role: k8s_control_plane") || !strings.Contains(summary, "Capabilities: hosts_kubectl, runs_kubernetes_control_plane") || !strings.Contains(summary, "Responsibilities: cluster_administration") || !strings.Contains(summary, "Available commands: bash, tar, yq") {
 		t.Fatalf("summary = %q", summary)
 	}
 }

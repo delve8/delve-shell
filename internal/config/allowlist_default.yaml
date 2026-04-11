@@ -775,6 +775,209 @@ commands:
       operands: any
   sleep: {}
   stat: {}
+  systemctl:
+    global:
+      flags:
+        allow:
+        - short: q
+          long: quiet
+          value: none
+        - long: no-pager
+          value: none
+        - long: no-legend
+          value: none
+        - long: plain
+          value: none
+        - short: l
+          long: full
+          value: none
+        - short: t
+          long: type
+          value: required
+        - long: state
+          value: required
+        - short: p
+          long: property
+          value: required
+        - long: value
+          value: none
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        cat:
+          flags:
+            allow:
+            - long: no-pager
+              value: none
+            - long: no-legend
+              value: none
+            - long: plain
+              value: none
+          operands: any
+        help: {}
+        is-active:
+          flags:
+            allow:
+            - short: q
+              long: quiet
+              value: none
+          operands: any
+        is-enabled:
+          flags:
+            allow:
+            - short: q
+              long: quiet
+              value: none
+          operands: any
+        is-failed:
+          flags:
+            allow:
+            - short: q
+              long: quiet
+              value: none
+          operands: any
+        is-system-running:
+          flags:
+            allow:
+            - short: q
+              long: quiet
+              value: none
+          operands: none
+        list-dependencies:
+          flags:
+            allow:
+            - long: all
+              value: none
+            - long: no-pager
+              value: none
+            - long: no-legend
+              value: none
+            - long: plain
+              value: none
+            - short: t
+              long: type
+              value: required
+            - long: state
+              value: required
+            - long: reverse
+              value: none
+            - long: after
+              value: none
+            - long: before
+              value: none
+          operands: any
+        list-jobs:
+          flags:
+            allow:
+            - long: all
+              value: none
+            - long: no-pager
+              value: none
+            - long: no-legend
+              value: none
+          operands: none
+        list-machines:
+          flags:
+            allow:
+            - long: all
+              value: none
+            - long: no-pager
+              value: none
+            - long: no-legend
+              value: none
+          operands: none
+        list-sockets:
+          flags:
+            allow:
+            - long: all
+              value: none
+            - long: no-pager
+              value: none
+            - long: no-legend
+              value: none
+          operands: any
+        list-timers:
+          flags:
+            allow:
+            - long: all
+              value: none
+            - long: no-pager
+              value: none
+            - long: no-legend
+              value: none
+          operands: any
+        list-unit-files:
+          flags:
+            allow:
+            - long: all
+              value: none
+            - long: no-pager
+              value: none
+            - long: no-legend
+              value: none
+            - long: plain
+              value: none
+            - short: t
+              long: type
+              value: required
+            - long: state
+              value: required
+          operands: any
+        list-units:
+          flags:
+            allow:
+            - long: all
+              value: none
+            - long: no-pager
+              value: none
+            - long: no-legend
+              value: none
+            - long: plain
+              value: none
+            - short: t
+              long: type
+              value: required
+            - long: state
+              value: required
+          operands: any
+        show:
+          flags:
+            allow:
+            - long: all
+              value: none
+            - long: no-pager
+              value: none
+            - short: l
+              long: full
+              value: none
+            - short: p
+              long: property
+              value: required
+            - long: value
+              value: none
+          operands: any
+        show-environment:
+          flags:
+            allow:
+            - long: no-pager
+              value: none
+          operands: none
+        status:
+          flags:
+            allow:
+            - long: all
+              value: none
+            - long: no-pager
+              value: none
+            - short: l
+              long: full
+              value: none
+            - short: n
+              long: lines
+              value: required
+          operands: any
+        version: {}
   tail: {}
   tr: {}
   'true': {}
