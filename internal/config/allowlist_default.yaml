@@ -285,6 +285,23 @@ commands:
   host: {}
   hostname: {}
   id: {}
+  journalctl:
+    root:
+      flags:
+        any: true
+        must_not:
+          - long: flush
+          - long: rotate
+          - long: sync
+          - long: setup-keys
+          - long: update-catalog
+          - long: vacuum-files
+          - long: vacuum-size
+          - long: vacuum-time
+          - long: verify-key
+          - long: relinquish-var
+          - long: smart-relinquish-var
+      operands: any
   jq:
     root:
       flags:
