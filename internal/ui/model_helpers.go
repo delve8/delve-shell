@@ -55,6 +55,10 @@ func (m *Model) offlineExecutionMode() bool {
 	return m.ReadModel.OfflineExecutionMode()
 }
 
+func (m *Model) inputLocked() bool {
+	return m.Interaction.CommandExecuting || m.Interaction.WaitingForAI
+}
+
 type uiState string
 
 const (

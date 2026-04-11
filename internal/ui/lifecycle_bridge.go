@@ -168,10 +168,7 @@ func (e uiControlActionExecutor) ExecuteControl(action inputlifecycletype.Contro
 		if !e.sender.Send(hostcmd.CancelRequested{}) {
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
 		}
-		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{
-			Kind:        inputlifecycletype.OutputCommandExecution,
-			CommandExec: &inputlifecycletype.CommandExecutionPayload{Active: false},
-		}), nil
+		return inputlifecycletype.ConsumedResult(), nil
 	case inputlifecycletype.ControlCancelProcessing:
 		if e.sender == nil {
 			return inputlifecycletype.ProcessResult{}, errUIIntentRejected

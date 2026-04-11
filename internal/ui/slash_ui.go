@@ -104,6 +104,11 @@ func (m *Model) inputBelowBlock(inChoice bool) string {
 		hint := i18n.T(i18n.KeyInputHistBrowsingHint)
 		styled := inputHistBrowsingHintStyle.Render("   — " + hint)
 		rows = []widget.ListRow{{Text: styled, PreRendered: true}}
+	} else if m.inputLocked() {
+		text := m.waitingLineText()
+		if text != "" {
+			rows = []widget.ListRow{{Text: text, PreRendered: true}}
+		}
 	} else if strings.HasPrefix(m.Input.Value(), "/") {
 		_, vis, viewOpts := m.slashSuggestionContextWithLang(m.Input.Value(), m.getLang())
 		if len(vis) > 0 {
@@ -116,10 +121,10 @@ func (m *Model) inputBelowBlock(inChoice bool) string {
 		}
 	}
 	block := widget.RenderFixedLinesBelowInput("   ", rows, reserveRows, suggestStyle, suggestHi)
-	if m.Interaction.CommandExecuting && !inChoice && !strings.HasPrefix(m.Input.Value(), "/") {
+	if m.Interaction.CommandExecuting && !inChoice {
 		waiting := i18n.T(i18n.KeyCommandExecWaitOrCancel)
 		block = widget.RenderFixedLinesBelowInput("   ", []widget.ListRow{{Text: waiting}}, reserveRows, suggestStyle, suggestHi)
-	} else if m.Interaction.WaitingForAI && !inChoice && !strings.HasPrefix(m.Input.Value(), "/") {
+	} else if m.Interaction.WaitingForAI && !inChoice {
 		// Same fixed row count as idle (inputBelowStableRows) so the separator above the input and the
 		// footer band do not shift when entering/leaving processing.
 		waiting := i18n.T(i18n.KeyWaitOrCancel)

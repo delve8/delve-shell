@@ -195,6 +195,49 @@ func TestBlackboxSlashDropdownTabFillsLikeEnter(t *testing.T) {
 	}
 }
 
+func TestBlackboxSlashLockedDuringProcessing(t *testing.T) {
+	f := newBlackboxFixture(t)
+	m := f.model
+	m.Interaction.WaitingForAI = true
+	m.Input.SetValue("/help")
+	m.Input.CursorEnd()
+
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	got := next.(*ui.Model)
+	if got.Overlay.Active {
+		t.Fatal("expected /help not to open overlay while processing")
+	}
+	if got.Input.Value() != "/help" {
+		t.Fatalf("expected busy processing to keep slash input unchanged, got %q", got.Input.Value())
+	}
+	if strings.Contains(strings.Join(got.TranscriptLines(), "\n"), "/help") {
+		t.Fatalf("expected busy processing to suppress slash submission, got transcript %q", strings.Join(got.TranscriptLines(), "\n"))
+	}
+	if strings.Contains(got.View(), "/help -") {
+		t.Fatalf("expected busy processing to hide slash dropdown, got view:\n%s", got.View())
+	}
+}
+
+func TestBlackboxSlashLockedDuringCommandExecution(t *testing.T) {
+	f := newBlackboxFixture(t)
+	m := f.model
+	m.Interaction.CommandExecuting = true
+	m.Input.SetValue("/help")
+	m.Input.CursorEnd()
+
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	got := next.(*ui.Model)
+	if got.Overlay.Active {
+		t.Fatal("expected /help not to open overlay while command is executing")
+	}
+	if got.Input.Value() != "/help" {
+		t.Fatalf("expected executing state to keep slash input unchanged, got %q", got.Input.Value())
+	}
+	if strings.Contains(strings.Join(got.TranscriptLines(), "\n"), "/help") {
+		t.Fatalf("expected executing state to suppress slash submission, got transcript %q", strings.Join(got.TranscriptLines(), "\n"))
+	}
+}
+
 func TestBlackboxSlashTabDoesNotSubmitExactCommand(t *testing.T) {
 	f := newBlackboxFixture(t)
 	m := f.model

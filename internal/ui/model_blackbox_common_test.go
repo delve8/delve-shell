@@ -21,25 +21,25 @@ func TestMain(m *testing.M) {
 }
 
 type blackboxFixture struct {
-	model          *ui.Model
-	submissions    chan inputlifecycletype.InputSubmission
-	sessionNew     chan struct{}
-	historyPreview chan string
-	sessionSwitch  chan string
-	execDirectChan chan string
-	shellRequested chan hostcmd.ShellSnapshot
-	cancelRequest  chan struct{}
-	configUpdated  chan struct{}
-	remoteOn       chan string
-	remoteOff      chan struct{}
-	accessOffline  chan struct{}
-	remoteAuthResp chan remoteauth.Response
-	openConfigModel  bool
+	model           *ui.Model
+	submissions     chan inputlifecycletype.InputSubmission
+	sessionNew      chan struct{}
+	historyPreview  chan string
+	sessionSwitch   chan string
+	execDirectChan  chan string
+	shellRequested  chan hostcmd.ShellSnapshot
+	cancelRequest   chan struct{}
+	configUpdated   chan struct{}
+	remoteOn        chan string
+	remoteOff       chan struct{}
+	accessOffline   chan struct{}
+	remoteAuthResp  chan remoteauth.Response
+	openConfigModel bool
 }
 
 type testReadModel struct {
 	openConfigModel *bool
-	offline       bool
+	offline         bool
 }
 
 func (r testReadModel) TakeOpenConfigModelOnFirstLayout() bool {
@@ -238,5 +238,56 @@ func TestBlackboxSystemErrorClearsProcessingState(t *testing.T) {
 	}
 	if !strings.Contains(strings.Join(next.TranscriptLines(), "\n"), "Error: backend failed") {
 		t.Fatalf("expected submit error to be appended to transcript, got %q", strings.Join(next.TranscriptLines(), "\n"))
+	}
+}
+
+func TestBlackboxEscDuringCommandExecutionKeepsExecutingUntilHostEnds(t *testing.T) {
+	f := newBlackboxFixture(t)
+	f.model.Interaction.CommandExecuting = true
+
+	nextModel, _ := f.model.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	next := nextModel.(*ui.Model)
+	select {
+	case <-f.cancelRequest:
+	default:
+		t.Fatal("expected Esc during command execution to send cancel request")
+	}
+	if !next.Interaction.CommandExecuting {
+		t.Fatal("expected command execution state to remain active until host reports completion")
+	}
+
+	doneModel, _ := next.Update(ui.CommandExecutionStateMsg{Active: false})
+	done := doneModel.(*ui.Model)
+	if done.Interaction.CommandExecuting {
+		t.Fatal("expected host completion event to clear command execution state")
+	}
+}
+
+func TestBlackboxEscDuringAICommandExecutionWaitsForHostThenReturnsToProcessing(t *testing.T) {
+	f := newBlackboxFixture(t)
+	f.model.Interaction.CommandExecuting = true
+	f.model.Interaction.WaitingForAI = true
+
+	nextModel, _ := f.model.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	next := nextModel.(*ui.Model)
+	select {
+	case <-f.cancelRequest:
+	default:
+		t.Fatal("expected Esc during AI command execution to send cancel request")
+	}
+	if !next.Interaction.CommandExecuting {
+		t.Fatal("expected AI command execution state to remain active until host reports command stop")
+	}
+	if !next.Interaction.WaitingForAI {
+		t.Fatal("expected AI processing state to remain active after cancelling the command")
+	}
+
+	doneModel, _ := next.Update(ui.CommandExecutionStateMsg{Active: false})
+	done := doneModel.(*ui.Model)
+	if done.Interaction.CommandExecuting {
+		t.Fatal("expected host completion event to clear command execution state")
+	}
+	if !done.Interaction.WaitingForAI {
+		t.Fatal("expected UI to fall back to processing after command actually stops")
 	}
 }

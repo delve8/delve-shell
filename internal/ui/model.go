@@ -52,10 +52,11 @@ type Model struct {
 
 // InteractionState stores transient keyboard/interaction state.
 type InteractionState struct {
-	slashSuggestIndex int  // 0..len(visible)-1 when input starts with /
-	ChoiceIndex       int  // 0-based selection when in Pending/PendingSensitive/PendingSuggested; Up/Down to move, Enter to confirm
-	WaitingForAI      bool // when true blocks normal chat submit; slash still allowed unless CommandExecuting
-	// CommandExecuting while a shell command runs (/exec or agent execute_command / run_skill); blocks input except Esc / Ctrl+C.
+	slashSuggestIndex int // 0..len(visible)-1 when input starts with /
+	ChoiceIndex       int // 0-based selection when in Pending/PendingSensitive/PendingSuggested; Up/Down to move, Enter to confirm
+	// WaitingForAI while the host is processing an LLM turn; locks keyboard input except Esc / Ctrl+C.
+	WaitingForAI bool
+	// CommandExecuting while a shell command runs (/exec or agent execute_command / run_skill); locks keyboard input except Esc / Ctrl+C.
 	CommandExecuting bool
 
 	// inputHistory: recent submitted lines (non-slash single-line path + echoed slash lines); Up/Down recall when not in slash suggestion mode.

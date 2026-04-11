@@ -32,8 +32,6 @@ func (s *keySession) slashSuggestIndex() int { return s.m.Interaction.slashSugge
 
 func (s *keySession) setSlashSuggestIndex(i int) { s.m.Interaction.slashSuggestIndex = i }
 
-func (s *keySession) waitingForAI() bool { return s.m.Interaction.WaitingForAI }
-
 func (s *keySession) updateTextInput(msg tea.KeyMsg) tea.Cmd {
 	// bubbles/textarea repositions its inner viewport using the current height. While
 	// height is still 1, InsertNewline moves the cursor to logical line 2 and triggers
@@ -196,7 +194,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) (*Model, tea.Cmd) {
 		}
 	}
 
-	if m.Interaction.CommandExecuting {
+	if m.inputLocked() {
 		if key == teakey.Esc {
 			res, err := m.lifecycleEngine().SubmitControl(inputlifecycletype.ControlSignalEsc, inputlifecycletype.SourceKeyboardSignal)
 			if err == nil {
@@ -241,9 +239,6 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) (*Model, tea.Cmd) {
 	if key == teakey.Enter {
 		text := strings.TrimSpace(inputVal)
 		if text == "" {
-			return m, nil
-		}
-		if ks.waitingForAI() && !strings.HasPrefix(text, "/") {
 			return m, nil
 		}
 		_, vis, viewOpts := ks.slashSuggestionTriple(inputVal)
