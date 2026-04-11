@@ -1,4 +1,4 @@
-<img src="assets/logo.svg" width="64" height="64" alt="delve-shell" />
+<img src="assets/logo.png" width="64" height="64" alt="delve-shell" />
 
 # delve-shell
 
@@ -11,6 +11,7 @@ AI-assisted ops CLI with human-in-the-loop execution and auditable session histo
 - Auto-run allowlisted read-only commands when enabled.
 - Persist session history, approvals, and command results for audit.
 - Support local and SSH-backed remote execution.
+- Maintain per-host memory so later turns can reuse stable machine facts and command availability.
 
 ## Core Principles
 
@@ -113,6 +114,7 @@ Chat, slash, and control share one submission model and one output-application p
 - `internal/hil/approvalview`: choice metadata, placeholders, and transcript line models for approval UI.
 - `internal/hil/types`: structured payloads for pending approvals and sensitive confirmations (`package hiltypes`).
 - `internal/remote/execenv`: local and SSH executors.
+- `internal/hostmem`: persistent per-host memory, host identity/probe application, and LLM summary rendering.
 - `internal/history`: session history storage and replay.
 - `internal/config`: config loading, writing, defaults, path resolution, and rules-dir text aggregation for prompts (`LoadRules`).
 
@@ -147,6 +149,7 @@ Main files:
 - Allowlist: `<root>/allowlist.yaml`
 - Rules (optional markdown snippets concatenated for prompts): `<root>/rules/`
 - Sessions: `<root>/sessions`
+- Host memory: `<root>/hosts`
 - Skill store: `<root>/skills`
 
 ## Usage
@@ -155,6 +158,27 @@ Main files:
 2. Enter a natural-language task or a slash command.
 3. Approve non-allowlisted commands when prompted.
 4. Review transcript, tool output, and session history in the same TUI.
+
+## Common Slash Commands
+
+- `/access` opens the execution-target picker for saved hosts plus `/access New`, `/access Local`, and `/access Offline`.
+- `/access Offline` switches to manual relay mode: commands are shown for you to run elsewhere, then you paste results back.
+- `/config` opens config actions. The built-in entries are `/config remove-remote` and `/config model`.
+- `/config remove-remote {host}` removes a saved remote host from config.
+- `/skill` opens the installed-skill picker plus `/skill New`, `/skill Remove`, and `/skill Update`.
+- `/skill {name} [text]` invokes an installed skill for the current turn.
+- `/skill Remove {skill_name}` removes an installed skill.
+- `/skill Update {skill_name}` updates an installed skill from its recorded source.
+- `/history` opens the session picker and preview flow.
+- `/exec {cmd}` runs a one-off command directly without going through the AI.
+
+## Host Memory
+
+- delve-shell keeps persistent host memory per execution environment under `<root>/hosts`.
+- The controller probes the current local or remote target, resolves a host-memory context, and injects a compact summary into later LLM turns when available.
+- The agent can read and update that memory through `view_host_memory` and `update_host_memory`.
+- Host memory is meant for stable, reusable facts: machine role, responsibilities, capabilities, package managers, and commands that are reliably available or missing for the current user profile.
+- It is a useful prior, not a guarantee. Fresh command output wins over remembered facts, and durable new observations should be written back.
 
 ## Transcript And History Behavior
 
