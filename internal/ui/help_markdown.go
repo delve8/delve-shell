@@ -10,6 +10,7 @@ func RenderHelpMarkdown(md string, width int) string {
 	if md == "" {
 		return ""
 	}
+	md = uiVersionText() + "\n\n" + md
 	if width <= 0 {
 		width = minContentWidthFallback
 	}

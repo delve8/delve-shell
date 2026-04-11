@@ -157,6 +157,7 @@ Main files:
 2. Enter a natural-language task or a slash command.
 3. Approve non-allowlisted commands when prompted.
 4. Review transcript, tool output, and session history in the same TUI.
+5. Use `delve-shell --version` to see the build version derived from the current git tag.
 
 ## Common Slash Commands
 

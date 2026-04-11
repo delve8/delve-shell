@@ -13,4 +13,7 @@ func TestRenderHelpMarkdown_nonEmpty(t *testing.T) {
 	if !strings.Contains(out, "Title") || !strings.Contains(out, "world") {
 		t.Fatalf("unexpected output: %q", out)
 	}
+	if !strings.Contains(out, uiVersionText()) {
+		t.Fatalf("expected rendered help to include version %q, got %q", uiVersionText(), out)
+	}
 }

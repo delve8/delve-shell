@@ -25,6 +25,9 @@ func TestBlackboxSlashHelpOpensOverlay(t *testing.T) {
 	if got.Overlay.Title == "" {
 		t.Fatalf("expected /help overlay title to be non-empty")
 	}
+	if !strings.Contains(got.Overlay.Viewport.View(), "dev") {
+		t.Fatalf("expected /help overlay content to include default version, got %q", got.Overlay.Viewport.View())
+	}
 	transcript := strings.Join(got.TranscriptLines(), "\n")
 	if !strings.Contains(transcript, "/help") {
 		t.Fatalf("expected user echo for /help, got %q", transcript)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"delve-shell/internal/cli/interactive"
+	"delve-shell/internal/version"
 	"log/slog"
 	"os"
 
@@ -10,8 +11,9 @@ import (
 
 func main() {
 	root := &cobra.Command{
-		Use:   "delve-shell",
-		Short: "AI-assisted shell: run commands after your approval",
+		Use:     "delve-shell",
+		Short:   "AI-assisted shell: run commands after your approval",
+		Version: version.String(),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_ = cmd
 			_ = args

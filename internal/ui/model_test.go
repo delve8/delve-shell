@@ -116,6 +116,9 @@ func TestNewModelStartupTitleWhenEmpty(t *testing.T) {
 	if !strings.Contains(m.messages[0], "Delve Shell") {
 		t.Fatalf("expected startup title in line: %q", m.messages[0])
 	}
+	if !strings.Contains(m.messages[0], uiVersionText()) {
+		t.Fatalf("expected startup title to include version %q in line: %q", uiVersionText(), m.messages[0])
+	}
 }
 
 // Regression: two WindowSize (or similar) Updates before transcriptPrintedMsg must not enqueue a second print batch.
