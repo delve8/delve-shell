@@ -44,7 +44,7 @@ The interactive runtime is split into a few stable layers:
 - User typing stays in `internal/ui`.
 - Enter yields a structured `InputSubmission` from `internal/input/lifecycletype`, routed by `internal/input/lifecycle` and processors under `internal/input/process/*`.
 - Chat lines are sent to the host as `hostcmd.Submission` (package `hostcmd`, import path `internal/host/cmd`) on the command channel and become bus events.
-- Slash lines share the same lifecycle, then run through registered execution handlers; `internal/slash/dispatch` covers behavior after exact/prefix routing misses.
+- Slash lines share the same lifecycle, then run through registered execution handlers; slash-enter fallback behavior lives under `internal/slash/flow`.
 - Cancel, quit, and overlay-close paths use explicit control signals from the lifecycle types.
 
 Chat, slash, and control share one submission model and one output-application path (`internal/input/output`), instead of separate legacy pipelines.
@@ -87,7 +87,6 @@ Chat, slash, and control share one submission model and one output-application p
 
 - `internal/slash/view`: slash suggestion rows, selection, and prefix filtering.
 - `internal/slash/flow`: main Enter and early-Enter behavior for `/…` lines.
-- `internal/slash/dispatch`: glue after exact/prefix slash routing misses.
 - `internal/slash/reg`: generic ordered provider chain helper.
 - `internal/pathcomplete`: TAB-completion state for overlay path fields (remote and skill overlays).
 - `internal/textwrap`: width-aware wrapping for transcript and related UI.
