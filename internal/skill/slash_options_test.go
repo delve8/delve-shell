@@ -11,14 +11,20 @@ func TestGetSkillSlashOptions_RootIncludesReservedNew(t *testing.T) {
 	writeTestSkill(t, "demo", "Demo")
 
 	opts := getSkillSlashOptions("en", "")
-	if len(opts) < 2 {
-		t.Fatalf("expected reserved row plus installed skills, got %#v", opts)
+	if len(opts) < 4 {
+		t.Fatalf("expected reserved rows plus installed skills, got %#v", opts)
 	}
 	if opts[0].Cmd != "/skill demo" {
 		t.Fatalf("expected installed skill first, got %#v", opts[0])
 	}
 	if opts[1].Cmd != "/skill New" {
-		t.Fatalf("expected reserved row last, got %#v", opts[1])
+		t.Fatalf("expected New reserved row after installed skills, got %#v", opts[1])
+	}
+	if opts[2].Cmd != "/skill Remove" {
+		t.Fatalf("expected Remove reserved row, got %#v", opts[2])
+	}
+	if opts[3].Cmd != "/skill Update" {
+		t.Fatalf("expected Update reserved row, got %#v", opts[3])
 	}
 }
 
@@ -42,6 +48,22 @@ func TestGetSkillSlashOptions_LowercaseNewShowsReservedAndSkillNamedNew(t *testi
 	}
 	if opts[0].Cmd != "/skill new" || opts[1].Cmd != "/skill New" {
 		t.Fatalf("unexpected options %#v", opts)
+	}
+}
+
+func TestGetSkillSlashOptions_ExactReservedRemoveAndUpdateStayDistinct(t *testing.T) {
+	t.Setenv("DELVE_SHELL_ROOT", t.TempDir())
+	writeTestSkill(t, "remove", "remove")
+	writeTestSkill(t, "update", "update")
+
+	removeOpts := getSkillSlashOptions("en", "Remove")
+	if len(removeOpts) != 1 || removeOpts[0].Cmd != "/skill Remove" {
+		t.Fatalf("expected exact Remove reserved row only, got %#v", removeOpts)
+	}
+
+	updateOpts := getSkillSlashOptions("en", "Update")
+	if len(updateOpts) != 1 || updateOpts[0].Cmd != "/skill Update" {
+		t.Fatalf("expected exact Update reserved row only, got %#v", updateOpts)
 	}
 }
 

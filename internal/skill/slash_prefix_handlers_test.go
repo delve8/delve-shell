@@ -10,7 +10,7 @@ import (
 	"delve-shell/internal/input/lifecycletype"
 )
 
-func TestHandleSlashConfigDelSkillPrefix_AppendsSuccessWithTrailingBlank(t *testing.T) {
+func TestHandleSlashSkillRemovePrefix_AppendsSuccessWithTrailingBlank(t *testing.T) {
 	i18n.SetLang("en")
 	root := t.TempDir()
 	t.Setenv("DELVE_SHELL_ROOT", root)
@@ -25,7 +25,7 @@ func TestHandleSlashConfigDelSkillPrefix_AppendsSuccessWithTrailingBlank(t *test
 		t.Fatal(err)
 	}
 
-	res := handleSlashConfigDelSkillPrefix("demo")
+	res := handleSlashSkillRemovePrefix("demo")
 	if len(res.Outputs) != 1 || res.Outputs[0].Transcript == nil {
 		t.Fatalf("unexpected outputs: %#v", res.Outputs)
 	}

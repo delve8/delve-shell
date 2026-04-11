@@ -19,17 +19,15 @@ func registerSlashExecutionProvider() {
 		switch {
 		case text == slashskill.Command(slashskill.ReservedNew):
 			return ui.SlashOverlayOpenResult(OverlayOpenKeyAdd, "", "", false, nil), true, nil
-		case strings.HasPrefix(text, "/config add-skill"):
-			return ui.SlashOverlayOpenResult(OverlayOpenKeyAdd, "", "", false, nil), true, nil
-		case strings.HasPrefix(text, "/config update-skill"):
-			name := strings.TrimSpace(strings.TrimPrefix(text, "/config update-skill"))
+		case strings.HasPrefix(text, slashskill.Command(slashskill.ReservedUpdate)):
+			name := strings.TrimSpace(strings.TrimPrefix(text, slashskill.Command(slashskill.ReservedUpdate)))
 			if name == "" {
-				return ui.SlashTranscriptErrorResult(i18n.T(i18n.KeyDescConfigUpdateSkill)), true, nil
+				return ui.SlashTranscriptErrorResult(i18n.T(i18n.KeyDescSkillUpdate)), true, nil
 			}
 			return ui.SlashOverlayOpenResult(OverlayOpenKeyUpdate, "", "", false, map[string]string{"name": name}), true, nil
-		case strings.HasPrefix(text, "/config del-skill "):
-			name := strings.TrimSpace(strings.TrimPrefix(text, "/config del-skill "))
-			return handleSlashConfigDelSkillPrefix(name), true, nil
+		case strings.HasPrefix(text, slashskill.Command(slashskill.ReservedRemove)+" "):
+			name := strings.TrimSpace(strings.TrimPrefix(text, slashskill.Command(slashskill.ReservedRemove)+" "))
+			return handleSlashSkillRemovePrefix(name), true, nil
 		case strings.HasPrefix(text, slashskill.Prefix):
 			return executeSkillInvocation(req, strings.TrimSpace(strings.TrimPrefix(text, slashskill.Prefix))), true, nil
 		default:

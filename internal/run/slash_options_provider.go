@@ -69,9 +69,7 @@ func rootSlashOptions(lang string) []ui.SlashOption {
 
 func configSlashOptions() []ui.SlashOption {
 	return []ui.SlashOption{
-		{Cmd: "/config del-remote", Desc: i18n.T(i18n.KeyDescConfigRemoveRemote)},
-		{Cmd: "/config del-skill", Desc: i18n.T(i18n.KeyDescSkillRemove)},
-		{Cmd: "/config update-skill", Desc: i18n.T(i18n.KeyDescConfigUpdateSkill)},
+		{Cmd: "/config remove-remote", Desc: i18n.T(i18n.KeyDescConfigRemoveRemote)},
 		{Cmd: "/config model", Desc: i18n.T(i18n.KeyDescConfigModel)},
 	}
 }

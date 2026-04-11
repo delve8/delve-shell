@@ -30,7 +30,7 @@ func getRemoteSlashOptions() []ui.SlashOption {
 	return hostOpts
 }
 
-// getRemoveRemoteSlashOptions returns one row per configured remote for /config del-remote.
+// getRemoveRemoteSlashOptions returns one row per configured remote for /config remove-remote.
 // Prefix filtering uses [slashview.VisibleIndices] like other slash rows.
 func getRemoveRemoteSlashOptions(lang string) []ui.SlashOption {
 	noneRow := ui.SlashOption{Cmd: i18n.T(i18n.KeyDelRemoteNoHosts), Desc: ""}
@@ -43,7 +43,7 @@ func getRemoveRemoteSlashOptions(lang string) []ui.SlashOption {
 	for _, r := range remotes {
 		desc := r.Name
 		opts = append(opts, ui.SlashOption{
-			Cmd:  "/config del-remote " + config.HostFromTarget(r.Target),
+			Cmd:  "/config remove-remote " + config.HostFromTarget(r.Target),
 			Desc: desc,
 		})
 	}

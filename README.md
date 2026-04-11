@@ -165,4 +165,5 @@ Main files:
 ## Skill Shortcuts
 
 - Type `/skill` to open the installed-skill dropdown.
-- The dropdown includes `/skill New` as the install entry and keeps regular `/skill {name} [...]` entries separate from a real skill whose name is `new`.
+- The dropdown includes `/skill New`, `/skill Remove`, and `/skill Update` after installed skills.
+- Title-case reserved rows stay distinct from real skills whose names are lowercase `new`, `remove`, or `update`.

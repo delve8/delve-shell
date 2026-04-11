@@ -13,7 +13,7 @@ import (
 func TestBlackboxSlashUpdateSkillEnterDoesNotSilentlyDrop(t *testing.T) {
 	f := newBlackboxFixture(t)
 	m := f.model
-	m.Input.SetValue("/config update-skill x")
+	m.Input.SetValue("/skill Update x")
 	m.Input.CursorEnd()
 
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})

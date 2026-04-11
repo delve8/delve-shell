@@ -133,12 +133,37 @@ func TestVisibleIndices_SkillNewReservedVsInstalledSkill(t *testing.T) {
 	}
 }
 
-func TestVisibleIndices_ConfigDelRemoteHostPrefix(t *testing.T) {
+func TestVisibleIndices_SkillReservedVsInstalledSkill(t *testing.T) {
 	opts := []Option{
-		{Cmd: "/config del-remote prod"},
-		{Cmd: "/config del-remote db"},
+		{Cmd: "/skill Remove"},
+		{Cmd: "/skill remove", FillValue: "/skill remove"},
+		{Cmd: "/skill Update"},
+		{Cmd: "/skill update", FillValue: "/skill update"},
 	}
-	got := VisibleIndices("/config del-remote p", opts)
+	got := VisibleIndices("/skill Remove", opts)
+	if len(got) != 1 || got[0] != 0 {
+		t.Fatalf("Title Remove: want reserved row only, got %#v", got)
+	}
+	got = VisibleIndices("/skill remove", opts)
+	if len(got) != 2 {
+		t.Fatalf("lowercase remove: want reserved + skill row, got %#v", got)
+	}
+	got = VisibleIndices("/skill Update", opts)
+	if len(got) != 1 || got[0] != 2 {
+		t.Fatalf("Title Update: want reserved row only, got %#v", got)
+	}
+	got = VisibleIndices("/skill update", opts)
+	if len(got) != 2 {
+		t.Fatalf("lowercase update: want reserved + skill row, got %#v", got)
+	}
+}
+
+func TestVisibleIndices_ConfigRemoveRemoteHostPrefix(t *testing.T) {
+	opts := []Option{
+		{Cmd: "/config remove-remote prod"},
+		{Cmd: "/config remove-remote db"},
+	}
+	got := VisibleIndices("/config remove-remote p", opts)
 	if len(got) != 1 || got[0] != 0 {
 		t.Fatalf("want prod only, got %#v", got)
 	}

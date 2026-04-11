@@ -24,7 +24,7 @@ type SkillMeta struct {
 	RiskLevel       string `yaml:"risk_level,omitempty"`
 	Scope           string `yaml:"scope,omitempty"`             // local, remote, both
 	RemoteUploadDir string `yaml:"remote_upload_dir,omitempty"` // default /tmp/
-	// LocalName is the directory name under ~/.delve-shell/skills (used for /skill and /config del-skill commands).
+	// LocalName is the directory name under ~/.delve-shell/skills (used for /skill invocation and /skill Remove commands).
 	LocalName string `yaml:"-"`
 }
 

@@ -14,6 +14,7 @@ func TestEnglishHelpText_UsesExpectedSectionsAndOrder(t *testing.T) {
 		"### /help",
 		"### /config",
 		"### /access",
+		"### /access Offline",
 		"### /new",
 		"### /history",
 		"### /skill",

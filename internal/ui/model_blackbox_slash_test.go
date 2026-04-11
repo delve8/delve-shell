@@ -130,16 +130,16 @@ func TestBlackboxSlashRunDropdownUsesRemoteCachedSuggestionsWhenAvailable(t *tes
 	}
 }
 
-func TestBlackboxSlashConfigDelRemoteNoHostsShowsHint(t *testing.T) {
+func TestBlackboxSlashConfigRemoveRemoteNoHostsShowsHint(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("DELVE_SHELL_ROOT", dir)
 	if err := config.EnsureRootDir(); err != nil {
 		t.Fatal(err)
 	}
 	f := newBlackboxFixture(t)
-	got := enterText(f.model, "/config del-remote")
+	got := enterText(f.model, "/config remove-remote")
 	if strings.TrimSpace(got.Input.Value()) != "" {
-		t.Fatalf("expected input cleared after no-hosts del-remote, got %q", got.Input.Value())
+		t.Fatalf("expected input cleared after no-hosts remove-remote, got %q", got.Input.Value())
 	}
 	joined := strings.Join(got.TranscriptLines(), "\n")
 	if !strings.Contains(joined, "No hosts") {
@@ -150,7 +150,7 @@ func TestBlackboxSlashConfigDelRemoteNoHostsShowsHint(t *testing.T) {
 func TestBlackboxSlashConfigFillsToFirstSubcommandOnEnter(t *testing.T) {
 	f := newBlackboxFixture(t)
 	got := enterText(f.model, "/config")
-	if got.Input.Value() != "/config del-remote " {
+	if got.Input.Value() != "/config remove-remote " {
 		t.Fatalf("expected /config to fill to first subcommand with trailing space, got %q", got.Input.Value())
 	}
 }
@@ -294,7 +294,7 @@ func TestBlackboxSlashAccessRemoteHostSendsIntent(t *testing.T) {
 	}
 }
 
-func TestBlackboxSlashConfigDelRemoteAppendsImmediateSuccess(t *testing.T) {
+func TestBlackboxSlashConfigRemoveRemoteAppendsImmediateSuccess(t *testing.T) {
 	i18n.SetLang("en")
 	dir := t.TempDir()
 	t.Setenv("DELVE_SHELL_ROOT", dir)
@@ -306,7 +306,7 @@ func TestBlackboxSlashConfigDelRemoteAppendsImmediateSuccess(t *testing.T) {
 	}
 
 	f := newBlackboxFixture(t)
-	got := enterText(f.model, "/config del-remote prod")
+	got := enterText(f.model, "/config remove-remote prod")
 	transcript := strings.Join(got.TranscriptLines(), "\n")
 	want := i18n.Tf(i18n.KeyConfigRemoteRemoved, "prod")
 	if !strings.Contains(transcript, want) {
@@ -321,7 +321,7 @@ func TestBlackboxSlashConfigDelRemoteAppendsImmediateSuccess(t *testing.T) {
 	}
 }
 
-func TestBlackboxSlashConfigDelSkillAppendsImmediateSuccess(t *testing.T) {
+func TestBlackboxSlashSkillRemoveAppendsImmediateSuccess(t *testing.T) {
 	i18n.SetLang("en")
 	dir := t.TempDir()
 	t.Setenv("DELVE_SHELL_ROOT", dir)
@@ -337,7 +337,7 @@ func TestBlackboxSlashConfigDelSkillAppendsImmediateSuccess(t *testing.T) {
 	}
 
 	f := newBlackboxFixture(t)
-	got := enterText(f.model, "/config del-skill demo")
+	got := enterText(f.model, "/skill Remove demo")
 	transcript := strings.Join(got.TranscriptLines(), "\n")
 	want := i18n.Tf(i18n.KeySkillRemoved, "demo")
 	if !strings.Contains(transcript, want) {

@@ -111,8 +111,9 @@ func skillInstalledRowMatch(rest, skillSuffix string) bool {
 	if strings.ContainsAny(token, " \t") {
 		return false
 	}
-	// Exact Title-case reserved token only matches the reserved row, not a skill named "new".
-	if token == slashskill.ReservedNew {
+	// Exact Title-case reserved tokens only match reserved rows, not installed skills with the same lowercase name.
+	switch token {
+	case slashskill.ReservedNew, slashskill.ReservedRemove, slashskill.ReservedUpdate:
 		return false
 	}
 	return strings.HasPrefix(strings.ToLower(skillSuffix), strings.ToLower(token))
@@ -134,19 +135,23 @@ func skillTargetMatch(input, cmd string) bool {
 	switch suffix {
 	case slashskill.ReservedNew:
 		return reservedRowMatch(rest, slashskill.ReservedNew, slashskill.FilterNew)
+	case slashskill.ReservedRemove:
+		return reservedRowMatch(rest, slashskill.ReservedRemove, slashskill.FilterRemove)
+	case slashskill.ReservedUpdate:
+		return reservedRowMatch(rest, slashskill.ReservedUpdate, slashskill.FilterUpdate)
 	default:
 		return skillInstalledRowMatch(rest, suffix)
 	}
 }
 
-// configDelRemoteHostMatch matches /config del-remote <host> rows against "config …" input.
+// configRemoveRemoteHostMatch matches /config remove-remote <host> rows against "config …" input.
 func configDelRemoteHostMatch(inputLower, cmd string) bool {
-	host, ok := strings.CutPrefix(cmd, "/config del-remote ")
+	host, ok := strings.CutPrefix(cmd, "/config remove-remote ")
 	if !ok || host == "" {
 		return false
 	}
 	rest := strings.TrimSpace(strings.TrimPrefix(inputLower, "config"))
-	rest = strings.TrimSpace(strings.TrimPrefix(rest, "del-remote"))
+	rest = strings.TrimSpace(strings.TrimPrefix(rest, "remove-remote"))
 	if rest == "" {
 		return true
 	}

@@ -33,7 +33,7 @@ func remoteSlashOptionsProvider(
 
 	if normalizedLower == "config" || strings.HasPrefix(normalizedLower, "config ") {
 		rest := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "config"))
-		if rest == "del-remote" || strings.HasPrefix(rest, "del-remote ") {
+		if rest == "remove-remote" || strings.HasPrefix(rest, "remove-remote ") {
 			return getRemoveRemoteSlashOptions(lang), true
 		}
 	}

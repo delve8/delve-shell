@@ -8,12 +8,16 @@ const (
 
 // Reserved row suffixes (Title case in UI lists).
 const (
-	ReservedNew = "New"
+	ReservedNew    = "New"
+	ReservedRemove = "Remove"
+	ReservedUpdate = "Update"
 )
 
 // Lowercase tokens used when matching partially typed /skill input.
 const (
-	FilterNew = "new"
+	FilterNew    = "new"
+	FilterRemove = "remove"
+	FilterUpdate = "update"
 )
 
 // Command builds "/skill <reserved>".

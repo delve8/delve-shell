@@ -16,7 +16,7 @@ func TestRootSlashOptions_UsesStableDescriptions(t *testing.T) {
 	want := map[string]string{
 		"/access":  "Switch execution target",
 		"/skill":   "Use a skill",
-		"/config":  "Manage models, hosts and skills",
+		"/config":  "Manage models and hosts",
 		"/new":     "Start a new session",
 		"/history": "Browse and switch sessions",
 		"/help":    "Show help",
@@ -37,10 +37,8 @@ func TestConfigSlashOptions_UsesStableDescriptions(t *testing.T) {
 		got[opt.Cmd] = opt.Desc
 	}
 	want := map[string]string{
-		"/config del-remote":   "Remove a remote host",
-		"/config del-skill":    "Remove an installed skill",
-		"/config update-skill": "Update an installed skill",
-		"/config model":        "Configure model settings",
+		"/config remove-remote": "Remove a remote host",
+		"/config model":         "Configure model settings",
 	}
 	for cmd, desc := range want {
 		if got[cmd] != desc {

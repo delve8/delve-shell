@@ -11,7 +11,7 @@ import (
 func applyConfigRemoveRemote(nameOrTarget string) inputlifecycletype.ProcessResult {
 	nameOrTarget = strings.TrimSpace(nameOrTarget)
 	if nameOrTarget == "" {
-		return remoteTranscriptErrorResult(i18n.T(i18n.KeyConfigPrefix) + "Usage: select a remote from /config del-remote list")
+		return remoteTranscriptErrorResult(i18n.T(i18n.KeyConfigPrefix) + "Usage: select a remote from /config remove-remote list")
 	}
 	if err := config.RemoveRemoteByName(nameOrTarget); err != nil {
 		return remoteTranscriptErrorResult(i18n.T(i18n.KeyConfigPrefix) + err.Error())

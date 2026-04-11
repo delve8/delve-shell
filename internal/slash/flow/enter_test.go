@@ -47,7 +47,7 @@ func TestEvaluateMainEnter_Unknown(t *testing.T) {
 }
 
 func TestEvaluateMainEnter_DelRemoteNone(t *testing.T) {
-	got := EvaluateMainEnter("/config del-remote", EnterInput{
+	got := EvaluateMainEnter("/config remove-remote", EnterInput{
 		HasSlashPrefix:        true,
 		Selected:              slashview.Option{Cmd: "No hosts."},
 		VisibleOptionCount:    1,

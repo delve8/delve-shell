@@ -8,7 +8,7 @@ import (
 	"delve-shell/internal/skill/store"
 )
 
-func handleSlashConfigDelSkillPrefix(rest string) inputlifecycletype.ProcessResult {
+func handleSlashSkillRemovePrefix(rest string) inputlifecycletype.ProcessResult {
 	name := strings.TrimSpace(rest)
 	if name == "" {
 		return inputlifecycletype.ConsumedResult(inputlifecycletype.OutputEvent{

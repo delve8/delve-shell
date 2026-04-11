@@ -13,8 +13,8 @@ func registerSlashExecutionProvider() {
 	ui.RegisterSlashExecutionProvider(func(req ui.SlashExecutionRequest) (inputlifecycletype.ProcessResult, bool, error) {
 		text := strings.TrimSpace(req.RawText)
 		switch {
-		case strings.HasPrefix(text, "/config del-remote "):
-			nameOrTarget := strings.TrimSpace(strings.TrimPrefix(text, "/config del-remote "))
+		case strings.HasPrefix(text, "/config remove-remote "):
+			nameOrTarget := strings.TrimSpace(strings.TrimPrefix(text, "/config remove-remote "))
 			return applyConfigRemoveRemote(nameOrTarget), true, nil
 		case text == slashaccess.Command(slashaccess.ReservedNew):
 			return ui.SlashOverlayOpenResult(OverlayOpenKeyAddRemote, "", "", false, map[string]string{

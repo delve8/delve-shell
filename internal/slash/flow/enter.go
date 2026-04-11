@@ -36,7 +36,7 @@ func EvaluateMainEnter(input string, in EnterInput) Outcome {
 		return OutcomeShowSessionNone
 	}
 	if in.VisibleOptionCount == 1 && in.IsDelRemoteNoneOption &&
-		strings.HasPrefix(strings.TrimSpace(input), "/config del-remote") {
+		strings.HasPrefix(strings.TrimSpace(input), "/config remove-remote") {
 		return OutcomeShowDelRemoteNone
 	}
 	if slashview.ShouldResolveSelected(in.Selected, input) {

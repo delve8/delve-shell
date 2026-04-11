@@ -12,22 +12,23 @@ var (
 )
 
 const (
-	helpConfigSectionEN            = `Manage models, hosts and skills.`
-	helpConfigDelRemoteSectionEN   = `Remove a remote host.`
-	helpConfigDelSkillSectionEN    = `Remove an installed skill.`
-	helpConfigUpdateSkillSectionEN = `Update an installed skill.`
-	helpConfigModelSectionEN       = `Configure model settings.`
-	helpAccessSectionEN            = `Switch the execution target. The dropdown lists saved hosts first, then **/access New** (add a host), **/access Local** (use the local executor), and **/access Offline** (manual relay mode). Host segments in saved targets must be lowercase so reserved rows like **/access Local** and **/access New** do not collide with host names.`
-	helpAccessNewSectionEN         = `Add a remote host.`
-	helpAccessLocalSectionEN       = `Switch to local execution.`
-	helpAccessHostSectionEN        = `Connect to a saved host or enter a new host.`
-	helpNewSectionEN               = `Start a new session.`
-	helpHistorySectionEN           = `Browse and switch sessions. Flow: **/history** → pick a row (Tab/Enter fills **/history {id}**) → submit opens a read-only preview → Enter in the dialog switches the active session; Esc closes without switching. Only the first word after **/history** is the session id (trailing text is ignored). Dropdown lines show a one-line summary of the first turn.`
-	helpSkillSectionEN             = `Use an installed skill for the current turn. Skills are directories under **~/.delve-shell/skills/** (each with **SKILL.md**). Type **/skill** to open the slash list of installed skills plus **/skill New** (install dialog), or type **/skill** followed by the skill directory name. Text after the first word (the skill name) is optional; when present it is passed to the AI as extra context for that turn. To install or remove skills, use **/skill New** and **/config del-skill**.`
-	helpSkillNameSectionEN         = `Use a skill. Optional text after the name is passed to the AI for this turn.`
-	helpSkillNewSectionEN          = `Open the add-skill dialog (Git URL, ref, path in repo, local name).`
-	helpHelpSectionEN              = `Show help.`
-	helpQuitSectionEN              = `Quit (**Ctrl+C** also works).`
+	helpConfigSectionEN      = `Manage models and hosts.`
+	helpConfigRemoveRemoteEN = `Remove a saved remote host.`
+	helpConfigModelSectionEN = `Configure model settings.`
+	helpAccessSectionEN      = `Switch the execution target. The dropdown lists saved hosts first, then **/access New** (add a host), **/access Local** (use the local executor), and **/access Offline** (manual relay mode). Host segments in saved targets must be lowercase so reserved rows like **/access Local** and **/access New** do not collide with host names.`
+	helpAccessNewSectionEN   = `Add a remote host.`
+	helpAccessLocalSectionEN = `Switch to local execution.`
+	helpAccessOfflineEN      = `Switch to offline manual relay mode. Commands are shown for you to run elsewhere, then you paste results back here.`
+	helpAccessHostSectionEN  = `Connect to a saved host or enter a new host.`
+	helpNewSectionEN         = `Start a new session.`
+	helpHistorySectionEN     = `Browse and switch sessions. Flow: **/history** → pick a row (Tab/Enter fills **/history {id}**) → submit opens a read-only preview → Enter in the dialog switches the active session; Esc closes without switching. Only the first word after **/history** is the session id (trailing text is ignored). Dropdown lines show a one-line summary of the first turn.`
+	helpSkillSectionEN       = `Use an installed skill for the current turn. Skills are directories under **~/.delve-shell/skills/** (each with **SKILL.md**). Type **/skill** to open the slash list of installed skills plus **/skill New**, **/skill Remove**, and **/skill Update**, or type **/skill** followed by the skill directory name. Text after the first word (the skill name) is optional; when present it is passed to the AI as extra context for that turn.`
+	helpSkillNameSectionEN   = `Use a skill. Optional text after the name is passed to the AI for this turn.`
+	helpSkillNewSectionEN    = `Open the add-skill dialog (Git URL, ref, path in repo, local name).`
+	helpSkillRemoveSectionEN = `Remove an installed skill.`
+	helpSkillUpdateSectionEN = `Update an installed skill.`
+	helpHelpSectionEN        = `Show help.`
+	helpQuitSectionEN        = `Quit (**Ctrl+C** also works).`
 )
 
 func englishHelpText() string {
@@ -61,17 +62,9 @@ Natural-language tasks drive suggested commands. Allowlisted commands with no sh
 
 ` + helpConfigSectionEN + `
 
-### /config del-remote
+### /config remove-remote
 
-` + helpConfigDelRemoteSectionEN + `
-
-### /config del-skill {skill_name}
-
-` + helpConfigDelSkillSectionEN + `
-
-### /config update-skill {skill_name}
-
-` + helpConfigUpdateSkillSectionEN + `
+` + helpConfigRemoveRemoteEN + `
 
 ### /config model
 
@@ -88,6 +81,10 @@ Natural-language tasks drive suggested commands. Allowlisted commands with no sh
 ### /access Local
 
 ` + helpAccessLocalSectionEN + `
+
+### /access Offline
+
+` + helpAccessOfflineEN + `
 
 ### /access {user@host or host}
 
@@ -112,6 +109,14 @@ Natural-language tasks drive suggested commands. Allowlisted commands with no sh
 ### /skill New
 
 ` + helpSkillNewSectionEN + `
+
+### /skill Remove {skill_name}
+
+` + helpSkillRemoveSectionEN + `
+
+### /skill Update {skill_name}
+
+` + helpSkillUpdateSectionEN + `
 
 ` + helpEnBashSection + `### /quit
 
@@ -301,7 +306,7 @@ const (
 	KeySkillNone                     = "skill_none"
 	KeyDescSkillInstall              = "desc_skill_install"
 	KeyDescSkillRemove               = "desc_skill_remove"
-	KeyDescConfigUpdateSkill         = "desc_config_update_skill"
+	KeyDescSkillUpdate               = "desc_skill_update"
 	KeyAddSkillTitle                 = "add_skill_title"
 	KeyAddSkillURLLabel              = "add_skill_url_label"
 	KeyAddSkillRefLabel              = "add_skill_ref_label"
@@ -403,7 +408,7 @@ var messages = map[string]map[string]string{
 		KeyDescExit:                             "Quit delve-shell",
 		KeyDescRun:                              "Execute a command directly (no AI)",
 		KeyDescSh:                               "Spawn bash",
-		KeyDescConfig:                           "Manage models, hosts and skills",
+		KeyDescConfig:                           "Manage models and hosts",
 		KeyDescHelp:                             "Show help",
 		KeyDescConfigRemoveRemote:               "Remove a remote host",
 		KeyRunTagSuggested:                      "suggested",
@@ -505,7 +510,7 @@ var messages = map[string]map[string]string{
 		KeySkillNone:                            "No skills (add dirs with SKILL.md under ~/.delve-shell/skills/)",
 		KeyDescSkillInstall:                     "Install a skill from a git repo",
 		KeyDescSkillRemove:                      "Remove an installed skill",
-		KeyDescConfigUpdateSkill:                "Update an installed skill",
+		KeyDescSkillUpdate:                      "Update an installed skill",
 		KeyAddSkillTitle:                        "Add skill",
 		KeyAddSkillURLLabel:                     "Git URL:",
 		KeyAddSkillRefLabel:                     "Ref — branch or tag:",
@@ -526,8 +531,8 @@ var messages = map[string]map[string]string{
 		KeySkillRemoved:                         "Skill removed: %s",
 		KeySkillInstallFailed:                   "Skill install failed: %v",
 		KeySkillRemoveFailed:                    "Skill remove failed: %v",
-		KeyUsageSkillRemove:                     "Usage: /config del-skill <skill_name>",
-		KeySkillAlreadyExists:                   "Skill already exists. Remove it first or use another name, or use /config update-skill <name> to update it.",
+		KeyUsageSkillRemove:                     "Usage: /skill Remove <skill_name>",
+		KeySkillAlreadyExists:                   "Skill already exists. Remove it first or use another name, or use /skill Update <name> to update it.",
 		KeyOverlayFormFooter:                    "Up/Down to move · Enter to apply · Esc to cancel",
 		KeyOverlayPicklistHint:                  "  Up/Down to move · Enter or Tab to apply",
 		KeyOverlayUpdateSkillRefTitle:           "Ref · Up/Down to move · Enter to update · Esc to cancel:",
