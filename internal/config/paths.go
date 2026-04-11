@@ -47,6 +47,11 @@ func HistoryDir() string {
 	return filepath.Join(RootDir(), "sessions")
 }
 
+// HostsDir returns the host memory directory path (~/.delve-shell/hosts).
+func HostsDir() string {
+	return filepath.Join(RootDir(), "hosts")
+}
+
 // SkillsDir returns the skills directory path (~/.delve-shell/skills). Each subdir is one skill (SKILL.md + optional scripts/).
 func SkillsDir() string {
 	return filepath.Join(RootDir(), "skills")

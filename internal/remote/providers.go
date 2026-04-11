@@ -1,6 +1,8 @@
 package remote
 
 import (
+	"strings"
+
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -75,6 +77,12 @@ func remoteTitleBarFragment(m *ui.Model) (string, bool) {
 	}
 	if !m.Remote.Active {
 		return "", false
+	}
+	if issue := strings.TrimSpace(m.Remote.Issue); issue != "" {
+		if lbl := m.Remote.Label; lbl != "" {
+			return i18n.T(i18n.KeyRemoteTitleBarRemote) + " " + lbl + " (" + issue + ")", true
+		}
+		return i18n.T(i18n.KeyRemoteTitleBarRemote) + " (" + issue + ")", true
 	}
 	if lbl := m.Remote.Label; lbl != "" {
 		return i18n.T(i18n.KeyRemoteTitleBarRemote) + " " + lbl, true

@@ -17,6 +17,7 @@ func remoteStateProvider(m *ui.Model, msg tea.Msg) (*ui.Model, tea.Cmd, bool) {
 		m.Remote.Active = t.Active
 		m.Remote.Label = t.Label
 		m.Remote.Offline = t.Offline
+		m.Remote.Issue = strings.TrimSpace(t.Issue)
 		clearCachedRunSuggestions()
 		return m, nil, true
 	case RunCompletionCacheMsg:

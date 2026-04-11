@@ -202,6 +202,22 @@ func TestCommandAllowsAutoApprove_whileReadMultiVarThenKubectlOpaqueNS(t *testin
 	}
 }
 
+func TestCommandAllowsAutoApprove_ForLoopKubectlLookupWithAwkVar(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	cmd := `for p in metis archon-manager updater-manager sentry capi-controller-manager kube-scheduler kube-controller-manager; do ns=$(kubectl get pod -A --no-headers 2>/dev/null | awk -v n="$p" '$2==n{print $1; exit}'); [ -z "$ns" ] && continue; echo "### $ns/$p"; kubectl get pod -n "$ns" "$p" -o jsonpath='{range .status.containerStatuses[*]}{.name}{" restart="}{.restartCount}{" lastReason="}{.lastState.terminated.reason}{" exit="}{.lastState.terminated.exitCode}{" finishedAt="}{.lastState.terminated.finishedAt}{"\n"}{end}'; echo; done`
+	if !w.CommandAllowsAutoApprove(cmd) {
+		t.Fatalf("expected auto-approve for read-only kubectl/awk for-loop lookup:\n%q\nspans=%#v", cmd, w.CommandAutoApproveHighlight(cmd))
+	}
+}
+
+func TestAwkBenignRejectReason_VarAndExit(t *testing.T) {
+	seg := `awk -v n="$p" '$2==n{print $1; exit}'`
+	isAwk, reason := awkBenignRejectReason(seg)
+	if !isAwk || reason != "" {
+		t.Fatalf("expected benign awk, got isAwk=%v reason=%q", isAwk, reason)
+	}
+}
+
 func TestCommandAllowsAutoApprove_readRejectsDisallowedExpansionInArgs(t *testing.T) {
 	w := NewAllowlist(config.DefaultLoadedAllowlist())
 	if w.CommandAllowsAutoApprove(`read -p "$(echo x)" a`) {
@@ -260,5 +276,12 @@ func TestCommandAllowsAutoApprove_KubectlTopNodesPodsPlural(t *testing.T) {
 	}
 	if !w.CommandAllowsAutoApprove(`kubectl top pod -A --no-headers 2>/dev/null`) {
 		t.Fatal("kubectl top pod with -A after resource should auto-approve (global flag merged at leaf)")
+	}
+}
+
+func TestCommandAllowsAutoApprove_KubectlVersionShort(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	if !w.CommandAllowsAutoApprove(`kubectl version --client --short 2>/dev/null`) {
+		t.Fatal("kubectl version --client --short should auto-approve")
 	}
 }

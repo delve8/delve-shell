@@ -676,6 +676,8 @@ commands:
             allow:
             - long: client
               value: none
+            - long: short
+              value: none
             - short: o
               long: output
               value: required

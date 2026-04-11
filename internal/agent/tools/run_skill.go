@@ -35,6 +35,7 @@ type RunSkillTool struct {
 	UIEvents         chan<- any
 	ExecCancelHub    *execcancel.Hub
 	ExecutorProvider func() execenv.CommandExecutor
+	OnRemoteIssue    func(issue string)
 }
 
 var _ tool.InvokableTool = (*RunSkillTool)(nil)
@@ -241,6 +242,18 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 	defer endUI()
 	streamStart := hiltypes.ExecStreamStart{Allowed: false, Suggested: false, Direct: false}
 	outStr, errStr, exitCode, err, streamed := runExecutorWithStream(cmdCtx, executor, cmd, t.OnExecStream, streamStart)
+	if t.OnRemoteIssue != nil {
+		var connErr *execenv.SSHConnectionError
+		if errors.As(err, &connErr) {
+			if connErr.ReconnectSuccess {
+				t.OnRemoteIssue("")
+			} else {
+				t.OnRemoteIssue(connErr.Error())
+			}
+		} else if _, ok := executor.(*execenv.SSHExecutor); ok && err == nil {
+			t.OnRemoteIssue("")
+		}
+	}
 	cancelled := errors.Is(cmdCtx.Err(), context.Canceled) || errors.Is(err, context.Canceled)
 	if storeResult && t.Session != nil && !cancelled {
 		_ = t.Session.AppendCommandResult(cmd, outStr, errStr, exitCode)
@@ -256,7 +269,7 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 	var resultForUI string
 	if streamed {
 		resultForUI = "exit_code: " + strconv.Itoa(exitCode)
-		if err != nil && exitCode == 0 {
+		if err != nil && (exitCode == 0 || execenv.IsSSHConnectionError(err)) {
 			resultForUI += "\nerror: " + history.TruncateToolOutput(err.Error())
 		}
 	} else {
@@ -265,7 +278,7 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 			resultForUI += "\nstderr:\n" + uiErrStr
 		}
 		resultForUI += "\nexit_code: " + strconv.Itoa(exitCode)
-		if err != nil && exitCode == 0 {
+		if err != nil && (exitCode == 0 || execenv.IsSSHConnectionError(err)) {
 			resultForUI += "\nerror: " + history.TruncateToolOutput(err.Error())
 		}
 	}

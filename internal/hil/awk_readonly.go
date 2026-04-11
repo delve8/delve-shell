@@ -435,11 +435,16 @@ func walkGoawkExpr(ev reflect.Value) bool {
 }
 
 func derefPtrIface(v reflect.Value) reflect.Value {
-	for v.Kind() == reflect.Interface && !v.IsNil() {
-		v = v.Elem()
+	for v.IsValid() {
+		switch v.Kind() {
+		case reflect.Interface, reflect.Ptr:
+			if v.IsNil() {
+				return reflect.Value{}
+			}
+			v = v.Elem()
+		default:
+			return v
+		}
 	}
-	for v.Kind() == reflect.Ptr && !v.IsNil() {
-		v = v.Elem()
-	}
-	return v
+	return reflect.Value{}
 }

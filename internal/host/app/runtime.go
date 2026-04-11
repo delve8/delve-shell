@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"delve-shell/internal/host/cmd"
+	"delve-shell/internal/hostmem"
 	"delve-shell/internal/input/lifecycletype"
 	"delve-shell/internal/remote/auth"
 )
@@ -19,7 +20,9 @@ type Runtime struct {
 	remoteLabel   string // display string for UI (e.g. "name (host)" or host only)
 	remoteHost    string // hostname or IP from SSH target (no "name ( )" wrapper)
 	remoteName    string // remotes.yaml entry name when configured; may be empty
+	remoteIssue   string // non-empty when remote connection is degraded/disconnected
 	offline       bool
+	hostMemCtx    hostmem.Context
 	cfgModelMu    sync.Mutex
 	cfgModelFirst bool
 }
@@ -52,12 +55,16 @@ func (r *Runtime) SetRemoteExecution(active bool, label, host, configName string
 		r.remoteLabel = strings.TrimSpace(label)
 		r.remoteHost = strings.TrimSpace(host)
 		r.remoteName = strings.TrimSpace(configName)
+		r.remoteIssue = ""
 		r.offline = false
+		r.hostMemCtx = hostmem.Context{}
 		return
 	}
 	r.remoteLabel = ""
 	r.remoteHost = ""
 	r.remoteName = ""
+	r.remoteIssue = ""
+	r.hostMemCtx = hostmem.Context{}
 }
 
 // SetOffline sets offline (manual relay) mode mirror for the UI; clears remote active.
@@ -70,6 +77,8 @@ func (r *Runtime) SetOffline(v bool) {
 		r.remoteLabel = ""
 		r.remoteHost = ""
 		r.remoteName = ""
+		r.remoteIssue = ""
+		r.hostMemCtx = hostmem.Context{}
 	}
 }
 
@@ -97,6 +106,20 @@ func (r *Runtime) RemoteLabel() string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.remoteLabel
+}
+
+// SetRemoteIssue updates the current remote connection issue summary shown in the footer.
+func (r *Runtime) SetRemoteIssue(issue string) {
+	r.mu.Lock()
+	r.remoteIssue = strings.TrimSpace(issue)
+	r.mu.Unlock()
+}
+
+// RemoteIssue returns the current remote connection issue summary.
+func (r *Runtime) RemoteIssue() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.remoteIssue
 }
 
 // ParseRemoteDisplayLabel splits labels built as "name (host)" for remotes.yaml entries.
@@ -139,6 +162,32 @@ func (r *Runtime) ExecContextForLLM() string {
 		return fmt.Sprintf("Remote: %s", host)
 	}
 	return "Remote"
+}
+
+// SetHostMemoryContext updates the current host memory target after a probe resolves machine identity.
+func (r *Runtime) SetHostMemoryContext(ctx hostmem.Context) {
+	r.mu.Lock()
+	r.hostMemCtx = ctx
+	r.mu.Unlock()
+}
+
+// HostMemoryContext returns the current host memory target for the active execution environment.
+func (r *Runtime) HostMemoryContext() hostmem.Context {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.hostMemCtx
+}
+
+// HostMemorySummaryForLLM returns a compact summary of current host memory for prompt injection.
+func (r *Runtime) HostMemorySummaryForLLM() string {
+	r.mu.RLock()
+	ctx := r.hostMemCtx
+	offline := r.offline
+	r.mu.RUnlock()
+	if offline {
+		return ""
+	}
+	return hostmem.SummaryForContext(ctx)
 }
 
 // SetOpenConfigModelOnFirstLayout arms the next first-layout open.

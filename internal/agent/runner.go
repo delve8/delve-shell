@@ -18,6 +18,7 @@ import (
 	"delve-shell/internal/hil"
 	hiltypes "delve-shell/internal/hil/types"
 	"delve-shell/internal/history"
+	"delve-shell/internal/hostmem"
 	"delve-shell/internal/remote/execenv"
 	"delve-shell/internal/runtime/execcancel"
 )
@@ -44,6 +45,14 @@ type RunnerUILoopInput struct {
 	ExecCancelHub *execcancel.Hub
 	// ExecContextDescription optional; when non-nil, trimmed non-empty return value is appended under "--- Execution environment ---" on each LLM request (local vs remote SSH label vs offline).
 	ExecContextDescription func() string
+	// RemoteIssueChanged updates host/UI remote footer state when an SSH transport error is detected or cleared.
+	RemoteIssueChanged func(issue string)
+}
+
+// RunnerMemoryInput connects host memory summary and tools for the current execution environment.
+type RunnerMemoryInput struct {
+	CurrentHostMemoryContext func() hostmem.Context
+	HostMemorySummary        func() string
 }
 
 // RunnerOptions for creating a Runner; LLM is read from Config (config.yaml, supports $VAR env expansion).
@@ -52,6 +61,7 @@ type RunnerOptions struct {
 	HIL     RunnerHILInput
 	Session RunnerSessionInput
 	UILoop  RunnerUILoopInput
+	Memory  RunnerMemoryInput
 	// Offline when true: omit skill tools and use offline execute_command + prompt appendix.
 	Offline bool
 }
@@ -132,6 +142,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		UIEvents:         uiEvents,
 		ExecCancelHub:    opts.UILoop.ExecCancelHub,
 		ExecutorProvider: opts.UILoop.ExecutorProvider,
+		OnRemoteIssue:    opts.UILoop.RemoteIssueChanged,
 	}
 	viewTool := &agenttools.ViewContextTool{
 		SessionPath: "",
@@ -143,6 +154,12 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 	var tools []tool.BaseTool
 	tools = append(tools, execTool, viewTool)
 	if !offline {
+		viewHostMemoryTool := &agenttools.ViewHostMemoryTool{
+			CurrentContext: opts.Memory.CurrentHostMemoryContext,
+		}
+		updateHostMemoryTool := &agenttools.UpdateHostMemoryTool{
+			CurrentContext: opts.Memory.CurrentHostMemoryContext,
+		}
 		listSkillsTool := &agenttools.ListSkillsTool{}
 		getSkillTool := &agenttools.GetSkillTool{}
 		runSkillTool := &agenttools.RunSkillTool{
@@ -163,8 +180,9 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 			UIEvents:         uiEvents,
 			ExecCancelHub:    opts.UILoop.ExecCancelHub,
 			ExecutorProvider: opts.UILoop.ExecutorProvider,
+			OnRemoteIssue:    opts.UILoop.RemoteIssueChanged,
 		}
-		tools = append(tools, listSkillsTool, getSkillTool, runSkillTool)
+		tools = append(tools, viewHostMemoryTool, updateHostMemoryTool, listSkillsTool, getSkillTool, runSkillTool)
 	}
 
 	sysPrompt := opts.Config.LLM.SystemPrompt
@@ -199,6 +217,11 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 			if execCtxDesc != nil {
 				if extra := strings.TrimSpace(execCtxDesc()); extra != "" {
 					msg += "\n\n--- Execution environment ---\n" + extra
+				}
+			}
+			if opts.Memory.HostMemorySummary != nil {
+				if extra := strings.TrimSpace(opts.Memory.HostMemorySummary()); extra != "" {
+					msg += "\n\n--- Host memory ---\n" + extra
 				}
 			}
 			out := make([]*schema.Message, 0, len(input)+1)

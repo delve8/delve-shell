@@ -6,6 +6,7 @@ type ExecutionChangedMsg struct {
 	Active  bool   // true = remote SSH executor, false = local executor
 	Label   string // e.g. "dev (root@1.2.3.4)" or "user@host"
 	Offline bool   // true = /access Offline (manual relay); Active is false when Offline is true
+	Issue   string // non-empty when remote is degraded/disconnected (e.g. network lost)
 }
 
 // ConnectDoneMsg notifies the TUI that a remote connection attempt finished (from controller), e.g. after /access <target>.

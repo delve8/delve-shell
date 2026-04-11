@@ -41,6 +41,8 @@ type ExecuteCommandTool struct {
 	OfflineMode func() bool
 	// RequestOfflinePaste blocks until the user pastes output or cancels (offline mode only).
 	RequestOfflinePaste func(command, reason, riskLevel string) hiltypes.OfflinePasteResponse
+	// OnRemoteIssue, when non-nil, is informed about SSH transport errors and cleared on successful remote execution.
+	OnRemoteIssue func(issue string)
 }
 
 var _ tool.InvokableTool = (*ExecuteCommandTool)(nil)
@@ -156,6 +158,18 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 
 	streamStart := hiltypes.ExecStreamStart{Allowed: allowed, Suggested: false, Direct: false}
 	outStr, errStr, exitCode, err, useStream := runExecutorWithStream(cmdCtx, executor, command, t.OnExecStream, streamStart)
+	if t.OnRemoteIssue != nil {
+		var connErr *execenv.SSHConnectionError
+		if errors.As(err, &connErr) {
+			if connErr.ReconnectSuccess {
+				t.OnRemoteIssue("")
+			} else {
+				t.OnRemoteIssue(connErr.Error())
+			}
+		} else if _, ok := executor.(*execenv.SSHExecutor); ok && err == nil {
+			t.OnRemoteIssue("")
+		}
+	}
 	cancelled := errors.Is(cmdCtx.Err(), context.Canceled) || errors.Is(err, context.Canceled)
 	if storeResult && t.Session != nil && !cancelled {
 		_ = t.Session.AppendCommandResult(command, outStr, errStr, exitCode)
@@ -176,7 +190,7 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 	var resultForUI string
 	if useStream {
 		resultForUI = "exit_code: " + strconv.Itoa(exitCode)
-		if err != nil && exitCode == 0 {
+		if err != nil && (exitCode == 0 || execenv.IsSSHConnectionError(err)) {
 			resultForUI += "\nerror: " + history.TruncateToolOutput(err.Error())
 		}
 	} else {
@@ -185,7 +199,7 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 			resultForUI += "\nstderr:\n" + uiErrStr
 		}
 		resultForUI += "\nexit_code: " + strconv.Itoa(exitCode)
-		if err != nil && exitCode == 0 {
+		if err != nil && (exitCode == 0 || execenv.IsSSHConnectionError(err)) {
 			resultForUI += "\nerror: " + history.TruncateToolOutput(err.Error())
 		}
 	}

@@ -131,6 +131,7 @@ type RemoteState struct {
 	Active  bool
 	Offline bool
 	Label   string
+	Issue   string
 }
 
 // Init implements tea.Model.

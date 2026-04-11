@@ -12,6 +12,8 @@ import (
 	"delve-shell/internal/host/bus"
 	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/host/controller"
+	"delve-shell/internal/hostmem"
+	"delve-shell/internal/remote"
 	"delve-shell/internal/remote/execenv"
 	"delve-shell/internal/runtime/execcancel"
 	"delve-shell/internal/runtime/executormgr"
@@ -60,6 +62,22 @@ func wireHostStack(
 		ExecutorProvider: getExecutor,
 		ExecContextDescription: func() string {
 			return rt.ExecContextForLLM()
+		},
+		RemoteIssueChanged: func(issue string) {
+			rt.SetRemoteIssue(issue)
+			if rt.RemoteActive() {
+				ports.AgentUIChan <- remote.ExecutionChangedMsg{
+					Active: true,
+					Label:  rt.RemoteLabel(),
+					Issue:  issue,
+				}
+			}
+		},
+		HostMemoryContext: func() hostmem.Context {
+			return rt.HostMemoryContext()
+		},
+		HostMemorySummary: func() string {
+			return rt.HostMemorySummaryForLLM()
 		},
 		OfflineMode:   func() bool { return rt.Offline() },
 		UIEvents:      ports.AgentUIChan,

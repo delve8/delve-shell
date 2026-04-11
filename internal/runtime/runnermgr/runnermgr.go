@@ -9,6 +9,7 @@ import (
 	"delve-shell/internal/config"
 	"delve-shell/internal/hil"
 	"delve-shell/internal/history"
+	"delve-shell/internal/hostmem"
 	"delve-shell/internal/remote/execenv"
 	"delve-shell/internal/runtime/execcancel"
 )
@@ -25,6 +26,9 @@ type Manager struct {
 	sessionProvider        func() *history.Session
 	executorProvider       func() execenv.CommandExecutor
 	execContextDescription func() string
+	remoteIssueChanged     func(issue string)
+	hostMemoryContext      func() hostmem.Context
+	hostMemorySummary      func() string
 	offlineMode            func() bool
 
 	rulesText string
@@ -44,6 +48,12 @@ type Options struct {
 	ExecutorProvider func() execenv.CommandExecutor
 	// ExecContextDescription optional; see agent.RunnerUILoopInput.ExecContextDescription.
 	ExecContextDescription func() string
+	// RemoteIssueChanged updates remote footer status when SSH transport is degraded or recovers.
+	RemoteIssueChanged func(issue string)
+	// HostMemoryContext returns the current host memory context for tools.
+	HostMemoryContext func() hostmem.Context
+	// HostMemorySummary returns a concise host memory block for prompt injection.
+	HostMemorySummary func() string
 	// OfflineMode when true builds a runner without skill tools and with offline execute_command behavior.
 	OfflineMode func() bool
 
@@ -60,6 +70,9 @@ func New(opts Options) *Manager {
 		sessionProvider:        opts.SessionProvider,
 		executorProvider:       opts.ExecutorProvider,
 		execContextDescription: opts.ExecContextDescription,
+		remoteIssueChanged:     opts.RemoteIssueChanged,
+		hostMemoryContext:      opts.HostMemoryContext,
+		hostMemorySummary:      opts.HostMemorySummary,
 		offlineMode:            opts.OfflineMode,
 		rulesText:              opts.RulesText,
 		uiEvents:               opts.UIEvents,
@@ -116,6 +129,11 @@ func (m *Manager) Get(ctx context.Context) (*agent.Runner, error) {
 			ExecutorProvider:       m.executorProvider,
 			ExecCancelHub:          m.execCancelHub,
 			ExecContextDescription: m.execContextDescription,
+			RemoteIssueChanged:     m.remoteIssueChanged,
+		},
+		Memory: agent.RunnerMemoryInput{
+			CurrentHostMemoryContext: m.hostMemoryContext,
+			HostMemorySummary:        m.hostMemorySummary,
 		},
 		Offline: offline,
 	})

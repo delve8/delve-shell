@@ -220,14 +220,16 @@ func TestPresenter_DispatchAgentUI_ExecStream(t *testing.T) {
 func TestPresenter_Remote(t *testing.T) {
 	var r recordSender
 	p := New(&r)
-	p.RemoteStatus(true, "dev", false)
+	p.RemoteStatus(true, "dev", false, "disconnected")
 	p.RemoteConnectDone(false, "", "nope")
 	p.RemoteAuthPrompt("h", "e", false)
 	if len(r.msgs) != 3 {
 		t.Fatalf("want 3 msgs, got %d", len(r.msgs))
 	}
-	if _, ok := r.msgs[0].(remote.ExecutionChangedMsg); !ok {
+	if msg, ok := r.msgs[0].(remote.ExecutionChangedMsg); !ok {
 		t.Fatalf("msg0 type %T", r.msgs[0])
+	} else if msg.Issue != "disconnected" {
+		t.Fatalf("issue=%q", msg.Issue)
 	}
 	if _, ok := r.msgs[1].(remote.ConnectDoneMsg); !ok {
 		t.Fatalf("msg1 type %T", r.msgs[1])

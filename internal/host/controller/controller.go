@@ -113,6 +113,7 @@ func New(opts Options) *Controller {
 
 func (c *Controller) Start() {
 	go c.run()
+	c.primeHostMemory("local")
 }
 
 func (c *Controller) run() {

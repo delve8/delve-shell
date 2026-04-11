@@ -259,6 +259,8 @@ func (p *Presenter) DispatchAgentUI(x any) {
 		} else {
 			p.CommandExecutedFromTool(v.Command, v.Allowed, v.Result, v.Sensitive, v.Suggested, false, v.OfflineManual)
 		}
+	case remote.ExecutionChangedMsg:
+		p.Raw(v)
 	}
 }
 
@@ -269,8 +271,8 @@ func (p *Presenter) CommandExecutionActive(active bool) {
 
 // --- Remote / header ---
 
-func (p *Presenter) RemoteStatus(active bool, label string, offline bool) {
-	p.Raw(remote.ExecutionChangedMsg{Active: active, Label: label, Offline: offline})
+func (p *Presenter) RemoteStatus(active bool, label string, offline bool, issue string) {
+	p.Raw(remote.ExecutionChangedMsg{Active: active, Label: label, Offline: offline, Issue: issue})
 }
 
 func (p *Presenter) RemoteConnectDone(success bool, label, errText string) {

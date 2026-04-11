@@ -368,7 +368,12 @@ func testOrBracketBuiltin(name string) bool {
 // shellBuiltinNoAllowlistSegment reports builtins that are not argv[0] allowlist targets: they add no
 // segment. Residual risk: arguments to ":" can still run expansions (e.g. "$(cmd)"); those appear as CmdSubst.
 func shellBuiltinNoAllowlistSegment(name string) bool {
-	return name == ":"
+	switch argv0Base(name) {
+	case ":", "continue", "break", "return":
+		return true
+	default:
+		return false
+	}
 }
 
 // readBuiltinSkipsAllowlistSegment is true for the read builtin: it adds no allowlist segment. Variable
