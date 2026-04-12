@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/config"
 	hostcmd "delve-shell/internal/host/cmd"
 	"delve-shell/internal/pathcomplete"
 	remoteauth "delve-shell/internal/remote/auth"
@@ -105,6 +106,69 @@ func TestHandleRemoteAuthOverlayKey_ChooseDownEnterOpensIdentity(t *testing.T) {
 	}
 	if got.RemoteAuth.Input.Placeholder == "" {
 		t.Fatal("expected identity input to be initialized")
+	}
+}
+
+func TestHandleRemoteAuthOverlayKey_ChooseIdentityPrefillsConfiguredRemoteKey(t *testing.T) {
+	t.Setenv("DELVE_SHELL_ROOT", t.TempDir())
+	if err := config.EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	if err := config.AddRemote("root@example.com", "Example", "~/.ssh/example"); err != nil {
+		t.Fatal(err)
+	}
+	m := ui.NewModel(nil, nil)
+	state := getRemoteOverlayState()
+	state.RemoteAuth.Step = AuthStepChoose
+	state.RemoteAuth.Target = "root@example.com"
+	state.RemoteAuth.ChoiceIndex = 1
+	setRemoteOverlayState(state)
+	pathcomplete.ResetState()
+	t.Cleanup(func() {
+		resetRemoteOverlayState()
+		pathcomplete.ResetState()
+	})
+
+	_, _, handled := handleRemoteAuthOverlayKey(m, tea.KeyEnter.String(), tea.KeyMsg{Type: tea.KeyEnter})
+	if !handled {
+		t.Fatal("expected enter to be handled")
+	}
+	got := getRemoteOverlayState()
+	if got.RemoteAuth.Step != AuthStepIdentity {
+		t.Fatalf("step=%q want %q", got.RemoteAuth.Step, AuthStepIdentity)
+	}
+	if got.RemoteAuth.Input.Value() != "~/.ssh/example" {
+		t.Fatalf("identity input=%q want %q", got.RemoteAuth.Input.Value(), "~/.ssh/example")
+	}
+}
+
+func TestHandleRemoteAuthOverlayKey_ChooseIdentityFallsBackToLastKey(t *testing.T) {
+	t.Setenv("DELVE_SHELL_ROOT", t.TempDir())
+	if err := config.EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	if err := config.SetLastIdentityFile("~/.ssh/last-used"); err != nil {
+		t.Fatal(err)
+	}
+	m := ui.NewModel(nil, nil)
+	state := getRemoteOverlayState()
+	state.RemoteAuth.Step = AuthStepChoose
+	state.RemoteAuth.Target = "root@example.com"
+	state.RemoteAuth.ChoiceIndex = 1
+	setRemoteOverlayState(state)
+	pathcomplete.ResetState()
+	t.Cleanup(func() {
+		resetRemoteOverlayState()
+		pathcomplete.ResetState()
+	})
+
+	_, _, handled := handleRemoteAuthOverlayKey(m, tea.KeyEnter.String(), tea.KeyMsg{Type: tea.KeyEnter})
+	if !handled {
+		t.Fatal("expected enter to be handled")
+	}
+	got := getRemoteOverlayState()
+	if got.RemoteAuth.Input.Value() != "~/.ssh/last-used" {
+		t.Fatalf("identity input=%q want %q", got.RemoteAuth.Input.Value(), "~/.ssh/last-used")
 	}
 }
 

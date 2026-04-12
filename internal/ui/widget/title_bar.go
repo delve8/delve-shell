@@ -24,6 +24,7 @@ const (
 // TitleLineStyles is injected from the ui package so colors stay in one place (styles.go).
 type TitleLineStyles struct {
 	Base          lipgloss.Style
+	RemoteIssue   lipgloss.Style
 	StatusIdle    lipgloss.Style
 	StatusRunning lipgloss.Style
 	StatusPending lipgloss.Style
@@ -32,6 +33,7 @@ type TitleLineStyles struct {
 
 type FooterBarParts struct {
 	Remote              string
+	RemoteIssue         string
 	AutoRunFull         string
 	AutoRunShort        string
 	AutoRunReserveWidth int
@@ -70,7 +72,12 @@ func RenderFooterBar(width int, parts FooterBarParts, st TitleBarStatus, s Title
 	}
 
 	statusW := statusReserveW
-	remoteW := runewidth.StringWidth(remoteText)
+	remoteIssueText := strings.TrimSpace(parts.RemoteIssue)
+	remoteFullText := remoteText
+	if remoteIssueText != "" {
+		remoteFullText += " (" + remoteIssueText + ")"
+	}
+	remoteW := runewidth.StringWidth(remoteFullText)
 
 	statusStyle := statusStyleFor(st, s)
 	const maxSepW = 8
@@ -96,6 +103,14 @@ func RenderFooterBar(width int, parts FooterBarParts, st TitleBarStatus, s Title
 	renderBase := func(text string) string {
 		return s.Base.Render(text)
 	}
+	renderRemote := func(baseText, issueText string) string {
+		baseText = strings.TrimSpace(baseText)
+		issueText = strings.TrimSpace(issueText)
+		if issueText == "" {
+			return renderBase(baseText)
+		}
+		return renderBase(baseText+" ") + s.RemoteIssue.Render("("+issueText+")")
+	}
 
 	if !omitAuto && autoShortText != "" {
 		shortW := runewidth.StringWidth(autoShortText)
@@ -107,12 +122,12 @@ func RenderFooterBar(width int, parts FooterBarParts, st TitleBarStatus, s Title
 
 	if omitAuto {
 		if statusW+sepW+remoteW <= width {
-			return renderStatus(statusText) + sep + renderBase(remoteText)
+			return renderStatus(statusText) + sep + renderRemote(remoteText, remoteIssueText)
 		}
 		remoteAvail := width - statusW - sepW
 		if remoteAvail >= 1 {
-			remoteText = truncateMiddle(remoteText, remoteAvail)
-			return renderStatus(statusText) + sep + renderBase(remoteText)
+			remoteFullText = truncateMiddle(remoteFullText, remoteAvail)
+			return renderStatus(statusText) + sep + renderRemote(remoteFullText, "")
 		}
 		if width <= statusW {
 			return renderStatus(truncateMiddle(statusText, width))
@@ -121,13 +136,13 @@ func RenderFooterBar(width int, parts FooterBarParts, st TitleBarStatus, s Title
 	}
 
 	if statusW+sepW+autoW+sepW+remoteW <= width {
-		return renderStatus(statusText) + sep + renderExactWidth(s.Base, autoText, autoW) + sep + renderBase(remoteText)
+		return renderStatus(statusText) + sep + renderExactWidth(s.Base, autoText, autoW) + sep + renderRemote(remoteText, remoteIssueText)
 	}
 
 	remoteAvail := width - statusW - sepW - autoW - sepW
 	if remoteAvail >= 1 {
-		remoteText = truncateMiddle(remoteText, remoteAvail)
-		return renderStatus(statusText) + sep + renderExactWidth(s.Base, autoText, autoW) + sep + renderBase(remoteText)
+		remoteFullText = truncateMiddle(remoteFullText, remoteAvail)
+		return renderStatus(statusText) + sep + renderExactWidth(s.Base, autoText, autoW) + sep + renderRemote(remoteFullText, "")
 	}
 
 	if statusW+sepW+autoW <= width {

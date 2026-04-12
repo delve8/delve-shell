@@ -13,6 +13,9 @@ func handleRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Model,
 		// Let internal/ui do overlay-close common behavior.
 		return m, nil, false
 	}
+	if state.ConnectRemote.Active {
+		return m, nil, true
+	}
 	if state.AddRemote.Active {
 		return handleAddRemoteOverlayKey(m, key, msg)
 	}

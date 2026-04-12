@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"delve-shell/internal/remote"
 	"delve-shell/internal/ui"
 )
 
@@ -14,6 +15,9 @@ func TestBlackboxSlashRemoteOnOpensOverlay(t *testing.T) {
 	got := enterText(f.model, "/access New")
 	if !got.Overlay.Active {
 		t.Fatalf("expected /access New to open add-remote overlay")
+	}
+	if got.Overlay.Title != "New Remote" {
+		t.Fatalf("expected add-remote overlay title, got %q", got.Overlay.Title)
 	}
 	transcript := strings.Join(got.TranscriptLines(), "\n")
 	if !strings.Contains(transcript, "/access New") {
@@ -42,6 +46,56 @@ func TestBlackboxOverlayEscKeepsSingleTranscriptEcho(t *testing.T) {
 	transcript := strings.Join(got.TranscriptLines(), "\n")
 	if strings.Count(transcript, "/access New") != 1 {
 		t.Fatalf("expected one preserved user echo after overlay close, got %q", transcript)
+	}
+}
+
+func TestBlackboxRemoteConnectingOverlaySwallowsKeysExceptEsc(t *testing.T) {
+	f := newBlackboxFixture(t)
+	m := enterText(f.model, "/access root@example.com")
+	if m.Overlay.Title != "Connect Remote" {
+		t.Fatalf("expected connect overlay title, got %q", m.Overlay.Title)
+	}
+	if !strings.Contains(m.View(), "Target: root@example.com") {
+		t.Fatalf("expected connect overlay target, got %q", m.View())
+	}
+	select {
+	case <-f.remoteOn:
+	default:
+		t.Fatal("expected initial AccessRemote intent")
+	}
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	got := next.(*ui.Model)
+	if !got.Overlay.Active {
+		t.Fatal("expected overlay to remain active while connecting")
+	}
+	select {
+	case target := <-f.remoteOn:
+		t.Fatalf("did not expect a second AccessRemote intent, got %q", target)
+	default:
+	}
+}
+
+func TestBlackboxRemoteConnectFailureStaysInOverlay(t *testing.T) {
+	f := newBlackboxFixture(t)
+	m := enterText(f.model, "/access root@example.com")
+	select {
+	case <-f.remoteOn:
+	default:
+		t.Fatal("expected initial AccessRemote intent")
+	}
+	next, _ := m.Update(remote.ConnectDoneMsg{Success: false, Err: "connection refused"})
+	got := next.(*ui.Model)
+	if !got.Overlay.Active {
+		t.Fatal("expected overlay to remain active on connect failure")
+	}
+	if got.Overlay.Title != "Connect Remote" {
+		t.Fatalf("expected connect overlay title after failure, got %q", got.Overlay.Title)
+	}
+	if !strings.Contains(got.View(), "connection refused") {
+		t.Fatalf("expected connect error to stay in overlay, got %q", got.View())
+	}
+	if strings.Contains(got.View(), "Host (address or host:port):") {
+		t.Fatalf("did not expect add-remote form after connect failure, got %q", got.View())
 	}
 }
 

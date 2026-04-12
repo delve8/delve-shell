@@ -14,6 +14,7 @@ import "github.com/charmbracelet/lipgloss"
 var (
 	// Footer/status and layout
 	titleStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("246")) // footer line: mode
+	remoteIssueStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)
 	separatorStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))   // horizontal rule between viewport/footer/input
 	statusIdleStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("246")) // [IDLE] / [空闲] — same tone as footer text
 	statusRunningStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("11"))  // [PROCESSING] / [处理中] — softer yellow

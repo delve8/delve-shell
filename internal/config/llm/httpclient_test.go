@@ -38,6 +38,9 @@ func TestNewLLMHTTPClient_UsesClonedTransportAndIdleTimeout(t *testing.T) {
 	if rt.maxRetries != llmMaxNetworkRetries {
 		t.Fatalf("maxRetries=%d", rt.maxRetries)
 	}
+	if len(rt.backoffs) != 2 || rt.backoffs[0] != 3*time.Second || rt.backoffs[1] != 3*time.Second {
+		t.Fatalf("backoffs=%v want [3s 3s]", rt.backoffs)
+	}
 }
 
 func TestRetryRoundTripper_RetriesNetworkErrors(t *testing.T) {

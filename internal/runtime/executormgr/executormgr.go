@@ -3,6 +3,7 @@ package executormgr
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"delve-shell/internal/config"
@@ -20,6 +21,8 @@ type Manager struct {
 	mu       sync.Mutex
 	executor execenv.CommandExecutor
 	pending  *pendingHostKeyDecision
+
+	remoteIssueChanged func(issue string)
 
 	remoteCredMu sync.Mutex
 	remoteCreds  map[string]remoteCred // key: host-only
@@ -70,12 +73,22 @@ func (m *Manager) Get() execenv.CommandExecutor {
 	return m.executor
 }
 
+func (m *Manager) SetRemoteIssueHandler(fn func(string)) {
+	m.mu.Lock()
+	m.remoteIssueChanged = fn
+	exec := m.executor
+	m.mu.Unlock()
+	setTransportIssueHandler(exec, fn)
+}
+
 // Set switches the current executor without touching credential cache.
 // Callers are responsible for closing any replaced SSH executor when needed.
 func (m *Manager) Set(exec execenv.CommandExecutor) {
 	m.mu.Lock()
 	m.executor = exec
+	fn := m.remoteIssueChanged
 	m.mu.Unlock()
+	setTransportIssueHandler(exec, fn)
 }
 
 func (m *Manager) GetCachedCred(hostOnly string) (kind, username, secret string, ok bool) {
@@ -104,6 +117,18 @@ func (m *Manager) DeleteCachedCred(hostOnly string) {
 	m.remoteCredMu.Lock()
 	delete(m.remoteCreds, hostOnly)
 	m.remoteCredMu.Unlock()
+}
+
+type transportIssueHandler interface {
+	SetTransportIssueHandler(func(string))
+}
+
+func setTransportIssueHandler(exec execenv.CommandExecutor, fn func(string)) {
+	handler, ok := exec.(transportIssueHandler)
+	if !ok {
+		return
+	}
+	handler.SetTransportIssueHandler(fn)
 }
 
 // SwitchToLocal closes any SSH executor, switches to local, and clears credential cache.
@@ -161,6 +186,7 @@ type ConnectResult struct {
 	Connected  bool
 	Label      string
 	Executor   execenv.CommandExecutor // non-nil when Connected
+	ErrText    string                  // non-empty for non-auth connect failures
 	AuthPrompt *remoteauth.Prompt      // when non-nil, UI should open auth prompt / show error
 }
 
@@ -173,8 +199,8 @@ type ConnectResult struct {
 // Behavior:
 //   - If a cached credential exists for hostOnly, try it first. On failure, drop it and continue.
 //   - If identityFile is provided, emit an AuthPrompt in "auto identity" mode, then attempt connection.
-//     On failure, emit an AuthPrompt with error for interactive auth.
-//   - Otherwise, try plain SSH; on failure, emit an AuthPrompt with error.
+//     Auth failures continue to interactive auth; transport failures return ErrText only.
+//   - Otherwise, try plain SSH; auth failures emit an AuthPrompt, while transport failures return ErrText only.
 func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 	hostOnly := config.HostFromTarget(target)
 	if label == "" {
@@ -231,7 +257,10 @@ func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 				}
 			}
 			msg := fmt.Sprintf("Remote connect failed for %s: %v", hostOnly, err)
-			return ConnectResult{Connected: false, Label: label, AuthPrompt: &remoteauth.Prompt{Target: target, Err: msg}}
+			if shouldPromptForAuth(err) {
+				return ConnectResult{Connected: false, Label: label, AuthPrompt: &remoteauth.Prompt{Target: target, Err: msg}}
+			}
+			return ConnectResult{Connected: false, Label: label, ErrText: msg}
 		}
 		m.Set(exec)
 		_ = prompt
@@ -264,10 +293,28 @@ func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 			}
 		}
 		msg := fmt.Sprintf("Remote connect failed for %s: %v", hostOnly, err)
-		return ConnectResult{Connected: false, Label: label, AuthPrompt: &remoteauth.Prompt{Target: target, Err: msg}}
+		if shouldPromptForAuth(err) {
+			return ConnectResult{Connected: false, Label: label, AuthPrompt: &remoteauth.Prompt{Target: target, Err: msg}}
+		}
+		return ConnectResult{Connected: false, Label: label, ErrText: msg}
 	}
 	m.Set(exec)
 	return ConnectResult{Connected: true, Label: label, Executor: exec}
+}
+
+func shouldPromptForAuth(err error) bool {
+	if err == nil {
+		return false
+	}
+	var mismatch *execenv.HostKeyMismatchError
+	if errors.As(err, &mismatch) {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "unable to authenticate") ||
+		strings.Contains(msg, "permission denied") ||
+		strings.Contains(msg, "no ssh authentication methods available") ||
+		strings.Contains(msg, "cannot decode encrypted private keys")
 }
 
 func hostKeyDecisionPrompt(mismatch *execenv.HostKeyMismatchError) string {

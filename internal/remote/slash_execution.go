@@ -32,10 +32,11 @@ func registerSlashExecutionProvider() {
 			return inputlifecycletype.ConsumedResult(), true, nil
 		case strings.HasPrefix(text, "/access "):
 			target := strings.TrimSpace(strings.TrimPrefix(text, "/access "))
-			if !ui.SlashTryHostIntent(req.CommandSender, hostcmd.AccessRemote{Target: target}) {
-				return inputlifecycletype.ProcessResult{}, true, nil
-			}
-			return inputlifecycletype.ConsumedResult(), true, nil
+			return ui.SlashOverlayOpenResult(OverlayOpenKeyAddRemote, "", "", false, map[string]string{
+				"save":    "false",
+				"target":  target,
+				"connect": "true",
+			}), true, nil
 		default:
 			return inputlifecycletype.ProcessResult{}, false, nil
 		}

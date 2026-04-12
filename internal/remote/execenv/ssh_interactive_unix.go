@@ -27,13 +27,24 @@ func RunInteractiveSSHShell(ctx context.Context, exec CommandExecutor) error {
 }
 
 func (e *SSHExecutor) runInteractiveShell(ctx context.Context) error {
-	if e.client == nil {
-		return errors.New("ssh client is not connected")
-	}
-
-	session, err := e.client.NewSession()
+	client, err := e.ensureClient("reconnecting before remote interactive shell")
 	if err != nil {
 		return err
+	}
+
+	session, err := client.NewSession()
+	if err != nil {
+		if isSSHTransportError(err) {
+			if e.reconnect() == nil {
+				client = e.currentClient()
+				session, err = client.NewSession()
+			} else {
+				e.markClientDisconnected(client)
+			}
+		}
+		if err != nil {
+			return wrapSSHConnectionError("opening remote interactive shell", err, false)
+		}
 	}
 	defer session.Close()
 

@@ -22,18 +22,36 @@ import (
 // SSHExecutor runs commands on a remote host via SSH.
 // It keeps a single SSH client connection and opens a new session per Run.
 type SSHExecutor struct {
-	mu     sync.Mutex
-	client *ssh.Client
-	user   string
-	addr   string // host:port
-	target string
-	auth   sshAuthConfig
+	mu               sync.Mutex
+	reconnectMu      sync.Mutex
+	client           *ssh.Client
+	keepAliveStop    chan struct{}
+	recoveryStop     chan struct{}
+	closed           bool
+	transportIssue   string
+	transportIssueFn func(string)
+	user             string
+	addr             string // host:port
+	target           string
+	auth             sshAuthConfig
 }
 
 type sshAuthConfig struct {
 	identityFile string
 	password     string
 }
+
+const (
+	sshDialTimeout            = 10 * time.Second
+	sshTCPKeepAliveIdle       = 10 * time.Second
+	sshTCPKeepAliveInterval   = 10 * time.Second
+	sshTCPKeepAliveCount      = 3
+	sshAppKeepAliveInterval   = 10 * time.Second
+	sshAppKeepAliveReqTimeout = 5 * time.Second
+	sshRecoveryRetryInterval  = 5 * time.Second
+
+	sshConnectionIssueSummary = "disconnected"
+)
 
 // SSHConnectionError reports that the SSH transport failed, usually due to network interruption or a dropped session.
 type SSHConnectionError struct {
@@ -69,6 +87,14 @@ func (e *SSHConnectionError) Unwrap() error { return e.Err }
 func IsSSHConnectionError(err error) bool {
 	var connErr *SSHConnectionError
 	return errors.As(err, &connErr)
+}
+
+// SSHConnectionIssueSummary returns the short UI status for SSH transport errors.
+func SSHConnectionIssueSummary(err error) string {
+	if !IsSSHConnectionError(err) {
+		return ""
+	}
+	return sshConnectionIssueSummary
 }
 
 // HostKeyMismatchError indicates the server presented a host key that conflicts
@@ -107,13 +133,16 @@ func NewSSHExecutor(target, identityFile string) (*SSHExecutor, string, error) {
 	}
 
 	label := user + "@" + hostPort
-	return &SSHExecutor{
-		client: client,
+	exec := &SSHExecutor{
 		user:   user,
 		addr:   hostPort,
 		target: target,
 		auth:   sshAuthConfig{identityFile: identityFile},
-	}, label, nil
+	}
+	if err := exec.replaceClient(client); err != nil {
+		return nil, "", err
+	}
+	return exec, label, nil
 }
 
 // NewSSHExecutorWithPassword creates an SSHExecutor using password-based auth in addition
@@ -125,25 +154,46 @@ func NewSSHExecutorWithPassword(target, identityFile, password string) (*SSHExec
 	}
 
 	label := user + "@" + hostPort
-	return &SSHExecutor{
-		client: client,
+	exec := &SSHExecutor{
 		user:   user,
 		addr:   hostPort,
 		target: target,
 		auth:   sshAuthConfig{identityFile: identityFile, password: password},
-	}, label, nil
+	}
+	if err := exec.replaceClient(client); err != nil {
+		return nil, "", err
+	}
+	return exec, label, nil
+}
+
+// SetTransportIssueHandler registers a callback for asynchronous SSH transport issue changes.
+// The handler is called from background keepalive goroutines and must not block indefinitely.
+func (e *SSHExecutor) SetTransportIssueHandler(fn func(string)) {
+	if e == nil {
+		return
+	}
+	e.mu.Lock()
+	e.transportIssueFn = fn
+	issue := e.transportIssue
+	e.mu.Unlock()
+	if fn != nil && issue != "" {
+		fn(issue)
+	}
 }
 
 // CopyLocalFileToRemote uploads a local file using the SCP protocol over the existing SSH
 // session (remote runs scp -t). Parent directories must exist (e.g. mkdir -p) before calling.
 func (e *SSHExecutor) CopyLocalFileToRemote(ctx context.Context, localPath, remotePath string) error {
-	client := e.currentClient()
-	if e == nil || client == nil {
-		return errors.New("ssh client is not connected")
+	client, err := e.ensureClient("reconnecting before scp upload")
+	if err != nil {
+		return err
 	}
-	err := scpUpload(ctx, client, localPath, remotePath)
+	err = scpUpload(ctx, client, localPath, remotePath)
 	if isSSHTransportError(err) {
 		reErr := e.reconnect()
+		if reErr != nil {
+			e.markClientDisconnected(client)
+		}
 		return &SSHConnectionError{Op: "scp upload", Err: err, ReconnectTried: true, ReconnectSuccess: reErr == nil}
 	}
 	return err
@@ -162,16 +212,20 @@ func interruptRemoteSession(s *ssh.Session) {
 
 // Run implements CommandExecutor by executing the command via "sh -c" on the remote host.
 func (e *SSHExecutor) Run(ctx context.Context, command string) (stdout, stderr string, exitCode int, err error) {
-	client := e.currentClient()
-	if client == nil {
-		return "", "", -1, errors.New("ssh client is not connected")
+	client, err := e.ensureClient("reconnecting before remote command")
+	if err != nil {
+		return "", "", -1, err
 	}
 
 	session, err := client.NewSession()
 	if err != nil {
-		if isSSHTransportError(err) && e.reconnect() == nil {
-			client = e.currentClient()
-			session, err = client.NewSession()
+		if isSSHTransportError(err) {
+			if e.reconnect() == nil {
+				client = e.currentClient()
+				session, err = client.NewSession()
+			} else {
+				e.markClientDisconnected(client)
+			}
 		}
 		if err != nil {
 			return "", "", -1, wrapSSHConnectionError("opening remote session", err, false)
@@ -209,6 +263,9 @@ func (e *SSHExecutor) Run(ctx context.Context, command string) (stdout, stderr s
 	}
 	if runErr != nil && isSSHTransportError(runErr) {
 		reErr := e.reconnect()
+		if reErr != nil {
+			e.markClientDisconnected(client)
+		}
 		return outBuf.String(), errBuf.String(), exitCode, &SSHConnectionError{
 			Op:               "running remote command",
 			Err:              runErr,
@@ -222,15 +279,19 @@ func (e *SSHExecutor) Run(ctx context.Context, command string) (stdout, stderr s
 
 // RunStreaming runs the command on the remote host like [SSHExecutor.Run] but copies stdout/stderr to the given writers as data arrives.
 func (e *SSHExecutor) RunStreaming(ctx context.Context, command string, stdout, stderr io.Writer) (exitCode int, err error) {
-	client := e.currentClient()
-	if client == nil {
-		return -1, errors.New("ssh client is not connected")
+	client, err := e.ensureClient("reconnecting before streamed remote command")
+	if err != nil {
+		return -1, err
 	}
 	session, err := client.NewSession()
 	if err != nil {
-		if isSSHTransportError(err) && e.reconnect() == nil {
-			client = e.currentClient()
-			session, err = client.NewSession()
+		if isSSHTransportError(err) {
+			if e.reconnect() == nil {
+				client = e.currentClient()
+				session, err = client.NewSession()
+			} else {
+				e.markClientDisconnected(client)
+			}
 		}
 		if err != nil {
 			return -1, wrapSSHConnectionError("opening streamed remote session", err, false)
@@ -265,6 +326,9 @@ func (e *SSHExecutor) RunStreaming(ctx context.Context, command string, stdout, 
 	}
 	if runErr != nil && isSSHTransportError(runErr) {
 		reErr := e.reconnect()
+		if reErr != nil {
+			e.markClientDisconnected(client)
+		}
 		return exitCode, &SSHConnectionError{
 			Op:               "running streamed remote command",
 			Err:              runErr,
@@ -279,8 +343,19 @@ func (e *SSHExecutor) RunStreaming(ctx context.Context, command string, stdout, 
 func (e *SSHExecutor) Close() error {
 	e.mu.Lock()
 	client := e.client
+	stop := e.keepAliveStop
+	recoveryStop := e.recoveryStop
 	e.client = nil
+	e.keepAliveStop = nil
+	e.recoveryStop = nil
+	e.closed = true
 	e.mu.Unlock()
+	if stop != nil {
+		close(stop)
+	}
+	if recoveryStop != nil {
+		close(recoveryStop)
+	}
 	if client != nil {
 		return client.Close()
 	}
@@ -296,22 +371,206 @@ func (e *SSHExecutor) currentClient() *ssh.Client {
 	return e.client
 }
 
+func (e *SSHExecutor) isClosed() bool {
+	if e == nil {
+		return true
+	}
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.closed
+}
+
+func (e *SSHExecutor) ensureClient(op string) (*ssh.Client, error) {
+	client := e.currentClient()
+	if client != nil {
+		return client, nil
+	}
+	if e.isClosed() {
+		return nil, errors.New("ssh client is not connected")
+	}
+	if err := e.reconnect(); err != nil {
+		return nil, &SSHConnectionError{Op: op, Err: err, ReconnectTried: true, ReconnectSuccess: false}
+	}
+	client = e.currentClient()
+	if client == nil {
+		return nil, &SSHConnectionError{Op: op, Err: errors.New("ssh client is not connected"), ReconnectTried: true, ReconnectSuccess: false}
+	}
+	return client, nil
+}
+
 func (e *SSHExecutor) reconnect() error {
 	if e == nil {
 		return errors.New("ssh executor is nil")
 	}
-	e.mu.Lock()
-	defer e.mu.Unlock()
+	e.reconnectMu.Lock()
+	defer e.reconnectMu.Unlock()
+	if e.isClosed() {
+		return errors.New("ssh executor is closed")
+	}
 	client, _, _, err := dialSSHClient(e.target, e.auth.identityFile, e.auth.password)
 	if err != nil {
 		return err
 	}
+	if err := e.replaceClient(client); err != nil {
+		return err
+	}
+	e.reportTransportIssue("")
+	return nil
+}
+
+func (e *SSHExecutor) replaceClient(client *ssh.Client) error {
+	if e == nil {
+		return errors.New("ssh executor is nil")
+	}
+	if client == nil {
+		return errors.New("ssh client is nil")
+	}
+	stop := make(chan struct{})
+	e.mu.Lock()
+	if e.closed {
+		e.mu.Unlock()
+		_ = client.Close()
+		return errors.New("ssh executor is closed")
+	}
 	old := e.client
 	e.client = client
+	oldStop := e.keepAliveStop
+	oldRecoveryStop := e.recoveryStop
+	e.keepAliveStop = stop
+	e.recoveryStop = nil
+	e.mu.Unlock()
+	if oldStop != nil {
+		close(oldStop)
+	}
+	if oldRecoveryStop != nil {
+		close(oldRecoveryStop)
+	}
 	if old != nil {
 		_ = old.Close()
 	}
+	go e.keepAliveLoop(client, stop)
 	return nil
+}
+
+func (e *SSHExecutor) keepAliveLoop(client *ssh.Client, stop <-chan struct{}) {
+	ticker := time.NewTicker(sshAppKeepAliveInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-stop:
+			return
+		case <-ticker.C:
+		}
+		if err := sendSSHKeepAlive(client, sshAppKeepAliveReqTimeout); err != nil {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			e.markKeepAliveFailed(client, err)
+			return
+		}
+		e.reportTransportIssue("")
+	}
+}
+
+func sendSSHKeepAlive(client *ssh.Client, timeout time.Duration) error {
+	if client == nil {
+		return errors.New("ssh client is nil")
+	}
+	done := make(chan error, 1)
+	go func() {
+		_, _, err := client.SendRequest("keepalive@openssh.com", true, nil)
+		done <- err
+	}()
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+	select {
+	case err := <-done:
+		return err
+	case <-timer.C:
+		_ = client.Close()
+		return fmt.Errorf("ssh keepalive response timed out after %s", timeout)
+	}
+}
+
+func (e *SSHExecutor) markKeepAliveFailed(client *ssh.Client, err error) {
+	_ = err
+	e.markClientDisconnected(client)
+}
+
+func (e *SSHExecutor) markClientDisconnected(client *ssh.Client) {
+	if e == nil {
+		return
+	}
+	e.mu.Lock()
+	if e.client != client {
+		e.mu.Unlock()
+		return
+	}
+	stop := e.keepAliveStop
+	e.client = nil
+	e.keepAliveStop = nil
+	e.mu.Unlock()
+	if stop != nil {
+		close(stop)
+	}
+	_ = client.Close()
+	e.reportTransportIssue(sshConnectionIssueSummary)
+	e.startRecoveryLoop()
+}
+
+func (e *SSHExecutor) startRecoveryLoop() {
+	if e == nil {
+		return
+	}
+	e.mu.Lock()
+	if e.closed || e.client != nil || e.recoveryStop != nil {
+		e.mu.Unlock()
+		return
+	}
+	stop := make(chan struct{})
+	e.recoveryStop = stop
+	e.mu.Unlock()
+	go e.recoveryLoop(stop)
+}
+
+func (e *SSHExecutor) recoveryLoop(stop <-chan struct{}) {
+	for {
+		timer := time.NewTimer(sshRecoveryRetryInterval)
+		select {
+		case <-stop:
+			timer.Stop()
+			return
+		case <-timer.C:
+		}
+		if err := e.reconnect(); err == nil {
+			return
+		}
+		select {
+		case <-stop:
+			return
+		default:
+		}
+	}
+}
+
+func (e *SSHExecutor) reportTransportIssue(issue string) {
+	if e == nil {
+		return
+	}
+	issue = strings.TrimSpace(issue)
+	e.mu.Lock()
+	if e.transportIssue == issue {
+		e.mu.Unlock()
+		return
+	}
+	e.transportIssue = issue
+	fn := e.transportIssueFn
+	e.mu.Unlock()
+	if fn != nil {
+		fn(issue)
+	}
 }
 
 func dialSSHClient(target, identityFile, password string) (*ssh.Client, string, string, error) {
@@ -366,13 +625,30 @@ func dialSSHClient(target, identityFile, password string) (*ssh.Client, string, 
 		User:            user,
 		Auth:            authMethods,
 		HostKeyCallback: hostKeyCallback,
-		Timeout:         10 * time.Second,
+		Timeout:         sshDialTimeout,
 	}
 
-	client, err := ssh.Dial("tcp", hostPort, clientConfig)
+	dialer := net.Dialer{
+		Timeout: sshDialTimeout,
+		KeepAliveConfig: net.KeepAliveConfig{
+			Enable:   true,
+			Idle:     sshTCPKeepAliveIdle,
+			Interval: sshTCPKeepAliveInterval,
+			Count:    sshTCPKeepAliveCount,
+		},
+	}
+	conn, err := dialer.DialContext(context.Background(), "tcp", hostPort)
 	if err != nil {
 		return nil, "", "", err
 	}
+	_ = conn.SetDeadline(time.Now().Add(sshDialTimeout))
+	sshConn, chans, reqs, err := ssh.NewClientConn(conn, hostPort, clientConfig)
+	if err != nil {
+		_ = conn.Close()
+		return nil, "", "", err
+	}
+	_ = conn.SetDeadline(time.Time{})
+	client := ssh.NewClient(sshConn, chans, reqs)
 	return client, user, hostPort, nil
 }
 

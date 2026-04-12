@@ -39,7 +39,7 @@ func NewLLMHTTPClient(timeout time.Duration) *http.Client {
 		Transport: retryRoundTripper{
 			base:       base,
 			maxRetries: llmMaxNetworkRetries,
-			backoffs:   []time.Duration{300 * time.Millisecond, 1 * time.Second},
+			backoffs:   []time.Duration{3 * time.Second, 3 * time.Second},
 		},
 	}
 }

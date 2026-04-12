@@ -249,6 +249,7 @@ const (
 	KeyAddRemoteTitle                  = "add_remote_title"
 	KeyAddRemoteScreenTitle            = "add_remote_screen_title"
 	KeyAddRemoteConnecting             = "add_remote_connecting"
+	KeyConnectRemoteTitle              = "connect_remote_title"
 	KeyAddRemoteOverwriteHint          = "add_remote_overwrite_hint"
 	KeyAddRemoteOverwriteChoice        = "add_remote_overwrite_choice"
 	KeyAddRemoteKeepEditingChoice      = "add_remote_keep_editing_choice"
@@ -451,9 +452,10 @@ var messages = map[string]map[string]string{
 		KeySkillScriptsSyncRemote:               "Syncing skill scripts to remote host…",
 		KeyHelpTitle:                            "Help",
 		KeyHelpOverlayFooter:                    "Esc to close · PgUp/PgDn to scroll",
-		KeyAddRemoteTitle:                       "Add Remote",
+		KeyAddRemoteTitle:                       "New Remote",
 		KeyAddRemoteScreenTitle:                 "Add remote",
 		KeyAddRemoteConnecting:                  "Connecting...",
+		KeyConnectRemoteTitle:                   "Connect Remote",
 		KeyAddRemoteOverwriteHint:               "A saved remote with this target already exists. Choose an action:",
 		KeyAddRemoteOverwriteChoice:             "1. Overwrite saved remote",
 		KeyAddRemoteKeepEditingChoice:           "2. Keep editing",

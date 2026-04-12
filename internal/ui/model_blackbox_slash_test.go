@@ -280,20 +280,52 @@ func TestBlackboxSlashAccessLocalSendsIntent(t *testing.T) {
 	}
 }
 
-func TestBlackboxSlashAccessRemoteHostSendsIntent(t *testing.T) {
+func TestBlackboxSlashAccessRemoteHostOpensOverlayAndSendsIntent(t *testing.T) {
+	f := newBlackboxFixture(t)
+	got := enterText(f.model, "/access root@example.com")
+	if !got.Overlay.Active {
+		t.Fatal("expected /access remote to open connecting overlay")
+	}
+	if got.Overlay.Title != "Connect Remote" {
+		t.Fatalf("expected connect overlay title, got %q", got.Overlay.Title)
+	}
+	if strings.Contains(got.View(), "Add remote") {
+		t.Fatalf("did not expect add-remote content in connect overlay, got %q", got.View())
+	}
+	select {
+	case target := <-f.remoteOn:
+		if target != "root@example.com" {
+			t.Fatalf("expected /access target, got %q", target)
+		}
+	default:
+		t.Fatal("expected /access remote to emit AccessRemote intent")
+	}
+	transcript := strings.Join(got.TranscriptLines(), "\n")
+	if !strings.Contains(transcript, "/access root@example.com") {
+		t.Fatalf("expected user echo for /access prod, got %q", transcript)
+	}
+}
+
+func TestBlackboxSlashAccessRemoteWithoutUserOpensOverlayOnly(t *testing.T) {
+	t.Setenv("DELVE_SHELL_ROOT", t.TempDir())
+	if err := config.EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
 	f := newBlackboxFixture(t)
 	got := enterText(f.model, "/access prod")
+	if !got.Overlay.Active {
+		t.Fatal("expected /access host to open overlay")
+	}
+	if got.Overlay.Title != "Connect Remote" {
+		t.Fatalf("expected connect overlay title, got %q", got.Overlay.Title)
+	}
 	select {
 	case target := <-f.remoteOn:
 		if target != "prod" {
-			t.Fatalf("expected /access prod target, got %q", target)
+			t.Fatalf("expected AccessRemote target prod, got %q", target)
 		}
 	default:
-		t.Fatal("expected /access prod to emit AccessRemote intent")
-	}
-	transcript := strings.Join(got.TranscriptLines(), "\n")
-	if !strings.Contains(transcript, "/access prod") {
-		t.Fatalf("expected user echo for /access prod, got %q", transcript)
+		t.Fatal("expected /access host to emit AccessRemote intent")
 	}
 }
 

@@ -46,6 +46,20 @@ func wireHostStack(
 
 	execCancelHub := execcancel.New()
 	rt := app.NewRuntime()
+	remoteIssueChanged := func(issue string) {
+		if issue != "" {
+			issue = "disconnected"
+		}
+		rt.SetRemoteIssue(issue)
+		if rt.RemoteActive() {
+			ports.AgentUIChan <- remote.ExecutionChangedMsg{
+				Active: true,
+				Label:  rt.RemoteLabel(),
+				Issue:  issue,
+			}
+		}
+	}
+	executors.SetRemoteIssueHandler(remoteIssueChanged)
 
 	runners := runnermgr.New(runnermgr.Options{
 		RulesText: pf.RulesText,
@@ -63,16 +77,7 @@ func wireHostStack(
 		ExecContextDescription: func() string {
 			return rt.ExecContextForLLM()
 		},
-		RemoteIssueChanged: func(issue string) {
-			rt.SetRemoteIssue(issue)
-			if rt.RemoteActive() {
-				ports.AgentUIChan <- remote.ExecutionChangedMsg{
-					Active: true,
-					Label:  rt.RemoteLabel(),
-					Issue:  issue,
-				}
-			}
-		},
+		RemoteIssueChanged: remoteIssueChanged,
 		HostMemoryContext: func() hostmem.Context {
 			return rt.HostMemoryContext()
 		},

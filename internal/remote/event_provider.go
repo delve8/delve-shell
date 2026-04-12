@@ -40,11 +40,13 @@ func remoteConnectUIHandler(m *ui.Model, msg tea.Msg) (*ui.Model, tea.Cmd, bool)
 	switch t := msg.(type) {
 	case ConnectDoneMsg:
 		state.AddRemote.Connecting = false
-		state.AddRemote.Error = ""
 		state.AddRemote.OfferOverwrite = false
+		state.ConnectRemote.Connecting = false
+		state.ConnectRemote.Error = t.Err
 		state.RemoteAuth.Connecting = false
 
 		if state.RemoteAuth.Step != "" {
+			state.RemoteAuth.Error = t.Err
 			if t.Success {
 				m.CloseOverlayVisual()
 				state.RemoteAuth.Step = ""
@@ -60,10 +62,23 @@ func remoteConnectUIHandler(m *ui.Model, msg tea.Msg) (*ui.Model, tea.Cmd, bool)
 			return m, nil, true
 		}
 
-		state.AddRemote.Active = false
+		if state.ConnectRemote.Active {
+			if t.Success {
+				state.ConnectRemote = RemoteConnectOverlayState{}
+				m.CloseOverlayVisual()
+				m.Input.Focus()
+			}
+			setRemoteOverlayState(state)
+			return m, nil, true
+		}
+
+		state.AddRemote.Error = t.Err
 		if t.Success {
+			state.AddRemote.Active = false
 			m.CloseOverlayVisual()
 			m.Input.Focus()
+		} else if state.AddRemote.Active {
+			applyAddRemoteFieldFocus(&state.AddRemote)
 		}
 		setRemoteOverlayState(state)
 		return m, nil, true
@@ -71,6 +86,8 @@ func remoteConnectUIHandler(m *ui.Model, msg tea.Msg) (*ui.Model, tea.Cmd, bool)
 	case AuthPromptMsg:
 		state.AddRemote.Connecting = false
 		state.AddRemote.Active = false
+		state.ConnectRemote.Connecting = false
+		state.ConnectRemote.Active = false
 		m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyRemoteAuthTitle), "")
 		state.RemoteAuth.Target = t.Target
 		state.RemoteAuth.Error = t.Err

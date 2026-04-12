@@ -108,20 +108,36 @@ func (m *Model) titleBarLeadingSegment() string {
 
 // footerLine returns the fixed status line (status + remote) for display below the input; does not scroll.
 func (m *Model) footerLine() string {
-	remotePart := m.titleBarLeadingSegment()
+	remotePart, remoteIssue := m.footerRemoteParts()
 	statusStr := i18n.T(m.statusKey())
 	return widget.RenderFooterBar(m.layout.Width, widget.FooterBarParts{
 		Remote:              remotePart,
+		RemoteIssue:         remoteIssue,
 		AutoRunReserveWidth: 0,
 		Status:              statusStr,
 		StatusReserveWidth:  footerStatusReserveWidth(),
 	}, m.titleBarStatus(), widget.TitleLineStyles{
 		Base:          titleStyle,
+		RemoteIssue:   remoteIssueStyle,
 		StatusIdle:    statusIdleStyle,
 		StatusRunning: statusRunningStyle,
 		StatusPending: pendingActionStyle,
 		StatusSuggest: suggestStyle,
 	})
+}
+
+func (m *Model) footerRemoteParts() (base string, issue string) {
+	if m.Remote.Offline {
+		return i18n.T(i18n.KeyRemoteTitleBarOffline), ""
+	}
+	if m.Remote.Active {
+		base = i18n.T(i18n.KeyRemoteTitleBarRemote)
+		if lbl := strings.TrimSpace(m.Remote.Label); lbl != "" {
+			base += " " + lbl
+		}
+		return base, strings.TrimSpace(m.Remote.Issue)
+	}
+	return m.titleBarLeadingSegment(), ""
 }
 
 func footerStatusReserveWidth() int {

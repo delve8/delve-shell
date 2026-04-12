@@ -18,6 +18,18 @@ func (fakeExec) Run(_ context.Context, _ string) (string, string, int, error) {
 	return "", "", 0, nil
 }
 
+type fakeIssueExec struct {
+	handler func(string)
+}
+
+func (f *fakeIssueExec) Run(_ context.Context, _ string) (string, string, int, error) {
+	return "", "", 0, nil
+}
+
+func (f *fakeIssueExec) SetTransportIssueHandler(fn func(string)) {
+	f.handler = fn
+}
+
 func TestConnect_UsesCachedCredential_First(t *testing.T) {
 	m := New()
 	called := 0
@@ -66,7 +78,7 @@ func TestConnect_ConfigIdentity_Failure_ReturnsPrompt(t *testing.T) {
 	m := New()
 	m.SetSSHFactories(
 		func(target, identity string) (execenv.CommandExecutor, string, error) {
-			return nil, "", errors.New("bad key")
+			return nil, "", errors.New("ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain")
 		},
 		nil,
 	)
@@ -79,6 +91,46 @@ func TestConnect_ConfigIdentity_Failure_ReturnsPrompt(t *testing.T) {
 	}
 	if res.AuthPrompt.Target != "root@example.com" {
 		t.Fatalf("unexpected target: %q", res.AuthPrompt.Target)
+	}
+}
+
+func TestConnect_TransportFailure_DoesNotPromptForAuth(t *testing.T) {
+	m := New()
+	m.SetSSHFactories(
+		func(target, identity string) (execenv.CommandExecutor, string, error) {
+			return nil, "", errors.New("dial tcp 10.0.0.1:22: connect: connection refused")
+		},
+		nil,
+	)
+	res := m.Connect("root@example.com", "lbl", "")
+	if res.Connected {
+		t.Fatal("expected not connected")
+	}
+	if res.AuthPrompt != nil {
+		t.Fatalf("unexpected auth prompt: %+v", res.AuthPrompt)
+	}
+	if res.ErrText == "" {
+		t.Fatal("expected plain connection error text")
+	}
+}
+
+func TestConnect_AuthFailure_PromptsForCredentials(t *testing.T) {
+	m := New()
+	m.SetSSHFactories(
+		func(target, identity string) (execenv.CommandExecutor, string, error) {
+			return nil, "", errors.New("ssh: handshake failed: ssh: unable to authenticate, attempted methods [none], no supported methods remain")
+		},
+		nil,
+	)
+	res := m.Connect("root@example.com", "lbl", "")
+	if res.Connected {
+		t.Fatal("expected not connected")
+	}
+	if res.AuthPrompt == nil {
+		t.Fatal("expected auth prompt")
+	}
+	if res.ErrText != "" {
+		t.Fatalf("unexpected errText: %q", res.ErrText)
 	}
 }
 
@@ -195,5 +247,22 @@ func TestResolveHostKeyDecision_Accept_Reconnects(t *testing.T) {
 	res := m.ResolveHostKeyDecision("root@example.com", true)
 	if !res.Connected {
 		t.Fatalf("expected connected after accepting host key")
+	}
+}
+
+func TestSetRemoteIssueHandler_AttachesToExecutor(t *testing.T) {
+	m := New()
+	exec := &fakeIssueExec{}
+	var got string
+	m.SetRemoteIssueHandler(func(issue string) {
+		got = issue
+	})
+	m.Set(exec)
+	if exec.handler == nil {
+		t.Fatal("expected transport issue handler to be attached")
+	}
+	exec.handler("lost")
+	if got != "lost" {
+		t.Fatalf("issue=%q want %q", got, "lost")
 	}
 }

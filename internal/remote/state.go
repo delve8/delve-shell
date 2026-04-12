@@ -36,9 +36,17 @@ type AddRemoteOverlayState struct {
 	Connecting     bool // true while waiting for connection result (show "Connecting...")
 }
 
+type RemoteConnectOverlayState struct {
+	Active     bool
+	Target     string
+	Error      string
+	Connecting bool
+}
+
 type remoteOverlayState struct {
-	AddRemote  AddRemoteOverlayState
-	RemoteAuth RemoteAuthOverlayState
+	AddRemote     AddRemoteOverlayState
+	ConnectRemote RemoteConnectOverlayState
+	RemoteAuth    RemoteAuthOverlayState
 }
 
 var currentRemoteOverlayState struct {

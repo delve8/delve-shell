@@ -76,6 +76,10 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 		return model, cmd, handled
 	}
 
+	if state.AddRemote.Connecting {
+		return ret(m, nil, true)
+	}
+
 	if state.AddRemote.OfferOverwrite {
 		switch key {
 		case teakey.Up, teakey.Down:

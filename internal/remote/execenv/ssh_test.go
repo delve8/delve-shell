@@ -1,6 +1,7 @@
 package execenv
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"strings"
@@ -64,5 +65,42 @@ func TestSSHEscape_HelperProducesSingleQuotedWord(t *testing.T) {
 	}
 	if _, err := os.Stat("/bin/sh"); err != nil {
 		t.Skip("/bin/sh not available")
+	}
+}
+
+func TestSSHExecutorSetTransportIssueHandler_ReplaysCurrentIssue(t *testing.T) {
+	exec := &SSHExecutor{transportIssue: "disconnected"}
+	got := ""
+	exec.SetTransportIssueHandler(func(issue string) {
+		got = issue
+	})
+	if got != exec.transportIssue {
+		t.Fatalf("issue=%q want %q", got, exec.transportIssue)
+	}
+}
+
+func TestSSHExecutorReportTransportIssue_Dedupes(t *testing.T) {
+	exec := &SSHExecutor{}
+	var got []string
+	exec.SetTransportIssueHandler(func(issue string) {
+		got = append(got, issue)
+	})
+	exec.reportTransportIssue("lost")
+	exec.reportTransportIssue("lost")
+	exec.reportTransportIssue("")
+	if want := []string{"lost", ""}; len(got) != len(want) {
+		t.Fatalf("calls=%v want %v", got, want)
+	}
+	if got[0] != "lost" || got[1] != "" {
+		t.Fatalf("calls=%v want [lost \"\"]", got)
+	}
+}
+
+func TestSSHConnectionIssueSummary(t *testing.T) {
+	if got := SSHConnectionIssueSummary(errors.New("x")); got != "" {
+		t.Fatalf("summary=%q want empty", got)
+	}
+	if got := SSHConnectionIssueSummary(&SSHConnectionError{Op: "run", Err: errors.New("boom")}); got != "disconnected" {
+		t.Fatalf("summary=%q want disconnected", got)
 	}
 }

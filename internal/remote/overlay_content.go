@@ -75,6 +75,9 @@ func appendPathCompletionBlock(b *strings.Builder, showTitle bool, cands []strin
 func buildRemoteOverlayContent(m *ui.Model) (string, bool) {
 	state := getRemoteOverlayState()
 	pcState := pathcomplete.GetState()
+	if state.ConnectRemote.Active {
+		return buildConnectRemoteOverlayContent(state), true
+	}
 	if state.AddRemote.Active {
 		var b strings.Builder
 		if state.AddRemote.Connecting {
@@ -150,6 +153,23 @@ func buildRemoteOverlayContent(m *ui.Model) (string, bool) {
 	default:
 		return "", false
 	}
+}
+
+func buildConnectRemoteOverlayContent(state remoteOverlayState) string {
+	var b strings.Builder
+	if strings.TrimSpace(state.ConnectRemote.Error) != "" {
+		b.WriteString(ui.ErrStyleRender(state.ConnectRemote.Error) + "\n\n")
+	}
+	if target := strings.TrimSpace(state.ConnectRemote.Target); target != "" {
+		b.WriteString(i18n.Tf(i18n.KeyRemoteAuthTargetLabel, target) + "\n")
+	}
+	if state.ConnectRemote.Connecting {
+		b.WriteString(ui.SuggestStyleRender(i18n.T(i18n.KeyRemoteAuthConnecting)) + "\n\n")
+	} else {
+		b.WriteString("\n")
+	}
+	b.WriteString(ui.RenderOverlayHintLine(i18n.KeyOverlayEscCancel))
+	return b.String()
 }
 
 func buildRemoteAuthUsernameContent(state remoteOverlayState) string {

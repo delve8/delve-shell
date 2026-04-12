@@ -163,3 +163,21 @@ func TestRenderFooterBar_statusOtherUsesBaseForStatusAndAuto(t *testing.T) {
 		t.Fatalf("unexpected: %q", out)
 	}
 }
+
+func TestRenderFooterBar_stylesRemoteIssueSeparately(t *testing.T) {
+	base := lipgloss.NewStyle()
+	issue := lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)
+	s := TitleLineStyles{
+		Base:        base,
+		RemoteIssue: issue,
+		StatusIdle:  base,
+	}
+	out := RenderFooterBar(80, FooterBarParts{
+		Remote:      "Remote host",
+		RemoteIssue: "disconnected",
+		Status:      "[IDLE]",
+	}, TitleBarStatusIdle, s)
+	if !strings.Contains(out, issue.Render("(disconnected)")) {
+		t.Fatalf("expected styled issue suffix in %q", out)
+	}
+}

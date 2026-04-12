@@ -14,6 +14,17 @@ import (
 	"delve-shell/internal/ui"
 )
 
+func initRemoteAuthIdentityInput(state *remoteOverlayState) {
+	state.RemoteAuth.Input = textinput.New()
+	state.RemoteAuth.Input.Placeholder = i18n.T(i18n.KeyRemoteAuthIdentityPlaceholder)
+	state.RemoteAuth.Input.EchoMode = textinput.EchoNormal
+	if prefill := resolveRemoteIdentityPrefill(state.RemoteAuth.Target); prefill != "" {
+		state.RemoteAuth.Input.SetValue(prefill)
+		state.RemoteAuth.Input.CursorEnd()
+	}
+	state.RemoteAuth.Input.Focus()
+}
+
 func handleRemoteAuthOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Model, tea.Cmd, bool) {
 	state := getRemoteOverlayState()
 	pcState := pathcomplete.GetState()
@@ -114,10 +125,7 @@ func handleRemoteAuthOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mo
 				return ret(m, nil, true)
 			}
 			state.RemoteAuth.Step = AuthStepIdentity
-			state.RemoteAuth.Input = textinput.New()
-			state.RemoteAuth.Input.Placeholder = i18n.T(i18n.KeyRemoteAuthIdentityPlaceholder)
-			state.RemoteAuth.Input.EchoMode = textinput.EchoNormal
-			state.RemoteAuth.Input.Focus()
+			initRemoteAuthIdentityInput(&state)
 			pcState.Candidates = nil
 			pcState.Index = -1
 			pathcomplete.SetState(pcState)
@@ -131,10 +139,7 @@ func handleRemoteAuthOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mo
 			return ret(m, nil, true)
 		case "2":
 			state.RemoteAuth.Step = AuthStepIdentity
-			state.RemoteAuth.Input = textinput.New()
-			state.RemoteAuth.Input.Placeholder = i18n.T(i18n.KeyRemoteAuthIdentityPlaceholder)
-			state.RemoteAuth.Input.EchoMode = textinput.EchoNormal
-			state.RemoteAuth.Input.Focus()
+			initRemoteAuthIdentityInput(&state)
 			pcState.Candidates = nil
 			pcState.Index = -1
 			pathcomplete.SetState(pcState)

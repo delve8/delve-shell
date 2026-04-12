@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"delve-shell/internal/config"
+	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/i18n"
 	"delve-shell/internal/pathcomplete"
 	"delve-shell/internal/ui"
@@ -23,10 +24,32 @@ func registerProviders() {
 			if req.Key != OverlayOpenKeyAddRemote {
 				return m, nil, false
 			}
-			m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyAddRemoteTitle), "")
+			connectOnly := req.Params["connect"] == "true"
+			title := i18n.T(i18n.KeyAddRemoteTitle)
+			if connectOnly {
+				title = i18n.T(i18n.KeyConnectRemoteTitle)
+			}
+			m.OpenOverlayFeature(OverlayFeatureKey, title, "")
 			state := getRemoteOverlayState()
-			state.AddRemote.Active = true
+			state.AddRemote = AddRemoteOverlayState{}
+			state.ConnectRemote = RemoteConnectOverlayState{}
 			state.RemoteAuth = RemoteAuthOverlayState{}
+			if connectOnly {
+				target := resolveConnectTarget(req.Params["target"])
+				state.ConnectRemote = RemoteConnectOverlayState{
+					Active:     true,
+					Target:     target,
+					Connecting: true,
+				}
+				setRemoteOverlayState(state)
+				if m.CommandSender == nil || !m.CommandSender.Send(hostcmd.AccessRemote{Target: target}) {
+					state.ConnectRemote.Connecting = false
+					state.ConnectRemote.Error = "failed to start remote connection"
+					setRemoteOverlayState(state)
+				}
+				return m, nil, true
+			}
+			state.AddRemote.Active = true
 			state.AddRemote.Error = ""
 			state.AddRemote.ChoiceIndex = 0
 			state.AddRemote.OfferOverwrite = false
@@ -50,6 +73,8 @@ func registerProviders() {
 				state.AddRemote.KeyInput.SetValue(lastIdentityFile)
 				state.AddRemote.KeyInput.CursorEnd()
 			}
+			prefillAddRemoteFromParams(&state.AddRemote, req.Params)
+			applyAddRemoteFieldFocus(&state.AddRemote)
 			setRemoteOverlayState(state)
 			return m, nil, true
 		},
@@ -69,6 +94,87 @@ func registerProviders() {
 			pathcomplete.ResetState()
 		},
 	})
+}
+
+func resolveConnectTarget(target string) string {
+	target = strings.TrimSpace(target)
+	if target == "" {
+		return ""
+	}
+	resolvedTarget := target
+	if remotes, err := config.LoadRemotes(); err == nil {
+		for _, r := range remotes {
+			matched := r.Target == target || r.Name == target || config.HostFromTarget(r.Target) == target
+			if !matched || strings.TrimSpace(r.Target) == "" {
+				continue
+			}
+			return strings.TrimSpace(r.Target)
+		}
+	}
+	return resolvedTarget
+}
+
+func prefillAddRemoteFromParams(state *AddRemoteOverlayState, params map[string]string) {
+	if state == nil {
+		return
+	}
+	target := strings.TrimSpace(params["target"])
+	if target == "" {
+		return
+	}
+	resolvedTarget := resolveConnectTarget(target)
+	if remotes, err := config.LoadRemotes(); err == nil {
+		for _, r := range remotes {
+			matched := r.Target == target || r.Name == target || config.HostFromTarget(r.Target) == target
+			if !matched || strings.TrimSpace(r.Target) == "" {
+				continue
+			}
+			resolvedTarget = strings.TrimSpace(r.Target)
+			if strings.TrimSpace(r.IdentityFile) != "" {
+				state.KeyInput.SetValue(strings.TrimSpace(r.IdentityFile))
+				state.KeyInput.CursorEnd()
+			}
+			if strings.TrimSpace(r.Name) != "" {
+				state.NameInput.SetValue(strings.TrimSpace(r.Name))
+				state.NameInput.CursorEnd()
+			}
+			break
+		}
+	}
+	if i := strings.Index(resolvedTarget, "@"); i > 0 && i < len(resolvedTarget)-1 {
+		state.UserInput.SetValue(strings.TrimSpace(resolvedTarget[:i]))
+		state.UserInput.CursorEnd()
+		host := strings.TrimSpace(resolvedTarget[i+1:])
+		state.HostInput.SetValue(host)
+		state.HostInput.CursorEnd()
+		return
+	}
+	state.HostInput.SetValue(config.HostFromTarget(resolvedTarget))
+	state.HostInput.CursorEnd()
+	state.FieldIndex = 1
+}
+
+func resolveRemoteIdentityPrefill(target string) string {
+	target = strings.TrimSpace(target)
+	if target == "" {
+		return ""
+	}
+	if remotes, err := config.LoadRemotes(); err == nil {
+		for _, r := range remotes {
+			matched := r.Target == target || r.Name == target || config.HostFromTarget(r.Target) == config.HostFromTarget(target)
+			if !matched {
+				continue
+			}
+			if identity := strings.TrimSpace(r.IdentityFile); identity != "" {
+				return identity
+			}
+			break
+		}
+	}
+	if lastIdentityFile, err := config.LoadLastIdentityFile(); err == nil {
+		return strings.TrimSpace(lastIdentityFile)
+	}
+	return ""
 }
 
 func remoteTitleBarFragment(m *ui.Model) (string, bool) {

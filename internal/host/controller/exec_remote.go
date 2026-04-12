@@ -98,7 +98,7 @@ func (c *Controller) updateRemoteIssueFromExecError(err error) {
 	issue := ""
 	var connErr *execenv.SSHConnectionError
 	if errors.As(err, &connErr) && !connErr.ReconnectSuccess {
-		issue = connErr.Error()
+		issue = execenv.SSHConnectionIssueSummary(err)
 	}
 	c.runtime.SetRemoteIssue(issue)
 	c.ui.RemoteStatus(true, c.runtime.RemoteLabel(), false, issue)
@@ -147,6 +147,10 @@ func (c *Controller) handleAccessRemote(target string) {
 		})
 	}
 	if !res.Connected {
+		if res.ErrText != "" {
+			c.ui.RemoteConnectDone(false, res.Label, res.ErrText)
+			c.ui.SystemNotify(res.ErrText)
+		}
 		return
 	}
 	if c.runtime != nil {

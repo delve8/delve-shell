@@ -214,3 +214,21 @@ func TestRememberLastAddRemoteUsername_WritesConfigMemory(t *testing.T) {
 		t.Fatalf("last username=%q want %q", got, "alice")
 	}
 }
+
+func TestHandleAddRemoteOverlayKey_ConnectingSwallowsInput(t *testing.T) {
+	m := ui.NewModel(nil, nil)
+	state := getRemoteOverlayState()
+	state.AddRemote.Active = true
+	state.AddRemote.Connecting = true
+	setRemoteOverlayState(state)
+	t.Cleanup(resetRemoteOverlayState)
+
+	_, _, handled := handleAddRemoteOverlayKey(m, tea.KeyEnter.String(), tea.KeyMsg{Type: tea.KeyEnter})
+	if !handled {
+		t.Fatal("expected connecting overlay to swallow enter")
+	}
+	got := getRemoteOverlayState()
+	if !got.AddRemote.Connecting {
+		t.Fatal("expected connecting state to remain true")
+	}
+}
