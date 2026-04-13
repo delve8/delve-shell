@@ -114,3 +114,13 @@ func TestAllowStrict_SedWithoutInPlace(t *testing.T) {
 		t.Fatal("AllowStrict(sed --in-place...) should be false")
 	}
 }
+
+func TestAllowStrict_secretAndShellStateReadersBlocked(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	if !w.AllowStrict("printenv") {
+		t.Fatal("printenv should be allowlisted by default")
+	}
+	if !w.AllowStrict("systemctl show-environment") {
+		t.Fatal("systemctl show-environment should be allowlisted by default")
+	}
+}

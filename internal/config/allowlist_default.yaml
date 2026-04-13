@@ -28,7 +28,339 @@
 
 version: 2
 commands:
+  apt:
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        list:
+          flags: any
+          operands: any
+        search:
+          flags: any
+          operands: any
+        show:
+          flags: any
+          operands: any
+  apt-cache:
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        depends: {}
+        madison: {}
+        pkgnames: {}
+        policy: {}
+        rdepends: {}
+        search: {}
+        show: {}
+        showpkg: {}
+        stats: {}
+  arch: {}
+  aws:
+    global:
+      flags: any
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        autoscaling:
+          flags: none
+          operands: none
+          subcommands:
+            describe-auto-scaling-groups: {}
+            describe-launch-configurations: {}
+            describe-lifecycle-hooks: {}
+            describe-load-balancer-target-groups: {}
+            describe-policies: {}
+            describe-scaling-activities: {}
+            describe-tags: {}
+        cloudformation:
+          flags: none
+          operands: none
+          subcommands:
+            describe-stack-events: {}
+            describe-stack-resources: {}
+            describe-stacks: {}
+            get-template: {}
+            list-stack-resources: {}
+            list-stacks: {}
+        cloudwatch:
+          flags: none
+          operands: none
+          subcommands:
+            describe-alarms: {}
+            describe-alarm-history: {}
+            get-metric-data: {}
+            get-metric-statistics: {}
+            list-dashboards: {}
+            list-metrics: {}
+        ec2:
+          flags: none
+          operands: none
+          subcommands:
+            describe-addresses: {}
+            describe-availability-zones: {}
+            describe-images: {}
+            describe-instances: {}
+            describe-internet-gateways: {}
+            describe-key-pairs: {}
+            describe-nat-gateways: {}
+            describe-network-acls: {}
+            describe-network-interfaces: {}
+            describe-regions: {}
+            describe-route-tables: {}
+            describe-security-groups: {}
+            describe-snapshots: {}
+            describe-subnets: {}
+            describe-tags: {}
+            describe-volumes: {}
+            describe-vpc-endpoints: {}
+            describe-vpcs: {}
+        ecr:
+          flags: none
+          operands: none
+          subcommands:
+            describe-images: {}
+            describe-repositories: {}
+            get-authorization-token: {}
+            get-repository-policy: {}
+            list-images: {}
+        eks:
+          flags: none
+          operands: none
+          subcommands:
+            describe-addon: {}
+            describe-cluster: {}
+            describe-nodegroup: {}
+            list-addons: {}
+            list-clusters: {}
+            list-nodegroups: {}
+        elbv2:
+          flags: none
+          operands: none
+          subcommands:
+            describe-listeners: {}
+            describe-load-balancers: {}
+            describe-rules: {}
+            describe-tags: {}
+            describe-target-groups: {}
+            describe-target-health: {}
+        iam:
+          flags: none
+          operands: none
+          subcommands:
+            get-account-summary: {}
+            get-role: {}
+            get-user: {}
+            list-account-aliases: {}
+            list-attached-role-policies: {}
+            list-attached-user-policies: {}
+            list-groups: {}
+            list-instance-profiles: {}
+            list-policies: {}
+            list-role-policies: {}
+            list-roles: {}
+            list-user-policies: {}
+            list-users: {}
+        logs:
+          flags: none
+          operands: none
+          subcommands:
+            describe-log-groups: {}
+            describe-log-streams: {}
+            filter-log-events: {}
+            get-log-events: {}
+        rds:
+          flags: none
+          operands: none
+          subcommands:
+            describe-db-clusters: {}
+            describe-db-instances: {}
+            describe-db-snapshots: {}
+            describe-events: {}
+        s3:
+          flags: none
+          operands: none
+          subcommands:
+            ls: {}
+        s3api:
+          flags: none
+          operands: none
+          subcommands:
+            get-bucket-location: {}
+            get-bucket-policy-status: {}
+            head-bucket: {}
+            head-object: {}
+            list-buckets: {}
+            list-objects-v2: {}
+        sts:
+          flags: none
+          operands: none
+          subcommands:
+            get-caller-identity: {}
+  az:
+    global:
+      flags: any
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        account:
+          flags: none
+          operands: none
+          subcommands:
+            list: {}
+            show: {}
+        acr:
+          flags: none
+          operands: none
+          subcommands:
+            repository:
+              flags: none
+              operands: none
+              subcommands:
+                list: {}
+                show: {}
+                show-manifests: {}
+                show-tags: {}
+        aks:
+          flags: none
+          operands: none
+          subcommands:
+            list: {}
+            show: {}
+        group:
+          flags: none
+          operands: none
+          subcommands:
+            list: {}
+            show: {}
+        network:
+          flags: none
+          operands: none
+          subcommands:
+            application-gateway:
+              flags: none
+              operands: none
+              subcommands:
+                list: {}
+                show: {}
+            lb:
+              flags: none
+              operands: none
+              subcommands:
+                list: {}
+                show: {}
+            nic:
+              flags: none
+              operands: none
+              subcommands:
+                list: {}
+                show: {}
+            nsg:
+              flags: none
+              operands: none
+              subcommands:
+                list: {}
+                show: {}
+            public-ip:
+              flags: none
+              operands: none
+              subcommands:
+                list: {}
+                show: {}
+            route-table:
+              flags: none
+              operands: none
+              subcommands:
+                list: {}
+                show: {}
+            vnet:
+              flags: none
+              operands: none
+              subcommands:
+                list: {}
+                show: {}
+        resource:
+          flags: none
+          operands: none
+          subcommands:
+            list: {}
+            show: {}
+        version: {}
+        vm:
+          flags: none
+          operands: none
+          subcommands:
+            get-instance-view: {}
+            list: {}
+            show: {}
   base64: {}
+  basename: {}
+  blkid: {}
+  bridge:
+    root:
+      flags:
+        allow:
+        - short: s
+          long: statistics
+          value: none
+        - short: d
+          long: details
+          value: none
+      operands: none
+      subcommands:
+        fdb:
+          flags: none
+          operands: none
+          subcommands:
+            show:
+              flags: none
+              operands: any
+        link:
+          flags: none
+          operands: none
+          subcommands:
+            show:
+              flags: none
+              operands: any
+        mdb:
+          flags: none
+          operands: none
+          subcommands:
+            show:
+              flags: none
+              operands: any
+        vlan:
+          flags: none
+          operands: none
+          subcommands:
+            show:
+              flags: none
+              operands: any
+  brew:
+    global:
+      flags:
+        allow:
+        - long: version
+          value: none
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        config: {}
+        deps: {}
+        info: {}
+        leaves: {}
+        list: {}
+        outdated: {}
+        services:
+          flags: none
+          operands: none
+          subcommands:
+            list: {}
+        uses: {}
   bzcat: {}
   cat: {}
   cksum: {}
@@ -50,9 +382,13 @@ commands:
       operands: none
       subcommands:
         imagefsinfo: {}
-        image: {}
+        image:
+          flags: none
+          operands: none
         images: {}
-        img: {}
+        img:
+          flags: none
+          operands: none
         info: {}
         inspect: {}
         inspecti: {}
@@ -75,17 +411,25 @@ commands:
       operands: none
       subcommands:
         content:
+          flags: none
+          operands: none
           subcommands:
             active: {}
             list: {}
         containers:
+          flags: none
+          operands: none
           subcommands:
             info: {}
             list: {}
         deprecations:
+          flags: none
+          operands: none
           subcommands:
             list: {}
         images:
+          flags: none
+          operands: none
           subcommands:
             check: {}
             inspect: {}
@@ -93,36 +437,52 @@ commands:
             usage: {}
         info: {}
         leases:
+          flags: none
+          operands: none
           subcommands:
             list: {}
         namespaces:
+          flags: none
+          operands: none
           subcommands:
             list: {}
         plugin:
+          flags: none
+          operands: none
           subcommands:
             inspect-runtime: {}
             list: {}
         plugins:
+          flags: none
+          operands: none
           subcommands:
             inspect-runtime: {}
             list: {}
         sandboxes:
+          flags: none
+          operands: none
           subcommands:
             info: {}
             list: {}
         snapshot:
+          flags: none
+          operands: none
           subcommands:
             info: {}
             list: {}
             tree: {}
             usage: {}
         snapshots:
+          flags: none
+          operands: none
           subcommands:
             info: {}
             list: {}
             tree: {}
             usage: {}
         tasks:
+          flags: none
+          operands: none
           subcommands:
             list: {}
             metrics: {}
@@ -130,6 +490,22 @@ commands:
         version: {}
   cut: {}
   date: {}
+  dmesg:
+    root:
+      flags:
+        any: true
+        must_not:
+          - short: c
+            long: read-clear
+          - short: C
+            long: clear
+          - short: D
+            long: console-off
+          - short: E
+            long: console-on
+          - short: n
+            long: console-level
+      operands: any
   df: {}
   diff: {}
   dig: {}
@@ -146,23 +522,64 @@ commands:
       operands: none
       subcommands:
         compose:
+          flags: none
+          operands: none
           subcommands:
             config: {}
             ls: {}
             ps: {}
             version: {}
         container:
+          flags: none
+          operands: none
           subcommands:
             inspect: {}
-            logs: {}
+            logs:
+              flags:
+                allow:
+                - long: details
+                  value: none
+                - short: f
+                  long: follow
+                  value: none
+                - long: since
+                  value: required
+                - long: tail
+                  value: required
+                - long: timestamps
+                  value: none
+                - long: until
+                  value: required
+              operands: any
             ls: {}
             port: {}
             top: {}
         context:
+          flags: none
+          operands: none
           subcommands:
             ls: {}
             show: {}
+        logs:
+          flags:
+            allow:
+            - long: details
+              value: none
+            - short: f
+              long: follow
+              value: none
+            - long: since
+              value: required
+            - long: tail
+              value: required
+            - long: timestamps
+              value: none
+            - long: until
+              value: required
+          operands: any
         image:
+          flags: none
+          operands: none
           subcommands:
             inspect: {}
             ls: {}
@@ -170,29 +587,119 @@ commands:
         info: {}
         inspect: {}
         manifest:
+          flags: none
+          operands: none
           subcommands:
             inspect: {}
         network:
+          flags: none
+          operands: none
           subcommands:
             inspect: {}
             ls: {}
         plugin:
+          flags: none
+          operands: none
           subcommands:
             ls: {}
         ps: {}
+        stats:
+          flags:
+            allow:
+            - long: no-stream
+              value: none
+            - long: no-trunc
+              value: none
+            - long: format
+              value: required
+            must:
+            - long: no-stream
+          operands: any
         system:
+          flags: none
+          operands: none
           subcommands:
             df: {}
             info: {}
         version: {}
         volume:
+          flags: none
+          operands: none
           subcommands:
             inspect: {}
             ls: {}
+  dmidecode:
+    root:
+      flags:
+        allow:
+        - short: t
+          long: type
+          value: required
+        - short: s
+          long: string
+          value: required
+        - short: H
+          long: handle
+          value: required
+        - short: u
+          long: dump
+          value: none
+        - short: q
+          long: quiet
+          value: none
+        - long: no-sysfs
+          value: none
+        - long: oem-string
+          value: required
+      operands: none
+  dnf:
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        info:
+          flags: any
+          operands: any
+        list:
+          flags: any
+          operands: any
+        repolist:
+          flags: any
+          operands: any
+        search:
+          flags: any
+          operands: any
+  dpkg:
+    root:
+      flags:
+        allow:
+        - short: l
+          long: list
+          value: none
+        - short: s
+          long: status
+          value: none
+        - short: L
+          long: listfiles
+          value: none
+        - short: S
+          long: search
+          value: none
+        - long: get-selections
+          value: none
+        - long: print-architecture
+          value: none
+        - long: print-foreign-architectures
+          value: none
+      operands: any
+  dirname: {}
   du: {}
   echo: {}
   egrep: {}
-  env: {}
+  env:
+    root:
+      flags: none
+      operands: none
   exit: {}
   etcdctl:
     # Global flags:any for --endpoints, TLS, --write-out, etc. (etcd.io etcdctl v3).
@@ -220,6 +727,27 @@ commands:
           subcommands:
             status: {}
         version: {}
+  ethtool:
+    root:
+      flags:
+        allow:
+        - short: i
+          value: none
+        - short: S
+          value: none
+        - short: k
+          value: none
+        - short: g
+          value: none
+        - short: c
+          value: none
+        - short: a
+          value: none
+        - short: T
+          value: none
+        - short: P
+          value: none
+      operands: any
   'false': {}
   fgrep: {}
   file: {}
@@ -229,17 +757,139 @@ commands:
     root:
       flags:
         allow:
-        - long: name
+        - short: name
           value: required
-        - long: type
+        - short: type
           value: required
-        - long: maxdepth
+        - short: maxdepth
           value: required
-        - long: iname
+        - short: iname
+          value: required
+        - short: path
+          value: required
+        - short: ipath
+          value: required
+        - short: regex
+          value: required
+        - short: iregex
+          value: required
+        - short: mtime
+          value: required
+        - short: mmin
+          value: required
+        - short: ctime
+          value: required
+        - short: cmin
+          value: required
+        - short: size
+          value: required
+        - short: user
+          value: required
+        - short: group
+          value: required
+        - short: uid
+          value: required
+        - short: gid
+          value: required
+        - short: perm
+          value: required
+        - short: lname
+          value: required
+        - short: ilname
+          value: required
+        - short: xtype
           value: required
       operands: any
+  findmnt: {}
   free: {}
   getent: {}
+  gcloud:
+    global:
+      flags: any
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        auth:
+          flags: none
+          operands: none
+          subcommands:
+            list: {}
+        compute:
+          flags: none
+          operands: none
+          subcommands:
+            disks:
+              flags: none
+              operands: none
+              subcommands:
+                list: {}
+                describe: {}
+            firewall-rules:
+              flags: none
+              operands: none
+              subcommands:
+                list: {}
+                describe: {}
+            instances:
+              flags: none
+              operands: none
+              subcommands:
+                list: {}
+                describe: {}
+            networks:
+              flags: none
+              operands: none
+              subcommands:
+                list: {}
+                describe: {}
+                subnets:
+                  flags: none
+                  operands: none
+                  subcommands:
+                    list: {}
+                    describe: {}
+            routes:
+              flags: none
+              operands: none
+              subcommands:
+                list: {}
+        config:
+          flags: none
+          operands: none
+          subcommands:
+            configurations:
+              flags: none
+              operands: none
+              subcommands:
+                list: {}
+                describe: {}
+            get-value: {}
+            list: {}
+        container:
+          flags: none
+          operands: none
+          subcommands:
+            clusters:
+              flags: none
+              operands: none
+              subcommands:
+                describe: {}
+                list: {}
+            node-pools:
+              flags: none
+              operands: none
+              subcommands:
+                describe: {}
+                list: {}
+        info: {}
+        projects:
+          flags: none
+          operands: none
+          subcommands:
+            describe: {}
+            list: {}
+        version: {}
   git:
     global:
       flags: none
@@ -248,7 +898,41 @@ commands:
       operands: none
       subcommands:
         blame: {}
-        branch: {}
+        branch:
+          flags:
+            allow:
+            - short: a
+              long: all
+              value: none
+            - short: r
+              long: remotes
+              value: none
+            - short: v
+              long: verbose
+              value: none
+            - short: vv
+              value: none
+            - long: show-current
+              value: none
+            - long: contains
+              value: required
+            - long: no-contains
+              value: required
+            - long: merged
+              value: required
+            - long: no-merged
+              value: required
+            - long: points-at
+              value: required
+            - long: sort
+              value: required
+            - long: format
+              value: required
+            - long: column
+              value: required
+            - long: color
+              value: required
+          operands: none
         cat-file: {}
         config:
           flags:
@@ -266,8 +950,22 @@ commands:
         log: {}
         ls-files: {}
         ls-tree: {}
-        reflog: {}
-        remote: {}
+        reflog:
+          flags: none
+          operands: none
+          subcommands:
+            exists: {}
+            list: {}
+            show: {}
+        remote:
+          flags:
+            allow:
+            - short: v
+              value: none
+          operands: none
+          subcommands:
+            get-url: {}
+            show: {}
         rev-parse: {}
         show: {}
         stash:
@@ -276,7 +974,31 @@ commands:
             list: {}
         status: {}
         symbolic-ref: {}
-        tag: {}
+        tag:
+          flags:
+            allow:
+            - short: l
+              long: list
+              value: none
+            - long: sort
+              value: required
+            - long: contains
+              value: required
+            - long: no-contains
+              value: required
+            - long: points-at
+              value: required
+            - long: merged
+              value: required
+            - long: no-merged
+              value: required
+            - long: format
+              value: required
+            - long: column
+              value: required
+            - long: color
+              value: required
+          operands: none
         version: {}
   grep: {}
   groups: {}
@@ -284,7 +1006,14 @@ commands:
   hexdump: {}
   host: {}
   hostname: {}
+  hostnamectl:
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        status: {}
   id: {}
+  iostat: {}
   ip:
     global:
       flags:
@@ -353,6 +1082,78 @@ commands:
               - s
               flags: none
               operands: any
+        neigh:
+          flags: none
+          operands: none
+          subcommands:
+            list:
+              aliases:
+              - ls
+              flags: none
+              operands: any
+            show:
+              aliases:
+              - s
+              flags: none
+              operands: any
+        rule:
+          flags: none
+          operands: none
+          subcommands:
+            list:
+              aliases:
+              - ls
+              flags: none
+              operands: any
+            show:
+              aliases:
+              - s
+              flags: none
+              operands: any
+  ip6tables:
+    root:
+      flags:
+        allow:
+        - short: L
+          value: none
+        - short: S
+          value: none
+        - short: n
+          long: numeric
+          value: none
+        - short: v
+          long: verbose
+          value: none
+        - short: x
+          long: exact
+          value: none
+        - short: t
+          long: table
+          value: required
+      operands: any
+  ip6tables-save: {}
+  iptables:
+    root:
+      flags:
+        allow:
+        - short: L
+          value: none
+        - short: S
+          value: none
+        - short: n
+          long: numeric
+          value: none
+        - short: v
+          long: verbose
+          value: none
+        - short: x
+          long: exact
+          value: none
+        - short: t
+          long: table
+          value: required
+      operands: any
+  iptables-save: {}
   journalctl:
     root:
       flags:
@@ -556,6 +1357,19 @@ commands:
             - value: none
               long: recursive
           operands: any
+        events:
+          flags:
+            allow:
+            - value: required
+              long: for
+            - value: none
+              short: w
+              long: watch
+            - value: none
+              long: no-headers
+            - value: required
+              long: types
+          operands: any
         get:
           flags:
             allow:
@@ -586,6 +1400,8 @@ commands:
             - value: none
               short: R
               long: recursive
+            - value: required
+              long: raw
             - value: required
               short: l
               long: selector
@@ -653,6 +1469,24 @@ commands:
           flags: none
           operands: none
           subcommands:
+            history:
+              flags:
+                allow:
+                - value: none
+                  short: f
+                  long: filename
+                - value: required
+                  short: k
+                  long: kustomize
+                - value: none
+                  short: R
+                  long: recursive
+                - value: required
+                  short: l
+                  long: selector
+                - value: none
+                  long: revision
+              operands: any
             status:
               flags:
                 allow:
@@ -767,15 +1601,258 @@ commands:
               long: output
               value: required
           operands: none
+  helm:
+    global:
+      flags:
+        allow:
+        - short: h
+          long: help
+          value: none
+        - short: n
+          long: namespace
+          value: required
+        - long: kube-context
+          value: required
+        - long: kubeconfig
+          value: required
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        env: {}
+        get:
+          flags: any
+          operands: none
+          subcommands:
+            all: {}
+            hooks: {}
+            manifest: {}
+            metadata: {}
+            notes: {}
+            values: {}
+        history:
+          flags: any
+          operands: any
+        list:
+          aliases:
+          - ls
+          flags: any
+          operands: any
+        search:
+          flags: none
+          operands: none
+          subcommands:
+            hub:
+              flags: any
+              operands: any
+            repo:
+              flags: any
+              operands: any
+        show:
+          flags: none
+          operands: none
+          subcommands:
+            all: {}
+            chart: {}
+            crds: {}
+            readme: {}
+            values: {}
+        status:
+          flags: any
+          operands: any
+        version:
+          flags: any
+          operands: none
   less: {}
   locale: {}
+  loginctl:
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        list-seats: {}
+        list-sessions: {}
+        list-users: {}
+        seat-status: {}
+        session-status: {}
+        show-seat: {}
+        show-session: {}
+        show-user: {}
+        user-status: {}
   ls: {}
   lsblk: {}
+  lsattr: {}
+  lsns: {}
+  lscpu: {}
+  lsmem: {}
+  lsmod: {}
+  lsof: {}
+  lspci: {}
+  lsusb: {}
   md5sum: {}
+  modinfo: {}
   more: {}
+  mpstat: {}
+  netstat: {}
+  nerdctl:
+    global:
+      flags: any
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        container:
+          flags: none
+          operands: none
+          subcommands:
+            inspect: {}
+            logs:
+              flags:
+                allow:
+                - short: f
+                  long: follow
+                  value: none
+                - long: since
+                  value: required
+                - long: tail
+                  value: required
+                - long: timestamps
+                  value: none
+                - long: until
+                  value: required
+              operands: any
+            ls: {}
+            port: {}
+            top: {}
+        image:
+          flags: none
+          operands: none
+          subcommands:
+            inspect: {}
+            ls: {}
+        images: {}
+        info: {}
+        inspect: {}
+        network:
+          flags: none
+          operands: none
+          subcommands:
+            inspect: {}
+            ls: {}
+        port: {}
+        ps: {}
+        system:
+          subcommands:
+            info: {}
+          flags: none
+          operands: none
+        version: {}
+        volume:
+          subcommands:
+            inspect: {}
+            ls: {}
   nl: {}
+  nmcli:
+    root:
+      flags:
+        allow:
+        - short: t
+          long: terse
+          value: none
+        - short: f
+          long: fields
+          value: required
+        - short: m
+          long: mode
+          value: required
+        - short: p
+          long: pretty
+          value: none
+      operands: none
+      subcommands:
+        connection:
+          aliases:
+          - c
+          flags: none
+          operands: none
+          subcommands:
+            show:
+              flags: any
+              operands: any
+        device:
+          aliases:
+          - d
+          flags: none
+          operands: none
+          subcommands:
+            show:
+              flags: any
+              operands: any
+            status:
+              flags: any
+              operands: any
+        general:
+          aliases:
+          - g
+          flags: none
+          operands: none
+          subcommands:
+            hostname: {}
+            permissions: {}
+            status: {}
+        networking:
+          aliases:
+          - n
+          flags: none
+          operands: none
+          subcommands:
+            connectivity: {}
   nslookup: {}
+  nproc: {}
+  numactl:
+    root:
+      flags:
+        allow:
+        - short: H
+          long: hardware
+          value: none
+        must:
+        - short: H
+      operands: none
+  numastat: {}
+  nft:
+    root:
+      flags:
+        allow:
+        - short: a
+          long: handle
+          value: none
+        - short: n
+          long: numeric
+          value: none
+        - short: s
+          long: stateless
+          value: none
+      operands: none
+      subcommands:
+        list:
+          flags: any
+          operands: any
   od: {}
+  losetup:
+    root:
+      flags:
+        allow:
+        - short: a
+          long: all
+          value: none
+        - short: l
+          long: list
+          value: none
+        - short: j
+          long: associated
+          value: required
+      operands: none
   podman:
     global:
       flags:
@@ -788,23 +1865,46 @@ commands:
       operands: none
       subcommands:
         compose:
+          flags: none
+          operands: none
           subcommands:
             config: {}
             ls: {}
             ps: {}
             version: {}
         container:
+          flags: none
+          operands: none
           subcommands:
             inspect: {}
-            logs: {}
+            logs:
+              flags:
+                allow:
+                - short: f
+                  long: follow
+                  value: none
+                - long: since
+                  value: required
+                - long: tail
+                  value: required
+                - long: timestamps
+                  value: none
+                - short: n
+                  long: namespace
+                  value: required
+              operands: any
             ls: {}
             port: {}
             top: {}
         context:
+          flags: none
+          operands: none
           subcommands:
             ls: {}
             show: {}
         image:
+          flags: none
+          operands: none
           subcommands:
             inspect: {}
             ls: {}
@@ -812,22 +1912,32 @@ commands:
         info: {}
         inspect: {}
         manifest:
+          flags: none
+          operands: none
           subcommands:
             inspect: {}
         network:
+          flags: none
+          operands: none
           subcommands:
             inspect: {}
             ls: {}
         plugin:
+          flags: none
+          operands: none
           subcommands:
             ls: {}
         ps: {}
         system:
+          flags: none
+          operands: none
           subcommands:
             df: {}
             info: {}
         version: {}
         volume:
+          flags: none
+          operands: none
           subcommands:
             inspect: {}
             ls: {}
@@ -835,7 +1945,46 @@ commands:
   printenv: {}
   printf: {}
   ps: {}
+  pstree: {}
+  pvdisplay: {}
+  pvs: {}
   pwd: {}
+  realpath: {}
+  readlink: {}
+  resolvectl:
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        query:
+          flags: any
+          operands: any
+        statistics: {}
+        status:
+          flags: any
+          operands: any
+  rpm:
+    root:
+      flags:
+        allow:
+        - short: q
+          long: query
+          value: none
+        - short: a
+          long: all
+          value: none
+        - short: i
+          long: info
+          value: none
+        - short: l
+          long: list
+          value: none
+        - short: f
+          long: file
+          value: none
+        must:
+        - short: q
+      operands: any
   # In-place edit: must_not short "i" also rejects GNU forms -iSUFFIX / -i.SUFFIX (one argv token; cluster scan hits "i").
   sed:
     root:
@@ -860,6 +2009,24 @@ commands:
       operands: any
   sleep: {}
   stat: {}
+  ss: {}
+  swapon:
+    root:
+      flags:
+        allow:
+        - short: s
+          long: summary
+          value: none
+        - long: show
+          value: none
+      operands: none
+  systemd-resolve:
+    root:
+      flags:
+        allow:
+        - long: status
+          value: none
+      operands: none
   systemctl:
     global:
       flags:
@@ -1064,16 +2231,130 @@ commands:
           operands: any
         version: {}
   tail: {}
+  tc:
+    root:
+      flags:
+        allow:
+        - short: s
+          long: statistics
+          value: none
+        - short: d
+          long: details
+          value: none
+        - short: p
+          long: pretty
+          value: none
+      operands: none
+      subcommands:
+        class:
+          flags: none
+          operands: none
+          subcommands:
+            show:
+              flags: none
+              operands: any
+        filter:
+          flags: none
+          operands: none
+          subcommands:
+            show:
+              flags: none
+              operands: any
+        qdisc:
+          flags: none
+          operands: none
+          subcommands:
+            show:
+              flags: none
+              operands: any
+  timedatectl:
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        show: {}
+        show-timesync: {}
+        status: {}
+        timesync-status: {}
+  top:
+    root:
+      flags:
+        allow:
+        - short: b
+          value: none
+        - short: n
+          value: required
+        - short: o
+          value: required
+        must:
+        - short: b
+        - short: n
+      operands: none
   tr: {}
   'true': {}
   type: {}
   uname: {}
   uniq: {}
   uptime: {}
+  w: {}
+  sysctl:
+    root:
+      flags:
+        any: true
+        must_not:
+          - short: w
+            long: write
+          - short: p
+            long: load
+          - long: system
+      operands: any
+  vmstat: {}
+  vgdisplay: {}
+  vgs: {}
+  virsh:
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        domblklist: {}
+        domifaddr: {}
+        domiflist: {}
+        dominfo: {}
+        domstate: {}
+        list:
+          flags: any
+          operands: any
+        net-info: {}
+        net-list:
+          flags: any
+          operands: any
+        pool-info: {}
+        pool-list:
+          flags: any
+          operands: any
+        version: {}
   wc: {}
   whereis: {}
   which: {}
+  who: {}
   whoami: {}
   xxd: {}
   xzcat: {}
+  yum:
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        info:
+          flags: any
+          operands: any
+        list:
+          flags: any
+          operands: any
+        repolist:
+          flags: any
+          operands: any
+        search:
+          flags: any
+          operands: any
   zcat: {}

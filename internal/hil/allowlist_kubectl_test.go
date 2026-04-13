@@ -84,4 +84,16 @@ func TestAllowlist_DefaultKubectlGlobalOptsBeforeSubcommand(t *testing.T) {
 			t.Fatalf("AllowStrict(%q) want true", cmd)
 		}
 	})
+	t.Run("rollout history allowlisted", func(t *testing.T) {
+		cmd := "kubectl -n kube-system rollout history deploy/coredns --revision=3"
+		if !w.AllowStrict(cmd) {
+			t.Fatalf("AllowStrict(%q) want true", cmd)
+		}
+	})
+	t.Run("rollout restart still blocked", func(t *testing.T) {
+		cmd := "kubectl -n kube-system rollout restart deploy/coredns"
+		if w.AllowStrict(cmd) {
+			t.Fatalf("AllowStrict(%q) want false", cmd)
+		}
+	})
 }
