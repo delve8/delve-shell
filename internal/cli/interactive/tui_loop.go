@@ -3,6 +3,7 @@ package interactive
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"sync/atomic"
@@ -12,6 +13,7 @@ import (
 	"delve-shell/internal/host/app"
 	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/host/controller"
+	"delve-shell/internal/inputhistory"
 	"delve-shell/internal/remote/execenv"
 	"delve-shell/internal/ui"
 )
@@ -82,13 +84,13 @@ func newTuiRestartLoop(
 		getExec = func() execenv.CommandExecutor { return execenv.LocalExecutor{} }
 	}
 	return &tuiRestartLoop{
-		controller:                 controller,
-		host:                       host,
-		programPtr:                 programPtr,
-		shellAfterExit:             shellAfterExit,
-		commands:                   commands,
+		controller:                   controller,
+		host:                         host,
+		programPtr:                   programPtr,
+		shellAfterExit:               shellAfterExit,
+		commands:                     commands,
 		openConfigModelOnFirstLayout: openConfigModelOnFirstLayout,
-		getExec:                    getExec,
+		getExec:                      getExec,
 	}
 }
 
@@ -97,6 +99,11 @@ func newTuiRestartLoop(
 func (l *tuiRestartLoop) run() error {
 	var saved []string
 	var savedInputHist []string
+	if hist, err := inputhistory.Load(); err != nil {
+		log.Printf("[warn] input history load: %v", err)
+	} else if len(hist) > 0 {
+		savedInputHist = append(savedInputHist, hist...)
+	}
 	openModel := l.openConfigModelOnFirstLayout
 	for {
 		if err := l.runOneSession(&saved, &savedInputHist, openModel); err != nil {
@@ -127,7 +134,11 @@ func (l *tuiRestartLoop) run() error {
 func (l *tuiRestartLoop) runOneSession(saved *[]string, savedInputHist *[]string, openConfigModel bool) error {
 	l.controller.SyncCurrentSessionPath()
 	l.host.SetOpenConfigModelOnFirstLayout(openConfigModel)
-	model := ui.NewModelWithInputHistory(*saved, *savedInputHist, hostReadModel{host: l.host})
+	model := ui.NewModelWithInputHistoryPersistence(*saved, *savedInputHist, hostReadModel{host: l.host}, func(hist []string) {
+		if err := inputhistory.Save(hist); err != nil {
+			log.Printf("[warn] input history save: %v", err)
+		}
+	})
 	model.CommandSender = ui.NewCommandChannelSender(l.commands)
 	p := tea.NewProgram(model, defaultTUIProgramOptions...)
 	l.programPtr.Store(p)

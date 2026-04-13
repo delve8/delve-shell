@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"delve-shell/internal/i18n"
+	"delve-shell/internal/inputhistory"
 	"delve-shell/internal/textwrap"
 )
 
@@ -20,7 +21,7 @@ const (
 	// inputBelowStableRows: fixed lines below the input so the separator above the input and the footer
 	// stay in a stable vertical band across idle / processing / slash-open (padded with blanks when needed).
 	inputBelowStableRows   = 5
-	maxInputHistoryEntries = 200
+	maxInputHistoryEntries = inputhistory.MaxEntries
 	// maxFullTranscriptReplayLines caps clear+replay work so overlay close does not become pathological
 	// on very long histories. Older transcript stays in logical history; only replay is capped.
 	maxFullTranscriptReplayLines = 100000

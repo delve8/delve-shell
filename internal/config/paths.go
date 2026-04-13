@@ -42,6 +42,11 @@ func RemotesPath() string {
 	return filepath.Join(RootDir(), "remotes.yaml")
 }
 
+// InputHistoryPath returns the persisted local input-history path.
+func InputHistoryPath() string {
+	return filepath.Join(RootDir(), "input_history.json")
+}
+
 // RulesDir returns the rules directory path.
 func RulesDir() string {
 	return filepath.Join(RootDir(), "rules")

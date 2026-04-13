@@ -108,6 +108,40 @@ func TestNewModelWithInputHistoryRecall(t *testing.T) {
 	}
 }
 
+func TestInputHistoryPersistCallbackOnCommit(t *testing.T) {
+	var persisted []string
+	m := NewModelWithInputHistoryPersistence(nil, nil, nil, func(hist []string) {
+		persisted = append([]string(nil), hist...)
+	})
+	m.Input.SetValue("  hello world  ")
+	m.Input.CursorEnd()
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = next.(*Model)
+	if !reflect.DeepEqual(persisted, []string{"hello world"}) {
+		t.Fatalf("persisted=%#v want %#v", persisted, []string{"hello world"})
+	}
+	if !reflect.DeepEqual(m.Interaction.inputHistory, []string{"hello world"}) {
+		t.Fatalf("model history=%#v want %#v", m.Interaction.inputHistory, []string{"hello world"})
+	}
+}
+
+func TestInputHistorySkipsQuit(t *testing.T) {
+	calls := 0
+	m := NewModelWithInputHistoryPersistence(nil, nil, nil, func(hist []string) {
+		calls++
+	})
+	m.Input.SetValue("/quit")
+	m.Input.CursorEnd()
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = next.(*Model)
+	if len(m.Interaction.inputHistory) != 0 {
+		t.Fatalf("history=%#v want empty", m.Interaction.inputHistory)
+	}
+	if calls != 0 {
+		t.Fatalf("persist callback calls=%d want 0", calls)
+	}
+}
+
 func TestNewModelStartupTitleWhenEmpty(t *testing.T) {
 	m := NewModel(nil, nil)
 	if len(m.messages) != 1 {

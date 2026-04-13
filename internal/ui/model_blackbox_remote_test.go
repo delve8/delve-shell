@@ -70,6 +70,11 @@ func TestBlackboxSlashQuitEchoesAndReturnsQuitCmd(t *testing.T) {
 	if strings.TrimSpace(got.Input.Value()) != "" {
 		t.Fatalf("expected input cleared after /quit, got %q", got.Input.Value())
 	}
+	next2, _ := got.Update(tea.KeyMsg{Type: tea.KeyUp})
+	got2 := next2.(*ui.Model)
+	if got2.Input.Value() == "/quit" {
+		t.Fatalf("/quit should not be added to input history")
+	}
 }
 
 func TestBlackboxSlashHistoryPrefixPreviewThenEnterSwitches(t *testing.T) {

@@ -147,6 +147,7 @@ Main files:
 - Config: `<root>/config.yaml`
 - Built-in allowlist: `<root>/allowlist.yaml`
 - Custom allowlist overlay: `<root>/allowlist_custom.yaml`
+- Input history: `<root>/input_history.json`
 - Rules (optional markdown snippets concatenated for prompts): `<root>/rules/`
 - Sessions: `<root>/sessions`
 - Host memory: `<root>/hosts`

@@ -122,7 +122,7 @@ func (s *keySession) handleInputHistoryNav(key string, inputVal string) bool {
 
 func (m *Model) withInputHistoryCommitted(line string) {
 	line = strings.TrimSpace(line)
-	if line == "" {
+	if line == "" || shouldSkipInputHistory(line) {
 		return
 	}
 	h := append(m.Interaction.inputHistory, line)
@@ -132,6 +132,13 @@ func (m *Model) withInputHistoryCommitted(line string) {
 	m.Interaction.inputHistory = h
 	m.Interaction.inputHistIndex = -1
 	m.Interaction.inputHistScratch = ""
+	if m.persistInputHistory != nil {
+		m.persistInputHistory(append([]string(nil), h...))
+	}
+}
+
+func shouldSkipInputHistory(line string) bool {
+	return line == "/quit"
 }
 
 // appendUserSubmittedEcho appends the same user transcript echo ("> …" with band style) as the main Enter path.

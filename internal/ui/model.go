@@ -48,6 +48,8 @@ type Model struct {
 	// ReadModel is the injected read-only state provider for UI decisions/render.
 	ReadModel ReadModel
 	Remote    RemoteState
+	// persistInputHistory stores committed user input history after Enter; nil disables persistence.
+	persistInputHistory func([]string)
 }
 
 // InteractionState stores transient keyboard/interaction state.
@@ -282,16 +284,21 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // NewModel creates a Model with default input (slash commands and transcript-aligned bottom chrome).
 // initialMessages if non-nil is used as existing conversation (e.g. after /bash return).
 func NewModel(initialMessages []string, readModel ReadModel) *Model {
-	return newModel(initialMessages, nil, readModel)
+	return newModel(initialMessages, nil, readModel, nil)
 }
 
 // NewModelWithInputHistory is like [NewModel] but restores local submitted-line recall (Up/Down),
 // used when the TUI restarts after /bash. Pass nil or empty inputHistory when not applicable.
 func NewModelWithInputHistory(initialMessages []string, inputHistory []string, readModel ReadModel) *Model {
-	return newModel(initialMessages, inputHistory, readModel)
+	return newModel(initialMessages, inputHistory, readModel, nil)
 }
 
-func newModel(initialMessages []string, inputHistory []string, readModel ReadModel) *Model {
+// NewModelWithInputHistoryPersistence restores input history and persists future commits through persist.
+func NewModelWithInputHistoryPersistence(initialMessages []string, inputHistory []string, readModel ReadModel, persist func([]string)) *Model {
+	return newModel(initialMessages, inputHistory, readModel, persist)
+}
+
+func newModel(initialMessages []string, inputHistory []string, readModel ReadModel, persist func([]string)) *Model {
 	i18n.SetLang(languageFromConfig())
 	ti := textarea.New()
 	ti.Placeholder = i18n.T(i18n.KeyPlaceholderInput)
@@ -341,6 +348,7 @@ func newModel(initialMessages []string, inputHistory []string, readModel ReadMod
 		recenterStartupTitleOnce: recenter,
 		ReadModel:                readModel,
 		Remote:                   remote,
+		persistInputHistory:      persist,
 		Interaction: InteractionState{
 			inputHistory:   ih,
 			inputHistIndex: -1,
