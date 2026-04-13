@@ -128,6 +128,7 @@ func (c *Controller) handleSubmitNewSession() {
 	if c.syncSessionPath != nil {
 		c.syncSessionPath(newSession.Path())
 	}
+	c.bindCurrentSessionHooks()
 	c.publishSessionTranscript(newSession.Path())
 }
 
@@ -149,6 +150,7 @@ func (c *Controller) handleSubmitSwitchSession(sessionID string) {
 	if c.syncSessionPath != nil {
 		c.syncSessionPath(sessionPath)
 	}
+	c.bindCurrentSessionHooks()
 	c.publishHistorySwitchDone(sessionPath)
 }
 

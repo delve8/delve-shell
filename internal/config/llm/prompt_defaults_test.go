@@ -5,18 +5,24 @@ import (
 	"testing"
 )
 
-func TestDefaultSystemPrompt_StrongHostMemoryGuidance(t *testing.T) {
+func TestDefaultSystemPrompt_HostMemoryIsReadOnlyGuidance(t *testing.T) {
 	checks := []string{
-		"Treat host memory maintenance as a default online workflow, not an optional extra",
-		"The main goal is to remember what this machine is, what it is for, and what it can reliably do",
-		"Use update_host_memory for stable, reusable facts: machine role, responsibilities, capabilities",
-		"Record durable capabilities and responsibilities when you can infer them with reasonable confidence",
-		"Trigger update_host_memory proactively when command output shows strong evidence",
-		"prefer to call update_host_memory before your final answer for that turn",
+		"read persistent host memory with view_host_memory when needed",
+		`The system message may include a "Host memory" block. Treat it as a useful prior, not a guarantee`,
+		"Recent session history is authoritative for the current conversation",
+		"Host memory is maintained outside the main conversation from persisted session history",
 	}
 	for _, want := range checks {
 		if !strings.Contains(DefaultSystemPrompt, want) {
 			t.Fatalf("DefaultSystemPrompt missing %q", want)
+		}
+	}
+	for _, unwanted := range []string{
+		"update_host_memory",
+		"Treat host memory maintenance as a default online workflow",
+	} {
+		if strings.Contains(DefaultSystemPrompt, unwanted) {
+			t.Fatalf("DefaultSystemPrompt should not contain %q", unwanted)
 		}
 	}
 }

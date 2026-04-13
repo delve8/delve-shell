@@ -27,6 +27,8 @@ type Session struct {
 	path string
 	mu   sync.Mutex
 	f    *os.File
+	// afterAppend is invoked after a history event is successfully written.
+	afterAppend func(Event)
 }
 
 // NewSession creates a new session with a generated id (YYMMDD-HHMMSS + random hex suffix);
@@ -84,15 +86,20 @@ func (s *Session) append(typ string, payload interface{}) error {
 		return err
 	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	if s.f == nil {
 		f, err := os.OpenFile(s.path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 		if err != nil {
+			s.mu.Unlock()
 			return err
 		}
 		s.f = f
 	}
 	_, err = s.f.Write(append(line, '\n'))
+	afterAppend := s.afterAppend
+	s.mu.Unlock()
+	if err == nil && afterAppend != nil {
+		afterAppend(ev)
+	}
 	return err
 }
 
@@ -199,3 +206,10 @@ func (s *Session) Close() error {
 
 // Path returns the session file path (read-only use, e.g. view_context tool).
 func (s *Session) Path() string { return s.path }
+
+// SetAfterAppendHook replaces the callback invoked after a history event is successfully written.
+func (s *Session) SetAfterAppendHook(fn func(Event)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.afterAppend = fn
+}

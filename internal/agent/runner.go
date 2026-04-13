@@ -157,10 +157,6 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 		viewHostMemoryTool := &agenttools.ViewHostMemoryTool{
 			CurrentContext: opts.Memory.CurrentHostMemoryContext,
 		}
-		updateHostMemoryTool := &agenttools.UpdateHostMemoryTool{
-			CurrentContext: opts.Memory.CurrentHostMemoryContext,
-			UIEvents:       uiEvents,
-		}
 		listSkillsTool := &agenttools.ListSkillsTool{}
 		getSkillTool := &agenttools.GetSkillTool{}
 		runSkillTool := &agenttools.RunSkillTool{
@@ -183,7 +179,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 			ExecutorProvider: opts.UILoop.ExecutorProvider,
 			OnRemoteIssue:    opts.UILoop.RemoteIssueChanged,
 		}
-		tools = append(tools, viewHostMemoryTool, updateHostMemoryTool, listSkillsTool, getSkillTool, runSkillTool)
+		tools = append(tools, viewHostMemoryTool, listSkillsTool, getSkillTool, runSkillTool)
 	}
 
 	sysPrompt := opts.Config.LLM.SystemPrompt

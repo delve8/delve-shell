@@ -176,7 +176,8 @@ Main files:
 
 - delve-shell keeps persistent host memory per execution environment under `<root>/hosts`.
 - The controller probes the current local or remote target, resolves a host-memory context, and injects a compact summary into later LLM turns when available.
-- The agent can read and update that memory through `view_host_memory` and `update_host_memory`.
+- The main conversation agent can read that memory through `view_host_memory`.
+- After relevant session events are persisted, a background organizer also reviews recent session history and opportunistically writes durable host-memory updates for the active execution target.
 - Host memory is meant for stable, reusable facts: machine role, responsibilities, capabilities, package managers, and commands that are reliably available or missing for the current user profile.
 - It is a useful prior, not a guarantee. Fresh command output wins over remembered facts, and durable new observations should be written back.
 

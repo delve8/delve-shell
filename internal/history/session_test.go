@@ -10,6 +10,35 @@ import (
 	"delve-shell/internal/hil/types"
 )
 
+func TestSession_AfterAppendHookRunsAfterWrite(t *testing.T) {
+	dir := t.TempDir()
+	s := &Session{id: "hook", path: filepath.Join(dir, "hook.jsonl")}
+	defer s.Close()
+
+	var (
+		gotType string
+		size    int64
+	)
+	s.SetAfterAppendHook(func(ev Event) {
+		gotType = ev.Type
+		info, err := os.Stat(s.path)
+		if err != nil {
+			t.Fatalf("stat session file: %v", err)
+		}
+		size = info.Size()
+	})
+
+	if err := s.AppendUserInput("hello"); err != nil {
+		t.Fatalf("AppendUserInput error: %v", err)
+	}
+	if gotType != EventTypeUserInput {
+		t.Fatalf("hook event type=%q want %q", gotType, EventTypeUserInput)
+	}
+	if size <= 0 {
+		t.Fatalf("expected written session file, size=%d", size)
+	}
+}
+
 func TestSession_AppendCommand_SkillAuditPayload(t *testing.T) {
 	dir := t.TempDir()
 	s := &Session{id: "skill-audit", path: filepath.Join(dir, "skill-audit.jsonl")}
