@@ -1,6 +1,7 @@
 package remote
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -169,6 +170,39 @@ func TestHandleRemoteAuthOverlayKey_ChooseIdentityFallsBackToLastKey(t *testing.
 	got := getRemoteOverlayState()
 	if got.RemoteAuth.Input.Value() != "~/.ssh/last-used" {
 		t.Fatalf("identity input=%q want %q", got.RemoteAuth.Input.Value(), "~/.ssh/last-used")
+	}
+}
+
+func TestHandleRemoteAuthOverlayKey_ChooseIdentityPrefillsSSHConfigKey(t *testing.T) {
+	t.Setenv("DELVE_SHELL_ROOT", t.TempDir())
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USER", "localuser")
+	writeRemoteTestSSHConfig(t, home, `
+Host jump
+  HostName jump.example.com
+  User ops
+  IdentityFile ~/.ssh/jump_key
+`)
+	m := ui.NewModel(nil, nil)
+	state := getRemoteOverlayState()
+	state.RemoteAuth.Step = AuthStepChoose
+	state.RemoteAuth.Target = "ops@jump.example.com"
+	state.RemoteAuth.ChoiceIndex = 1
+	setRemoteOverlayState(state)
+	pathcomplete.ResetState()
+	t.Cleanup(func() {
+		resetRemoteOverlayState()
+		pathcomplete.ResetState()
+	})
+
+	_, _, handled := handleRemoteAuthOverlayKey(m, tea.KeyEnter.String(), tea.KeyMsg{Type: tea.KeyEnter})
+	if !handled {
+		t.Fatal("expected enter to be handled")
+	}
+	got := getRemoteOverlayState()
+	if got.RemoteAuth.Input.Value() != filepath.Join(home, ".ssh", "jump_key") {
+		t.Fatalf("identity input=%q", got.RemoteAuth.Input.Value())
 	}
 }
 

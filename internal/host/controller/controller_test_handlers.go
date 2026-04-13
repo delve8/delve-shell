@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -33,6 +34,17 @@ func waitUntil(t *testing.T, pred func() bool, d time.Duration) {
 		time.Sleep(2 * time.Millisecond)
 	}
 	t.Fatal("timeout waiting for condition")
+}
+
+func writeControllerTestSSHConfig(t *testing.T, home string, content string) {
+	t.Helper()
+	sshDir := filepath.Join(home, ".ssh")
+	if err := os.MkdirAll(sshDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sshDir, "config"), []byte(content), 0600); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestHandleCancelRequest_NoRunning(t *testing.T) {
@@ -223,6 +235,58 @@ func TestHandleAccessOffline_AppendsSystemNotify(t *testing.T) {
 	}
 	if msg.Lines[1].Kind != uivm.LineBlank {
 		t.Fatalf("want trailing blank, got %#v", msg.Lines)
+	}
+}
+
+func TestResolveAccessRemoteTarget_PrefersSSHConfigOverSavedRemoteName(t *testing.T) {
+	t.Setenv("DELVE_SHELL_ROOT", t.TempDir())
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USER", "localuser")
+	if err := config.EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	if err := config.AddRemote("ops@legacy.example.com", "prod", ""); err != nil {
+		t.Fatal(err)
+	}
+	writeControllerTestSSHConfig(t, home, `
+Host prod
+  HostName current.example.com
+  User deploy
+  Port 2222
+  IdentityFile ~/.ssh/prod_key
+`)
+
+	got := resolveAccessRemoteTarget("prod")
+	if got.Target != "deploy@current.example.com:2222" {
+		t.Fatalf("target=%q", got.Target)
+	}
+	if got.IdentityFile != filepath.Join(home, ".ssh", "prod_key") {
+		t.Fatalf("identity=%q", got.IdentityFile)
+	}
+	if got.ConfigName != "prod" {
+		t.Fatalf("config name=%q", got.ConfigName)
+	}
+}
+
+func TestResolveAccessRemoteTarget_MatchesSSHConfigHostName(t *testing.T) {
+	t.Setenv("DELVE_SHELL_ROOT", t.TempDir())
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USER", "localuser")
+	writeControllerTestSSHConfig(t, home, `
+Host jump
+  HostName jump.example.com
+  User deploy
+  Port 2201
+`)
+
+	got := resolveAccessRemoteTarget("jump.example.com")
+	if got.Target != "deploy@jump.example.com:2201" {
+		t.Fatalf("target=%q", got.Target)
+	}
+	if got.ConfigName != "jump" {
+		t.Fatalf("config name=%q", got.ConfigName)
 	}
 }
 

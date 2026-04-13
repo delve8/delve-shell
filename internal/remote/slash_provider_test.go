@@ -1,6 +1,8 @@
 package remote
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"delve-shell/internal/config"
@@ -8,8 +10,20 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 )
 
+func writeRemoteTestSSHConfig(t *testing.T, home string, content string) {
+	t.Helper()
+	sshDir := filepath.Join(home, ".ssh")
+	if err := os.MkdirAll(sshDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sshDir, "config"), []byte(content), 0600); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestRemoteSlashOptions_RootOrdersHostsThenActions(t *testing.T) {
 	t.Setenv("DELVE_SHELL_ROOT", t.TempDir())
+	t.Setenv("HOME", t.TempDir())
 	if err := config.EnsureRootDir(); err != nil {
 		t.Fatal(err)
 	}
@@ -41,8 +55,47 @@ func TestRemoteSlashOptions_RootOrdersHostsThenActions(t *testing.T) {
 	}
 }
 
+func TestRemoteSlashOptions_ListsSSHConfigAliasesAfterSavedRemotes(t *testing.T) {
+	t.Setenv("DELVE_SHELL_ROOT", t.TempDir())
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USER", "localuser")
+	if err := config.EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	if err := config.AddRemote("ops@prod", "Production", ""); err != nil {
+		t.Fatal(err)
+	}
+	writeRemoteTestSSHConfig(t, home, `
+Host jump
+  HostName jump.example.com
+  User ops
+`)
+
+	opts, handled := remoteSlashOptionsProvider("/access", "en")
+	if !handled {
+		t.Fatal("expected /access to be handled")
+	}
+	if len(opts) < 5 {
+		t.Fatalf("expected host rows plus actions, got %#v", opts)
+	}
+	if opts[0].Cmd != "/access prod" {
+		t.Fatalf("first row=%#v want saved remote first", opts[0])
+	}
+	if opts[1].Cmd != "/access jump.example.com" {
+		t.Fatalf("second row=%#v want ssh config host second", opts[1])
+	}
+	if opts[1].Desc != "jump (from ~/.ssh/config)" {
+		t.Fatalf("ssh config desc=%q want jump (from ~/.ssh/config)", opts[1].Desc)
+	}
+	if opts[1].FillValue != "/access jump.example.com" {
+		t.Fatalf("fill=%q want /access jump.example.com", opts[1].FillValue)
+	}
+}
+
 func TestRemoteSlashOptions_ProviderListsAllRemotesThenActions(t *testing.T) {
 	t.Setenv("DELVE_SHELL_ROOT", t.TempDir())
+	t.Setenv("HOME", t.TempDir())
 	if err := config.EnsureRootDir(); err != nil {
 		t.Fatal(err)
 	}
@@ -80,8 +133,28 @@ func TestResolveConnectTarget_ConfigMatchPrefersSavedRemote(t *testing.T) {
 	}
 }
 
+func TestResolveConnectTarget_SSHConfigAlias(t *testing.T) {
+	t.Setenv("DELVE_SHELL_ROOT", t.TempDir())
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USER", "localuser")
+	writeRemoteTestSSHConfig(t, home, `
+Host jump
+  HostName jump.example.com
+  User ops
+  Port 2201
+`)
+	if got := resolveConnectTarget("jump"); got != "ops@jump.example.com:2201" {
+		t.Fatalf("resolveConnectTarget(jump)=%q", got)
+	}
+	if got := resolveConnectTarget("jump.example.com"); got != "ops@jump.example.com:2201" {
+		t.Fatalf("resolveConnectTarget(jump.example.com)=%q", got)
+	}
+}
+
 func TestPrefillAddRemoteFromParams_ConfigMatchPrefillsSavedRemote(t *testing.T) {
 	t.Setenv("DELVE_SHELL_ROOT", t.TempDir())
+	t.Setenv("HOME", t.TempDir())
 	if err := config.EnsureRootDir(); err != nil {
 		t.Fatal(err)
 	}
@@ -100,6 +173,35 @@ func TestPrefillAddRemoteFromParams_ConfigMatchPrefillsSavedRemote(t *testing.T)
 	}
 	if state.KeyInput.Value() != "~/.ssh/prod" {
 		t.Fatalf("key=%q want ~/.ssh/prod", state.KeyInput.Value())
+	}
+}
+
+func TestPrefillAddRemoteFromParams_SSHConfigMatchPrefillsAlias(t *testing.T) {
+	t.Setenv("DELVE_SHELL_ROOT", t.TempDir())
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USER", "localuser")
+	writeRemoteTestSSHConfig(t, home, `
+Host jump
+  HostName jump.example.com
+  User ops
+  IdentityFile ~/.ssh/jump_key
+`)
+	state := AddRemoteOverlayState{
+		HostInput: textinput.New(),
+		UserInput: textinput.New(),
+		KeyInput:  textinput.New(),
+		NameInput: textinput.New(),
+	}
+	prefillAddRemoteFromParams(&state, map[string]string{"target": "jump"})
+	if state.UserInput.Value() != "ops" || state.HostInput.Value() != "jump.example.com" {
+		t.Fatalf("prefill user/host = %q/%q", state.UserInput.Value(), state.HostInput.Value())
+	}
+	if state.KeyInput.Value() != filepath.Join(home, ".ssh", "jump_key") {
+		t.Fatalf("key=%q", state.KeyInput.Value())
+	}
+	if state.NameInput.Value() != "jump" {
+		t.Fatalf("name=%q want jump", state.NameInput.Value())
 	}
 }
 

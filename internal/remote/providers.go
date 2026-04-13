@@ -101,17 +101,26 @@ func resolveConnectTarget(target string) string {
 	if target == "" {
 		return ""
 	}
-	resolvedTarget := target
 	if remotes, err := config.LoadRemotes(); err == nil {
 		for _, r := range remotes {
-			matched := r.Target == target || r.Name == target || config.HostFromTarget(r.Target) == target
+			matched := r.Target == target || config.HostFromTarget(r.Target) == target
 			if !matched || strings.TrimSpace(r.Target) == "" {
 				continue
 			}
 			return strings.TrimSpace(r.Target)
 		}
 	}
-	return resolvedTarget
+	if sshHost, ok, err := config.ResolveSSHConfigHost(target); err == nil && ok {
+		return strings.TrimSpace(sshHost.Target)
+	}
+	if remotes, err := config.LoadRemotes(); err == nil {
+		for _, r := range remotes {
+			if strings.TrimSpace(r.Name) == target && strings.TrimSpace(r.Target) != "" {
+				return strings.TrimSpace(r.Target)
+			}
+		}
+	}
+	return target
 }
 
 func prefillAddRemoteFromParams(state *AddRemoteOverlayState, params map[string]string) {
@@ -141,6 +150,19 @@ func prefillAddRemoteFromParams(state *AddRemoteOverlayState, params map[string]
 			break
 		}
 	}
+	if state.HostInput.Value() == "" && state.UserInput.Value() == "" {
+		if sshHost, ok, err := config.ResolveSSHConfigHost(target); err == nil && ok {
+			if strings.TrimSpace(sshHost.IdentityFile) != "" {
+				state.KeyInput.SetValue(strings.TrimSpace(sshHost.IdentityFile))
+				state.KeyInput.CursorEnd()
+			}
+			if strings.TrimSpace(sshHost.Alias) != "" {
+				state.NameInput.SetValue(strings.TrimSpace(sshHost.Alias))
+				state.NameInput.CursorEnd()
+			}
+			resolvedTarget = strings.TrimSpace(sshHost.Target)
+		}
+	}
 	if i := strings.Index(resolvedTarget, "@"); i > 0 && i < len(resolvedTarget)-1 {
 		state.UserInput.SetValue(strings.TrimSpace(resolvedTarget[:i]))
 		state.UserInput.CursorEnd()
@@ -166,6 +188,21 @@ func resolveRemoteIdentityPrefill(target string) string {
 				continue
 			}
 			if identity := strings.TrimSpace(r.IdentityFile); identity != "" {
+				return identity
+			}
+			break
+		}
+	}
+	if sshHosts, err := config.LoadSSHConfigHosts(); err == nil {
+		targetHost := config.HostFromTarget(target)
+		for _, h := range sshHosts {
+			matched := strings.EqualFold(h.Alias, target) ||
+				strings.EqualFold(h.Target, target) ||
+				strings.EqualFold(config.HostFromTarget(h.Target), targetHost)
+			if !matched {
+				continue
+			}
+			if identity := strings.TrimSpace(h.IdentityFile); identity != "" {
 				return identity
 			}
 			break

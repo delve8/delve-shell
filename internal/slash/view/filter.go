@@ -59,12 +59,9 @@ func reservedRowMatch(rest, displayToken, lowerToken string) bool {
 	return false
 }
 
-func accessHostRowMatch(rest, hostSuffix string) bool {
+func accessHostRowMatch(rest, hostSuffix, fillSuffix, desc string) bool {
 	if rest == "" {
 		return true
-	}
-	if strings.ContainsAny(rest, " \t") {
-		return false
 	}
 	// Exact Title-case reserved tokens only match reserved rows, not a host named new/local/offline.
 	if rest == slashaccess.ReservedLocal || rest == slashaccess.ReservedNew || rest == slashaccess.ReservedOffline {
@@ -72,15 +69,27 @@ func accessHostRowMatch(rest, hostSuffix string) bool {
 	}
 	restLower := strings.ToLower(rest)
 	hostLower := strings.ToLower(hostSuffix)
-	return strings.HasPrefix(hostLower, restLower)
+	if strings.HasPrefix(hostLower, restLower) {
+		return true
+	}
+	fillLower := strings.ToLower(fillSuffix)
+	if strings.HasPrefix(fillLower, "/access ") {
+		fillLower = strings.TrimPrefix(fillLower, "/access ")
+	}
+	if fillLower != "" && strings.HasPrefix(fillLower, restLower) {
+		return true
+	}
+	descLower := strings.ToLower(strings.TrimSpace(desc))
+	return descLower != "" && strings.HasPrefix(descLower, restLower)
 }
 
 // accessTargetMatch matches /access rows: reserved "New"/"Local" use case rules; host rows are lowercase-only.
-func accessTargetMatch(input, inputLower, cmd string) bool {
+func accessTargetMatch(input, inputLower string, opt Option) bool {
 	rest, isAccess := parseAccessRest(input)
 	if !isAccess {
 		return false
 	}
+	cmd := opt.Cmd
 	if !strings.HasPrefix(cmd, "/access ") {
 		return false
 	}
@@ -96,7 +105,7 @@ func accessTargetMatch(input, inputLower, cmd string) bool {
 	case slashaccess.ReservedOffline:
 		return reservedRowMatch(rest, slashaccess.ReservedOffline, slashaccess.FilterOffline)
 	default:
-		return accessHostRowMatch(rest, suffix)
+		return accessHostRowMatch(rest, suffix, opt.FillValue, opt.Desc)
 	}
 }
 
@@ -181,7 +190,7 @@ func VisibleIndices(input string, opts []Option) []int {
 			case inputLower == "":
 				out = append(out, i)
 			case strings.HasPrefix(inputLower, "access"):
-				if accessTargetMatch(input, inputLower, opt.Cmd) {
+				if accessTargetMatch(input, inputLower, opt) {
 					out = append(out, i)
 				}
 			default:

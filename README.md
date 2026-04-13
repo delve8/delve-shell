@@ -161,10 +161,10 @@ Main files:
 
 ## Common Slash Commands
 
-- `/access` opens the execution-target picker for saved hosts plus `/access New`, `/access Local`, and `/access Offline`.
+- `/access` opens the execution-target picker for saved hosts, explicit `~/.ssh/config` aliases, `/access New`, `/access Local`, and `/access Offline`.
 - `/access Offline` switches to manual relay mode: commands are shown for you to run elsewhere, then you paste results back.
 - `/config` opens config actions. The built-in entries are `/config remove-remote` and `/config model`.
-- `/config remove-remote {host}` removes a saved remote host from config.
+- `/config remove-remote {host}` removes a saved remote host from config. Hosts discovered from `~/.ssh/config` are not removable here.
 - `/skill` opens the installed-skill picker plus `/skill New`, `/skill Remove`, and `/skill Update`.
 - `/skill {name} [text]` invokes an installed skill for the current turn.
 - `/skill Remove {skill_name}` removes an installed skill.

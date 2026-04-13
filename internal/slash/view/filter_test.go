@@ -88,6 +88,36 @@ func TestVisibleIndices_AccessHostPrefix(t *testing.T) {
 	}
 }
 
+func TestVisibleIndices_AccessFillValuePrefix(t *testing.T) {
+	opts := []Option{
+		{Cmd: "/access jump.example.com", FillValue: "/access bastion"},
+		{Cmd: "/access db.example.com"},
+	}
+	got := VisibleIndices("/access bast", opts)
+	if len(got) != 1 || got[0] != 0 {
+		t.Fatalf("want ssh config alias row for /access bast, got %#v", got)
+	}
+	got = VisibleIndices("/access jump", opts)
+	if len(got) != 1 || got[0] != 0 {
+		t.Fatalf("want ssh config hostname row for /access jump, got %#v", got)
+	}
+}
+
+func TestVisibleIndices_AccessDescPrefix(t *testing.T) {
+	opts := []Option{
+		{Cmd: "/access prod", Desc: "Production"},
+		{Cmd: "/access db", Desc: "DB Bastion"},
+	}
+	got := VisibleIndices("/access pro", opts)
+	if len(got) != 1 || got[0] != 0 {
+		t.Fatalf("want saved remote name row for /access pro, got %#v", got)
+	}
+	got = VisibleIndices("/access db b", opts)
+	if len(got) != 1 || got[0] != 1 {
+		t.Fatalf("want saved remote spaced name row for /access db b, got %#v", got)
+	}
+}
+
 func TestVisibleIndices_AccessLocalReservedVsHost(t *testing.T) {
 	opts := []Option{
 		{Cmd: "/access Local"},

@@ -13,9 +13,9 @@ var (
 
 const (
 	helpConfigSectionEN      = `Manage models and hosts.`
-	helpConfigRemoveRemoteEN = `Remove a saved remote host.`
+	helpConfigRemoveRemoteEN = `Remove a saved remote host. Hosts discovered from **~/.ssh/config** are not deleted here.`
 	helpConfigModelSectionEN = `Configure model settings.`
-	helpAccessSectionEN      = `Switch the execution target. The dropdown lists saved hosts first, then **/access New** (add a host), **/access Local** (use the local executor), and **/access Offline** (manual relay mode). Host segments in saved targets must be lowercase so reserved rows like **/access Local** and **/access New** do not collide with host names.`
+	helpAccessSectionEN      = `Switch the execution target. The dropdown lists saved hosts first, then aliases discovered from **~/.ssh/config**, then **/access New** (add a host), **/access Local** (use the local executor), and **/access Offline** (manual relay mode). Host segments in saved targets must be lowercase so reserved rows like **/access Local** and **/access New** do not collide with host names.`
 	helpAccessNewSectionEN   = `Add a remote host.`
 	helpAccessLocalSectionEN = `Switch to local execution.`
 	helpAccessOfflineEN      = `Switch to offline manual relay mode. Commands are shown for you to run elsewhere, then you paste results back here.`
@@ -228,6 +228,7 @@ const (
 	KeySessionNone                 = "session_none"
 	KeyDescAccess                  = "desc_access"
 	KeyDescAccessNew               = "desc_access_new"
+	KeyDescAccessSSHConfig         = "desc_access_ssh_config"
 	KeyDelRemoteNoHosts            = "del_remote_no_hosts" // slash dropdown when no remotes to remove (Cmd-only row, like KeySkillNone)
 	KeyDescRemoteOn                = "desc_remote_on"
 	KeyDescRemoteOff               = "desc_remote_off"
@@ -435,6 +436,7 @@ var messages = map[string]map[string]string{
 		KeySessionNone:                          "No previous history.",
 		KeyDescAccess:                           "Switch execution target",
 		KeyDescAccessNew:                        "Add a remote host",
+		KeyDescAccessSSHConfig:                  "~/.ssh/config",
 		KeyDelRemoteNoHosts:                     "No hosts.",
 		KeyDescRemoteOn:                         "Connect to a host",
 		KeyDescRemoteOff:                        "Switch to local execution",

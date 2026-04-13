@@ -20,7 +20,7 @@ func remoteSlashOptionsProvider(
 
 	if normalizedLower == "access" || strings.HasPrefix(normalizedLower, "access ") {
 		if normalizedLower == "access" {
-			hostOpts := getRemoteSlashOptions()
+			hostOpts := getRemoteSlashOptions(lang)
 			opts := make([]ui.SlashOption, 0, len(hostOpts)+2)
 			opts = append(opts, hostOpts...)
 			opts = append(opts, ui.SlashOption{Cmd: slashaccess.Command(slashaccess.ReservedNew), Desc: i18n.T(i18n.KeyDescAccessNew)})
@@ -80,7 +80,7 @@ func buildRemoteDropdownOptions(lang string) []ui.SlashOption {
 		opts = append(opts, opt)
 	}
 
-	for _, opt := range getRemoteSlashOptions() {
+	for _, opt := range getRemoteSlashOptions(lang) {
 		push(opt)
 	}
 	push(ui.SlashOption{Cmd: slashaccess.Command(slashaccess.ReservedNew), Desc: i18n.T(i18n.KeyDescAccessNew)})

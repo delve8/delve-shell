@@ -113,29 +113,8 @@ func (c *Controller) handleAccessRemote(target string) {
 	if c.runners != nil {
 		c.runners.Invalidate()
 	}
-	identityFile := ""
-	label := target
-	hostOnly := config.HostFromTarget(target)
-	cfgName := ""
-	remotes, errRemotes := config.LoadRemotes()
-	if errRemotes == nil && len(remotes) > 0 {
-		for _, r := range remotes {
-			matched := r.Target == target || r.Name == target || config.HostFromTarget(r.Target) == target
-			if matched && r.Target != "" {
-				target = r.Target
-				identityFile = r.IdentityFile
-				hostOnly = config.HostFromTarget(target)
-				cfgName = strings.TrimSpace(r.Name)
-				if cfgName != "" {
-					label = fmt.Sprintf("%s (%s)", cfgName, hostOnly)
-				} else {
-					label = hostOnly
-				}
-				break
-			}
-		}
-	}
-	res := c.executors.Connect(target, label, identityFile)
+	resolved := resolveAccessRemoteTarget(target)
+	res := c.executors.Connect(resolved.Target, resolved.Label, resolved.IdentityFile)
 	if res.AuthPrompt != nil {
 		c.ui.Raw(remote.AuthPromptMsg{
 			Target:                res.AuthPrompt.Target,
@@ -154,13 +133,92 @@ func (c *Controller) handleAccessRemote(target string) {
 		return
 	}
 	if c.runtime != nil {
-		c.runtime.SetRemoteExecution(true, res.Label, hostOnly, cfgName)
+		c.runtime.SetRemoteExecution(true, res.Label, resolved.HostOnly, resolved.ConfigName)
 		c.runtime.SetRemoteIssue("")
 	}
 	go c.refreshHostMemory(res.Executor, res.Label)
 	c.ui.RemoteStatus(true, res.Label, false, "")
 	c.ui.SystemNotify(fmt.Sprintf("Connected to remote: %s", res.Label))
 	c.ui.RemoteConnectDone(true, res.Label, "")
+}
+
+type accessRemoteTarget struct {
+	Target       string
+	Label        string
+	HostOnly     string
+	ConfigName   string
+	IdentityFile string
+}
+
+func resolveAccessRemoteTarget(input string) accessRemoteTarget {
+	input = strings.TrimSpace(input)
+	resolved := accessRemoteTarget{
+		Target:   input,
+		Label:    input,
+		HostOnly: config.HostFromTarget(input),
+	}
+
+	if remote, ok := findSavedRemote(input, false); ok {
+		return accessRemoteTarget{
+			Target:       remote.Target,
+			Label:        remoteDisplayLabel(remote),
+			HostOnly:     config.HostFromTarget(remote.Target),
+			ConfigName:   strings.TrimSpace(remote.Name),
+			IdentityFile: strings.TrimSpace(remote.IdentityFile),
+		}
+	}
+	if sshHost, ok, err := config.ResolveSSHConfigHost(input); err == nil && ok {
+		hostOnly := config.HostFromTarget(sshHost.Target)
+		label := strings.TrimSpace(sshHost.Alias)
+		if label == "" {
+			label = hostOnly
+		}
+		if hostOnly != "" && !strings.EqualFold(label, hostOnly) {
+			label = fmt.Sprintf("%s (%s)", label, hostOnly)
+		}
+		return accessRemoteTarget{
+			Target:       sshHost.Target,
+			Label:        label,
+			HostOnly:     hostOnly,
+			ConfigName:   strings.TrimSpace(sshHost.Alias),
+			IdentityFile: strings.TrimSpace(sshHost.IdentityFile),
+		}
+	}
+	if remote, ok := findSavedRemote(input, true); ok {
+		return accessRemoteTarget{
+			Target:       remote.Target,
+			Label:        remoteDisplayLabel(remote),
+			HostOnly:     config.HostFromTarget(remote.Target),
+			ConfigName:   strings.TrimSpace(remote.Name),
+			IdentityFile: strings.TrimSpace(remote.IdentityFile),
+		}
+	}
+	return resolved
+}
+
+func findSavedRemote(input string, includeName bool) (config.RemoteTarget, bool) {
+	remotes, err := config.LoadRemotes()
+	if err != nil {
+		return config.RemoteTarget{}, false
+	}
+	for _, r := range remotes {
+		matched := r.Target == input || config.HostFromTarget(r.Target) == input
+		if includeName && strings.TrimSpace(r.Name) == input {
+			matched = true
+		}
+		if matched && strings.TrimSpace(r.Target) != "" {
+			return r, true
+		}
+	}
+	return config.RemoteTarget{}, false
+}
+
+func remoteDisplayLabel(r config.RemoteTarget) string {
+	hostOnly := config.HostFromTarget(r.Target)
+	if name := strings.TrimSpace(r.Name); name != "" {
+		return fmt.Sprintf("%s (%s)", name, hostOnly)
+	}
+	return hostOnly
 }
 
 func (c *Controller) handleAccessLocal() {
