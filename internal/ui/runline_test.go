@@ -48,6 +48,25 @@ func TestFormatRunTranscriptLine_truncatesLongLine(t *testing.T) {
 	}
 }
 
+func TestFormatRunTranscriptLine_multilineCompactedToOneLine(t *testing.T) {
+	prefix := "Run (approved): "
+	got := FormatRunTranscriptLine(prefix, "kubectl get nodes \\\n  -o wide\nkubectl get pods -A")
+	want := prefix + "kubectl get nodes \\ -o wide kubectl get pods -A"
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+}
+
+func TestFormatRunTranscriptLineFull_multilinePreserved(t *testing.T) {
+	prefix := "Run (approved): "
+	indent := strings.Repeat(" ", ansi.StringWidth(prefix))
+	got := FormatRunTranscriptLineFull(prefix, "echo a\n  echo b")
+	want := prefix + "echo a\n" + indent + "  echo b"
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+}
+
 func TestRunTranscriptDisplayMaxCells(t *testing.T) {
 	if g := RunTranscriptDisplayMaxCells(80); g != 80 {
 		t.Fatalf("got %d want 80", g)
@@ -72,5 +91,19 @@ func TestClampRunTranscriptPlain_narrowerThanPresenterCap(t *testing.T) {
 	}
 	if !strings.HasSuffix(clamped, "....") {
 		t.Fatalf("expected .... tail: %q", clamped)
+	}
+}
+
+func TestClampRunTranscriptPlain_multilineCompactsThenClamps(t *testing.T) {
+	plain := "Run (approved): echo hello \\\n  world\nkubectl get pods -A"
+	clamped := ClampRunTranscriptPlain(plain, 40)
+	if strings.Contains(clamped, "\n") {
+		t.Fatalf("expected single line, got %q", clamped)
+	}
+	if w := ansi.StringWidth(clamped); w > 40 {
+		t.Fatalf("width %d > 40: %q", w, clamped)
+	}
+	if !strings.HasPrefix(clamped, "Run (approved): echo hello \\ world") {
+		t.Fatalf("unexpected compacted line: %q", clamped)
 	}
 }

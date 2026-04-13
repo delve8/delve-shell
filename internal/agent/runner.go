@@ -235,7 +235,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 }
 
 func allowlistExecutionParagraph() string {
-	return `When an allowlist is configured: commands that match it and contain no shell write redirection (e.g. > or >>) may run without an additional consent step. Other proposed commands are held until the session authorizes them under host rules. An empty allowlist matches nothing, so every command follows the non-allowlist path unless other policy applies. Prefer one execute_command with a single shell script combining steps using &&, ||, or ; (one sh -c) when batching is acceptable, instead of multiple execute_command calls in one reply.`
+	return `When an allowlist is configured: commands that match it and contain no shell write redirection (e.g. > or >>) may run without an additional consent step. Other proposed commands are held until the session authorizes them under host rules. An empty allowlist matches nothing, so every command follows the non-allowlist path unless other policy applies. When you need to run multiple shell steps, use a single execute_command with one multi-line command string. The command text itself should contain newline characters; do not keep the command on one long line and do not treat this as output formatting. Format the command string for user review with line breaks and trailing \ for long pipelines or argument lists. Only use a single-line command when it is genuinely short and easy to review.`
 }
 
 // MaxConversationEvents is the max number of session events to use when building conversation history (user_input + llm_response only).

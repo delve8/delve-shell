@@ -20,7 +20,7 @@ const RunTranscriptLineMaxWidth = 100
 // Long lines are truncated with a "...." tail so the scrollback stays compact; the approval card still
 // shows the full command via a separate path. Used by presenter, history replay, and suggested-dismiss line.
 func FormatRunTranscriptLine(prefix, cmd string) string {
-	cmd = strings.TrimSpace(cmd)
+	cmd = compactRunTranscriptCommand(cmd)
 	s := prefix + cmd
 	if ansi.StringWidth(s) <= RunTranscriptLineMaxWidth {
 		return s
@@ -31,7 +31,11 @@ func FormatRunTranscriptLine(prefix, cmd string) string {
 // FormatRunTranscriptLineFull is like [FormatRunTranscriptLine] but never truncates the command;
 // use for read-only overlays (e.g. /history preview) where the full command must be visible.
 func FormatRunTranscriptLineFull(prefix, cmd string) string {
-	return prefix + strings.TrimSpace(cmd)
+	cmd = strings.TrimSpace(strings.ReplaceAll(cmd, "\r", ""))
+	if strings.Contains(cmd, "\n") {
+		return formatMultilineRunTranscript(prefix, cmd, 0)
+	}
+	return prefix + cmd
 }
 
 // RunTranscriptDisplayMaxCells is the display cap for a printed Run line: never wider than
@@ -54,7 +58,7 @@ func ClampRunTranscriptPlain(plain string, maxCells int) string {
 	if maxCells < 1 {
 		maxCells = 1
 	}
-	plain = strings.TrimSpace(plain)
+	plain = compactRunTranscriptPlain(plain)
 	if !strings.HasPrefix(plain, "Run (") {
 		if ansi.StringWidth(plain) <= maxCells {
 			return plain
@@ -73,4 +77,46 @@ func ClampRunTranscriptPlain(plain string, maxCells int) string {
 		return s
 	}
 	return ansi.Truncate(s, maxCells, "....")
+}
+
+func formatMultilineRunTranscript(prefix, cmd string, maxCells int) string {
+	lines := strings.Split(cmd, "\n")
+	for i := range lines {
+		lines[i] = strings.TrimRight(lines[i], " \t")
+	}
+	contPrefix := strings.Repeat(" ", ansi.StringWidth(prefix))
+	rendered := make([]string, 0, len(lines))
+	for i, line := range lines {
+		out := line
+		if i == 0 {
+			out = prefix + out
+		} else {
+			out = contPrefix + out
+		}
+		if maxCells > 0 && ansi.StringWidth(out) > maxCells {
+			out = ansi.Truncate(out, maxCells, "....")
+		}
+		rendered = append(rendered, out)
+	}
+	return strings.Join(rendered, "\n")
+}
+
+func compactRunTranscriptCommand(cmd string) string {
+	cmd = strings.TrimSpace(strings.ReplaceAll(cmd, "\r", ""))
+	if cmd == "" {
+		return ""
+	}
+	return strings.Join(strings.Fields(cmd), " ")
+}
+
+func compactRunTranscriptPlain(plain string) string {
+	plain = strings.TrimSpace(strings.ReplaceAll(plain, "\r", ""))
+	if plain == "" {
+		return ""
+	}
+	idx := strings.Index(plain, "): ")
+	if idx < 0 {
+		return strings.Join(strings.Fields(plain), " ")
+	}
+	return plain[:idx+3] + compactRunTranscriptCommand(plain[idx+3:])
 }

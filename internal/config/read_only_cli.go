@@ -422,13 +422,22 @@ func (p ReadOnlyCLIPolicy) PermissiveVarArgs() bool {
 
 // ValidateLoadedAllowlist returns an error if the document is unusable.
 func ValidateLoadedAllowlist(ld *LoadedAllowlist) error {
+	return validateLoadedAllowlist(ld, false)
+}
+
+// ValidateLoadedAllowlistAllowEmpty validates an allowlist document that may intentionally have no commands.
+func ValidateLoadedAllowlistAllowEmpty(ld *LoadedAllowlist) error {
+	return validateLoadedAllowlist(ld, true)
+}
+
+func validateLoadedAllowlist(ld *LoadedAllowlist, allowEmpty bool) error {
 	if ld == nil {
 		return fmt.Errorf("allowlist is nil")
 	}
 	if ld.Version != AllowlistSchemaVersion {
 		return fmt.Errorf("allowlist version %d, want %d", ld.Version, AllowlistSchemaVersion)
 	}
-	if len(ld.Commands) == 0 {
+	if len(ld.Commands) == 0 && !allowEmpty {
 		return fmt.Errorf("allowlist commands is empty")
 	}
 	for k, p := range ld.Commands {

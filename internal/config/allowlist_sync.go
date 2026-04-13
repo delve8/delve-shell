@@ -18,6 +18,9 @@ func AllowlistSyncWithDefaults() (updated bool, err error) {
 	if err := EnsureRootDir(); err != nil {
 		return false, err
 	}
+	if _, err := ensureCustomAllowlistFile(); err != nil {
+		return false, err
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -29,4 +32,14 @@ func AllowlistSyncWithDefaults() (updated bool, err error) {
 		return false, nil
 	}
 	return true, os.WriteFile(path, want, 0600)
+}
+
+func ensureCustomAllowlistFile() (updated bool, err error) {
+	path := CustomAllowlistPath()
+	if _, err := os.Stat(path); err == nil {
+		return false, nil
+	} else if !os.IsNotExist(err) {
+		return false, err
+	}
+	return true, WriteLoadedAllowlistToPath(path, EmptyCustomLoadedAllowlist())
 }

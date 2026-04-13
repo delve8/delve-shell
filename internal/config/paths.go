@@ -27,6 +27,11 @@ func AllowlistPath() string {
 	return filepath.Join(RootDir(), "allowlist.yaml")
 }
 
+// CustomAllowlistPath returns the user-editable allowlist overlay path.
+func CustomAllowlistPath() string {
+	return filepath.Join(RootDir(), "allowlist_custom.yaml")
+}
+
 // SensitivePatternsPath returns the sensitive-output patterns file path (regex rules; optional override).
 func SensitivePatternsPath() string {
 	return filepath.Join(RootDir(), "sensitive_patterns.yaml")

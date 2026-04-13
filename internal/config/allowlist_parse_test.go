@@ -204,6 +204,22 @@ func TestParseAllowlistYAML_missingCommands(t *testing.T) {
 	}
 }
 
+func TestValidateLoadedAllowlistAllowEmpty_acceptsEmptyCustomOverlay(t *testing.T) {
+	const y = `version: 2
+commands: {}
+`
+	ld, err := ParseAllowlistYAML([]byte(y))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateLoadedAllowlistAllowEmpty(ld); err != nil {
+		t.Fatalf("empty custom allowlist should validate: %v", err)
+	}
+	if err := ValidateLoadedAllowlist(ld); err == nil {
+		t.Fatal("base allowlist validation should still reject empty commands")
+	}
+}
+
 func TestParseAllowlistYAML_omittedGlobalRoot_defaults(t *testing.T) {
 	const y = `version: 2
 commands:

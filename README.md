@@ -128,7 +128,7 @@ The project favors a small plugin surface. It currently does not assume a very l
 
 ## Config Paths
 
-On first run, the app creates `config.yaml`, `allowlist.yaml`, and related files under a config root directory.
+On first run, the app creates `config.yaml`, `allowlist.yaml`, `allowlist_custom.yaml`, and related files under a config root directory.
 
 | Platform | Default config root |
 |----------|---------------------|
@@ -145,7 +145,8 @@ export DELVE_SHELL_ROOT=/path/to/my-dir
 Main files:
 
 - Config: `<root>/config.yaml`
-- Allowlist: `<root>/allowlist.yaml`
+- Built-in allowlist: `<root>/allowlist.yaml`
+- Custom allowlist overlay: `<root>/allowlist_custom.yaml`
 - Rules (optional markdown snippets concatenated for prompts): `<root>/rules/`
 - Sessions: `<root>/sessions`
 - Host memory: `<root>/hosts`

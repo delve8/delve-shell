@@ -8,9 +8,25 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// LoadAllowlist loads allowlist.yaml. If missing, writes the default file and returns it.
-// If the file is unreadable, not schema v2, or fails validation, it is replaced with the default and rewritten.
+// LoadAllowlist loads the built-in allowlist.yaml plus the user-editable allowlist_custom.yaml overlay.
+// The built-in file is repaired to defaults when missing/invalid; the custom overlay is created empty when missing.
 func LoadAllowlist() (*LoadedAllowlist, error) {
+	base, err := loadBuiltInAllowlistFile()
+	if err != nil {
+		return nil, err
+	}
+	custom, err := LoadCustomAllowlist()
+	if err != nil {
+		return nil, err
+	}
+	for name, pol := range custom.Commands {
+		base.Commands[name] = pol
+	}
+	base.Commands = NormalizeReadOnlyCLIPolicies(base.Commands)
+	return base, nil
+}
+
+func loadBuiltInAllowlistFile() (*LoadedAllowlist, error) {
 	path := AllowlistPath()
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -51,6 +67,42 @@ func LoadAllowlist() (*LoadedAllowlist, error) {
 	return ld, nil
 }
 
+// EmptyCustomLoadedAllowlist returns an empty custom allowlist overlay.
+func EmptyCustomLoadedAllowlist() *LoadedAllowlist {
+	return &LoadedAllowlist{
+		Version:  AllowlistSchemaVersion,
+		Commands: map[string]ReadOnlyCLIPolicy{},
+	}
+}
+
+// LoadCustomAllowlist loads allowlist_custom.yaml. Missing file is created as an empty overlay.
+func LoadCustomAllowlist() (*LoadedAllowlist, error) {
+	path := CustomAllowlistPath()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			empty := EmptyCustomLoadedAllowlist()
+			if err := EnsureRootDir(); err != nil {
+				return nil, err
+			}
+			if err := WriteLoadedAllowlistToPath(path, empty); err != nil {
+				return nil, err
+			}
+			return empty, nil
+		}
+		return nil, err
+	}
+	ld, err := ParseAllowlistYAML(data)
+	if err != nil {
+		return nil, err
+	}
+	if err := ValidateLoadedAllowlistAllowEmpty(ld); err != nil {
+		return nil, err
+	}
+	ld.Commands = NormalizeReadOnlyCLIPolicies(ld.Commands)
+	return ld, nil
+}
+
 // EncodeAllowlistYAML encodes the allowlist as YAML with 2-space indentation.
 func EncodeAllowlistYAML(ld *LoadedAllowlist) ([]byte, error) {
 	if ld == nil {
@@ -73,11 +125,19 @@ func WriteLoadedAllowlist(ld *LoadedAllowlist) error {
 	if ld == nil {
 		ld = DefaultLoadedAllowlist()
 	}
+	return WriteLoadedAllowlistToPath(AllowlistPath(), ld)
+}
+
+// WriteLoadedAllowlistToPath writes an allowlist document to path.
+func WriteLoadedAllowlistToPath(path string, ld *LoadedAllowlist) error {
+	if ld == nil {
+		ld = EmptyCustomLoadedAllowlist()
+	}
 	data, err := EncodeAllowlistYAML(ld)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(AllowlistPath(), data, 0600)
+	return os.WriteFile(path, data, 0600)
 }
 
 // ParseAllowlistYAML parses YAML bytes into LoadedAllowlist (strict v2: commands map).
@@ -94,4 +154,3 @@ func ParseAllowlistYAML(data []byte) (*LoadedAllowlist, error) {
 	}
 	return &ld, nil
 }
-

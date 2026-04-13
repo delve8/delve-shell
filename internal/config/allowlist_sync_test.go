@@ -47,12 +47,49 @@ func TestAllowlistSyncWithDefaults_rewritesNonDefaultFile(t *testing.T) {
 	if !bytes.Equal(bytes.TrimSpace(got), bytes.TrimSpace(want)) {
 		t.Fatal("file should match embedded default")
 	}
+	customGot, err := os.ReadFile(CustomAllowlistPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	customWant, err := EncodeAllowlistYAML(EmptyCustomLoadedAllowlist())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(bytes.TrimSpace(customGot), bytes.TrimSpace(customWant)) {
+		t.Fatal("custom allowlist file should be created empty")
+	}
 	updated2, err := AllowlistSyncWithDefaults()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if updated2 {
 		t.Fatal("want updated=false when file already matches default")
+	}
+}
+
+func TestAllowlistSyncWithDefaults_preservesCustomOverlay(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", root)
+	if err := EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	custom := []byte("version: 2\ncommands:\n  mycmd: {}\n")
+	if err := os.WriteFile(CustomAllowlistPath(), custom, 0600); err != nil {
+		t.Fatal(err)
+	}
+	updated, err := AllowlistSyncWithDefaults()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !updated {
+		t.Fatal("want updated=true when built-in file is created")
+	}
+	got, err := os.ReadFile(CustomAllowlistPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, custom) {
+		t.Fatal("custom allowlist should not be overwritten by built-in sync")
 	}
 }
 

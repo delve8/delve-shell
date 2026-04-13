@@ -27,6 +27,37 @@ func TestEventsToTranscriptLinesForHistoryPreview_fullCommandText(t *testing.T) 
 	}
 }
 
+func TestEventsToTranscriptLines_multilineCommandCompacted(t *testing.T) {
+	i18n.SetLang("en")
+	events := []history.Event{
+		{Type: history.EventTypeCommand, Payload: json.RawMessage(`{"command":"kubectl get nodes \\\n  -o wide\nkubectl get pods -A","suggested":false}`)},
+	}
+	lines := EventsToTranscriptLines(events)
+	if len(lines) < 1 {
+		t.Fatal("expected exec line")
+	}
+	want := "Run (approved): kubectl get nodes \\ -o wide kubectl get pods -A"
+	if lines[0].Text != want {
+		t.Fatalf("got %q want %q", lines[0].Text, want)
+	}
+}
+
+func TestEventsToTranscriptLinesForHistoryPreview_multilineCommandPreserved(t *testing.T) {
+	i18n.SetLang("en")
+	events := []history.Event{
+		{Type: history.EventTypeCommand, Payload: json.RawMessage(`{"command":"kubectl get nodes \\\n  -o wide\nkubectl get pods -A","suggested":false}`)},
+	}
+	lines := EventsToTranscriptLinesForHistoryPreview(events)
+	if len(lines) < 1 {
+		t.Fatal("expected exec line")
+	}
+	indent := strings.Repeat(" ", len("Run (approved): "))
+	want := "Run (approved): kubectl get nodes \\\n" + indent + "  -o wide\n" + indent + "kubectl get pods -A"
+	if lines[0].Text != want {
+		t.Fatalf("got %q want %q", lines[0].Text, want)
+	}
+}
+
 func TestEventsToTranscriptLines_ConvertsEventsToSemanticLines(t *testing.T) {
 	i18n.SetLang("en")
 	events := []history.Event{
