@@ -348,7 +348,7 @@ func matchNodeArg(rest []readOnlyCLIArg, i int, flags config.FlagRule, operands 
 		if !ok {
 			return false
 		}
-		if ch, ok := subs[key]; ok {
+		if ch, ok := lookupSubcommand(subs, key); ok {
 			if !mustSliceAllTrue(sat) {
 				return false
 			}
@@ -359,6 +359,20 @@ func matchNodeArg(rest []readOnlyCLIArg, i int, flags config.FlagRule, operands 
 		}
 	}
 	return consumeInterleavedArg(rest, i2, eff, operands, sat)
+}
+
+func lookupSubcommand(subs config.SubcommandMap, key string) (config.SubcommandNode, bool) {
+	if ch, ok := subs[key]; ok {
+		return ch, true
+	}
+	for _, ch := range subs {
+		for _, alias := range ch.Aliases {
+			if key == alias {
+				return ch, true
+			}
+		}
+	}
+	return config.SubcommandNode{}, false
 }
 
 // consumeLeadingFlagsWithMust consumes consecutive flag tokens at the current node and updates sat for

@@ -123,6 +123,69 @@ func TestParseAllowlistYAML_roundTrip(t *testing.T) {
 	}
 }
 
+func TestParseAllowlistYAML_SubcommandAliasesRoundTrip(t *testing.T) {
+	const y = `version: 2
+commands:
+  ip:
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        address:
+          aliases: [addr, a]
+          subcommands:
+            show:
+              aliases: [s]
+`
+	ld, err := ParseAllowlistYAML([]byte(y))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateLoadedAllowlist(ld); err != nil {
+		t.Fatal(err)
+	}
+	ip := ld.Commands["ip"]
+	address := ip.Root.Subcommands["address"]
+	if got := strings.Join(address.Aliases, ","); got != "addr,a" {
+		t.Fatalf("address aliases=%q", got)
+	}
+	show := address.Subcommands["show"]
+	if got := strings.Join(show.Aliases, ","); got != "s" {
+		t.Fatalf("show aliases=%q", got)
+	}
+	data, err := EncodeAllowlistYAML(ld)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded := string(data)
+	for _, want := range []string{"aliases:", "- addr", "- a", "- s"} {
+		if !strings.Contains(encoded, want) {
+			t.Fatalf("encoded allowlist missing %q\n%s", want, encoded)
+		}
+	}
+}
+
+func TestValidateLoadedAllowlist_SubcommandAliasConflictRejected(t *testing.T) {
+	const y = `version: 2
+commands:
+  ip:
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        address:
+          aliases: [addr]
+        addr:
+`
+	ld, err := ParseAllowlistYAML([]byte(y))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateLoadedAllowlist(ld); err == nil {
+		t.Fatal("expected alias conflict error")
+	}
+}
+
 func TestParseAllowlistYAML_rejectsWrongVersion(t *testing.T) {
 	const y = `version: 1
 commands:

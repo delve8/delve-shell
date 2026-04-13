@@ -285,6 +285,74 @@ commands:
   host: {}
   hostname: {}
   id: {}
+  ip:
+    global:
+      flags:
+        allow:
+        - short: "4"
+          value: none
+        - short: "6"
+          value: none
+        - short: br
+          value: none
+        - short: brief
+          value: none
+    root:
+      flags: none
+      operands: none
+      subcommands:
+        address:
+          aliases:
+          - addr
+          - a
+          flags: none
+          operands: none
+          subcommands:
+            list:
+              aliases:
+              - ls
+              flags: none
+              operands: any
+            show:
+              aliases:
+              - s
+              flags: none
+              operands: any
+        link:
+          aliases:
+          - l
+          flags: none
+          operands: none
+          subcommands:
+            list:
+              aliases:
+              - ls
+              flags: none
+              operands: any
+            show:
+              aliases:
+              - s
+              flags: none
+              operands: any
+        route:
+          aliases:
+          - r
+          flags: none
+          operands: none
+          subcommands:
+            get:
+              flags: none
+              operands: any
+            list:
+              aliases:
+              - ls
+              flags: none
+              operands: any
+            show:
+              aliases:
+              - s
+              flags: none
+              operands: any
   journalctl:
     root:
       flags:

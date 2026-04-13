@@ -123,10 +123,11 @@ type RootSpec struct {
 // On disk the name is the map key under subcommands.
 // Omitted flags/operands default to any/any (open subcommand); use explicit none or allow-list to tighten.
 type SubcommandNode struct {
-	Name        string         `yaml:"-"`
-	Flags       *FlagRule      `yaml:"flags,omitempty"`
-	Operands    *OperandsRule  `yaml:"operands,omitempty"`
-	Subcommands SubcommandMap  `yaml:"subcommands,omitempty"`
+	Name        string        `yaml:"-"`
+	Aliases     []string      `yaml:"aliases,omitempty"`
+	Flags       *FlagRule     `yaml:"flags,omitempty"`
+	Operands    *OperandsRule `yaml:"operands,omitempty"`
+	Subcommands SubcommandMap `yaml:"subcommands,omitempty"`
 }
 
 // EffectiveFlags returns flags or the default (any) when omitted in YAML.
@@ -214,7 +215,9 @@ func (f FlagRule) MustNotList() []AllowedOption {
 	}
 	return append([]AllowedOption(nil), f.mustNot...)
 }
-func (f FlagRule) IsNone() bool { return !f.any && len(f.allow) == 0 && len(f.must) == 0 && len(f.mustNot) == 0 }
+func (f FlagRule) IsNone() bool {
+	return !f.any && len(f.allow) == 0 && len(f.must) == 0 && len(f.mustNot) == 0
+}
 
 // EffectiveConsumableAllowList is the closed set of flag rows used to parse argv at this node: explicit
 // allow entries plus any must entry not already covered by an allow row (same short/long per
@@ -487,6 +490,7 @@ func validateFlagRule(f FlagRule, ctx string) error {
 }
 
 func validateSubcommands(policyName string, subs SubcommandMap) error {
+	seen := make(map[string]string, len(subs))
 	for k, s := range subs {
 		if strings.TrimSpace(k) == "" {
 			return fmt.Errorf("commands[%s]: empty subcommand map key", policyName)
@@ -497,6 +501,23 @@ func validateSubcommands(policyName string, subs SubcommandMap) error {
 		}
 		if name != k {
 			return fmt.Errorf("commands[%s]: subcommand map key %q does not match name %q", policyName, k, name)
+		}
+		if prev, ok := seen[k]; ok {
+			return fmt.Errorf("commands[%s]: subcommand name/alias %q conflicts with %q", policyName, k, prev)
+		}
+		seen[k] = k
+		for i, alias := range s.Aliases {
+			alias = strings.TrimSpace(alias)
+			if alias == "" {
+				return fmt.Errorf("commands[%s]: subcommand %q alias[%d] is empty", policyName, k, i)
+			}
+			if alias == k {
+				return fmt.Errorf("commands[%s]: subcommand %q alias[%d] duplicates canonical name", policyName, k, i)
+			}
+			if prev, ok := seen[alias]; ok {
+				return fmt.Errorf("commands[%s]: subcommand %q alias %q conflicts with %q", policyName, k, alias, prev)
+			}
+			seen[alias] = k
 		}
 		ctx := "commands[" + policyName + "].subcommand[" + k + "].flags"
 		if err := validateFlagRule(s.EffectiveFlags(), ctx); err != nil {
@@ -544,6 +565,12 @@ func cloneSubcommands(subs SubcommandMap) SubcommandMap {
 	out := make(SubcommandMap, len(subs))
 	for k, v := range subs {
 		v.Name = k
+		if len(v.Aliases) > 0 {
+			v.Aliases = append([]string(nil), v.Aliases...)
+			for i := range v.Aliases {
+				v.Aliases[i] = strings.TrimSpace(v.Aliases[i])
+			}
+		}
 		if v.Flags != nil {
 			f := *v.Flags
 			v.Flags = &f
