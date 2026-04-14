@@ -2,6 +2,8 @@ module delve-shell
 
 go 1.26.2
 
+replace github.com/goph/emperror => emperror.dev/emperror v0.19.0
+
 require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/benhoyt/goawk v1.31.0
@@ -10,8 +12,8 @@ require (
 	github.com/charmbracelet/glamour v0.8.1
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/charmbracelet/x/ansi v0.11.6
-	github.com/cloudwego/eino v0.7.36
-	github.com/cloudwego/eino-ext/components/model/openai v0.1.8
+	github.com/cloudwego/eino v0.8.8
+	github.com/cloudwego/eino-ext/components/model/openai v0.1.12
 	github.com/creack/pty v1.1.23
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/mattn/go-runewidth v0.0.19
@@ -44,7 +46,7 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.5.0 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
-	github.com/cloudwego/eino-ext/libs/acl/openai v0.1.13 // indirect
+	github.com/cloudwego/eino-ext/libs/acl/openai v0.1.16 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/dlclark/regexp2 v1.11.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
@@ -67,7 +69,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
-	github.com/meguminnnnnnnnn/go-openai v0.1.1 // indirect
+	github.com/meguminnnnnnnnn/go-openai v0.1.2 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.27 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
