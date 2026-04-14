@@ -89,6 +89,8 @@ type OfflinePasteState struct {
 	Respond   func(text string, cancelled bool)
 	// copyFeedback is a transient line under the command after auto-copy on dialog open; cleared by offlinePasteCopyAckClearMsg.
 	copyFeedback string
+	// submitFeedback is shown when submit is blocked, e.g. empty paste on Enter.
+	submitFeedback string
 }
 
 // ChoiceCardState stores current pending choice card (approval or sensitive confirmation).

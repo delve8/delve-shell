@@ -26,6 +26,7 @@ type Manager struct {
 	sessionProvider        func() *history.Session
 	executorProvider       func() execenv.CommandExecutor
 	execContextDescription func() string
+	historyExecutionCtx    func() history.ExecutionContext
 	remoteIssueChanged     func(issue string)
 	hostMemoryContext      func() hostmem.Context
 	hostMemorySummary      func() string
@@ -48,6 +49,8 @@ type Options struct {
 	ExecutorProvider func() execenv.CommandExecutor
 	// ExecContextDescription optional; see agent.RunnerUILoopInput.ExecContextDescription.
 	ExecContextDescription func() string
+	// HistoryExecutionContext returns the current execution environment for history writes.
+	HistoryExecutionContext func() history.ExecutionContext
 	// RemoteIssueChanged updates remote footer status when SSH transport is degraded or recovers.
 	RemoteIssueChanged func(issue string)
 	// HostMemoryContext returns the current host memory context for tools.
@@ -70,6 +73,7 @@ func New(opts Options) *Manager {
 		sessionProvider:        opts.SessionProvider,
 		executorProvider:       opts.ExecutorProvider,
 		execContextDescription: opts.ExecContextDescription,
+		historyExecutionCtx:    opts.HistoryExecutionContext,
 		remoteIssueChanged:     opts.RemoteIssueChanged,
 		hostMemoryContext:      opts.HostMemoryContext,
 		hostMemorySummary:      opts.HostMemorySummary,
@@ -125,11 +129,12 @@ func (m *Manager) Get(ctx context.Context) (*agent.Runner, error) {
 			RulesText: m.rulesText,
 		},
 		UILoop: agent.RunnerUILoopInput{
-			UIEvents:               m.uiEvents,
-			ExecutorProvider:       m.executorProvider,
-			ExecCancelHub:          m.execCancelHub,
-			ExecContextDescription: m.execContextDescription,
-			RemoteIssueChanged:     m.remoteIssueChanged,
+			UIEvents:                m.uiEvents,
+			ExecutorProvider:        m.executorProvider,
+			ExecCancelHub:           m.execCancelHub,
+			ExecContextDescription:  m.execContextDescription,
+			HistoryExecutionContext: m.historyExecutionCtx,
+			RemoteIssueChanged:      m.remoteIssueChanged,
 		},
 		Memory: agent.RunnerMemoryInput{
 			CurrentHostMemoryContext: m.hostMemoryContext,

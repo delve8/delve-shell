@@ -88,6 +88,10 @@ func (m *Model) inputBelowBlock(inChoice bool) string {
 				wrapped := textwrap.WrapString(fb, m.contentWidth())
 				rows = append(rows, widget.ListRow{Text: hintStyle.Render(wrapped), PreRendered: true})
 			}
+			if fb := strings.TrimSpace(m.ChoiceCard.offlinePaste.submitFeedback); fb != "" {
+				wrapped := textwrap.WrapString(fb, m.contentWidth())
+				rows = append(rows, widget.ListRow{Text: hintStyle.Render(wrapped), PreRendered: true})
+			}
 		} else {
 			opts := approvalview.ChoiceOptions(m.ChoiceCard.pending != nil, m.ChoiceCard.pendingSensitive != nil)
 			adapted := make([]maininput.ChoiceOption, 0, len(opts))

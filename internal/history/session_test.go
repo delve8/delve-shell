@@ -69,6 +69,64 @@ func TestSession_AppendCommand_SkillAuditPayload(t *testing.T) {
 	}
 }
 
+func TestSession_AppendCommandWithContext_WritesExecutionContext(t *testing.T) {
+	dir := t.TempDir()
+	s := &Session{id: "exec-context", path: filepath.Join(dir, "exec-context.jsonl")}
+	defer s.Close()
+	if err := s.AppendCommandWithContext("hostname", true, "why", hiltypes.RiskLevelReadOnly, "", "", ExecutionContext{
+		Execution: ExecutionRemote,
+		Target:    "prod (10.0.0.1)",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(s.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ev Event
+	if err := json.Unmarshal([]byte(firstLine(string(data))), &ev); err != nil {
+		t.Fatal(err)
+	}
+	var payload map[string]interface{}
+	if err := json.Unmarshal(ev.Payload, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["execution"] != ExecutionRemote {
+		t.Fatalf("execution=%v want %q", payload["execution"], ExecutionRemote)
+	}
+	if payload["execution_target"] != "prod (10.0.0.1)" {
+		t.Fatalf("execution_target=%v", payload["execution_target"])
+	}
+}
+
+func TestSession_AppendCommandWithContext_WritesAutoAllowed(t *testing.T) {
+	dir := t.TempDir()
+	s := &Session{id: "auto-allowed", path: filepath.Join(dir, "auto-allowed.jsonl")}
+	defer s.Close()
+	if err := s.AppendCommandWithContext("kubectl get pods", true, "", "", "", "", ExecutionContext{
+		Execution:   ExecutionLocal,
+		Target:      "Local",
+		AutoAllowed: true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(s.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ev Event
+	if err := json.Unmarshal([]byte(firstLine(string(data))), &ev); err != nil {
+		t.Fatal(err)
+	}
+	var payload map[string]interface{}
+	if err := json.Unmarshal(ev.Payload, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["auto_allowed"] != true {
+		t.Fatalf("auto_allowed=%v want true", payload["auto_allowed"])
+	}
+}
+
 func TestSession_AppendCommandResult_RedactsBeforeWrite(t *testing.T) {
 	dir := t.TempDir()
 	// create session that writes under temp dir

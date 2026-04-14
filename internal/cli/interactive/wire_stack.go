@@ -77,6 +77,9 @@ func wireHostStack(
 		ExecContextDescription: func() string {
 			return rt.ExecContextForLLM()
 		},
+		HistoryExecutionContext: func() history.ExecutionContext {
+			return rt.HistoryExecutionContext()
+		},
 		RemoteIssueChanged: remoteIssueChanged,
 		HostMemoryContext: func() hostmem.Context {
 			return rt.HostMemoryContext()

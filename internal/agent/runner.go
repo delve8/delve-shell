@@ -47,6 +47,8 @@ type RunnerUILoopInput struct {
 	ExecContextDescription func() string
 	// RemoteIssueChanged updates host/UI remote footer state when an SSH transport error is detected or cleared.
 	RemoteIssueChanged func(issue string)
+	// HistoryExecutionContext returns the current execution environment for history/audit writes.
+	HistoryExecutionContext func() history.ExecutionContext
 }
 
 // RunnerMemoryInput connects host memory summary and tools for the current execution environment.
@@ -139,10 +141,11 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 				uiEvents <- x
 			}
 		},
-		UIEvents:         uiEvents,
-		ExecCancelHub:    opts.UILoop.ExecCancelHub,
-		ExecutorProvider: opts.UILoop.ExecutorProvider,
-		OnRemoteIssue:    opts.UILoop.RemoteIssueChanged,
+		UIEvents:                 uiEvents,
+		ExecCancelHub:            opts.UILoop.ExecCancelHub,
+		ExecutorProvider:         opts.UILoop.ExecutorProvider,
+		OnRemoteIssue:            opts.UILoop.RemoteIssueChanged,
+		ExecutionContextProvider: opts.UILoop.HistoryExecutionContext,
 	}
 	viewTool := &agenttools.ViewContextTool{
 		SessionPath: "",
@@ -174,10 +177,11 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 					uiEvents <- x
 				}
 			},
-			UIEvents:         uiEvents,
-			ExecCancelHub:    opts.UILoop.ExecCancelHub,
-			ExecutorProvider: opts.UILoop.ExecutorProvider,
-			OnRemoteIssue:    opts.UILoop.RemoteIssueChanged,
+			UIEvents:                 uiEvents,
+			ExecCancelHub:            opts.UILoop.ExecCancelHub,
+			ExecutorProvider:         opts.UILoop.ExecutorProvider,
+			OnRemoteIssue:            opts.UILoop.RemoteIssueChanged,
+			ExecutionContextProvider: opts.UILoop.HistoryExecutionContext,
 		}
 		tools = append(tools, viewHostMemoryTool, listSkillsTool, getSkillTool, runSkillTool)
 	}
@@ -192,6 +196,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 	} else {
 		sysPrompt += "\n\n--- Allowlist execution ---\n" + allowlistExecutionParagraph()
 	}
+	sysPrompt += "\n\n--- Command formatting ---\n" + multilineCommandFormattingParagraph()
 	if opts.Session.RulesText != "" {
 		sysPrompt += "\n\n--- User rules (rules) ---\n" + opts.Session.RulesText
 	}
@@ -235,7 +240,11 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 }
 
 func allowlistExecutionParagraph() string {
-	return `When an allowlist is configured: commands that match it and contain no shell write redirection (e.g. > or >>) may run without an additional consent step. Other proposed commands are held until the session authorizes them under host rules. An empty allowlist matches nothing, so every command follows the non-allowlist path unless other policy applies. When you need to run multiple shell steps, use a single execute_command with one multi-line command string. The command text itself should contain newline characters; do not keep the command on one long line and do not treat this as output formatting. Format the command string for user review with line breaks and trailing \ for long pipelines or argument lists. Only use a single-line command when it is genuinely short and easy to review.`
+	return `When an allowlist is configured: commands that match it and contain no shell write redirection (e.g. > or >>) may run without an additional consent step. Other proposed commands are held until the session authorizes them under host rules. An empty allowlist matches nothing, so every command follows the non-allowlist path unless other policy applies.`
+}
+
+func multilineCommandFormattingParagraph() string {
+	return `When you need to run multiple shell steps, use a single execute_command with one multi-line command string. The command text itself should contain newline characters; do not keep the command on one long line and do not treat this as output formatting. Format the command string for user review with line breaks and trailing \ for long pipelines or argument lists. Only use a single-line command when it is genuinely short and easy to review.`
 }
 
 // MaxConversationEvents is the max number of session events to use when building conversation history (user_input + llm_response only).

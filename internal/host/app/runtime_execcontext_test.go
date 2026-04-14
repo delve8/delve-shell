@@ -48,3 +48,20 @@ func TestRuntimeExecContextForLLM(t *testing.T) {
 		t.Fatalf("offline: got %q", got)
 	}
 }
+
+func TestRuntimeHistoryExecutionContext(t *testing.T) {
+	r := NewRuntime()
+	if got := r.HistoryExecutionContext(); got.Execution != "local" || got.Target != "Local" || got.OfflineMode {
+		t.Fatalf("local context: %+v", got)
+	}
+
+	r.SetRemoteExecution(true, "prod (10.0.0.1)", "10.0.0.1", "prod")
+	if got := r.HistoryExecutionContext(); got.Execution != "remote" || got.Target != "prod (10.0.0.1)" || got.OfflineMode {
+		t.Fatalf("remote context: %+v", got)
+	}
+
+	r.SetOffline(true)
+	if got := r.HistoryExecutionContext(); got.Execution != "offline_manual" || got.Target != "Offline" || !got.OfflineMode {
+		t.Fatalf("offline context: %+v", got)
+	}
+}

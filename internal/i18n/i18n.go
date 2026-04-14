@@ -193,6 +193,7 @@ const (
 	// Run line prefixes (execute_command / history replay); command follows; total width capped in UI.
 	KeyRunLineAutoAllowed   = "run_line_auto_allowed" // built-in checks passed; no user approval card
 	KeyRunLineApproved      = "run_line_approved"
+	KeyRunLineNotApproved   = "run_line_not_approved"
 	KeyRunLineDirect        = "run_line_direct"
 	KeyRunLineOfflineManual = "run_line_offline_manual"
 	KeyRunLineSuggested     = "run_line_suggested"
@@ -241,7 +242,9 @@ const (
 	KeyOfflinePasteIntro           = "offline_paste_intro"
 	KeyOfflinePasteReview          = "offline_paste_review"
 	KeyOfflinePasteHint            = "offline_paste_hint"
+	KeyOfflinePasteCopied          = "offline_paste_copied"
 	KeyOfflinePasteCopyFailed      = "offline_paste_copy_failed"
+	KeyOfflinePasteEmpty           = "offline_paste_empty"
 	KeyOfflinePastePlaceholder     = "offline_paste_placeholder"
 	KeyOfflineExecBashDisabled     = "offline_exec_bash_disabled"
 	KeyBashReturnNotice            = "bash_return_notice"
@@ -407,6 +410,7 @@ var messages = map[string]map[string]string{
 		KeyRunLabel:                             "Run: ",
 		KeyRunLineAutoAllowed:                   "Run (checks passed): ",
 		KeyRunLineApproved:                      "Run (approved): ",
+		KeyRunLineNotApproved:                   "Run (not approved): ",
 		KeyRunLineDirect:                        "Run (direct): ",
 		KeyRunLineOfflineManual:                 "Run (manual): ",
 		KeyRunLineSuggested:                     "Run (suggested): ",
@@ -449,7 +453,9 @@ var messages = map[string]map[string]string{
 		KeyOfflinePasteIntro:                    "This command is not run here. Paste the results back after you run it elsewhere.",
 		KeyOfflinePasteReview:                   "Review the command before running it elsewhere.",
 		KeyOfflinePasteHint:                     "Enter: submit · Esc: cancel",
+		KeyOfflinePasteCopied:                   "Command copied to clipboard. Run it elsewhere, then paste the output below.",
 		KeyOfflinePasteCopyFailed:               "Could not copy to clipboard. Select the command line above or copy manually.",
+		KeyOfflinePasteEmpty:                    "Paste output before submitting, or press Esc to cancel.",
 		KeyOfflinePastePlaceholder:              "Paste output",
 		KeyOfflineExecBashDisabled:              "/bash is not available in Offline mode.",
 		KeyBashReturnNotice:                     "Returned from embedded shell (/bash).",

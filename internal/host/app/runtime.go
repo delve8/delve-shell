@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 
+	"delve-shell/internal/history"
 	"delve-shell/internal/host/cmd"
 	"delve-shell/internal/hostmem"
 	"delve-shell/internal/input/lifecycletype"
@@ -162,6 +163,33 @@ func (r *Runtime) ExecContextForLLM() string {
 		return fmt.Sprintf("Remote: %s", host)
 	}
 	return "Remote"
+}
+
+// HistoryExecutionContext returns the current execution environment for audit/history writes.
+func (r *Runtime) HistoryExecutionContext() history.ExecutionContext {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if r.offline {
+		return history.ExecutionContext{
+			Execution:   history.ExecutionOfflineManual,
+			Target:      "Offline",
+			OfflineMode: true,
+		}
+	}
+	if !r.remoteActive {
+		return history.ExecutionContext{
+			Execution: history.ExecutionLocal,
+			Target:    "Local",
+		}
+	}
+	target := strings.TrimSpace(r.remoteLabel)
+	if target == "" {
+		target = "Remote"
+	}
+	return history.ExecutionContext{
+		Execution: history.ExecutionRemote,
+		Target:    target,
+	}
 }
 
 // SetHostMemoryContext updates the current host memory target after a probe resolves machine identity.

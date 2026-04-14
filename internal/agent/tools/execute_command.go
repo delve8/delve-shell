@@ -43,6 +43,8 @@ type ExecuteCommandTool struct {
 	RequestOfflinePaste func(command, reason, riskLevel string) hiltypes.OfflinePasteResponse
 	// OnRemoteIssue, when non-nil, is informed about SSH transport errors and cleared on successful remote execution.
 	OnRemoteIssue func(issue string)
+	// ExecutionContextProvider returns the current execution environment for history writes.
+	ExecutionContextProvider func() history.ExecutionContext
 }
 
 var _ tool.InvokableTool = (*ExecuteCommandTool)(nil)
@@ -96,9 +98,10 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 		riskLevel = "" // invalid value treated as not provided
 	}
 	sensitive := input.ResultContainsSecrets
+	execCtx := t.currentExecutionContext()
 
 	if t.OfflineMode != nil && t.OfflineMode() {
-		return t.invokableRunOffline(ctx, command, reason, riskLevel, sensitive)
+		return t.invokableRunOffline(ctx, command, reason, riskLevel, sensitive, execCtx)
 	}
 
 	allowed := false
@@ -111,20 +114,22 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 			autoHL = t.Allowlist.CommandAutoApproveHighlight(command)
 		}
 		resp := t.RequestApproval(command, "", reason, riskLevel, "", autoHL)
-		if t.Session != nil {
-			_ = t.Session.AppendCommand(command, resp.Approved, reason, riskLevel, "", "")
-		}
 		if resp.CopyRequested {
 			if t.Session != nil {
-				_ = t.Session.AppendSuggestedCommand(command, reason, riskLevel, "", "")
+				_ = t.Session.AppendSuggestedCommandWithContext(command, reason, riskLevel, "", "", execCtx)
 			}
 			return "The user copied the command and did not run it. Continue with your reply or suggest next steps.", nil
+		}
+		if t.Session != nil {
+			_ = t.Session.AppendCommandWithContext(command, resp.Approved, reason, riskLevel, "", "", execCtx)
 		}
 		if !resp.Approved {
 			return "The user declined to run this command: " + command + ". Continue without running it; you may suggest an alternative or ask what they prefer.", nil
 		}
 	} else if t.Session != nil {
-		_ = t.Session.AppendCommand(command, true, "", "", "", "")
+		autoCtx := execCtx
+		autoCtx.AutoAllowed = true
+		_ = t.Session.AppendCommandWithContext(command, true, "", "", "", "", autoCtx)
 	}
 
 	// When command may access sensitive path(s), ask user: refuse / run+store / run+no store.
@@ -172,7 +177,7 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 	}
 	cancelled := errors.Is(cmdCtx.Err(), context.Canceled) || errors.Is(err, context.Canceled)
 	if storeResult && t.Session != nil && !cancelled {
-		_ = t.Session.AppendCommandResult(command, outStr, errStr, exitCode)
+		_ = t.Session.AppendCommandResultWithContext(command, outStr, errStr, exitCode, execCtx)
 	}
 	if cancelled {
 		// Empty tail: "Execution cancelled." is shown when the host handles Esc; avoid duplicate Delve-prefixed lines.
@@ -214,7 +219,7 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 
 const manualPasteNoteForUI = "Manual paste — may be edited or mistaken."
 
-func (t *ExecuteCommandTool) invokableRunOffline(ctx context.Context, command, reason, riskLevel string, resultContainsSecrets bool) (string, error) {
+func (t *ExecuteCommandTool) invokableRunOffline(ctx context.Context, command, reason, riskLevel string, resultContainsSecrets bool, execCtx history.ExecutionContext) (string, error) {
 	_ = ctx
 	sensitive := resultContainsSecrets
 	storeResult := true
@@ -242,9 +247,9 @@ func (t *ExecuteCommandTool) invokableRunOffline(ctx context.Context, command, r
 	}
 	pasted := strings.TrimSpace(paste.Text)
 	if t.Session != nil {
-		_ = t.Session.AppendOfflineCommandProposal(command, reason, riskLevel)
+		_ = t.Session.AppendOfflineCommandProposalWithContext(command, reason, riskLevel, execCtx)
 		if storeResult {
-			_ = t.Session.AppendOfflinePasteResult(command, pasted)
+			_ = t.Session.AppendOfflinePasteResultWithContext(command, pasted, execCtx)
 		}
 	}
 	resultForUI := history.TruncateToolOutput(pasted)
@@ -266,4 +271,11 @@ func (t *ExecuteCommandTool) invokableRunOffline(ctx context.Context, command, r
 		return "The user submitted empty pasted output for: " + command + ".", nil
 	}
 	return "stdout:\n" + history.TruncateToolOutput(pasted), nil
+}
+
+func (t *ExecuteCommandTool) currentExecutionContext() history.ExecutionContext {
+	if t.ExecutionContextProvider != nil {
+		return t.ExecutionContextProvider()
+	}
+	return history.ExecutionContext{}
 }

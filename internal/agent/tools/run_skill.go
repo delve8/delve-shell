@@ -36,6 +36,8 @@ type RunSkillTool struct {
 	ExecCancelHub    *execcancel.Hub
 	ExecutorProvider func() execenv.CommandExecutor
 	OnRemoteIssue    func(issue string)
+	// ExecutionContextProvider returns the current execution environment for history writes.
+	ExecutionContextProvider func() history.ExecutionContext
 }
 
 var _ tool.InvokableTool = (*RunSkillTool)(nil)
@@ -121,6 +123,10 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 			executor = e
 		}
 	}
+	execCtx := history.ExecutionContext{}
+	if t.ExecutionContextProvider != nil {
+		execCtx = t.ExecutionContextProvider()
+	}
 	// When executor is SSH, scripts run on a remote host and must be synced first.
 	_, isRemote := executor.(*execenv.SSHExecutor)
 
@@ -197,14 +203,14 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 	} else {
 		resp = t.RequestApproval(cmd, summary, reason, riskLevel, skillName, nil)
 	}
-	if t.Session != nil {
-		_ = t.Session.AppendCommand(cmd, resp.Approved, reason, riskLevel, history.CommandPayloadKindSkill, skillName)
-	}
 	if resp.CopyRequested {
 		if t.Session != nil {
-			_ = t.Session.AppendSuggestedCommand(cmd, reason, riskLevel, history.CommandPayloadKindSkill, skillName)
+			_ = t.Session.AppendSuggestedCommandWithContext(cmd, reason, riskLevel, history.CommandPayloadKindSkill, skillName, execCtx)
 		}
 		return "The user copied the command and did not run it. Continue with your reply or suggest next steps.", nil
+	}
+	if t.Session != nil {
+		_ = t.Session.AppendCommandWithContext(cmd, resp.Approved, reason, riskLevel, history.CommandPayloadKindSkill, skillName, execCtx)
 	}
 	if !resp.Approved {
 		return "The user declined to run this skill: " + skillName + " " + scriptName + ". Continue without running it.", nil
@@ -256,7 +262,7 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 	}
 	cancelled := errors.Is(cmdCtx.Err(), context.Canceled) || errors.Is(err, context.Canceled)
 	if storeResult && t.Session != nil && !cancelled {
-		_ = t.Session.AppendCommandResult(cmd, outStr, errStr, exitCode)
+		_ = t.Session.AppendCommandResultWithContext(cmd, outStr, errStr, exitCode, execCtx)
 	}
 	if cancelled {
 		if t.OnExec != nil {

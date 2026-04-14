@@ -13,6 +13,8 @@ import (
 	"delve-shell/internal/teakey"
 )
 
+var offlinePasteClipboardWrite = clipboard.WriteAll
+
 func (m *Model) handleOfflinePasteShowMsg(msg OfflinePasteShowMsg) (*Model, tea.Cmd) {
 	if msg.Pending == nil || msg.Pending.Respond == nil {
 		return m, nil
@@ -52,8 +54,8 @@ func (m *Model) handleOfflinePasteShowMsg(msg OfflinePasteShowMsg) (*Model, tea.
 		Respond:   msg.Pending.Respond,
 	}
 	m.syncOfflinePasteHeight()
-	m.appendOfflinePasteCardToMessages()
 	copyCmd := m.offlinePasteWriteCommandToClipboard()
+	m.appendOfflinePasteCardToMessages()
 	printCmd := m.printTranscriptCmd(false)
 	return m, tea.Batch(paste.Focus(), copyCmd, printCmd)
 }
@@ -65,10 +67,10 @@ func (m *Model) offlinePasteWriteCommandToClipboard() tea.Cmd {
 	if op == nil {
 		return nil
 	}
-	if err := clipboard.WriteAll(op.Command); err != nil {
+	if err := offlinePasteClipboardWrite(op.Command); err != nil {
 		op.copyFeedback = i18n.T(i18n.KeyOfflinePasteCopyFailed)
 	} else {
-		op.copyFeedback = i18n.T(i18n.KeySuggestedCopied)
+		op.copyFeedback = i18n.T(i18n.KeyOfflinePasteCopied)
 	}
 	m.ChoiceCard.offlinePaste = op
 	return tea.Tick(2*time.Second, func(time.Time) tea.Msg {
@@ -116,6 +118,11 @@ func (m *Model) handleOfflinePasteKeyMsg(msg tea.KeyMsg) (*Model, tea.Cmd) {
 		return m, nil
 	case teakey.Enter:
 		text := strings.TrimSpace(m.ChoiceCard.offlinePaste.Paste.Value())
+		if text == "" {
+			m.ChoiceCard.offlinePaste.copyFeedback = ""
+			m.ChoiceCard.offlinePaste.submitFeedback = i18n.T(i18n.KeyOfflinePasteEmpty)
+			return m, nil
+		}
 		m.finishOfflinePaste(text, false)
 		m.syncInputHeight()
 		return m, nil
@@ -126,6 +133,9 @@ func (m *Model) handleOfflinePasteKeyMsg(msg tea.KeyMsg) (*Model, tea.Cmd) {
 		}
 		var cmd tea.Cmd
 		op.Paste, cmd = op.Paste.Update(msg)
+		if strings.TrimSpace(op.Paste.Value()) != "" {
+			op.submitFeedback = ""
+		}
 		m.ChoiceCard.offlinePaste = op
 		m.syncOfflinePasteHeight()
 		return m, cmd

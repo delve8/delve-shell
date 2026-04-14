@@ -31,6 +31,19 @@ type Session struct {
 	afterAppend func(Event)
 }
 
+type ExecutionContext struct {
+	Execution   string
+	Target      string
+	OfflineMode bool
+	AutoAllowed bool
+}
+
+const (
+	ExecutionLocal         = "local"
+	ExecutionRemote        = "remote"
+	ExecutionOfflineManual = "offline_manual"
+)
+
 // NewSession creates a new session with a generated id (YYMMDD-HHMMSS + random hex suffix);
 // file is created on first write to avoid empty files.
 func NewSession() (*Session, error) {
@@ -116,6 +129,10 @@ func (s *Session) AppendLLMResponse(payload interface{}) error {
 // AppendCommand records a command about to run; reason and riskLevel are optional, for audit.
 // kind is empty for shell (execute_command); use [CommandPayloadKindSkill] for run_skill. skillName is set when kind is skill.
 func (s *Session) AppendCommand(command string, approved bool, reason, riskLevel, kind, skillName string) error {
+	return s.AppendCommandWithContext(command, approved, reason, riskLevel, kind, skillName, ExecutionContext{})
+}
+
+func (s *Session) AppendCommandWithContext(command string, approved bool, reason, riskLevel, kind, skillName string, execCtx ExecutionContext) error {
 	payload := map[string]interface{}{"command": command, "approved": approved}
 	if reason != "" {
 		payload["reason"] = reason
@@ -129,11 +146,16 @@ func (s *Session) AppendCommand(command string, approved bool, reason, riskLevel
 	if skillName != "" {
 		payload["skill_name"] = skillName
 	}
+	appendExecutionContext(payload, execCtx)
 	return s.append(EventTypeCommand, payload)
 }
 
 // AppendSuggestedCommand records a command that was only suggested (not executed), e.g. in suggest mode.
 func (s *Session) AppendSuggestedCommand(command, reason, riskLevel, kind, skillName string) error {
+	return s.AppendSuggestedCommandWithContext(command, reason, riskLevel, kind, skillName, ExecutionContext{})
+}
+
+func (s *Session) AppendSuggestedCommandWithContext(command, reason, riskLevel, kind, skillName string, execCtx ExecutionContext) error {
 	payload := map[string]interface{}{"command": command, "approved": false, "suggested": true}
 	if reason != "" {
 		payload["reason"] = reason
@@ -147,30 +169,39 @@ func (s *Session) AppendSuggestedCommand(command, reason, riskLevel, kind, skill
 	if skillName != "" {
 		payload["skill_name"] = skillName
 	}
+	appendExecutionContext(payload, execCtx)
 	return s.append(EventTypeCommand, payload)
 }
 
 // AppendCommandResult records command execution result.
 func (s *Session) AppendCommandResult(command string, stdout, stderr string, exitCode int) error {
+	return s.AppendCommandResultWithContext(command, stdout, stderr, exitCode, ExecutionContext{})
+}
+
+func (s *Session) AppendCommandResultWithContext(command string, stdout, stderr string, exitCode int, execCtx ExecutionContext) error {
 	redactedStdout := RedactAndTruncateToolOutput(stdout)
 	redactedStderr := RedactAndTruncateToolOutput(stderr)
-	return s.append(EventTypeCommandResult, map[string]interface{}{
+	payload := map[string]interface{}{
 		"command":   command,
 		"stdout":    redactedStdout,
 		"stderr":    redactedStderr,
 		"exit_code": exitCode,
-	})
+	}
+	appendExecutionContext(payload, execCtx)
+	return s.append(EventTypeCommandResult, payload)
 }
 
 const manualPasteNoteEN = "Pasted by user; may be edited or mistaken."
 
 // AppendOfflineCommandProposal records a command proposed in offline mode (not executed in this tool).
 func (s *Session) AppendOfflineCommandProposal(command, reason, riskLevel string) error {
+	return s.AppendOfflineCommandProposalWithContext(command, reason, riskLevel, ExecutionContext{Execution: ExecutionOfflineManual, OfflineMode: true})
+}
+
+func (s *Session) AppendOfflineCommandProposalWithContext(command, reason, riskLevel string, execCtx ExecutionContext) error {
 	payload := map[string]interface{}{
-		"command":      command,
-		"approved":     true,
-		"execution":    "offline_manual",
-		"offline_mode": true,
+		"command":  command,
+		"approved": true,
 	}
 	if reason != "" {
 		payload["reason"] = reason
@@ -178,18 +209,50 @@ func (s *Session) AppendOfflineCommandProposal(command, reason, riskLevel string
 	if riskLevel != "" {
 		payload["risk_level"] = riskLevel
 	}
+	if strings.TrimSpace(execCtx.Execution) == "" {
+		execCtx.Execution = ExecutionOfflineManual
+	}
+	execCtx.OfflineMode = true
+	appendExecutionContext(payload, execCtx)
 	return s.append(EventTypeCommand, payload)
 }
 
 // AppendOfflinePasteResult records user-pasted output for an offline command (no exit_code; not machine-verified).
 func (s *Session) AppendOfflinePasteResult(command, pasted string) error {
-	return s.append(EventTypeCommandResult, map[string]interface{}{
+	return s.AppendOfflinePasteResultWithContext(command, pasted, ExecutionContext{Execution: ExecutionOfflineManual, OfflineMode: true})
+}
+
+func (s *Session) AppendOfflinePasteResultWithContext(command, pasted string, execCtx ExecutionContext) error {
+	payload := map[string]interface{}{
 		"command":      command,
 		"stdout":       RedactAndTruncateToolOutput(pasted),
 		"manual_paste": true,
-		"offline_mode": true,
 		"note":         manualPasteNoteEN,
-	})
+	}
+	if strings.TrimSpace(execCtx.Execution) == "" {
+		execCtx.Execution = ExecutionOfflineManual
+	}
+	execCtx.OfflineMode = true
+	appendExecutionContext(payload, execCtx)
+	return s.append(EventTypeCommandResult, payload)
+}
+
+func appendExecutionContext(payload map[string]interface{}, execCtx ExecutionContext) {
+	if payload == nil {
+		return
+	}
+	if v := strings.TrimSpace(execCtx.Execution); v != "" {
+		payload["execution"] = v
+	}
+	if v := strings.TrimSpace(execCtx.Target); v != "" {
+		payload["execution_target"] = v
+	}
+	if execCtx.OfflineMode {
+		payload["offline_mode"] = true
+	}
+	if execCtx.AutoAllowed {
+		payload["auto_allowed"] = true
+	}
 }
 
 // Close closes the session file; no-op if never written.

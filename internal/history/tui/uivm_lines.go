@@ -10,14 +10,60 @@ import (
 	"delve-shell/internal/ui/uivm"
 )
 
-func historyRunLinePrefix(suggested bool, execution string, offlineMode bool) string {
+func historyRunLinePrefix(suggested, autoAllowed bool, approved *bool, execution string, offlineMode bool, executionTarget string) string {
+	var prefix string
 	if offlineMode || strings.EqualFold(strings.TrimSpace(execution), "offline_manual") {
-		return i18n.T(i18n.KeyRunLineOfflineManual)
+		prefix = i18n.T(i18n.KeyRunLineOfflineManual)
+	} else if suggested {
+		prefix = i18n.T(i18n.KeyRunLineSuggested)
+	} else if autoAllowed {
+		prefix = i18n.T(i18n.KeyRunLineAutoAllowed)
+	} else if approved != nil && !*approved {
+		prefix = i18n.T(i18n.KeyRunLineNotApproved)
+	} else {
+		prefix = i18n.T(i18n.KeyRunLineApproved)
 	}
-	if suggested {
-		return i18n.T(i18n.KeyRunLineSuggested)
+	if label := historyExecutionLabel(execution, offlineMode, executionTarget); label != "" {
+		prefix = insertRunPrefixTarget(prefix, label)
 	}
-	return i18n.T(i18n.KeyRunLineApproved)
+	return prefix
+}
+
+func historyExecutionLabel(execution string, offlineMode bool, executionTarget string) string {
+	execution = strings.TrimSpace(strings.ToLower(execution))
+	target := strings.TrimSpace(executionTarget)
+	if offlineMode || execution == history.ExecutionOfflineManual {
+		if target != "" {
+			return target
+		}
+		return i18n.T(i18n.KeyRemoteTitleBarOffline)
+	}
+	switch execution {
+	case history.ExecutionLocal:
+		if target != "" {
+			return target
+		}
+		return i18n.T(i18n.KeyTitleBarLocal)
+	case history.ExecutionRemote:
+		if target != "" {
+			return i18n.T(i18n.KeyRemoteTitleBarRemote) + " " + target
+		}
+		return i18n.T(i18n.KeyRemoteTitleBarRemote)
+	default:
+		return target
+	}
+}
+
+func insertRunPrefixTarget(prefix, target string) string {
+	target = strings.TrimSpace(target)
+	if target == "" {
+		return prefix
+	}
+	trimmed := strings.TrimRight(prefix, " \t")
+	if strings.HasSuffix(trimmed, ":") {
+		return strings.TrimSuffix(trimmed, ":") + " @ " + target + ": "
+	}
+	return prefix + "@ " + target + " "
 }
 
 // EventsToTranscriptLinesForHistoryPreview converts session events into transcript lines for the
@@ -49,7 +95,10 @@ func EventsToTranscriptLinesForHistoryPreview(events []history.Event) []uivm.Lin
 				Kind        string `json:"kind"`
 				SkillName   string `json:"skill_name"`
 				Execution   string `json:"execution"`
+				ExecTarget  string `json:"execution_target"`
 				OfflineMode bool   `json:"offline_mode"`
+				AutoAllowed bool   `json:"auto_allowed"`
+				Approved    *bool  `json:"approved"`
 			}
 			if json.Unmarshal(ev.Payload, &p) != nil || strings.TrimSpace(p.Command) == "" {
 				continue
@@ -57,7 +106,7 @@ func EventsToTranscriptLinesForHistoryPreview(events []history.Event) []uivm.Lin
 			if p.Kind == history.CommandPayloadKindSkill && strings.TrimSpace(p.SkillName) != "" {
 				out = append(out, uivm.Line{Kind: uivm.LineSystemSuggest, Text: "Skill: " + strings.TrimSpace(p.SkillName)})
 			}
-			prefix := historyRunLinePrefix(p.Suggested, p.Execution, p.OfflineMode)
+			prefix := historyRunLinePrefix(p.Suggested, p.AutoAllowed, p.Approved, p.Execution, p.OfflineMode, p.ExecTarget)
 			out = append(out, uivm.Line{Kind: uivm.LineExec, Text: ui.FormatRunTranscriptLineFull(prefix, p.Command)})
 		case history.EventTypeCommandResult:
 			var p struct {
@@ -114,7 +163,10 @@ func EventsToTranscriptLines(events []history.Event) []uivm.Line {
 				Kind        string `json:"kind"`
 				SkillName   string `json:"skill_name"`
 				Execution   string `json:"execution"`
+				ExecTarget  string `json:"execution_target"`
 				OfflineMode bool   `json:"offline_mode"`
+				AutoAllowed bool   `json:"auto_allowed"`
+				Approved    *bool  `json:"approved"`
 			}
 			if json.Unmarshal(ev.Payload, &p) != nil || strings.TrimSpace(p.Command) == "" {
 				continue
@@ -122,7 +174,7 @@ func EventsToTranscriptLines(events []history.Event) []uivm.Line {
 			if p.Kind == history.CommandPayloadKindSkill && strings.TrimSpace(p.SkillName) != "" {
 				out = append(out, uivm.Line{Kind: uivm.LineSystemSuggest, Text: "Skill: " + strings.TrimSpace(p.SkillName)})
 			}
-			prefix := historyRunLinePrefix(p.Suggested, p.Execution, p.OfflineMode)
+			prefix := historyRunLinePrefix(p.Suggested, p.AutoAllowed, p.Approved, p.Execution, p.OfflineMode, p.ExecTarget)
 			out = append(out, uivm.Line{Kind: uivm.LineExec, Text: ui.FormatRunTranscriptLine(prefix, p.Command)})
 		case history.EventTypeCommandResult:
 			var p struct {
