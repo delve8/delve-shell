@@ -379,7 +379,7 @@ var messages = map[string]map[string]string{
 		KeyExecStreamPreviewHeader:              "Output (last lines):",
 		KeyExecStreamTranscriptTruncatedHint:    "%d earlier output line(s) omitted in the transcript; full output is stored in session history.",
 		KeyTranscriptReplayTruncatedNotice:      "------ Replay truncated to the latest %d lines. Use /history to view older content. ------",
-		KeyPlaceholderInput:                     "Type your question or / for slash commands.",
+		KeyPlaceholderInput:                     "Type your question, / for slash commands, ↑/↓ for history.",
 		KeyInputHistBrowsingHint:                "↑/↓ input history · Enter to send · any other key edits",
 		KeyInputHintApproveThree:                "1, 2 or 3",
 		KeyInputHintSensitive:                   "1, 2 or 3",

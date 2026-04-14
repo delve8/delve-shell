@@ -97,6 +97,13 @@ func TestNewModelInitialTranscriptOnly(t *testing.T) {
 	}
 }
 
+func TestNewModelPlaceholderMentionsHistoryRecall(t *testing.T) {
+	m := NewModel(nil, nil)
+	if got := m.Input.Placeholder; !strings.Contains(got, "↑/↓") || !strings.Contains(got, "/") {
+		t.Fatalf("placeholder=%q want slash and history hint", got)
+	}
+}
+
 func TestNewModelWithInputHistoryRecall(t *testing.T) {
 	m := NewModelWithInputHistory([]string{"restored"}, []string{"first", "second"}, nil)
 	m.Input.SetValue("")
