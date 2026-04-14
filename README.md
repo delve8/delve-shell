@@ -194,3 +194,10 @@ Main files:
 - Type `/skill` to open the installed-skill dropdown.
 - The dropdown includes `/skill New`, `/skill Remove`, and `/skill Update` after installed skills.
 - Title-case reserved rows stay distinct from real skills whose names are lowercase `new`, `remove`, or `update`.
+
+## Licensing
+
+`delve-shell` is licensed under Apache-2.0.
+
+Third-party dependency notices for the supported build targets are maintained in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+Refresh that file with `make notices` after dependency changes.

@@ -1,4 +1,4 @@
-.PHONY: build build-all clean
+.PHONY: build build-all clean notices
 
 BINARY := bin/delve-shell
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
@@ -27,3 +27,6 @@ build-all:
 
 clean:
 	rm -rf bin/
+
+notices:
+	PLATFORMS="$(PLATFORMS)" ./scripts/update-third-party-notices.sh

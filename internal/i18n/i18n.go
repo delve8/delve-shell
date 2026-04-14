@@ -121,6 +121,10 @@ Natural-language tasks drive suggested commands. Allowlisted commands with no sh
 ` + helpEnBashSection + `### /quit
 
 ` + helpQuitSectionEN + `
+
+## Licenses
+
+delve-shell is licensed under **Apache-2.0**. A best-effort list of third-party dependency notices is maintained in **THIRD_PARTY_NOTICES.md** in the source tree.
 `)
 	return b.String()
 }
