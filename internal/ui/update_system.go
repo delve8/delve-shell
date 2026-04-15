@@ -20,10 +20,18 @@ func (m *Model) closeOverlayCommon(refocusInput bool) (*Model, tea.Cmd) {
 	if feature, ok := overlayFeatureByKey(activeKey); ok && feature.Close != nil {
 		feature.Close(m, activeKey)
 	}
+	var cmd tea.Cmd
 	if refocusInput {
-		m.Input.Focus()
+		cmd = m.Input.Focus()
 	}
-	return m, nil
+	return m, cmd
+}
+
+// CloseOverlayAndRefocusInput closes the active overlay via the common path and returns the focus cmd
+// needed to restore the main input cursor.
+func (m *Model) CloseOverlayAndRefocusInput() tea.Cmd {
+	_, cmd := m.closeOverlayCommon(true)
+	return cmd
 }
 
 // handleOverlayKey routes key input when overlay is active.

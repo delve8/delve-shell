@@ -62,9 +62,9 @@ func handleRemoteAuthOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mo
 					Kind:   remoteauth.ResponseKindHostKeyReject,
 				}})
 			}
-			m.CloseOverlayVisual()
+			cmd := m.CloseOverlayAndRefocusInput()
 			state.RemoteAuth = RemoteAuthOverlayState{}
-			return ret(m, nil, true)
+			return ret(m, cmd, true)
 		case "1":
 			state.RemoteAuth.Connecting = true
 			if m.CommandSender != nil {
@@ -81,9 +81,9 @@ func handleRemoteAuthOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mo
 					Kind:   remoteauth.ResponseKindHostKeyReject,
 				}})
 			}
-			m.CloseOverlayVisual()
+			cmd := m.CloseOverlayAndRefocusInput()
 			state.RemoteAuth = RemoteAuthOverlayState{}
-			return ret(m, nil, true)
+			return ret(m, cmd, true)
 		}
 		return ret(m, nil, true)
 

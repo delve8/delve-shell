@@ -296,16 +296,15 @@ func handleAddRemoteOverwriteConfirm(
 	m.AppendInfoNotice(i18n.Tf(i18n.KeyConfigRemoteAdded, display))
 	rememberLastAddRemoteUsername(user)
 	rememberLastAddRemoteIdentityFile(keyPath)
-	m.CloseOverlayVisual()
+	cmd := m.CloseOverlayAndRefocusInput()
 	state.AddRemote.Active = false
 	state.AddRemote.Error = ""
 	state.AddRemote.OfferOverwrite = false
 	state.AddRemote.ChoiceIndex = 0
-	m.Input.Focus()
 	if m.CommandSender != nil {
 		_ = m.CommandSender.Send(hostcmd.ConfigUpdated{})
 	}
-	return ret(m, nil, true)
+	return ret(m, cmd, true)
 }
 
 func rememberLastAddRemoteIdentityFile(path string) {

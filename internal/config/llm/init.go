@@ -89,14 +89,11 @@ func Register() {
 			mm.Lines = append(mm.Lines, uivm.Line{Kind: uivm.LineBlank})
 			next, _ := m.Update(mm)
 			m = next.(*ui.Model)
-			m.CloseOverlayVisual()
-			st = getOverlayState()
-			st.Active = false
-			setOverlayState(st)
+			cmd := m.CloseOverlayAndRefocusInput()
 			if m.CommandSender != nil {
 				_ = m.CommandSender.Send(hostcmd.ConfigUpdated{})
 			}
-			return m, nil, true
+			return m, cmd, true
 		},
 		Content: func(m *ui.Model) (string, bool) {
 			return buildConfigModelOverlayContent()

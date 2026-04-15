@@ -48,7 +48,7 @@ func remoteConnectUIHandler(m *ui.Model, msg tea.Msg) (*ui.Model, tea.Cmd, bool)
 		if state.RemoteAuth.Step != "" {
 			state.RemoteAuth.Error = t.Err
 			if t.Success {
-				m.CloseOverlayVisual()
+				cmd := m.CloseOverlayAndRefocusInput()
 				state.RemoteAuth.Step = ""
 				state.RemoteAuth.Target = ""
 				state.RemoteAuth.Error = ""
@@ -56,7 +56,8 @@ func remoteConnectUIHandler(m *ui.Model, msg tea.Msg) (*ui.Model, tea.Cmd, bool)
 				state.RemoteAuth.HostKeyFP = ""
 				state.RemoteAuth.Username = ""
 				pathcomplete.SetState(pathcomplete.State{Index: -1})
-				m.Input.Focus()
+				setRemoteOverlayState(state)
+				return m, cmd, true
 			}
 			setRemoteOverlayState(state)
 			return m, nil, true
@@ -65,8 +66,8 @@ func remoteConnectUIHandler(m *ui.Model, msg tea.Msg) (*ui.Model, tea.Cmd, bool)
 		if state.ConnectRemote.Active {
 			if t.Success {
 				state.ConnectRemote = RemoteConnectOverlayState{}
-				m.CloseOverlayVisual()
-				m.Input.Focus()
+				setRemoteOverlayState(state)
+				return m, m.CloseOverlayAndRefocusInput(), true
 			}
 			setRemoteOverlayState(state)
 			return m, nil, true
@@ -75,8 +76,8 @@ func remoteConnectUIHandler(m *ui.Model, msg tea.Msg) (*ui.Model, tea.Cmd, bool)
 		state.AddRemote.Error = t.Err
 		if t.Success {
 			state.AddRemote.Active = false
-			m.CloseOverlayVisual()
-			m.Input.Focus()
+			setRemoteOverlayState(state)
+			return m, m.CloseOverlayAndRefocusInput(), true
 		} else if state.AddRemote.Active {
 			applyAddRemoteFieldFocus(&state.AddRemote)
 		}

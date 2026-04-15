@@ -682,6 +682,21 @@ func TestFinalizeUpdateOverlayCloseReplaysLatest100kLines(t *testing.T) {
 	}
 }
 
+func TestCloseOverlayCommonRefocusesMainInput(t *testing.T) {
+	m := NewModel(nil, nil)
+	m.Overlay.Active = true
+	m.Overlay.Key = "test"
+	m.Input.Blur()
+
+	next, cmd := m.closeOverlayCommon(true)
+	if next.Overlay.Active {
+		t.Fatal("expected overlay to close")
+	}
+	if cmd == nil {
+		t.Fatal("expected focus cmd when closing overlay back to main input")
+	}
+}
+
 func min(a, b int) int {
 	if a < b {
 		return a
