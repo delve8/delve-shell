@@ -50,6 +50,7 @@ func PlanSlashEnter(inputVal string, selected slashview.Option, hasSelected bool
 				SelectedIndex: selectedIndex,
 				SelectedCmd:   selected.Cmd,
 				SelectedFill:  selected.FillValue,
+				SelectedExec:  selected.ExecuteValue,
 			},
 		}
 	}

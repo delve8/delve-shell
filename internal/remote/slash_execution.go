@@ -34,9 +34,12 @@ func registerSlashExecutionProvider() {
 			accessText := text
 			selectedCmd := strings.TrimSpace(req.SelectedCmd)
 			selectedFill := strings.TrimSpace(req.SelectedFill)
-			if selectedFill != "" && strings.HasPrefix(selectedFill, "/access ") &&
-				selectedCmd != "" && strings.EqualFold(selectedCmd, text) {
-				accessText = selectedFill
+			selectedExec := strings.TrimSpace(req.SelectedExec)
+			if selectedExec != "" && strings.HasPrefix(selectedExec, "/access ") &&
+				(selectedCmd != "" && strings.EqualFold(selectedCmd, text) ||
+					selectedFill != "" && strings.EqualFold(selectedFill, text) ||
+					strings.EqualFold(selectedExec, text)) {
+				accessText = selectedExec
 			}
 			target := strings.TrimSpace(strings.TrimPrefix(accessText, "/access "))
 			return ui.SlashOverlayOpenResult(OverlayOpenKeyAddRemote, "", "", false, map[string]string{

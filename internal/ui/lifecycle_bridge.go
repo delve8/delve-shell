@@ -62,6 +62,7 @@ func (e slashExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inputlifecy
 	var selected slashview.Option
 	selected.Cmd = strings.TrimSpace(req.SelectedCmd)
 	selected.FillValue = strings.TrimSpace(req.SelectedFill)
+	selected.ExecuteValue = strings.TrimSpace(req.SelectedExec)
 	if selected.Cmd == "" && e.suggestionContext != nil && req.SelectedIndex >= 0 {
 		inputLine := strings.TrimSpace(req.InputLine)
 		if inputLine == "" {
@@ -79,6 +80,7 @@ func (e slashExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inputlifecy
 			SelectedIndex:        req.SelectedIndex,
 			SelectedCmd:          selected.Cmd,
 			SelectedFill:         selected.FillValue,
+			SelectedExec:         selected.ExecuteValue,
 			CommandSender:        e.sender,
 			OfflineExecutionMode: offline,
 		}); handled {

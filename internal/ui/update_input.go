@@ -262,7 +262,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) (*Model, tea.Cmd) {
 		})
 		if capture.FillOnly {
 			ks.setInputValue(capture.FillValue)
-			ks.setSlashSuggestIndex(0)
+			ks.setSlashSuggestIndex(m.slashSuggestIndexForFilledOption(capture.FillValue, selected))
 			return m, nil
 		}
 		m.appendUserSubmittedEcho(text)
@@ -315,7 +315,7 @@ func (m *Model) handleSlashTabKey(inputVal string) (*Model, tea.Cmd, bool) {
 	if plan.Kind == inputpreflight.EnterPlanFillOnly {
 		m.Input.SetValue(plan.FillValue)
 		m.Input.CursorEnd()
-		m.Interaction.slashSuggestIndex = 0
+		m.Interaction.slashSuggestIndex = m.slashSuggestIndexForFilledOption(plan.FillValue, selected)
 		m.syncInputHeight()
 		return m, nil, true
 	}
@@ -337,7 +337,7 @@ func (m *Model) handleSlashEnterKey(inputVal string) (*Model, tea.Cmd, bool) {
 	case inputpreflight.EnterPlanFillOnly:
 		m.Input.SetValue(plan.FillValue)
 		m.Input.CursorEnd()
-		m.Interaction.slashSuggestIndex = 0
+		m.Interaction.slashSuggestIndex = m.slashSuggestIndexForFilledOption(plan.FillValue, selected)
 		m.syncInputHeight()
 		return m, nil, true
 	case inputpreflight.EnterPlanSubmit:
@@ -367,4 +367,24 @@ func (m *Model) handleSlashEnterKey(inputVal string) (*Model, tea.Cmd, bool) {
 		}
 	}
 	return m, nil, false
+}
+
+func (m *Model) slashSuggestIndexForFilledOption(inputVal string, selected slashview.Option) int {
+	_, vis, viewOpts := m.slashSuggestionContext(inputVal)
+	for visibleIndex, optIndex := range vis {
+		if optIndex < 0 || optIndex >= len(viewOpts) {
+			continue
+		}
+		if sameSlashOption(viewOpts[optIndex], selected) {
+			return visibleIndex
+		}
+	}
+	return 0
+}
+
+func sameSlashOption(a, b slashview.Option) bool {
+	return a.Cmd == b.Cmd &&
+		a.Desc == b.Desc &&
+		a.FillValue == b.FillValue &&
+		a.ExecuteValue == b.ExecuteValue
 }

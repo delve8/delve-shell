@@ -73,7 +73,7 @@ func buildRemoteDropdownOptions(lang string) []ui.SlashOption {
 	opts := make([]ui.SlashOption, 0, 8)
 	seen := make(map[string]struct{}, 8)
 	push := func(opt ui.SlashOption) {
-		key := opt.Cmd + "\x00" + opt.FillValue + "\x00" + opt.Desc
+		key := opt.Cmd + "\x00" + opt.FillValue + "\x00" + opt.ExecuteValue + "\x00" + opt.Desc
 		if _, ok := seen[key]; ok {
 			return
 		}

@@ -126,8 +126,11 @@ Host prod-jump
 	if opts[1].Desc != "prod-jump (from ~/.ssh/config)" {
 		t.Fatalf("ssh config desc=%q want prod-jump (from ~/.ssh/config)", opts[1].Desc)
 	}
-	if opts[1].FillValue != "/access prod-jump" {
-		t.Fatalf("fill=%q want /access prod-jump", opts[1].FillValue)
+	if opts[1].FillValue != "/access prod.example.com" {
+		t.Fatalf("fill=%q want /access prod.example.com", opts[1].FillValue)
+	}
+	if opts[1].ExecuteValue != "/access prod-jump" {
+		t.Fatalf("execute=%q want /access prod-jump", opts[1].ExecuteValue)
 	}
 }
 
@@ -164,8 +167,11 @@ Host prod-jump
 	if opts[1].Desc != "prod-jump (from ~/.ssh/config)" {
 		t.Fatalf("second row desc=%q want ssh config alias desc", opts[1].Desc)
 	}
-	if opts[1].FillValue != "/access prod-jump" {
-		t.Fatalf("second row fill=%q want /access prod-jump", opts[1].FillValue)
+	if opts[1].FillValue != "/access prod.example.com" {
+		t.Fatalf("second row fill=%q want /access prod.example.com", opts[1].FillValue)
+	}
+	if opts[1].ExecuteValue != "/access prod-jump" {
+		t.Fatalf("second row execute=%q want /access prod-jump", opts[1].ExecuteValue)
 	}
 }
 

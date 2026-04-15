@@ -39,6 +39,9 @@ func TestProcessorProcess(t *testing.T) {
 		RawText:       "/access New",
 		InputLine:     " /access New ",
 		SelectedIndex: 2,
+		SelectedCmd:   "/access 10.0.0.1",
+		SelectedFill:  "/access 10.0.0.1",
+		SelectedExec:  "/access jump",
 	})
 	if err != nil {
 		t.Fatalf("Process() error = %v", err)
@@ -54,6 +57,15 @@ func TestProcessorProcess(t *testing.T) {
 	}
 	if exec.req.SelectedIndex != 2 {
 		t.Fatalf("SelectedIndex = %d want 2", exec.req.SelectedIndex)
+	}
+	if exec.req.SelectedCmd != "/access 10.0.0.1" {
+		t.Fatalf("SelectedCmd = %q want /access 10.0.0.1", exec.req.SelectedCmd)
+	}
+	if exec.req.SelectedFill != "/access 10.0.0.1" {
+		t.Fatalf("SelectedFill = %q want /access 10.0.0.1", exec.req.SelectedFill)
+	}
+	if exec.req.SelectedExec != "/access jump" {
+		t.Fatalf("SelectedExec = %q want /access jump", exec.req.SelectedExec)
 	}
 }
 

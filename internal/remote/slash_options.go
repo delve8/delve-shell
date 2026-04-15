@@ -53,18 +53,19 @@ func getRemoteSlashOptions(lang string) []ui.SlashOption {
 				continue
 			}
 			seenSSH[key] = struct{}{}
-			fillSuffix := displaySuffix
-			if _, collided := seenRemotes[displaySuffix]; collided && aliasSuffix != "" {
-				fillSuffix = aliasSuffix
-			}
 			desc := i18n.T(i18n.KeyDescAccessSSHConfig)
 			if alias := strings.TrimSpace(h.Alias); alias != "" {
 				desc = fmt.Sprintf("%s (from %s)", alias, desc)
 			}
+			executeValue := ""
+			if _, collided := seenRemotes[displaySuffix]; collided && aliasSuffix != "" {
+				executeValue = "/access " + aliasSuffix
+			}
 			hostOpts = append(hostOpts, ui.SlashOption{
-				Cmd:       "/access " + displaySuffix,
-				Desc:      desc,
-				FillValue: "/access " + fillSuffix,
+				Cmd:          "/access " + displaySuffix,
+				Desc:         desc,
+				FillValue:    "/access " + displaySuffix,
+				ExecuteValue: executeValue,
 			})
 		}
 	}

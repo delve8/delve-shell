@@ -419,6 +419,66 @@ Host test
 	}
 }
 
+func TestBlackboxSlashAccessSSHConfigAliasPrefixFillsHostnameAndTranscriptKeepsHostname(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", root)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USER", "localuser")
+	if err := config.EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	if err := config.AddRemote("ops@192.168.140.200", "global master", ""); err != nil {
+		t.Fatal(err)
+	}
+	sshDir := filepath.Join(home, ".ssh")
+	if err := os.MkdirAll(sshDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sshDir, "config"), []byte(`
+Host test
+  HostName 192.168.140.200
+  User ops
+`), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	f := newBlackboxFixture(t)
+	m := f.model
+	m.Input.SetValue("/access te")
+	m.Input.CursorEnd()
+
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m2 := next.(*ui.Model)
+	if got := m2.Input.Value(); got != "/access 192.168.140.200 " {
+		t.Fatalf("after first enter input=%q want /access 192.168.140.200 ", got)
+	}
+
+	next2, _ := m2.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	got := next2.(*ui.Model)
+	if !got.Overlay.Active {
+		t.Fatal("expected second enter to open connecting overlay")
+	}
+	if !strings.Contains(got.View(), "Target: test") {
+		t.Fatalf("expected connect overlay target to use selected alias, got %q", got.View())
+	}
+	transcript := strings.Join(got.TranscriptLines(), "\n")
+	if !strings.Contains(transcript, "/access 192.168.140.200") {
+		t.Fatalf("expected transcript to keep hostname, got %q", transcript)
+	}
+	if strings.Contains(transcript, "/access test") {
+		t.Fatalf("expected transcript not to switch to alias, got %q", transcript)
+	}
+	select {
+	case target := <-f.remoteOn:
+		if target != "test" {
+			t.Fatalf("expected AccessRemote target test, got %q", target)
+		}
+	default:
+		t.Fatal("expected selected ssh config row to emit alias AccessRemote intent")
+	}
+}
+
 func TestBlackboxSlashConfigRemoveRemoteAppendsImmediateSuccess(t *testing.T) {
 	i18n.SetLang("en")
 	dir := t.TempDir()

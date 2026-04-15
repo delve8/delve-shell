@@ -40,6 +40,8 @@ type InputSubmission struct {
 	SelectedCmd string
 	// SelectedFill preserves the selected row's fill value when it differs from the visible command.
 	SelectedFill string
+	// SelectedExec preserves the selected row's execution value when it differs from the visible command.
+	SelectedExec string
 	// ControlSignal is meaningful for control submissions.
 	ControlSignal ControlSignal
 }

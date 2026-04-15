@@ -29,7 +29,7 @@ func TestGetSlashOptionsForInput_history_returnsHistoryCommands(t *testing.T) {
 	raw := uiregistry.SlashOptionsForInput("/history", "en")
 	opts := make([]SlashOption, 0, len(raw))
 	for _, o := range raw {
-		opts = append(opts, SlashOption{Cmd: o.Cmd, Desc: o.Desc, FillValue: o.FillValue})
+		opts = append(opts, SlashOption{Cmd: o.Cmd, Desc: o.Desc, FillValue: o.FillValue, ExecuteValue: o.ExecuteValue})
 	}
 	if len(opts) < 1 {
 		t.Fatalf("expected at least 1 option, got %d", len(opts))

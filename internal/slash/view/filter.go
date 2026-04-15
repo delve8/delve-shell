@@ -59,7 +59,7 @@ func reservedRowMatch(rest, displayToken, lowerToken string) bool {
 	return false
 }
 
-func accessHostRowMatch(rest, hostSuffix, fillSuffix, desc string) bool {
+func accessHostRowMatch(rest, hostSuffix, fillSuffix, executeSuffix, desc string) bool {
 	if rest == "" {
 		return true
 	}
@@ -77,6 +77,13 @@ func accessHostRowMatch(rest, hostSuffix, fillSuffix, desc string) bool {
 		fillLower = strings.TrimPrefix(fillLower, "/access ")
 	}
 	if fillLower != "" && strings.HasPrefix(fillLower, restLower) {
+		return true
+	}
+	executeLower := strings.ToLower(strings.TrimSpace(executeSuffix))
+	if strings.HasPrefix(executeLower, "/access ") {
+		executeLower = strings.TrimPrefix(executeLower, "/access ")
+	}
+	if executeLower != "" && strings.HasPrefix(executeLower, restLower) {
 		return true
 	}
 	descLower := strings.ToLower(strings.TrimSpace(desc))
@@ -105,7 +112,7 @@ func accessTargetMatch(input, inputLower string, opt Option) bool {
 	case slashaccess.ReservedOffline:
 		return reservedRowMatch(rest, slashaccess.ReservedOffline, slashaccess.FilterOffline)
 	default:
-		return accessHostRowMatch(rest, suffix, opt.FillValue, opt.Desc)
+		return accessHostRowMatch(rest, suffix, opt.FillValue, opt.ExecuteValue, opt.Desc)
 	}
 }
 
@@ -168,9 +175,10 @@ func configDelRemoteHostMatch(inputLower, cmd string) bool {
 }
 
 type Option struct {
-	Cmd       string
-	Desc      string
-	FillValue string
+	Cmd          string
+	Desc         string
+	FillValue    string
+	ExecuteValue string
 }
 
 // VisibleIndices filters options by input prefix and returns matching indices.

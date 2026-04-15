@@ -27,7 +27,12 @@ func RegisterSlashOptionsProvider(p SlashOptionsProvider) {
 		}
 		out := make([]uiregistry.SlashOption, 0, len(opts))
 		for _, o := range opts {
-			out = append(out, uiregistry.SlashOption{Cmd: o.Cmd, Desc: o.Desc, FillValue: o.FillValue})
+			out = append(out, uiregistry.SlashOption{
+				Cmd:          o.Cmd,
+				Desc:         o.Desc,
+				FillValue:    o.FillValue,
+				ExecuteValue: o.ExecuteValue,
+			})
 		}
 		return out, true
 	})
@@ -43,7 +48,12 @@ func RegisterRootSlashOptionProvider(p func(lang string) []SlashOption) {
 		raw := p(lang)
 		out := make([]uiregistry.SlashOption, 0, len(raw))
 		for _, o := range raw {
-			out = append(out, uiregistry.SlashOption{Cmd: o.Cmd, Desc: o.Desc, FillValue: o.FillValue})
+			out = append(out, uiregistry.SlashOption{
+				Cmd:          o.Cmd,
+				Desc:         o.Desc,
+				FillValue:    o.FillValue,
+				ExecuteValue: o.ExecuteValue,
+			})
 		}
 		return out
 	})
@@ -157,6 +167,7 @@ type SlashExecutionRequest struct {
 	SelectedIndex int
 	SelectedCmd   string
 	SelectedFill  string
+	SelectedExec  string
 	CommandSender CommandSender
 	// OfflineExecutionMode when true: slash handlers should not start skill/remote execution flows that require in-process tools.
 	OfflineExecutionMode bool

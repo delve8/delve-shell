@@ -15,9 +15,10 @@ import (
 // SlashOption is one row in the slash command list (command + description).
 // It is a UI view-model; provider registries may use their own internal types.
 type SlashOption struct {
-	Cmd       string
-	Desc      string
-	FillValue string
+	Cmd          string
+	Desc         string
+	FillValue    string
+	ExecuteValue string
 }
 
 const inputBelowReserveRows = 4
@@ -30,7 +31,12 @@ func visibleSlashOptions(input string, opts []SlashOption) []int {
 func toSlashViewOptions(opts []SlashOption) []slashview.Option {
 	adapted := make([]slashview.Option, 0, len(opts))
 	for _, opt := range opts {
-		adapted = append(adapted, slashview.Option{Cmd: opt.Cmd, Desc: opt.Desc, FillValue: opt.FillValue})
+		adapted = append(adapted, slashview.Option{
+			Cmd:          opt.Cmd,
+			Desc:         opt.Desc,
+			FillValue:    opt.FillValue,
+			ExecuteValue: opt.ExecuteValue,
+		})
 	}
 	return adapted
 }
@@ -46,7 +52,7 @@ func (m *Model) slashSuggestionContextWithLang(inputVal, lang string) (opts []Sl
 	raw := uiregistry.SlashOptionsForInput(inputVal, lang)
 	opts = make([]SlashOption, 0, len(raw))
 	for _, o := range raw {
-		opts = append(opts, SlashOption{Cmd: o.Cmd, Desc: o.Desc, FillValue: o.FillValue})
+		opts = append(opts, SlashOption{Cmd: o.Cmd, Desc: o.Desc, FillValue: o.FillValue, ExecuteValue: o.ExecuteValue})
 	}
 	vis = visibleSlashOptions(inputVal, opts)
 	viewOpts = toSlashViewOptions(opts)

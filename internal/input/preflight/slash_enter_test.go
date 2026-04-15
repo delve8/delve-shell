@@ -26,7 +26,7 @@ func TestPlanSlashEnter(t *testing.T) {
 	})
 
 	t.Run("submit slash", func(t *testing.T) {
-		got := PlanSlashEnter("/help", slashview.Option{Cmd: "/help"}, true, 2)
+		got := PlanSlashEnter("/help", slashview.Option{Cmd: "/help", ExecuteValue: "/help"}, true, 2)
 		if got.Kind != EnterPlanSubmit {
 			t.Fatalf("Kind=%q want submit", got.Kind)
 		}
@@ -44,6 +44,9 @@ func TestPlanSlashEnter(t *testing.T) {
 		}
 		if got.Submission.SelectedIndex != 2 {
 			t.Fatalf("SelectedIndex=%d want 2", got.Submission.SelectedIndex)
+		}
+		if got.Submission.SelectedExec != "/help" {
+			t.Fatalf("SelectedExec=%q want /help", got.Submission.SelectedExec)
 		}
 	})
 

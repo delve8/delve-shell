@@ -6,7 +6,9 @@ import "strings"
 func ShouldFillOnly(chosen Option, input string) bool {
 	text := strings.TrimSpace(input)
 	textLower := strings.ToLower(text)
-	if chosen.FillValue == "" {
+	fillValue := strings.TrimSpace(chosen.FillValue)
+	executeValue := strings.TrimSpace(chosen.ExecuteValue)
+	if fillValue == "" && executeValue == "" {
 		cmd := strings.TrimSpace(chosen.Cmd)
 		// Case-fold so "/access l" can complete "/access Local" (reserved tokens are title-cased).
 		if strings.EqualFold(cmd, text) {
@@ -17,13 +19,20 @@ func ShouldFillOnly(chosen Option, input string) bool {
 		}
 		return descMatchesInput(chosen.Desc, text)
 	}
-	cmd := strings.ToLower(strings.TrimSpace(chosen.Cmd))
-	fill := strings.ToLower(strings.TrimSpace(chosen.FillValue))
-	if cmd == textLower || fill == textLower {
-		return false
+	values := []string{
+		strings.ToLower(strings.TrimSpace(chosen.Cmd)),
+		strings.ToLower(fillValue),
+		strings.ToLower(executeValue),
 	}
-	if strings.HasPrefix(cmd, textLower) || strings.HasPrefix(fill, textLower) {
-		return true
+	for _, value := range values {
+		if value != "" && value == textLower {
+			return false
+		}
+	}
+	for _, value := range values {
+		if value != "" && strings.HasPrefix(value, textLower) {
+			return true
+		}
 	}
 	return descMatchesInput(chosen.Desc, text)
 }
@@ -34,14 +43,16 @@ func ShouldResolveSelected(chosen Option, input string) bool {
 	if len(strings.TrimSpace(strings.TrimPrefix(text, "/"))) == 0 {
 		return false
 	}
-	if chosen.FillValue == "" {
+	if strings.TrimSpace(chosen.FillValue) == "" && strings.TrimSpace(chosen.ExecuteValue) == "" {
 		if strings.HasPrefix(chosen.Cmd, text) {
 			return true
 		}
 		return descMatchesInput(chosen.Desc, text)
 	}
-	if strings.HasPrefix(chosen.Cmd, text) || strings.HasPrefix(chosen.FillValue, text) {
-		return true
+	for _, value := range []string{chosen.Cmd, chosen.FillValue, chosen.ExecuteValue} {
+		if value != "" && strings.HasPrefix(value, text) {
+			return true
+		}
 	}
 	return descMatchesInput(chosen.Desc, text)
 }
