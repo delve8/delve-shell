@@ -18,6 +18,7 @@ type PendingApproval struct {
 type ApprovalResponse struct {
 	Approved      bool
 	CopyRequested bool
+	Guidance      string
 }
 
 // SensitiveChoice is the UI-level choice for sensitive path confirmation.

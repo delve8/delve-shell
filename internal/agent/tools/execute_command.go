@@ -121,15 +121,18 @@ func (t *ExecuteCommandTool) InvokableRun(ctx context.Context, argumentsInJSON s
 			return "The user copied the command and did not run it. Continue with your reply or suggest next steps.", nil
 		}
 		if t.Session != nil {
-			_ = t.Session.AppendCommandWithContext(command, resp.Approved, reason, riskLevel, "", "", execCtx)
+			_ = t.Session.AppendCommandWithContext(command, resp.Approved, reason, riskLevel, "", "", strings.TrimSpace(resp.Guidance), execCtx)
 		}
 		if !resp.Approved {
+			if guidance := strings.TrimSpace(resp.Guidance); guidance != "" {
+				return "The user declined to run this command and added guidance: " + guidance + ". Do not run the command. Follow the user's guidance and continue.", nil
+			}
 			return "The user declined to run this command: " + command + ". Continue without running it; you may suggest an alternative or ask what they prefer.", nil
 		}
 	} else if t.Session != nil {
 		autoCtx := execCtx
 		autoCtx.AutoAllowed = true
-		_ = t.Session.AppendCommandWithContext(command, true, "", "", "", "", autoCtx)
+		_ = t.Session.AppendCommandWithContext(command, true, "", "", "", "", "", autoCtx)
 	}
 
 	// When command may access sensitive path(s), ask user: refuse / run+store / run+no store.

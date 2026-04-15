@@ -193,6 +193,9 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) (*Model, tea.Cmd) {
 	if m.currentUIState() == uiStateOfflinePaste {
 		return m.handleOfflinePasteKeyMsg(msg)
 	}
+	if m.currentUIState() == uiStateApprovalGuide {
+		return m.handleApprovalGuidanceKeyMsg(msg)
+	}
 
 	state := m.currentUIState()
 	if state == uiStateChoiceCardAlt || state == uiStateChoiceCard {

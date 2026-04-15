@@ -30,3 +30,17 @@ func TestInputPlaceholder(t *testing.T) {
 		t.Fatal("expected default placeholder")
 	}
 }
+
+func TestChoiceOptionsPendingUsesGuidanceInsteadOfCopy(t *testing.T) {
+	i18n.SetLang("en")
+	opts := ChoiceOptions(true, false)
+	if len(opts) != 3 {
+		t.Fatalf("expected 3 options, got %d", len(opts))
+	}
+	if opts[1].Label != i18n.T(i18n.KeyChoiceGuide) {
+		t.Fatalf("option 2=%q want %q", opts[1].Label, i18n.T(i18n.KeyChoiceGuide))
+	}
+	if opts[2].Label != i18n.T(i18n.KeyChoiceDismiss) {
+		t.Fatalf("option 3=%q want %q", opts[2].Label, i18n.T(i18n.KeyChoiceDismiss))
+	}
+}

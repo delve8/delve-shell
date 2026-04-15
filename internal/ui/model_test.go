@@ -298,6 +298,106 @@ func TestTwoSequentialApprovalCards(t *testing.T) {
 	}
 }
 
+func TestApprovalGuidanceSubflow_SubmitAndEscape(t *testing.T) {
+	m := NewModel(nil, nil)
+	next, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 28})
+	mm := next.(*Model)
+
+	var resp uivm.ApprovalResponse
+	next, _ = mm.Update(ChoiceCardShowMsg{PendingApproval: &uivm.PendingApproval{
+		Command: "systemctl restart app",
+		Respond: func(r uivm.ApprovalResponse) {
+			resp = r
+		},
+	}})
+	mm = next.(*Model)
+
+	next, cmd := mm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'2'}})
+	if cmd == nil {
+		t.Fatal("expected focus cmd when entering approval guidance mode")
+	}
+	mm = next.(*Model)
+	if mm.currentUIState() != uiStateApprovalGuide {
+		t.Fatalf("state=%q want %q", mm.currentUIState(), uiStateApprovalGuide)
+	}
+	if mm.ChoiceCard.pending == nil {
+		t.Fatal("pending approval should remain while guidance is being entered")
+	}
+
+	next, _ = mm.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	mm = next.(*Model)
+	if mm.currentUIState() != uiStateChoiceCard {
+		t.Fatalf("state after Esc=%q want %q", mm.currentUIState(), uiStateChoiceCard)
+	}
+
+	next, _ = mm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'2'}})
+	mm = next.(*Model)
+	for _, r := range "check logs first" {
+		next, _ = mm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		mm = next.(*Model)
+	}
+	next, cmd = mm.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	if cmd == nil {
+		t.Fatal("expected transcript flush after submitting guidance")
+	}
+	mm = next.(*Model)
+	if resp.Guidance != "check logs first" {
+		t.Fatalf("guidance=%q want %q", resp.Guidance, "check logs first")
+	}
+	if resp.Approved || resp.CopyRequested {
+		t.Fatalf("unexpected response: %+v", resp)
+	}
+	if mm.ChoiceCard.pending != nil || mm.ChoiceCard.approvalGuidance != nil {
+		t.Fatalf("approval UI should be cleared, got %+v", mm.ChoiceCard)
+	}
+	joined := strings.Join(mm.messages, "\n")
+	if !strings.Contains(joined, "Decision: rejected with guidance") {
+		t.Fatalf("missing guided decision in transcript: %q", truncateForTest(joined, 400))
+	}
+	if !strings.Contains(joined, "User guidance: check logs first") {
+		t.Fatalf("missing guidance line in transcript: %q", truncateForTest(joined, 400))
+	}
+}
+
+func TestApprovalGuidanceSubflow_AIReplyRestoresMainInputFocus(t *testing.T) {
+	m := NewModel(nil, nil)
+	next, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 28})
+	mm := next.(*Model)
+
+	next, _ = mm.Update(ChoiceCardShowMsg{PendingApproval: &uivm.PendingApproval{
+		Command: "systemctl restart app",
+		Respond: func(r uivm.ApprovalResponse) {},
+	}})
+	mm = next.(*Model)
+
+	next, _ = mm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'2'}})
+	mm = next.(*Model)
+	for _, r := range "check logs first" {
+		next, _ = mm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		mm = next.(*Model)
+	}
+	next, _ = mm.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	mm = next.(*Model)
+	if mm.Interaction.WaitingForAI {
+		t.Fatal("test precondition: waiting state should be managed by host, not guidance submit path")
+	}
+
+	mm.Interaction.WaitingForAI = true
+	next, cmd := mm.Update(TranscriptAppendMsg{
+		ClearWaitingForAI: true,
+		Lines:             []uivm.Line{{Kind: uivm.LineAI, Text: "check logs first"}},
+	})
+	if cmd == nil {
+		t.Fatal("expected focus+print cmd when AI reply clears waiting state")
+	}
+	mm = next.(*Model)
+	next, _ = mm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'x'}})
+	mm = next.(*Model)
+	if got := mm.Input.Value(); got != "x" {
+		t.Fatalf("input value=%q want %q", got, "x")
+	}
+}
+
 func truncateForTest(s string, max int) string {
 	if len(s) <= max {
 		return s

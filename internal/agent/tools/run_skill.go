@@ -210,9 +210,12 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 		return "The user copied the command and did not run it. Continue with your reply or suggest next steps.", nil
 	}
 	if t.Session != nil {
-		_ = t.Session.AppendCommandWithContext(cmd, resp.Approved, reason, riskLevel, history.CommandPayloadKindSkill, skillName, execCtx)
+		_ = t.Session.AppendCommandWithContext(cmd, resp.Approved, reason, riskLevel, history.CommandPayloadKindSkill, skillName, strings.TrimSpace(resp.Guidance), execCtx)
 	}
 	if !resp.Approved {
+		if guidance := strings.TrimSpace(resp.Guidance); guidance != "" {
+			return "The user declined to run this skill command and added guidance: " + guidance + ". Do not run the command. Follow the user's guidance and continue.", nil
+		}
 		return "The user declined to run this skill: " + skillName + " " + scriptName + ". Continue without running it.", nil
 	}
 

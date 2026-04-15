@@ -21,6 +21,7 @@ func (m *Model) handleOfflinePasteShowMsg(msg OfflinePasteShowMsg) (*Model, tea.
 	}
 	m.ChoiceCard.pending = nil
 	m.ChoiceCard.pendingSensitive = nil
+	m.ChoiceCard.approvalGuidance = nil
 	paste := textarea.New()
 	paste.Placeholder = i18n.T(i18n.KeyOfflinePastePlaceholder)
 	paste.Prompt = "│ "

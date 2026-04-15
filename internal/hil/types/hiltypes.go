@@ -6,10 +6,11 @@
 // depend on internal/ui.
 package hiltypes
 
-// ApprovalResponse is the user's choice for a pending command: Run, Reject, or Copy (copy to clipboard, do not run).
+// ApprovalResponse is the user's choice for a pending command: Run, Dismiss, Copy, or reject with guidance.
 type ApprovalResponse struct {
 	Approved      bool // true = run the command
 	CopyRequested bool // true = user chose Copy (do not run; copy to clipboard)
+	Guidance      string
 }
 
 // AutoApproveHighlightKind classifies a byte range of the command for approval UI coloring.

@@ -23,8 +23,8 @@ func ChoiceOptions(hasPending bool, hasPendingSensitive bool) []ChoiceOption {
 	case hasPending:
 		return []ChoiceOption{
 			{1, i18n.T(i18n.KeyChoiceApprove)},
-			{2, i18n.T(i18n.KeyChoiceDismiss)},
-			{3, i18n.T(i18n.KeyChoiceCopy)},
+			{2, i18n.T(i18n.KeyChoiceGuide)},
+			{3, i18n.T(i18n.KeyChoiceDismiss)},
 		}
 	case hasPendingSensitive:
 		return []ChoiceOption{

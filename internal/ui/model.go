@@ -93,11 +93,19 @@ type OfflinePasteState struct {
 	submitFeedback string
 }
 
+// ApprovalGuidanceState holds the short follow-up instruction textarea used when the user rejects
+// a proposed command but wants to steer the AI within the same turn.
+type ApprovalGuidanceState struct {
+	Input          textarea.Model
+	submitFeedback string
+}
+
 // ChoiceCardState stores current pending choice card (approval or sensitive confirmation).
 type ChoiceCardState struct {
 	pending          *uivm.PendingApproval
 	pendingSensitive *uivm.PendingSensitive
 	offlinePaste     *OfflinePasteState
+	approvalGuidance *ApprovalGuidanceState
 }
 
 // LayoutState stores terminal layout dimensions for rendering.

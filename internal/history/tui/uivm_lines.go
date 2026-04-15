@@ -92,6 +92,7 @@ func EventsToTranscriptLinesForHistoryPreview(events []history.Event) []uivm.Lin
 			var p struct {
 				Command     string `json:"command"`
 				Suggested   bool   `json:"suggested"`
+				Guidance    string `json:"guidance"`
 				Kind        string `json:"kind"`
 				SkillName   string `json:"skill_name"`
 				Execution   string `json:"execution"`
@@ -108,6 +109,9 @@ func EventsToTranscriptLinesForHistoryPreview(events []history.Event) []uivm.Lin
 			}
 			prefix := historyRunLinePrefix(p.Suggested, p.AutoAllowed, p.Approved, p.Execution, p.OfflineMode, p.ExecTarget)
 			out = append(out, uivm.Line{Kind: uivm.LineExec, Text: ui.FormatRunTranscriptLineFull(prefix, p.Command)})
+			if g := strings.TrimSpace(p.Guidance); g != "" {
+				out = append(out, uivm.Line{Kind: uivm.LineSystemSuggest, Text: i18n.T(i18n.KeyApprovalUserGuidance) + " " + g})
+			}
 		case history.EventTypeCommandResult:
 			var p struct {
 				Stdout string `json:"stdout"`
@@ -160,6 +164,7 @@ func EventsToTranscriptLines(events []history.Event) []uivm.Line {
 			var p struct {
 				Command     string `json:"command"`
 				Suggested   bool   `json:"suggested"`
+				Guidance    string `json:"guidance"`
 				Kind        string `json:"kind"`
 				SkillName   string `json:"skill_name"`
 				Execution   string `json:"execution"`
@@ -176,6 +181,9 @@ func EventsToTranscriptLines(events []history.Event) []uivm.Line {
 			}
 			prefix := historyRunLinePrefix(p.Suggested, p.AutoAllowed, p.Approved, p.Execution, p.OfflineMode, p.ExecTarget)
 			out = append(out, uivm.Line{Kind: uivm.LineExec, Text: ui.FormatRunTranscriptLine(prefix, p.Command)})
+			if g := strings.TrimSpace(p.Guidance); g != "" {
+				out = append(out, uivm.Line{Kind: uivm.LineSystemSuggest, Text: i18n.T(i18n.KeyApprovalUserGuidance) + " " + g})
+			}
 		case history.EventTypeCommandResult:
 			var p struct {
 				Stdout string `json:"stdout"`

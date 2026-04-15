@@ -327,7 +327,7 @@ func TestHandleHistoryPreviewOpen_ReadsFullSession(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := sess.AppendCommand("bash run.sh", true, "run demo skill", "low", history.CommandPayloadKindSkill, "demo"); err != nil {
+	if err := sess.AppendCommand("bash run.sh", true, "run demo skill", "low", history.CommandPayloadKindSkill, "demo", ""); err != nil {
 		t.Fatal(err)
 	}
 	if err := sess.AppendCommandResult("bash run.sh", "needle-output", "", 0); err != nil {

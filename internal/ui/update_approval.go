@@ -64,6 +64,12 @@ func (m *Model) appendDecisionLines(decision approvalview.DecisionKind) {
 				} else {
 					rendered = suggestStyle.Render(line.Text)
 				}
+			case approvalview.DecisionGuided:
+				if line.Text == i18n.T(i18n.KeyApprovalDecisionGuided) {
+					rendered = approvalDecisionRejectedStyle.Render(line.Text)
+				} else {
+					rendered = suggestStyle.Render(line.Text)
+				}
 			case approvalview.DecisionReject:
 				if line.Text == i18n.T(i18n.KeyApprovalDecisionRejected) {
 					rendered = approvalDecisionRejectedStyle.Render(line.Text)
@@ -128,6 +134,12 @@ func (m *Model) applyApprovalDecision(d approvalflow.Decision) (*Model, tea.Cmd,
 		m.ChoiceCard.pendingSensitive = nil
 		m.Interaction.ChoiceIndex = 0
 		return m, m.printTranscriptCmd(false), true
+
+	case approvalflow.DecisionGuide:
+		if m.ChoiceCard.pending == nil {
+			return m, nil, true
+		}
+		return m, m.startApprovalGuidanceInput(), true
 
 	case approvalflow.DecisionApprove, approvalflow.DecisionReject, approvalflow.DecisionDismiss, approvalflow.DecisionCopy:
 		if m.ChoiceCard.pending == nil {

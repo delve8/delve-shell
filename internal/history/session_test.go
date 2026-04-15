@@ -43,7 +43,7 @@ func TestSession_AppendCommand_SkillAuditPayload(t *testing.T) {
 	dir := t.TempDir()
 	s := &Session{id: "skill-audit", path: filepath.Join(dir, "skill-audit.jsonl")}
 	defer s.Close()
-	if err := s.AppendCommand("./run.sh", true, "why", hiltypes.RiskLevelLow, CommandPayloadKindSkill, "my-skill"); err != nil {
+	if err := s.AppendCommand("./run.sh", true, "why", hiltypes.RiskLevelLow, CommandPayloadKindSkill, "my-skill", ""); err != nil {
 		t.Fatal(err)
 	}
 	data, err := os.ReadFile(s.path)
@@ -73,7 +73,7 @@ func TestSession_AppendCommandWithContext_WritesExecutionContext(t *testing.T) {
 	dir := t.TempDir()
 	s := &Session{id: "exec-context", path: filepath.Join(dir, "exec-context.jsonl")}
 	defer s.Close()
-	if err := s.AppendCommandWithContext("hostname", true, "why", hiltypes.RiskLevelReadOnly, "", "", ExecutionContext{
+	if err := s.AppendCommandWithContext("hostname", true, "why", hiltypes.RiskLevelReadOnly, "", "", "", ExecutionContext{
 		Execution: ExecutionRemote,
 		Target:    "prod (10.0.0.1)",
 	}); err != nil {
@@ -103,7 +103,7 @@ func TestSession_AppendCommandWithContext_WritesAutoAllowed(t *testing.T) {
 	dir := t.TempDir()
 	s := &Session{id: "auto-allowed", path: filepath.Join(dir, "auto-allowed.jsonl")}
 	defer s.Close()
-	if err := s.AppendCommandWithContext("kubectl get pods", true, "", "", "", "", ExecutionContext{
+	if err := s.AppendCommandWithContext("kubectl get pods", true, "", "", "", "", "", ExecutionContext{
 		Execution:   ExecutionLocal,
 		Target:      "Local",
 		AutoAllowed: true,

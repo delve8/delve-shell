@@ -81,7 +81,14 @@ func (m *Model) inputBelowBlock(inChoice bool) string {
 	rows := make([]widget.ListRow, 0, inputBelowReserveRows)
 	reserveRows := inputBelowStableRows
 	if inChoice {
-		if m.ChoiceCard.offlinePaste != nil {
+		if m.ChoiceCard.approvalGuidance != nil {
+			hint := suggestStyle.Render(i18n.T(i18n.KeyApprovalGuidanceHint))
+			rows = []widget.ListRow{{Text: hint, PreRendered: true}}
+			if fb := strings.TrimSpace(m.ChoiceCard.approvalGuidance.submitFeedback); fb != "" {
+				wrapped := textwrap.WrapString(fb, m.contentWidth())
+				rows = append(rows, widget.ListRow{Text: hintStyle.Render(wrapped), PreRendered: true})
+			}
+		} else if m.ChoiceCard.offlinePaste != nil {
 			hint := suggestStyle.Render(i18n.T(i18n.KeyOfflinePasteHint))
 			rows = []widget.ListRow{{Text: hint, PreRendered: true}}
 			if fb := strings.TrimSpace(m.ChoiceCard.offlinePaste.copyFeedback); fb != "" {

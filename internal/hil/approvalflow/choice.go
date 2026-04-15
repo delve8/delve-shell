@@ -37,6 +37,7 @@ type Decision int
 const (
 	DecisionNone Decision = iota
 	DecisionApprove
+	DecisionGuide
 	DecisionReject
 	DecisionCopy
 	DecisionDismiss
@@ -92,9 +93,9 @@ func Evaluate(key string, hasPending bool, hasSensitive bool, choiceIndex int, c
 		case ChoiceKey1:
 			r.Decision = DecisionApprove
 		case ChoiceKey2:
-			r.Decision = DecisionDismiss
+			r.Decision = DecisionGuide
 		case ChoiceKey3:
-			r.Decision = DecisionCopy
+			r.Decision = DecisionDismiss
 		}
 	}
 	return r

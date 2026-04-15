@@ -66,6 +66,7 @@ const (
 	uiStateMainInput     uiState = "main_input"
 	uiStateChoiceCard    uiState = "choice_card"
 	uiStateChoiceCardAlt uiState = "choice_card_alt"
+	uiStateApprovalGuide uiState = "approval_guide"
 	uiStateOfflinePaste  uiState = "offline_paste"
 	uiStateOverlay       uiState = "overlay"
 )
@@ -75,6 +76,9 @@ const (
 func (m *Model) currentUIState() uiState {
 	if m.ChoiceCard.offlinePaste != nil {
 		return uiStateOfflinePaste
+	}
+	if m.ChoiceCard.approvalGuidance != nil {
+		return uiStateApprovalGuide
 	}
 	if m.ChoiceCard.pendingSensitive != nil {
 		return uiStateChoiceCardAlt
@@ -305,7 +309,7 @@ func (m *Model) InitOverlayViewport() {
 
 // hasPendingChoiceCard reports whether the UI is in approval, sensitive confirmation, or offline paste mode.
 func (m *Model) hasPendingChoiceCard() bool {
-	return m.ChoiceCard.pending != nil || m.ChoiceCard.pendingSensitive != nil || m.ChoiceCard.offlinePaste != nil
+	return m.ChoiceCard.pending != nil || m.ChoiceCard.pendingSensitive != nil || m.ChoiceCard.offlinePaste != nil || m.ChoiceCard.approvalGuidance != nil
 }
 
 // contentWidth returns a safe rendering width with fallback.
@@ -335,6 +339,10 @@ func (m *Model) inputChromeHeight() int {
 	height += m.primaryInputHeight()
 	if m.ChoiceCard.offlinePaste != nil {
 		if m.ChoiceCard.offlinePaste.Paste.LineCount() > 1 {
+			height += 1
+		}
+	} else if m.ChoiceCard.approvalGuidance != nil {
+		if m.ChoiceCard.approvalGuidance.Input.LineCount() > 1 {
 			height += 1
 		}
 	} else if m.Input.LineCount() > 1 {
@@ -367,6 +375,9 @@ func (m *Model) primaryInputHeight() int {
 	if m.ChoiceCard.offlinePaste != nil {
 		return m.ChoiceCard.offlinePaste.Paste.Height()
 	}
+	if m.ChoiceCard.approvalGuidance != nil {
+		return m.ChoiceCard.approvalGuidance.Input.Height()
+	}
 	return m.Input.Height()
 }
 
@@ -375,6 +386,9 @@ func (m *Model) primaryInputView() string {
 	if m.ChoiceCard.offlinePaste != nil {
 		return m.ChoiceCard.offlinePaste.Paste.View()
 	}
+	if m.ChoiceCard.approvalGuidance != nil {
+		return m.ChoiceCard.approvalGuidance.Input.View()
+	}
 	return m.Input.View()
 }
 
@@ -382,6 +396,9 @@ func (m *Model) primaryInputView() string {
 func (m *Model) primaryInputLineCount() int {
 	if m.ChoiceCard.offlinePaste != nil {
 		return m.ChoiceCard.offlinePaste.Paste.LineCount()
+	}
+	if m.ChoiceCard.approvalGuidance != nil {
+		return m.ChoiceCard.approvalGuidance.Input.LineCount()
 	}
 	return m.Input.LineCount()
 }

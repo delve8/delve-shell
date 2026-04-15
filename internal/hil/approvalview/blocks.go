@@ -35,6 +35,7 @@ type DecisionKind int
 
 const (
 	DecisionApprove DecisionKind = iota
+	DecisionGuided
 	DecisionReject
 	DecisionDismiss
 	DecisionSensitiveRefuse
@@ -210,6 +211,8 @@ func BuildDecision(
 	switch decision {
 	case DecisionApprove:
 		base = append(base, Line{Kind: LineSuggest, Text: i18n.T(i18n.KeyApprovalDecisionApproved)})
+	case DecisionGuided:
+		base = append(base, Line{Kind: LineSuggest, Text: i18n.T(i18n.KeyApprovalDecisionGuided)})
 	case DecisionReject:
 		base = append(base, Line{Kind: LineSuggest, Text: i18n.T(i18n.KeyApprovalDecisionRejected)})
 	case DecisionDismiss:

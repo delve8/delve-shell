@@ -70,9 +70,13 @@ func (m *Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (*Model, tea.Cmd) {
 		if m.ChoiceCard.offlinePaste != nil {
 			m.ChoiceCard.offlinePaste.Paste.SetWidth(m.layout.Width - minInputLayoutWidth)
 		}
+		if m.ChoiceCard.approvalGuidance != nil {
+			m.ChoiceCard.approvalGuidance.Input.SetWidth(m.layout.Width - minInputLayoutWidth)
+		}
 	}
 	m.syncInputHeight()
 	m.syncOfflinePasteHeight()
+	m.syncApprovalGuidanceHeight()
 	if m.Overlay.Active {
 		m.InitOverlayViewport()
 	}
@@ -94,6 +98,9 @@ func (m *Model) handleBlurMsg() (*Model, tea.Cmd) {
 	if m.ChoiceCard.offlinePaste != nil {
 		m.ChoiceCard.offlinePaste.Paste.Blur()
 	}
+	if m.ChoiceCard.approvalGuidance != nil {
+		m.ChoiceCard.approvalGuidance.Input.Blur()
+	}
 	return m, nil
 }
 
@@ -103,6 +110,9 @@ func (m *Model) handleFocusMsg() (*Model, tea.Cmd) {
 	}
 	if m.ChoiceCard.offlinePaste != nil {
 		return m, m.ChoiceCard.offlinePaste.Paste.Focus()
+	}
+	if m.ChoiceCard.approvalGuidance != nil {
+		return m, m.ChoiceCard.approvalGuidance.Input.Focus()
 	}
 	return m, m.Input.Focus()
 }
@@ -117,19 +127,24 @@ func (m *Model) handleMouseMsg(msg tea.MouseMsg) (*Model, tea.Cmd) {
 }
 
 func (m *Model) handleTranscriptAppendMsg(msg TranscriptAppendMsg) (*Model, tea.Cmd) {
+	var focusCmd tea.Cmd
 	if msg.ClearWaitingForAI || (m.Interaction.WaitingForAI && transcriptHasSystemError(msg.Lines)) {
 		m.Interaction.WaitingForAI = false
+		if !m.Overlay.Active && m.ChoiceCard.pending == nil && m.ChoiceCard.pendingSensitive == nil &&
+			m.ChoiceCard.offlinePaste == nil && m.ChoiceCard.approvalGuidance == nil && !m.Interaction.CommandExecuting {
+			focusCmd = m.Input.Focus()
+		}
 	}
 	if len(msg.Lines) == 0 {
-		return m, nil
+		return m, focusCmd
 	}
 	rendered := m.renderTranscriptLines(msg.Lines)
 	rendered = dropDuplicateRunTranscriptPrefix(m.messages, msg.Lines, rendered)
 	if len(rendered) == 0 {
-		return m, nil
+		return m, focusCmd
 	}
 	m.AppendTranscriptLines(rendered...)
-	return m, m.printTranscriptCmd(false)
+	return m, tea.Batch(focusCmd, m.printTranscriptCmd(false))
 }
 
 // transcriptRunLineDedupeLookback is how many prior printed transcript rows to scan when suppressing
@@ -218,9 +233,11 @@ func (m *Model) handleChoiceCardShowMsg(msg ChoiceCardShowMsg) (*Model, tea.Cmd)
 	if msg.PendingSensitive != nil {
 		m.ChoiceCard.pendingSensitive = msg.PendingSensitive
 		m.ChoiceCard.pending = nil
+		m.ChoiceCard.approvalGuidance = nil
 	} else if msg.PendingApproval != nil {
 		m.ChoiceCard.pending = msg.PendingApproval
 		m.ChoiceCard.pendingSensitive = nil
+		m.ChoiceCard.approvalGuidance = nil
 	} else {
 		return m, nil
 	}

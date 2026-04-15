@@ -149,3 +149,20 @@ func TestEventsToTranscriptLines_NotApprovedUsesNotApprovedPrefix(t *testing.T) 
 		t.Fatalf("unexpected not-approved line: %q", lines[0].Text)
 	}
 }
+
+func TestEventsToTranscriptLines_IncludesGuidanceLine(t *testing.T) {
+	i18n.SetLang("en")
+	events := []history.Event{
+		{Type: history.EventTypeCommand, Payload: json.RawMessage(`{"command":"kubectl delete pod x","approved":false,"guidance":"check logs first","execution":"local","execution_target":"Local"}`)},
+	}
+	lines := EventsToTranscriptLines(events)
+	if len(lines) < 2 {
+		t.Fatalf("expected exec and guidance lines, got %d", len(lines))
+	}
+	if lines[0].Text != "Run (not approved) @ Local: kubectl delete pod x" {
+		t.Fatalf("unexpected command line: %q", lines[0].Text)
+	}
+	if lines[1].Text != "User guidance: check logs first" {
+		t.Fatalf("unexpected guidance line: %q", lines[1].Text)
+	}
+}

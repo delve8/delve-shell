@@ -39,13 +39,13 @@ AI-assisted ops. Commands run only after HIL approval (cards or allowlist path).
 
 ## What it does
 
-Natural-language tasks drive suggested commands. Allowlisted commands with no shell write redirection run without a card; others show a card (Run, Dismiss, or Copy). An empty allowlist matches nothing, so every command shows the card. Runs are recorded in session history for audit.
+Natural-language tasks drive suggested commands. Allowlisted commands with no shell write redirection run without a card; others show a card (Run, tell AI what to do instead, or Dismiss). An empty allowlist matches nothing, so every command shows the card. Runs are recorded in session history for audit.
 
 ## Quick start
 
 1. Enter a task in the input line and press **Enter** to send.
 2. Multi-line input: **Shift+Enter**, **Alt+Enter**, or **Ctrl+J** inserts a newline; **Enter** sends. Many terminals map Shift+Enter like Enter—**Alt+Enter** or **Ctrl+J** is the reliable newline.
-3. On a command card: **1** runs, **2** dismisses without running, **3** copies the command.
+3. On a command card: **1** runs, **2** tells the AI what to do instead, **3** dismisses without running.
 4. **Up/Down** recall recent submitted lines (chat and slash). While a recalled line starts with a slash, Up/Down continues history; slash completion resumes after any other key or after leaving history browse.
 5. Type **/** to open slash suggestions (Up/Down on a slash line; Tab or Enter inserts the highlighted row; Enter submits a complete slash command).
 6. **PgUp/PgDown** scrolls the log; **/help** opens this panel.
@@ -160,36 +160,42 @@ const (
 	KeyExecStreamTranscriptTruncatedHint = "exec_stream_transcript_truncated_hint"
 	KeyTranscriptReplayTruncatedNotice   = "transcript_replay_truncated_notice"
 	KeyPlaceholderInput                  = "placeholder_input"
-	KeyInputHintApproveThree             = "input_hint_approve_three" // placeholder when waiting for 1/2/3 (Run/Dismiss/Copy)
+	KeyInputHintApproveThree             = "input_hint_approve_three" // placeholder when waiting for 1/2/3 (Run/Tell AI/Dismiss)
 	KeyInputHintSensitive                = "input_hint_sensitive"     // placeholder when waiting for 1/2/3 (sensitive)
 	KeyInputHistBrowsingHint             = "input_hist_browsing_hint" // one line under input while walking local input history
 	// Choice menu labels (for Up/Down + Enter selection list)
-	KeyChoiceApprove             = "choice_approve"
-	KeyChoiceRefuse              = "choice_refuse"
-	KeyChoiceRunStore            = "choice_run_store"
-	KeyChoiceRunNoStore          = "choice_run_no_store"
-	KeyChoiceCopy                = "choice_copy"
-	KeyChoiceDismiss             = "choice_dismiss"
-	KeyApprovalPrompt            = "approval_prompt"
-	KeyApprovalSummary           = "approval_summary"
-	KeyApprovalAutoApprovePolicy = "approval_auto_approve_policy" // section label before auto-approve Risk reason lines (Risk Hint)
-	KeyApprovalWhy               = "approval_why"                 // label before user-stated run purpose
-	KeyApprovalDecisionApproved  = "approval_decision_approved"
-	KeyApprovalDecisionRejected  = "approval_decision_rejected"
-	KeyRiskReadOnly              = "risk_read_only"
-	KeyRiskLow                   = "risk_low"
-	KeyRiskHigh                  = "risk_high"
-	KeySensitivePrompt           = "sensitive_prompt"
-	KeySensitiveChoice1          = "sensitive_choice_1"
-	KeySensitiveChoice2          = "sensitive_choice_2"
-	KeySensitiveChoice3          = "sensitive_choice_3"
-	KeyUserLabel                 = "user_label"             // legacy transcript prefix; prefer KeyTranscriptUserPrompt in UI
-	KeyAILabel                   = "ai_label"               // legacy; AI transcript no longer prefixes with this in TUI
-	KeyTranscriptUserPrompt      = "transcript_user_prompt" // same as input prompt, e.g. "> "
-	KeyInfoLabel                 = "info_label"             // non-error system hints, e.g. "Info: "
-	KeyAgentReplyEmpty           = "agent_reply_empty"      // model finished with no assistant text (API/empty parse)
-	KeyDelveLabel                = "delve_label"            // deprecated; use KeyInfoLabel for transcript hints
-	KeyRunLabel                  = "run_label"              // legacy; prefer KeyRunLine* for execute transcript
+	KeyChoiceApprove               = "choice_approve"
+	KeyChoiceGuide                 = "choice_guide"
+	KeyChoiceRefuse                = "choice_refuse"
+	KeyChoiceRunStore              = "choice_run_store"
+	KeyChoiceRunNoStore            = "choice_run_no_store"
+	KeyChoiceCopy                  = "choice_copy"
+	KeyChoiceDismiss               = "choice_dismiss"
+	KeyApprovalPrompt              = "approval_prompt"
+	KeyApprovalSummary             = "approval_summary"
+	KeyApprovalAutoApprovePolicy   = "approval_auto_approve_policy" // section label before auto-approve Risk reason lines (Risk Hint)
+	KeyApprovalWhy                 = "approval_why"                 // label before user-stated run purpose
+	KeyApprovalDecisionApproved    = "approval_decision_approved"
+	KeyApprovalDecisionGuided      = "approval_decision_guided"
+	KeyApprovalDecisionRejected    = "approval_decision_rejected"
+	KeyApprovalUserGuidance        = "approval_user_guidance"
+	KeyApprovalGuidancePlaceholder = "approval_guidance_placeholder"
+	KeyApprovalGuidanceHint        = "approval_guidance_hint"
+	KeyApprovalGuidanceEmpty       = "approval_guidance_empty"
+	KeyRiskReadOnly                = "risk_read_only"
+	KeyRiskLow                     = "risk_low"
+	KeyRiskHigh                    = "risk_high"
+	KeySensitivePrompt             = "sensitive_prompt"
+	KeySensitiveChoice1            = "sensitive_choice_1"
+	KeySensitiveChoice2            = "sensitive_choice_2"
+	KeySensitiveChoice3            = "sensitive_choice_3"
+	KeyUserLabel                   = "user_label"             // legacy transcript prefix; prefer KeyTranscriptUserPrompt in UI
+	KeyAILabel                     = "ai_label"               // legacy; AI transcript no longer prefixes with this in TUI
+	KeyTranscriptUserPrompt        = "transcript_user_prompt" // same as input prompt, e.g. "> "
+	KeyInfoLabel                   = "info_label"             // non-error system hints, e.g. "Info: "
+	KeyAgentReplyEmpty             = "agent_reply_empty"      // model finished with no assistant text (API/empty parse)
+	KeyDelveLabel                  = "delve_label"            // deprecated; use KeyInfoLabel for transcript hints
+	KeyRunLabel                    = "run_label"              // legacy; prefer KeyRunLine* for execute transcript
 	// Run line prefixes (execute_command / history replay); command follows; total width capped in UI.
 	KeyRunLineAutoAllowed   = "run_line_auto_allowed" // built-in checks passed; no user approval card
 	KeyRunLineApproved      = "run_line_approved"
@@ -384,6 +390,7 @@ var messages = map[string]map[string]string{
 		KeyInputHintApproveThree:                "1, 2 or 3",
 		KeyInputHintSensitive:                   "1, 2 or 3",
 		KeyChoiceApprove:                        "Approve",
+		KeyChoiceGuide:                          "Tell AI What To Do",
 		KeyChoiceRefuse:                         "Refuse (do not run)",
 		KeyChoiceRunStore:                       "Run, return to AI, store in history",
 		KeyChoiceRunNoStore:                     "Run, return to AI, do not store",
@@ -394,7 +401,12 @@ var messages = map[string]map[string]string{
 		KeyApprovalAutoApprovePolicy:            "Risk Hint:",
 		KeyApprovalWhy:                          "Purpose:",
 		KeyApprovalDecisionApproved:             "Decision: approved",
+		KeyApprovalDecisionGuided:               "Decision: rejected with guidance",
 		KeyApprovalDecisionRejected:             "Decision: rejected",
+		KeyApprovalUserGuidance:                 "User guidance:",
+		KeyApprovalGuidancePlaceholder:          "Tell AI what to do instead...",
+		KeyApprovalGuidanceHint:                 "Enter to send guidance · Esc to go back",
+		KeyApprovalGuidanceEmpty:                "Tell the AI what to do instead, or press Esc to go back.",
 		KeyRiskReadOnly:                         "READ-ONLY",
 		KeyRiskLow:                              "LOW-RISK",
 		KeyRiskHigh:                             "HIGH-RISK",

@@ -197,7 +197,7 @@ func (p *Presenter) ShowApproval(req *hiltypes.ApprovalRequest) {
 		SkillName:            req.SkillName,
 		AutoApproveHighlight: req.AutoApproveHighlight,
 		Respond: func(r uivm.ApprovalResponse) {
-			req.ResponseCh <- hiltypes.ApprovalResponse{Approved: r.Approved, CopyRequested: r.CopyRequested}
+			req.ResponseCh <- hiltypes.ApprovalResponse{Approved: r.Approved, CopyRequested: r.CopyRequested, Guidance: r.Guidance}
 		},
 	}})
 }

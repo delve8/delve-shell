@@ -128,11 +128,11 @@ func (s *Session) AppendLLMResponse(payload interface{}) error {
 
 // AppendCommand records a command about to run; reason and riskLevel are optional, for audit.
 // kind is empty for shell (execute_command); use [CommandPayloadKindSkill] for run_skill. skillName is set when kind is skill.
-func (s *Session) AppendCommand(command string, approved bool, reason, riskLevel, kind, skillName string) error {
-	return s.AppendCommandWithContext(command, approved, reason, riskLevel, kind, skillName, ExecutionContext{})
+func (s *Session) AppendCommand(command string, approved bool, reason, riskLevel, kind, skillName, guidance string) error {
+	return s.AppendCommandWithContext(command, approved, reason, riskLevel, kind, skillName, guidance, ExecutionContext{})
 }
 
-func (s *Session) AppendCommandWithContext(command string, approved bool, reason, riskLevel, kind, skillName string, execCtx ExecutionContext) error {
+func (s *Session) AppendCommandWithContext(command string, approved bool, reason, riskLevel, kind, skillName, guidance string, execCtx ExecutionContext) error {
 	payload := map[string]interface{}{"command": command, "approved": approved}
 	if reason != "" {
 		payload["reason"] = reason
@@ -145,6 +145,9 @@ func (s *Session) AppendCommandWithContext(command string, approved bool, reason
 	}
 	if skillName != "" {
 		payload["skill_name"] = skillName
+	}
+	if guidance != "" {
+		payload["guidance"] = guidance
 	}
 	appendExecutionContext(payload, execCtx)
 	return s.append(EventTypeCommand, payload)
