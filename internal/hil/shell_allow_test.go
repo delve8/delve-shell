@@ -248,6 +248,70 @@ func TestCommandAllowsAutoApprove_EchoVarArgStillAutoApprove(t *testing.T) {
 	}
 }
 
+func TestCommandAllowsAutoApprove_KubectlQuotedCmdSubstFlagValue(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	if !w.CommandAllowsAutoApprove(`kubectl -n "$(printf '%s' "$ns")" get pods`) {
+		t.Fatal("quoted command substitution in concrete flag value slot should auto-approve when inner command is read-only")
+	}
+	if !w.CommandAllowsAutoApprove(`kubectl -n="$(printf '%s' "$ns")" get pods`) {
+		t.Fatal("short attached quoted command substitution flag value should auto-approve")
+	}
+	if !w.CommandAllowsAutoApprove(`kubectl --namespace="$(printf '%s' "$ns")" get pods`) {
+		t.Fatal("attached quoted command substitution flag value should auto-approve")
+	}
+	if !w.CommandAllowsAutoApprove(`kubectl -n "$(printf '%s' "$(printf default)")" get pods`) {
+		t.Fatal("nested quoted command substitution in concrete flag value slot should auto-approve")
+	}
+	if w.CommandAllowsAutoApprove(`kubectl -n $(printf '%s' "$ns") get pods`) {
+		t.Fatal("unquoted command substitution in flag value must not auto-approve")
+	}
+	if w.CommandAllowsAutoApprove(`kubectl -n "$(rm -rf /)" get pods`) {
+		t.Fatal("quoted command substitution must not auto-approve when inner command is unsafe")
+	}
+	if w.CommandAllowsAutoApprove(`kubectl "$(printf get)" pods`) {
+		t.Fatal("command substitution in subcommand position must not auto-approve")
+	}
+	if w.CommandAllowsAutoApprove(`kubectl "$(printf -- --namespace=default)" get pods`) {
+		t.Fatal("command substitution that could synthesize a flag name must not auto-approve")
+	}
+}
+
+func TestCommandAllowsAutoApprove_AssignmentCmdSubstInnerOnly(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	if !w.CommandAllowsAutoApprove(`cid=$(crictl ps -a --name "$p" -q | head -n1)`) {
+		t.Fatal("assignment command substitution should auto-approve when inner commands are read-only")
+	}
+	if !w.CommandAllowsAutoApprove(`if cid=$(crictl ps -a --name "$p" -q | head -n1); then echo "$cid"; fi`) {
+		t.Fatal("control-flow should still recurse into safe assignment command substitution")
+	}
+	if w.CommandAllowsAutoApprove(`cid=$(rm -rf /)`) {
+		t.Fatal("assignment command substitution must not auto-approve when inner command is unsafe")
+	}
+	if w.CommandAllowsAutoApprove(`if cid=$(rm -rf /); then echo "$cid"; fi`) {
+		t.Fatal("control-flow should still reject unsafe assignment command substitution")
+	}
+}
+
+func TestCommandAllowsAutoApprove_OpenAnyFlagRejectsQuotedCmdSubstValue(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	if w.CommandAllowsAutoApprove(`crictl ps -a --name "$(printf '%s' "$p")" -q`) {
+		t.Fatal("open-any flag policies must not auto-approve quoted command substitution values")
+	}
+	if w.CommandAllowsAutoApprove(`crictl ps -a --name="$(printf '%s' "$p")" -q`) {
+		t.Fatal("open-any flag policies must not auto-approve attached quoted command substitution values")
+	}
+}
+
+func TestCommandAllowsAutoApprove_CrictlQuotedCmdSubstOperandNeedsSentinel(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	if w.CommandAllowsAutoApprove(`crictl inspect "$(crictl ps -a --name "$p" -q | head -n1)"`) {
+		t.Fatal("quoted command substitution operand without -- sentinel must not auto-approve")
+	}
+	if !w.CommandAllowsAutoApprove(`crictl inspect -- "$(crictl ps -a --name "$p" -q | head -n1)"`) {
+		t.Fatal("quoted command substitution operand after -- sentinel should auto-approve")
+	}
+}
+
 func TestCommandAllowsAutoApprove_OneLinePendingPodsEventsScript(t *testing.T) {
 	w := NewAllowlist(config.DefaultLoadedAllowlist())
 	// Single-line -lc script (no newlines inside quotes); mirrors user pipeline without /tmp writes.

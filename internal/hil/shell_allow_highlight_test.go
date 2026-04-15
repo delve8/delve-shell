@@ -10,8 +10,9 @@ import (
 
 func TestCommandAutoApproveHighlight_expansionRejectPinsVarSites(t *testing.T) {
 	w := NewAllowlist(nil)
-	// kubectl -n "$(...)" still rejects collection; pin expansion spans instead of full-line risk.
-	cmd := `while read ns; do kubectl -n "$(echo x)" get pods; done`
+	// Unquoted command substitution in a non-permissive argv slot still rejects collection; pin the
+	// expansion span instead of falling back to full-line risk.
+	cmd := `while read ns; do kubectl -n $(echo x) get pods; done`
 	spans := w.CommandAutoApproveHighlight(cmd)
 	if len(spans) == 1 && spans[0].Start == 0 && spans[0].End == len(cmd) && spans[0].Kind == hiltypes.AutoApproveHighlightRisk {
 		t.Fatal("expected narrowed risk spans, got full-line risk")
@@ -40,6 +41,38 @@ func TestCommandAutoApproveHighlight_kubectlQuotedOpaqueNamespaceNotFullLineRisk
 		if s.Kind == hiltypes.AutoApproveHighlightRisk && s.Start == 0 && s.End == len(cmd) {
 			t.Fatalf("did not want full-line risk for quoted opaque -n; spans=%+v", spans)
 		}
+	}
+}
+
+func TestCommandAutoApproveHighlight_kubectlQuotedCmdSubstFlagValueNotFullLineRisk(t *testing.T) {
+	w := NewAllowlist(nil)
+	cmd := `kubectl -n "$(printf '%s' "$ns")" get pods`
+	spans := w.CommandAutoApproveHighlight(cmd)
+	for _, s := range spans {
+		if s.Kind == hiltypes.AutoApproveHighlightRisk && s.Start == 0 && s.End == len(cmd) {
+			t.Fatalf("did not want full-line risk for quoted cmdSubst flag value; spans=%+v", spans)
+		}
+	}
+}
+
+func TestCommandAutoApproveHighlight_openAnyFlagQuotedCmdSubstStillShowsRisk(t *testing.T) {
+	w := NewAllowlist(nil)
+	cmd := `crictl ps -a --name "$(printf '%s' "$p")" -q`
+	spans := w.CommandAutoApproveHighlight(cmd)
+	var hasRisk, hasSafe bool
+	for _, s := range spans {
+		switch s.Kind {
+		case hiltypes.AutoApproveHighlightRisk:
+			hasRisk = true
+		case hiltypes.AutoApproveHighlightSafe:
+			hasSafe = true
+		}
+	}
+	if !hasRisk {
+		t.Fatalf("expected risk for open-any flag with quoted cmdSubst, got %+v", spans)
+	}
+	if !hasSafe {
+		t.Fatalf("expected inner read-only command to remain highlighted as safe, got %+v", spans)
 	}
 }
 

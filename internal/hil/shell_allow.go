@@ -228,7 +228,7 @@ func stmtSegments(st *syntax.Stmt, ctx walkCtx, localFuncs map[string]struct{}, 
 				return substSegsFromNode(c, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)
 			}
 			if readBuiltinSkipsAllowlistSegment(callName) {
-				if callExprArgsContainDisallowedExpansionForStructured(c.Args[1:]) {
+				if callExprArgsContainDisallowedExpansionForReadBuiltin(c.Args[1:]) {
 					return nil, true
 				}
 				return substSegsFromNode(c, ctx, localFuncs, unwrapLeft, argv0AllowsVarArgs)

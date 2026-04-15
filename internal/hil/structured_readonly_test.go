@@ -63,6 +63,148 @@ func TestStaticOrOpaque_rejectsUnquotedOrNonSimpleParam(t *testing.T) {
 	}
 }
 
+func TestStaticOrOpaque_kubectlQuotedCmdSubstFlagValue(t *testing.T) {
+	t.Parallel()
+	ld := config.DefaultLoadedAllowlist()
+	pol, ok := ld.Commands["kubectl"]
+	if !ok {
+		t.Fatal("missing kubectl in default allowlist")
+	}
+	qa, ok := staticOrOpaqueSimpleCommandArgs(`kubectl -n "$(printf '%s' "$ns")" get pods`)
+	if !ok {
+		t.Fatal("staticOrOpaqueSimpleCommandArgs failed")
+	}
+	if len(qa) < 3 || !qa[2].cmdSubst {
+		t.Fatalf("expected quoted cmdSubst argv slot for -n value, got %#v", qa)
+	}
+	if !matchReadOnlyCLIArgs(qa, &pol) {
+		t.Fatal("expected matchReadOnlyCLIArgs for quoted cmdSubst flag value")
+	}
+}
+
+func TestStaticOrOpaque_kubectlAttachedQuotedCmdSubstFlagValue(t *testing.T) {
+	t.Parallel()
+	ld := config.DefaultLoadedAllowlist()
+	pol, ok := ld.Commands["kubectl"]
+	if !ok {
+		t.Fatal("missing kubectl in default allowlist")
+	}
+	qa, ok := staticOrOpaqueSimpleCommandArgs(`kubectl --namespace="$(printf '%s' "$ns")" get pods`)
+	if !ok {
+		t.Fatal("staticOrOpaqueSimpleCommandArgs failed")
+	}
+	if len(qa) < 2 || qa[1].flagToken != "--namespace=" || !qa[1].cmdSubst {
+		t.Fatalf("expected attached quoted cmdSubst flag token, got %#v", qa)
+	}
+	if !matchReadOnlyCLIArgs(qa, &pol) {
+		t.Fatal("expected attached quoted cmdSubst value to match allowlist")
+	}
+}
+
+func TestStaticOrOpaque_kubectlShortAttachedQuotedCmdSubstFlagValue(t *testing.T) {
+	t.Parallel()
+	ld := config.DefaultLoadedAllowlist()
+	pol, ok := ld.Commands["kubectl"]
+	if !ok {
+		t.Fatal("missing kubectl in default allowlist")
+	}
+	qa, ok := staticOrOpaqueSimpleCommandArgs(`kubectl -n="$(printf '%s' "$ns")" get pods`)
+	if !ok {
+		t.Fatal("staticOrOpaqueSimpleCommandArgs failed")
+	}
+	if len(qa) < 2 || qa[1].flagToken != "-n=" || !qa[1].cmdSubst {
+		t.Fatalf("expected short attached quoted cmdSubst flag token, got %#v", qa)
+	}
+	if !matchReadOnlyCLIArgs(qa, &pol) {
+		t.Fatal("expected short attached quoted cmdSubst value to match allowlist")
+	}
+}
+
+func TestStaticOrOpaque_crictlQuotedCmdSubstOperandNeedsSentinel(t *testing.T) {
+	t.Parallel()
+	ld := config.DefaultLoadedAllowlist()
+	pol, ok := ld.Commands["crictl"]
+	if !ok {
+		t.Fatal("missing crictl in default allowlist")
+	}
+	withoutSentinel, ok := staticOrOpaqueSimpleCommandArgs(`crictl inspect "$(crictl ps -a --name "$p" -q | head -n1)"`)
+	if !ok {
+		t.Fatal("staticOrOpaqueSimpleCommandArgs failed without sentinel")
+	}
+	if matchReadOnlyCLIArgs(withoutSentinel, &pol) {
+		t.Fatal("quoted cmdSubst operand without -- sentinel should not match")
+	}
+	withSentinel, ok := staticOrOpaqueSimpleCommandArgs(`crictl inspect -- "$(crictl ps -a --name "$p" -q | head -n1)"`)
+	if !ok {
+		t.Fatal("staticOrOpaqueSimpleCommandArgs failed with sentinel")
+	}
+	if !matchReadOnlyCLIArgs(withSentinel, &pol) {
+		t.Fatal("quoted cmdSubst operand after -- sentinel should match")
+	}
+}
+
+func TestStaticOrOpaque_kubectlNestedQuotedCmdSubstFlagValue(t *testing.T) {
+	t.Parallel()
+	ld := config.DefaultLoadedAllowlist()
+	pol, ok := ld.Commands["kubectl"]
+	if !ok {
+		t.Fatal("missing kubectl in default allowlist")
+	}
+	qa, ok := staticOrOpaqueSimpleCommandArgs(`kubectl -n "$(printf '%s' "$(printf default)")" get pods`)
+	if !ok {
+		t.Fatal("staticOrOpaqueSimpleCommandArgs failed")
+	}
+	if !matchReadOnlyCLIArgs(qa, &pol) {
+		t.Fatal("expected nested quoted cmdSubst flag value to match allowlist")
+	}
+}
+
+func TestStaticOrOpaque_openAnyFlagRejectsQuotedCmdSubstValue(t *testing.T) {
+	t.Parallel()
+	ld := config.DefaultLoadedAllowlist()
+	pol, ok := ld.Commands["crictl"]
+	if !ok {
+		t.Fatal("missing crictl in default allowlist")
+	}
+	separate, ok := staticOrOpaqueSimpleCommandArgs(`crictl ps -a --name "$(printf '%s' "$p")" -q`)
+	if !ok {
+		t.Fatal("staticOrOpaqueSimpleCommandArgs failed")
+	}
+	if matchReadOnlyCLIArgs(separate, &pol) {
+		t.Fatal("open-any flag value should not accept quoted cmdSubst")
+	}
+	attached, ok := staticOrOpaqueSimpleCommandArgs(`crictl ps -a --name="$(printf '%s' "$p")" -q`)
+	if !ok {
+		t.Fatal("staticOrOpaqueSimpleCommandArgs failed for attached value")
+	}
+	if matchReadOnlyCLIArgs(attached, &pol) {
+		t.Fatal("open-any attached flag value should not accept quoted cmdSubst")
+	}
+}
+
+func TestStaticOrOpaque_openAnyMustNotRejectsQuotedCmdSubstValue(t *testing.T) {
+	t.Parallel()
+	ld := config.DefaultLoadedAllowlist()
+	pol, ok := ld.Commands["sort"]
+	if !ok {
+		t.Fatal("missing sort in default allowlist")
+	}
+	separate, ok := staticOrOpaqueSimpleCommandArgs(`sort --output "$(printf '%s' /tmp/out)"`)
+	if !ok {
+		t.Fatal("staticOrOpaqueSimpleCommandArgs failed for separate value")
+	}
+	if matchReadOnlyCLIArgs(separate, &pol) {
+		t.Fatal("must_not option with separate quoted cmdSubst value should not match")
+	}
+	attached, ok := staticOrOpaqueSimpleCommandArgs(`sort --output="$(printf '%s' /tmp/out)"`)
+	if !ok {
+		t.Fatal("staticOrOpaqueSimpleCommandArgs failed for attached value")
+	}
+	if matchReadOnlyCLIArgs(attached, &pol) {
+		t.Fatal("must_not option with attached quoted cmdSubst value should not match")
+	}
+}
+
 func TestMatchReadOnlyCLIArgv_kubectlPolicy(t *testing.T) {
 	pol := config.KubectlReadOnlyCLIPolicyForTest()
 

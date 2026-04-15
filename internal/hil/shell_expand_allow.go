@@ -162,10 +162,75 @@ func wordIsDoubleQuotedSimpleParamOnly(w *syntax.Word) bool {
 	return isSimpleParamExp(pe)
 }
 
+// wordIsDoubleQuotedCmdSubstOnly is true when w is exactly one double-quoted command substitution:
+// "$(...)". The command body is checked separately by the shell allowlist walker.
+func wordIsDoubleQuotedCmdSubstOnly(w *syntax.Word) bool {
+	if w == nil || len(w.Parts) != 1 {
+		return false
+	}
+	dq, ok := w.Parts[0].(*syntax.DblQuoted)
+	if !ok || len(dq.Parts) != 1 {
+		return false
+	}
+	_, ok = dq.Parts[0].(*syntax.CmdSubst)
+	return ok
+}
+
+// wordIsFlagWithDoubleQuotedCmdSubstValue is true for a single argv word that statically names a flag
+// and attaches a quoted command substitution as its value, e.g. --name="$(...)" or -n="$(...)".
+func wordIsFlagWithDoubleQuotedCmdSubstValue(w *syntax.Word) (flagToken string, ok bool) {
+	if w == nil || len(w.Parts) != 2 {
+		return "", false
+	}
+	lit, ok := w.Parts[0].(*syntax.Lit)
+	if !ok || !validFlagAssignmentPrefix(lit.Value) {
+		return "", false
+	}
+	dq, ok := w.Parts[1].(*syntax.DblQuoted)
+	if !ok || len(dq.Parts) != 1 {
+		return "", false
+	}
+	if _, ok := dq.Parts[0].(*syntax.CmdSubst); !ok {
+		return "", false
+	}
+	return lit.Value, true
+}
+
+func validFlagAssignmentPrefix(s string) bool {
+	if !strings.HasSuffix(s, "=") {
+		return false
+	}
+	name := strings.TrimSuffix(s, "=")
+	if name == "" || name == "-" || name == "--" {
+		return false
+	}
+	return strings.HasPrefix(name, "-")
+}
+
 // wordContainsDisallowedShellExpansionForStructured is true when w has shell expansions that are not
-// a lone double-quoted simple parameter (e.g. "$ns"). Those quoted placeholders may still match policy
-// if the corresponding argv slot allows any value (see [matchReadOnlyCLIArgs]).
+// a lone double-quoted simple parameter (e.g. "$ns") or a quoted command substitution in a form that
+// can be treated as an opaque value. Those placeholders may still match policy only if the
+// corresponding argv slot allows the dynamic value (see [matchReadOnlyCLIArgs]).
 func wordContainsDisallowedShellExpansionForStructured(w *syntax.Word) bool {
+	if !wordContainsShellExpansion(w) {
+		return false
+	}
+	if wordIsDoubleQuotedSimpleParamOnly(w) {
+		return false
+	}
+	if wordIsDoubleQuotedCmdSubstOnly(w) {
+		return false
+	}
+	if _, ok := wordIsFlagWithDoubleQuotedCmdSubstValue(w); ok {
+		return false
+	}
+	return true
+}
+
+// wordContainsDisallowedShellExpansionForReadBuiltin is stricter than
+// [wordContainsDisallowedShellExpansionForStructured]: read has no external argv policy to prove a
+// command substitution is a harmless value, so quoted "$(...)" stays disallowed there.
+func wordContainsDisallowedShellExpansionForReadBuiltin(w *syntax.Word) bool {
 	if !wordContainsShellExpansion(w) {
 		return false
 	}
@@ -178,6 +243,15 @@ func wordContainsDisallowedShellExpansionForStructured(w *syntax.Word) bool {
 func callExprArgsContainDisallowedExpansionForStructured(args []*syntax.Word) bool {
 	for _, w := range args {
 		if wordContainsDisallowedShellExpansionForStructured(w) {
+			return true
+		}
+	}
+	return false
+}
+
+func callExprArgsContainDisallowedExpansionForReadBuiltin(args []*syntax.Word) bool {
+	for _, w := range args {
+		if wordContainsDisallowedShellExpansionForReadBuiltin(w) {
 			return true
 		}
 	}

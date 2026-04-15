@@ -87,6 +87,112 @@ func TestCallExprArgsContainShellExpansion(t *testing.T) {
 	}
 }
 
+func TestQuotedCmdSubstWordShapes(t *testing.T) {
+	tests := []struct {
+		name       string
+		line       string
+		idx        int
+		wantCmd    bool
+		wantFlag   string
+		wantFlagOK bool
+	}{
+		{
+			name:       "quoted cmd subst only",
+			line:       `echo "$(date)"`,
+			idx:        1,
+			wantCmd:    true,
+			wantFlag:   "",
+			wantFlagOK: false,
+		},
+		{
+			name:       "attached long flag value",
+			line:       `kubectl --namespace="$(printf '%s' "$ns")" get pods`,
+			idx:        1,
+			wantCmd:    false,
+			wantFlag:   "--namespace=",
+			wantFlagOK: true,
+		},
+		{
+			name:       "attached short flag value",
+			line:       `kubectl -n="$(printf '%s' "$ns")" get pods`,
+			idx:        1,
+			wantCmd:    false,
+			wantFlag:   "-n=",
+			wantFlagOK: true,
+		},
+		{
+			name:       "mixed literal suffix is not opaque cmd subst",
+			line:       `echo "$(date)"x`,
+			idx:        1,
+			wantCmd:    false,
+			wantFlag:   "",
+			wantFlagOK: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := callExprArg(t, tt.line, tt.idx)
+			if got := wordIsDoubleQuotedCmdSubstOnly(w); got != tt.wantCmd {
+				t.Fatalf("wordIsDoubleQuotedCmdSubstOnly(%q arg %d) = %v, want %v", tt.line, tt.idx, got, tt.wantCmd)
+			}
+			gotFlag, gotOK := wordIsFlagWithDoubleQuotedCmdSubstValue(w)
+			if gotOK != tt.wantFlagOK || gotFlag != tt.wantFlag {
+				t.Fatalf("wordIsFlagWithDoubleQuotedCmdSubstValue(%q arg %d) = (%q, %v), want (%q, %v)", tt.line, tt.idx, gotFlag, gotOK, tt.wantFlag, tt.wantFlagOK)
+			}
+		})
+	}
+}
+
+func TestDisallowedShellExpansionPolicies_QuotedCmdSubst(t *testing.T) {
+	tests := []struct {
+		name           string
+		line           string
+		idx            int
+		wantStructured bool
+		wantRead       bool
+	}{
+		{
+			name:           "quoted cmd subst value slot is structured-safe",
+			line:           `kubectl -n "$(printf '%s' "$ns")" get pods`,
+			idx:            2,
+			wantStructured: false,
+			wantRead:       true,
+		},
+		{
+			name:           "attached quoted cmd subst value slot is structured-safe",
+			line:           `kubectl --namespace="$(printf '%s' "$ns")" get pods`,
+			idx:            1,
+			wantStructured: false,
+			wantRead:       true,
+		},
+		{
+			name:           "unquoted cmd subst stays disallowed everywhere",
+			line:           `kubectl -n $(printf '%s' "$ns") get pods`,
+			idx:            2,
+			wantStructured: true,
+			wantRead:       true,
+		},
+		{
+			name:           "quoted simple param remains allowed for read",
+			line:           `read -r "$name"`,
+			idx:            2,
+			wantStructured: false,
+			wantRead:       false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := callExprArg(t, tt.line, tt.idx)
+			if got := wordContainsDisallowedShellExpansionForStructured(w); got != tt.wantStructured {
+				t.Fatalf("wordContainsDisallowedShellExpansionForStructured(%q arg %d) = %v, want %v", tt.line, tt.idx, got, tt.wantStructured)
+			}
+			if got := wordContainsDisallowedShellExpansionForReadBuiltin(w); got != tt.wantRead {
+				t.Fatalf("wordContainsDisallowedShellExpansionForReadBuiltin(%q arg %d) = %v, want %v", tt.line, tt.idx, got, tt.wantRead)
+			}
+		})
+	}
+}
+
 func TestCommandAllowsShellExpansionInArgsPastArgv0(t *testing.T) {
 	if !commandAllowsShellExpansionInArgsPastArgv0("awk") {
 		t.Fatal("awk should allow expansion scan skip")

@@ -9,26 +9,57 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-// readOnlyCLIArg is one argv element for structured read-only matching. Opaque is true when the shell
-// word was exactly one double-quoted simple parameter ("$var" or "${var}"); such a token may match only
-// argv slots whose policy allows any value (flag values in allow-list mode, or operands: any).
+// readOnlyCLIArg is one argv element for structured read-only matching.
+//
+// Opaque is true when the shell word was exactly one double-quoted simple parameter ("$var" or
+// "${var}"); such a token may match only argv slots whose policy allows any value (flag values in
+// allow-list mode, or operands:any).
+//
+// cmdSubst is true when the shell word was exactly one double-quoted command substitution
+// ("$(...)"). It is stricter than Opaque: it may match concrete allow-listed flag values, or operands
+// after an explicit "--" end-of-options sentinel.
+//
+// flagToken is set for a flag word with an attached quoted command substitution value, e.g.
+// --name="$(...)"; it stores the static flag prefix ("--name=") so option matching can prove the
+// dynamic part is a value, not a flag name.
 type readOnlyCLIArg struct {
-	lit    string
-	opaque bool
+	lit       string
+	flagToken string
+	opaque    bool
+	cmdSubst  bool
 }
 
 func (a readOnlyCLIArg) literalOK() (string, bool) {
-	if a.opaque {
+	if a.opaque || a.cmdSubst || a.flagToken != "" {
 		return "", false
 	}
 	return a.lit, true
 }
 
-func (a readOnlyCLIArg) isFlagToken() bool {
-	if a.opaque {
-		return false
+func (a readOnlyCLIArg) flagTokenOK() (string, bool) {
+	if a.flagToken != "" {
+		return a.flagToken, true
 	}
-	return strings.HasPrefix(a.lit, "-")
+	if a.opaque || a.cmdSubst {
+		return "", false
+	}
+	if strings.HasPrefix(a.lit, "-") {
+		return a.lit, true
+	}
+	return "", false
+}
+
+func (a readOnlyCLIArg) isFlagToken() bool {
+	_, ok := a.flagTokenOK()
+	return ok
+}
+
+func (a readOnlyCLIArg) hasAttachedDynamicValue() bool {
+	return a.flagToken != ""
+}
+
+func (a readOnlyCLIArg) isOpaqueCmdSubst() bool {
+	return a.cmdSubst && a.flagToken == ""
 }
 
 func (a readOnlyCLIArg) subcommandKey() (string, bool) {
@@ -166,9 +197,9 @@ func matchReadOnlyCLIArgs(args []readOnlyCLIArg, pol *config.ReadOnlyCLIPolicy) 
 			if !rest[i].isFlagToken() {
 				break
 			}
-			t, _ := rest[i].literalOK()
+			t, _ := rest[i].flagTokenOK()
 			if t == "--" {
-				return false
+				break
 			}
 			n, ok := consumeFlagArg(rest, i, g.Flags)
 			if !ok {
@@ -241,7 +272,7 @@ func scanArgsForMustNotViolations(args []readOnlyCLIArg, mustNot []config.Allowe
 			j++
 			continue
 		}
-		t, ok := args[j].literalOK()
+		t, ok := args[j].flagTokenOK()
 		if !ok || t == "--" {
 			j++
 			continue
@@ -260,7 +291,7 @@ func scanArgsForMustNotViolations(args []readOnlyCLIArg, mustNot []config.Allowe
 }
 
 func flagTokenHitsMustNot(args []readOnlyCLIArg, i int, mustNot []config.AllowedOption) (n int, hit bool) {
-	t, ok := args[i].literalOK()
+	t, ok := args[i].flagTokenOK()
 	if !ok || !strings.HasPrefix(t, "-") || t == "--" {
 		return 0, false
 	}
@@ -384,9 +415,9 @@ func consumeLeadingFlagsWithMust(rest []readOnlyCLIArg, i int, flags config.Flag
 		return i, false
 	}
 	for i < len(rest) && rest[i].isFlagToken() {
-		t, _ := rest[i].literalOK()
+		t, _ := rest[i].flagTokenOK()
 		if t == "--" {
-			return i, false
+			return i, true
 		}
 		n, ok, allowIdx := consumeFlagArgIdx(rest, i, flags)
 		if !ok {
@@ -423,11 +454,22 @@ func consumeInterleavedArg(rest []readOnlyCLIArg, i int, flags config.FlagRule, 
 		return false
 	}
 	sat := mustSat
+	afterEndOfOptions := false
 	for i < len(rest) {
-		if rest[i].isFlagToken() {
-			t, _ := rest[i].literalOK()
+		if rest[i].isFlagToken() && !afterEndOfOptions {
+			t, _ := rest[i].flagTokenOK()
 			if t == "--" {
-				return false
+				if !operands.IsAny() {
+					return false
+				}
+				for j := range sat {
+					if !sat[j] {
+						return false
+					}
+				}
+				afterEndOfOptions = true
+				i++
+				continue
 			}
 			n, ok, allowIdx := consumeFlagArgIdx(rest, i, flags)
 			if !ok {
@@ -453,6 +495,9 @@ func consumeInterleavedArg(rest []readOnlyCLIArg, i int, flags config.FlagRule, 
 			}
 		}
 		if !operands.IsAny() {
+			return false
+		}
+		if rest[i].isOpaqueCmdSubst() && !afterEndOfOptions {
 			return false
 		}
 		i++
@@ -483,7 +528,10 @@ func consumeFlagArgIdx(args []readOnlyCLIArg, i int, rule config.FlagRule) (n in
 }
 
 func consumeAnyFlagArg(args []readOnlyCLIArg, i int) (n int, ok bool) {
-	t, ok := args[i].literalOK()
+	if args[i].hasAttachedDynamicValue() {
+		return 0, false
+	}
+	t, ok := args[i].flagTokenOK()
 	if !ok {
 		return 0, false
 	}
@@ -494,7 +542,7 @@ func consumeAnyFlagArg(args []readOnlyCLIArg, i int) (n int, ok bool) {
 		if strings.Contains(t, "=") {
 			return 1, true
 		}
-		if i+1 < len(args) && !args[i+1].isFlagToken() {
+		if i+1 < len(args) && !args[i+1].isFlagToken() && !args[i+1].isOpaqueCmdSubst() {
 			return 2, true
 		}
 		return 1, true
@@ -503,7 +551,7 @@ func consumeAnyFlagArg(args []readOnlyCLIArg, i int) (n int, ok bool) {
 		if strings.Contains(t, "=") {
 			return 1, true
 		}
-		if len(t) == 2 && i+1 < len(args) && !args[i+1].isFlagToken() {
+		if len(t) == 2 && i+1 < len(args) && !args[i+1].isFlagToken() && !args[i+1].isOpaqueCmdSubst() {
 			return 2, true
 		}
 		return 1, true
@@ -513,7 +561,7 @@ func consumeAnyFlagArg(args []readOnlyCLIArg, i int) (n int, ok bool) {
 
 func consumeAllowListOptArgIdx(args []readOnlyCLIArg, i int, opts []config.AllowedOption) (n int, ok bool, allowIdx int) {
 	allowIdx = -1
-	t, litOK := args[i].literalOK()
+	t, litOK := args[i].flagTokenOK()
 	if !litOK {
 		return 0, false, -1
 	}
@@ -526,6 +574,9 @@ func consumeAllowListOptArgIdx(args []readOnlyCLIArg, i int, opts []config.Allow
 			}
 			if o.ValueRequired() {
 				if hasEq {
+					if args[i].hasAttachedDynamicValue() {
+						return 1, true, j
+					}
 					return 1, val != "", j
 				}
 				if i+1 >= len(args) {
@@ -558,6 +609,9 @@ func consumeAllowListOptArgIdx(args []readOnlyCLIArg, i int, opts []config.Allow
 				if !o.ValueRequired() {
 					return 0, false, -1
 				}
+				if args[i].hasAttachedDynamicValue() {
+					return 1, true, j
+				}
 				return 1, len(t) > len(eq), j
 			}
 		}
@@ -567,8 +621,9 @@ func consumeAllowListOptArgIdx(args []readOnlyCLIArg, i int, opts []config.Allow
 }
 
 // staticOrOpaqueSimpleCommandArgs parses one simple command into argv slots. After argv[0], a word that is
-// exactly one double-quoted simple parameter ("$x" / "${x}") becomes an opaque placeholder; it matches
-// policy only where the corresponding slot allows any value ([matchReadOnlyCLIArgs]).
+// exactly one double-quoted simple parameter ("$x" / "${x}") becomes an opaque placeholder; a word that is
+// exactly one double-quoted command substitution ("$(...)") becomes a stricter dynamic value. Policy
+// matching decides whether the dynamic value is in a safe slot.
 func staticOrOpaqueSimpleCommandArgs(seg string) ([]readOnlyCLIArg, bool) {
 	seg = strings.TrimSpace(seg)
 	if seg == "" {
@@ -602,8 +657,16 @@ func staticOrOpaqueSimpleCommandArgs(seg string) ([]readOnlyCLIArg, bool) {
 		if WordContainsExtGlob(w) {
 			return nil, false
 		}
+		if flagToken, ok := wordIsFlagWithDoubleQuotedCmdSubstValue(w); ok {
+			args[i] = readOnlyCLIArg{flagToken: flagToken, cmdSubst: true}
+			continue
+		}
 		if wordIsDoubleQuotedSimpleParamOnly(w) {
 			args[i] = readOnlyCLIArg{opaque: true}
+			continue
+		}
+		if wordIsDoubleQuotedCmdSubstOnly(w) {
+			args[i] = readOnlyCLIArg{cmdSubst: true}
 			continue
 		}
 		if wordContainsDisallowedShellExpansionForStructured(w) {
