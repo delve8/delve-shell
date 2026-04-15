@@ -285,3 +285,25 @@ func TestCommandAllowsAutoApprove_KubectlVersionShort(t *testing.T) {
 		t.Fatal("kubectl version --client --short should auto-approve")
 	}
 }
+
+func TestCommandAllowsAutoApprove_XargsRestrictedSubset(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	if !w.CommandAllowsAutoApprove(`printf '%s\n' pod-a pod-b | xargs -r -n1 kubectl get pod --`) {
+		t.Fatal("restricted xargs with fixed kubectl prefix and -- sentinel should auto-approve")
+	}
+	if !w.CommandAllowsAutoApprove(`printf '%s\000' sshd kubelet | xargs -0 --no-run-if-empty --max-args=2 systemctl status --`) {
+		t.Fatal("restricted xargs with systemctl status and -- sentinel should auto-approve")
+	}
+	if w.CommandAllowsAutoApprove(`printf '%s\n' delete pod-a | xargs -r -n1 kubectl --`) {
+		t.Fatal("xargs must not auto-approve when stdin can fill kubectl subcommand slot")
+	}
+	if w.CommandAllowsAutoApprove(`printf '%s\n' pod-a | xargs -r -n1 kubectl get pod`) {
+		t.Fatal("xargs without target -- sentinel must require approval")
+	}
+	if w.CommandAllowsAutoApprove(`printf '%s\n' pod-a | xargs -I{} kubectl get pod {}`) {
+		t.Fatal("xargs replacement mode must require approval")
+	}
+	if w.CommandAllowsAutoApprove(`printf '%s\n' hi | xargs -r sh -c 'echo "$1"' --`) {
+		t.Fatal("xargs shell-wrapper target must require approval")
+	}
+}

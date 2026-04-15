@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"delve-shell/internal/config"
+	"delve-shell/internal/i18n"
 )
 
 func TestStaticSimpleCommandArgs_kubectlCustomColumnsJSONPath(t *testing.T) {
@@ -262,6 +263,68 @@ func TestMatchReadOnlyCLIArgv_findSingleDashPredicates(t *testing.T) {
 	}
 }
 
+func TestXargsReadOnlySegmentOK(t *testing.T) {
+	ld := config.DefaultLoadedAllowlist()
+	tests := []struct {
+		name string
+		seg  string
+		want bool
+	}{
+		{"kubectl get pod with sentinel", `xargs -r -n1 kubectl get pod --`, true},
+		{"systemctl status with sentinel", `xargs --no-run-if-empty --max-args=2 systemctl status --`, true},
+		{"missing sentinel", `xargs -r -n1 kubectl get pod`, false},
+		{"replacement template", `xargs -I{} kubectl get pod {}`, false},
+		{"shell wrapper target", `xargs -r sh -c 'echo "$1"' --`, false},
+		{"target utility not allowlisted", `xargs -r -n1 rm --`, false},
+		{"dynamic subcommand slot not fixed", `xargs -r -n1 kubectl --`, false},
+		{"dangerous flag -P", `xargs -P 4 kubectl get pod --`, false},
+		{"dangerous flag -L", `xargs -L 2 kubectl get pod --`, false},
+		{"dangerous flag -a", `xargs -a names.txt kubectl get pod --`, false},
+		{"dangerous flag -d", `xargs -d , kubectl get pod --`, false},
+		{"unknown xargs flag", `xargs -P 4 kubectl get pod --`, false},
+	}
+	for _, tt := range tests {
+		args, ok := staticSimpleCommandArgs(tt.seg)
+		if !ok {
+			if tt.want {
+				t.Fatalf("%s: staticSimpleCommandArgs failed for %q", tt.name, tt.seg)
+			}
+			continue
+		}
+		got := xargsReadOnlySegmentOK(args, ld.Commands)
+		if got != tt.want {
+			t.Fatalf("%s: xargsReadOnlySegmentOK(%q) = %v, want %v", tt.name, tt.seg, got, tt.want)
+		}
+	}
+}
+
+func TestXargsReadOnlySegmentReason(t *testing.T) {
+	i18n.SetLang("en")
+	ld := config.DefaultLoadedAllowlist()
+	tests := []struct {
+		name string
+		seg  string
+		want string
+	}{
+		{"unsafe flag", `xargs -P 4 kubectl get pod --`, i18n.T(i18n.KeyAutoApproveHLXargsUnsafeFlag)},
+		{"missing target", `xargs -r -n1`, i18n.T(i18n.KeyAutoApproveHLXargsMissingTarget)},
+		{"missing sentinel", `xargs -r -n1 kubectl get pod`, i18n.T(i18n.KeyAutoApproveHLXargsMissingSentinel)},
+		{"unsafe target", `xargs -r sh -c 'echo "$1"' --`, i18n.T(i18n.KeyAutoApproveHLXargsUnsafeTarget)},
+		{"target mismatch", `xargs -r -n1 kubectl --`, i18n.T(i18n.KeyAutoApproveHLXargsTargetMismatch)},
+		{"ok", `xargs -r -n1 kubectl get pod --`, ""},
+	}
+	for _, tt := range tests {
+		args, ok := staticSimpleCommandArgs(tt.seg)
+		if !ok {
+			t.Fatalf("%s: staticSimpleCommandArgs failed for %q", tt.name, tt.seg)
+		}
+		got := xargsReadOnlySegmentReason(args, ld.Commands)
+		if got != tt.want {
+			t.Fatalf("%s: xargsReadOnlySegmentReason(%q) = %q, want %q", tt.name, tt.seg, got, tt.want)
+		}
+	}
+}
+
 func TestMatchReadOnlyCLIArgv_envNoExec(t *testing.T) {
 	ld := config.DefaultLoadedAllowlist()
 	pol, ok := ld.Commands["env"]
@@ -405,10 +468,10 @@ func TestMatchReadOnlyCLIArgv_topMustBeBoundedBatch(t *testing.T) {
 func TestMatchReadOnlyCLIArgv_secondBatchReadOnlyCommands(t *testing.T) {
 	ld := config.DefaultLoadedAllowlist()
 	cases := []struct {
-		name    string
-		policy  string
-		args    []string
-		wantOK  bool
+		name   string
+		policy string
+		args   []string
+		wantOK bool
 	}{
 		{"apt list", "apt", []string{"apt", "list", "--installed"}, true},
 		{"apt install blocked", "apt", []string{"apt", "install", "nginx"}, false},

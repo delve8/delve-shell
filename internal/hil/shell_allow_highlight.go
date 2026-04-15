@@ -4,8 +4,8 @@ import (
 	"sort"
 	"strings"
 
-	"delve-shell/internal/i18n"
 	hiltypes "delve-shell/internal/hil/types"
+	"delve-shell/internal/i18n"
 )
 
 // CommandAutoApproveHighlight returns non-overlapping half-open byte spans covering command for approval UI.
@@ -89,6 +89,11 @@ func (w *Allowlist) segmentRiskReason(seg string) string {
 func (w *Allowlist) structuredRejectReason(seg string) string {
 	if w == nil || len(w.cliByName) == 0 {
 		return i18n.T(i18n.KeyAutoApproveHLAllowlistNotLoaded)
+	}
+	if args, ok := staticSimpleCommandArgs(seg); ok && len(args) > 0 && argv0Base(args[0]) == "xargs" {
+		if reason := xargsReadOnlySegmentReason(args, w.cliByName); reason != "" {
+			return reason
+		}
 	}
 	if pa, ok := permissiveSimpleArgv(seg); ok && len(pa) > 0 {
 		base := argv0Base(pa[0])

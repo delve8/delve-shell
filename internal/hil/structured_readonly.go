@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"delve-shell/internal/config"
+	"delve-shell/internal/i18n"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -670,6 +671,9 @@ func (w *Allowlist) structuredLiteralSegmentOK(seg string) bool {
 	if w == nil || len(w.cliByName) == 0 {
 		return false
 	}
+	if args, ok := staticSimpleCommandArgs(seg); ok && xargsReadOnlySegmentOK(args, w.cliByName) {
+		return true
+	}
 	if qa, ok := staticOrOpaqueSimpleCommandArgs(seg); ok && len(qa) > 0 {
 		name, lok := qa[0].literalOK()
 		if !lok {
@@ -698,4 +702,105 @@ func (w *Allowlist) structuredLiteralSegmentOK(seg string) bool {
 		}
 	}
 	return false
+}
+
+func xargsReadOnlySegmentOK(args []string, policies map[string]config.ReadOnlyCLIPolicy) bool {
+	return len(args) > 0 && argv0Base(args[0]) == "xargs" && xargsReadOnlySegmentReason(args, policies) == ""
+}
+
+func xargsReadOnlySegmentReason(args []string, policies map[string]config.ReadOnlyCLIPolicy) string {
+	if len(args) < 2 || argv0Base(args[0]) != "xargs" {
+		return ""
+	}
+	idx, ok := parseSafeXargsPrefix(args)
+	if !ok {
+		return i18n.T(i18n.KeyAutoApproveHLXargsUnsafeFlag)
+	}
+	if idx >= len(args) {
+		return i18n.T(i18n.KeyAutoApproveHLXargsMissingTarget)
+	}
+	target := args[idx:]
+	if len(target) < 2 || target[len(target)-1] != "--" {
+		return i18n.T(i18n.KeyAutoApproveHLXargsMissingSentinel)
+	}
+	target = target[:len(target)-1]
+	if len(target) == 0 || unsafeXargsTarget(argv0Base(target[0])) {
+		return i18n.T(i18n.KeyAutoApproveHLXargsUnsafeTarget)
+	}
+	pol, ok := policies[argv0Base(target[0])]
+	if !ok {
+		return i18n.T(i18n.KeyAutoApproveHLXargsTargetMismatch)
+	}
+	staticTarget := make([]readOnlyCLIArg, len(target))
+	for i, arg := range target {
+		staticTarget[i] = readOnlyCLIArg{lit: arg}
+	}
+	if !matchReadOnlyCLIArgs(staticTarget, &pol) {
+		return i18n.T(i18n.KeyAutoApproveHLXargsTargetMismatch)
+	}
+	withDynamicTail := append(append([]readOnlyCLIArg(nil), staticTarget...), readOnlyCLIArg{opaque: true})
+	if !matchReadOnlyCLIArgs(withDynamicTail, &pol) {
+		return i18n.T(i18n.KeyAutoApproveHLXargsTargetMismatch)
+	}
+	return ""
+}
+
+func parseSafeXargsPrefix(args []string) (idx int, ok bool) {
+	idx = 1
+	for idx < len(args) {
+		a := args[idx]
+		switch {
+		case a == "--":
+			return idx + 1, true
+		case a == "-r" || a == "--no-run-if-empty" || a == "-0" || a == "--null":
+			idx++
+		case a == "-n":
+			if idx+1 >= len(args) || !positiveDecimal(args[idx+1]) {
+				return 0, false
+			}
+			idx += 2
+		case strings.HasPrefix(a, "-n") && len(a) > len("-n"):
+			if !positiveDecimal(strings.TrimPrefix(a, "-n")) {
+				return 0, false
+			}
+			idx++
+		case a == "--max-args":
+			if idx+1 >= len(args) || !positiveDecimal(args[idx+1]) {
+				return 0, false
+			}
+			idx += 2
+		case strings.HasPrefix(a, "--max-args="):
+			if !positiveDecimal(strings.TrimPrefix(a, "--max-args=")) {
+				return 0, false
+			}
+			idx++
+		case strings.HasPrefix(a, "-"):
+			return 0, false
+		default:
+			return idx, true
+		}
+	}
+	return idx, true
+}
+
+func positiveDecimal(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return strings.TrimLeft(s, "0") != ""
+}
+
+func unsafeXargsTarget(base string) bool {
+	switch base {
+	case "", "xargs", "sh", "bash", "zsh", "ash", "fish", "busybox", "env",
+		"python", "python3", "perl", "ruby", "node", "php":
+		return true
+	default:
+		return false
+	}
 }

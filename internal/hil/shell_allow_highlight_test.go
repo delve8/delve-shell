@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	hiltypes "delve-shell/internal/hil/types"
+	"delve-shell/internal/i18n"
 )
 
 func TestCommandAutoApproveHighlight_expansionRejectPinsVarSites(t *testing.T) {
@@ -51,5 +52,33 @@ func TestCommandAutoApproveHighlight_dynamicArgv0StillFullRisk(t *testing.T) {
 	}
 	if spans[0].Reason == "" {
 		t.Fatal("expected non-empty Risk Reason for full-line rejection")
+	}
+}
+
+func TestCommandAutoApproveHighlight_xargsReasons(t *testing.T) {
+	i18n.SetLang("en")
+	w := NewAllowlist(nil)
+	tests := []struct {
+		name string
+		cmd  string
+		want string
+	}{
+		{"missing sentinel", `printf '%s\n' pod-a | xargs -r -n1 kubectl get pod`, i18n.T(i18n.KeyAutoApproveHLXargsMissingSentinel)},
+		{"unsafe flag", `printf '%s\n' pod-a | xargs -P 4 kubectl get pod --`, i18n.T(i18n.KeyAutoApproveHLXargsUnsafeFlag)},
+		{"unsafe target", `printf '%s\n' pod-a | xargs -r sh -c 'echo "$1"' --`, i18n.T(i18n.KeyAutoApproveHLXargsUnsafeTarget)},
+		{"target mismatch", `printf '%s\n' delete pod-a | xargs -r -n1 kubectl --`, i18n.T(i18n.KeyAutoApproveHLXargsTargetMismatch)},
+	}
+	for _, tt := range tests {
+		spans := w.CommandAutoApproveHighlight(tt.cmd)
+		var found bool
+		for _, s := range spans {
+			if s.Kind == hiltypes.AutoApproveHighlightRisk && s.Reason == tt.want {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("%s: expected risk reason %q in spans=%+v", tt.name, tt.want, spans)
+		}
 	}
 }

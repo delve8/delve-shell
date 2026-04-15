@@ -370,6 +370,11 @@ const (
 	KeyAutoApproveHLAwkFromFileOrFlags      = "auto_approve_hl_awk_from_file_or_flags"
 	KeyAutoApproveHLAwkSourceError          = "auto_approve_hl_awk_source_error"
 	KeyAutoApproveHLAwkReadonlyFailed       = "auto_approve_hl_awk_readonly_failed"
+	KeyAutoApproveHLXargsUnsafeFlag         = "auto_approve_hl_xargs_unsafe_flag"
+	KeyAutoApproveHLXargsMissingTarget      = "auto_approve_hl_xargs_missing_target"
+	KeyAutoApproveHLXargsMissingSentinel    = "auto_approve_hl_xargs_missing_sentinel"
+	KeyAutoApproveHLXargsUnsafeTarget       = "auto_approve_hl_xargs_unsafe_target"
+	KeyAutoApproveHLXargsTargetMismatch     = "auto_approve_hl_xargs_target_mismatch"
 )
 
 var messages = map[string]map[string]string{
@@ -581,6 +586,11 @@ var messages = map[string]map[string]string{
 		KeyAutoApproveHLAwkFromFileOrFlags:      "awk: program from a file (-f) or unsupported options.",
 		KeyAutoApproveHLAwkSourceError:          "awk: %v",
 		KeyAutoApproveHLAwkReadonlyFailed:       "awk: the script failed the read-only check (for example: system(), writing to a file, or getline from a shell pipe).",
+		KeyAutoApproveHLXargsUnsafeFlag:         "xargs: only -r/--no-run-if-empty, -0/--null, -n, and --max-args are allowed for auto-approve.",
+		KeyAutoApproveHLXargsMissingTarget:      "xargs: missing fixed target command.",
+		KeyAutoApproveHLXargsMissingSentinel:    "xargs: target command must end with -- so dynamic input cannot be parsed as flags.",
+		KeyAutoApproveHLXargsUnsafeTarget:       "xargs: target command must be a fixed read-only utility, not a shell or generic executor.",
+		KeyAutoApproveHLXargsTargetMismatch:     "xargs: target command prefix does not match a read-only allowlist pattern that safely accepts appended operands.",
 	},
 }
 
