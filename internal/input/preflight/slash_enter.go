@@ -48,6 +48,8 @@ func PlanSlashEnter(inputVal string, selected slashview.Option, hasSelected bool
 				RawText:       trimmed,
 				InputLine:     inputVal,
 				SelectedIndex: selectedIndex,
+				SelectedCmd:   selected.Cmd,
+				SelectedFill:  selected.FillValue,
 			},
 		}
 	}

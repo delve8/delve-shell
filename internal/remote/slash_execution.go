@@ -31,7 +31,14 @@ func registerSlashExecutionProvider() {
 			}
 			return inputlifecycletype.ConsumedResult(), true, nil
 		case strings.HasPrefix(text, "/access "):
-			target := strings.TrimSpace(strings.TrimPrefix(text, "/access "))
+			accessText := text
+			selectedCmd := strings.TrimSpace(req.SelectedCmd)
+			selectedFill := strings.TrimSpace(req.SelectedFill)
+			if selectedFill != "" && strings.HasPrefix(selectedFill, "/access ") &&
+				selectedCmd != "" && strings.EqualFold(selectedCmd, text) {
+				accessText = selectedFill
+			}
+			target := strings.TrimSpace(strings.TrimPrefix(accessText, "/access "))
 			return ui.SlashOverlayOpenResult(OverlayOpenKeyAddRemote, "", "", false, map[string]string{
 				"save":    "false",
 				"target":  target,

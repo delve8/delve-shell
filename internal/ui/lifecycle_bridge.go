@@ -59,11 +59,26 @@ func (e slashExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inputlifecy
 	if e.read != nil {
 		offline = e.read.OfflineExecutionMode()
 	}
+	var selected slashview.Option
+	selected.Cmd = strings.TrimSpace(req.SelectedCmd)
+	selected.FillValue = strings.TrimSpace(req.SelectedFill)
+	if selected.Cmd == "" && e.suggestionContext != nil && req.SelectedIndex >= 0 {
+		inputLine := strings.TrimSpace(req.InputLine)
+		if inputLine == "" {
+			inputLine = trimmed
+		}
+		vis, viewOpts := e.suggestionContext(inputLine)
+		if opt, ok := slashview.SelectedByVisibleIndex(viewOpts, vis, req.SelectedIndex); ok {
+			selected = opt
+		}
+	}
 	for _, p := range slashExecutionProviderChain.List() {
 		if res, handled, err := p(SlashExecutionRequest{
 			RawText:              trimmed,
 			InputLine:            req.InputLine,
 			SelectedIndex:        req.SelectedIndex,
+			SelectedCmd:          selected.Cmd,
+			SelectedFill:         selected.FillValue,
 			CommandSender:        e.sender,
 			OfflineExecutionMode: offline,
 		}); handled {

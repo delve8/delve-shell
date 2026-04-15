@@ -155,6 +155,8 @@ type SlashExecutionRequest struct {
 	RawText       string
 	InputLine     string
 	SelectedIndex int
+	SelectedCmd   string
+	SelectedFill  string
 	CommandSender CommandSender
 	// OfflineExecutionMode when true: slash handlers should not start skill/remote execution flows that require in-process tools.
 	OfflineExecutionMode bool

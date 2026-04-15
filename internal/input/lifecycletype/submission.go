@@ -36,6 +36,10 @@ type InputSubmission struct {
 	InputLine string
 	// SelectedIndex is meaningful for slash submissions and should be -1 when not applicable.
 	SelectedIndex int
+	// SelectedCmd preserves the exact slash row selected at submit time when relevant.
+	SelectedCmd string
+	// SelectedFill preserves the selected row's fill value when it differs from the visible command.
+	SelectedFill string
 	// ControlSignal is meaningful for control submissions.
 	ControlSignal ControlSignal
 }

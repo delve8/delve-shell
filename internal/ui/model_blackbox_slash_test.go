@@ -371,6 +371,54 @@ Host test
 	}
 }
 
+func TestBlackboxSlashAccessSSHConfigCollisionExactHostSecondRowUsesAlias(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", root)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USER", "localuser")
+	if err := config.EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	if err := config.AddRemote("ops@192.168.140.200", "global master", ""); err != nil {
+		t.Fatal(err)
+	}
+	sshDir := filepath.Join(home, ".ssh")
+	if err := os.MkdirAll(sshDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sshDir, "config"), []byte(`
+Host test
+  HostName 192.168.140.200
+  User ops
+`), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	f := newBlackboxFixture(t)
+	m := f.model
+	m.Input.SetValue("/access 192.168.140.200")
+	m.Input.CursorEnd()
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m2 := next.(*ui.Model)
+	next2, _ := m2.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	got := next2.(*ui.Model)
+	if !got.Overlay.Active {
+		t.Fatal("expected /access exact host selection to open connecting overlay")
+	}
+	if !strings.Contains(got.View(), "Target: test") {
+		t.Fatalf("expected connect overlay target to use selected alias, got %q", got.View())
+	}
+	select {
+	case target := <-f.remoteOn:
+		if target != "test" {
+			t.Fatalf("expected AccessRemote target test, got %q", target)
+		}
+	default:
+		t.Fatal("expected selected ssh config row to emit alias AccessRemote intent")
+	}
+}
+
 func TestBlackboxSlashConfigRemoveRemoteAppendsImmediateSuccess(t *testing.T) {
 	i18n.SetLang("en")
 	dir := t.TempDir()

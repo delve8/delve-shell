@@ -131,6 +131,44 @@ Host prod-jump
 	}
 }
 
+func TestRemoteSlashOptions_FilteredCollisionKeepsSavedRemoteAndSSHConfigRows(t *testing.T) {
+	t.Setenv("DELVE_SHELL_ROOT", t.TempDir())
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USER", "localuser")
+	if err := config.EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	if err := config.AddRemote("ops@prod.example.com", "Production", ""); err != nil {
+		t.Fatal(err)
+	}
+	writeRemoteTestSSHConfig(t, home, `
+Host prod-jump
+  HostName prod.example.com
+  User ops
+`)
+
+	opts, handled := remoteSlashOptionsProvider("/access prod.example.com", "en")
+	if !handled {
+		t.Fatal("expected /access prod.example.com to be handled")
+	}
+	if len(opts) < 2 {
+		t.Fatalf("expected both saved remote and ssh config rows, got %#v", opts)
+	}
+	if opts[0].Cmd != "/access prod.example.com" || opts[0].Desc != "Production" {
+		t.Fatalf("first row=%#v want saved remote row", opts[0])
+	}
+	if opts[1].Cmd != "/access prod.example.com" {
+		t.Fatalf("second row=%#v want ssh config host display row", opts[1])
+	}
+	if opts[1].Desc != "prod-jump (from ~/.ssh/config)" {
+		t.Fatalf("second row desc=%q want ssh config alias desc", opts[1].Desc)
+	}
+	if opts[1].FillValue != "/access prod-jump" {
+		t.Fatalf("second row fill=%q want /access prod-jump", opts[1].FillValue)
+	}
+}
+
 func TestRemoteSlashOptions_ProviderListsAllRemotesThenActions(t *testing.T) {
 	t.Setenv("DELVE_SHELL_ROOT", t.TempDir())
 	t.Setenv("HOME", t.TempDir())

@@ -14,6 +14,8 @@ type ExecutionRequest struct {
 	RawText       string
 	InputLine     string
 	SelectedIndex int
+	SelectedCmd   string
+	SelectedFill  string
 }
 
 // Executor adapts the current slash implementation into the unified lifecycle.
@@ -45,5 +47,7 @@ func (p Processor) Process(sub inputlifecycletype.InputSubmission) (inputlifecyc
 		RawText:       sub.RawText,
 		InputLine:     sub.InputLine,
 		SelectedIndex: sub.SelectedIndex,
+		SelectedCmd:   sub.SelectedCmd,
+		SelectedFill:  sub.SelectedFill,
 	})
 }
