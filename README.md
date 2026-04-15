@@ -11,6 +11,7 @@ AI-assisted ops CLI with human-in-the-loop execution and auditable session histo
 - Auto-run allowlisted read-only commands when enabled.
 - Persist session history, approvals, and command results for audit.
 - Support local and SSH-backed remote execution.
+- Respect `~/.ssh/config` aliases, including single-hop `ProxyJump` for SSH access.
 - Maintain per-host memory so later turns can reuse stable machine facts and command availability.
 
 ## Core Principles
@@ -164,6 +165,7 @@ Main files:
 ## Common Slash Commands
 
 - `/access` opens the execution-target picker for saved hosts, explicit `~/.ssh/config` aliases, `/access New`, `/access Local`, and `/access Offline`.
+- SSH config aliases currently honor `HostName`, `User`, `Port`, `IdentityFile`, and single-hop `ProxyJump`. `ProxyCommand` is not supported yet.
 - `/access Offline` switches to manual relay mode: commands are shown for you to run elsewhere, then you paste results back.
 - `/config` opens config actions. The built-in entries are `/config remove-remote` and `/config model`.
 - `/config remove-remote {host}` removes a saved remote host from config. Hosts discovered from `~/.ssh/config` are not removable here.

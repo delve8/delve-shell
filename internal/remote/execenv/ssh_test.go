@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -28,6 +29,70 @@ func TestParseUserHost_AddsDefaultPort(t *testing.T) {
 	}
 	if hostPort != "example.com:22" {
 		t.Fatalf("hostPort=%q want %q", hostPort, "example.com:22")
+	}
+}
+
+func TestParseSSHConnectTarget_AllowsImplicitUserForProxyJump(t *testing.T) {
+	t.Setenv("USER", "alice")
+	got, err := parseSSHConnectTarget("jump.example.com:2222", true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.user != "alice" {
+		t.Fatalf("user=%q want alice", got.user)
+	}
+	if got.hostPort != "jump.example.com:2222" {
+		t.Fatalf("hostPort=%q want jump.example.com:2222", got.hostPort)
+	}
+}
+
+func TestResolveProxyJumpTarget_UsesSSHConfigAlias(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USER", "localuser")
+	writeSSHConfigForExecenvTest(t, home, `
+Host bastion
+  HostName bastion.example.com
+  User jump
+  Port 2201
+  IdentityFile ~/.ssh/bastion_key
+`)
+
+	target, identityFile, err := resolveProxyJumpTarget("bastion")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if target != "jump@bastion.example.com:2201" {
+		t.Fatalf("target=%q want jump@bastion.example.com:2201", target)
+	}
+	if identityFile != filepath.Join(home, ".ssh", "bastion_key") {
+		t.Fatalf("identityFile=%q", identityFile)
+	}
+}
+
+func TestResolveProxyJumpTarget_RejectsMultiHop(t *testing.T) {
+	if _, _, err := resolveProxyJumpTarget("jump1,jump2"); err == nil {
+		t.Fatal("expected multi-hop ProxyJump to fail")
+	}
+}
+
+func TestResolveProxyJumpTarget_RejectsNestedProxyJumpAlias(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USER", "localuser")
+	writeSSHConfigForExecenvTest(t, home, `
+Host bastion
+  HostName bastion.example.com
+  User jump
+  ProxyJump outer
+
+Host outer
+  HostName outer.example.com
+  User jump
+`)
+
+	if _, _, err := resolveProxyJumpTarget("bastion"); err == nil {
+		t.Fatal("expected nested ProxyJump alias to fail")
 	}
 }
 
@@ -102,5 +167,16 @@ func TestSSHConnectionIssueSummary(t *testing.T) {
 	}
 	if got := SSHConnectionIssueSummary(&SSHConnectionError{Op: "run", Err: errors.New("boom")}); got != "disconnected" {
 		t.Fatalf("summary=%q want disconnected", got)
+	}
+}
+
+func writeSSHConfigForExecenvTest(t *testing.T, home string, content string) {
+	t.Helper()
+	sshDir := filepath.Join(home, ".ssh")
+	if err := os.MkdirAll(sshDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sshDir, "config"), []byte(content), 0600); err != nil {
+		t.Fatal(err)
 	}
 }

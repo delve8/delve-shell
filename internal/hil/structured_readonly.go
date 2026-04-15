@@ -783,6 +783,9 @@ func xargsReadOnlySegmentReason(args []string, policies map[string]config.ReadOn
 		return i18n.T(i18n.KeyAutoApproveHLXargsMissingTarget)
 	}
 	target := args[idx:]
+	if xargsOutputSinkTargetOK(target, policies) {
+		return ""
+	}
 	if len(target) < 2 || target[len(target)-1] != "--" {
 		return i18n.T(i18n.KeyAutoApproveHLXargsMissingSentinel)
 	}
@@ -806,6 +809,26 @@ func xargsReadOnlySegmentReason(args []string, policies map[string]config.ReadOn
 		return i18n.T(i18n.KeyAutoApproveHLXargsTargetMismatch)
 	}
 	return ""
+}
+
+func xargsOutputSinkTargetOK(target []string, policies map[string]config.ReadOnlyCLIPolicy) bool {
+	if len(target) == 0 {
+		return false
+	}
+	base := argv0Base(target[0])
+	if unsafeXargsTarget(base) {
+		return false
+	}
+	pol, ok := policies[base]
+	if !ok || !pol.PermissiveVarArgs() || len(pol.EffectiveRoot().Flags.MustNotList()) > 0 {
+		return false
+	}
+	staticTarget := make([]readOnlyCLIArg, len(target))
+	for i, arg := range target {
+		staticTarget[i] = readOnlyCLIArg{lit: arg}
+	}
+	withDynamicTail := append(append([]readOnlyCLIArg(nil), staticTarget...), readOnlyCLIArg{opaque: true})
+	return matchReadOnlyCLIArgs(withDynamicTail, &pol)
 }
 
 func parseSafeXargsPrefix(args []string) (idx int, ok bool) {

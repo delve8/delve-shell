@@ -115,3 +115,18 @@ func TestCommandAutoApproveHighlight_xargsReasons(t *testing.T) {
 		}
 	}
 }
+
+func TestCommandAutoApproveHighlight_xargsEchoSinkNotRisk(t *testing.T) {
+	w := NewAllowlist(nil)
+	cmd := `kubectl get pods -A --no-headers 2>/dev/null | wc -l | xargs echo "Total pods:"`
+	spans := w.CommandAutoApproveHighlight(cmd)
+	for _, s := range spans {
+		if s.Kind != hiltypes.AutoApproveHighlightRisk {
+			continue
+		}
+		got := cmd[s.Start:s.End]
+		if strings.Contains(got, `xargs echo "Total pods:"`) {
+			t.Fatalf("expected xargs echo sink to avoid risk highlight, spans=%+v", spans)
+		}
+	}
+}

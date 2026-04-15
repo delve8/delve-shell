@@ -333,10 +333,15 @@ func TestMatchReadOnlyCLIArgv_jqMustNotFromFile(t *testing.T) {
 	}
 }
 
-func TestMatchReadOnlyCLIArgv_sedSortMustNot(t *testing.T) {
+func TestMatchReadOnlyCLIArgv_sedSortAndReaderMustNot(t *testing.T) {
 	ld := config.DefaultLoadedAllowlist()
 	sedPol := ld.Commands["sed"]
 	sortPol := ld.Commands["sort"]
+	grepPol := ld.Commands["grep"]
+	tailPol := ld.Commands["tail"]
+	wcPol := ld.Commands["wc"]
+	duPol := ld.Commands["du"]
+	filePol := ld.Commands["file"]
 	cases := []struct {
 		name string
 		pol  config.ReadOnlyCLIPolicy
@@ -350,6 +355,20 @@ func TestMatchReadOnlyCLIArgv_sedSortMustNot(t *testing.T) {
 		{"sort ok", sortPol, []string{"sort", "-nr"}, true},
 		{"sort -o", sortPol, []string{"sort", "-o", "/tmp/out"}, false},
 		{"sort --output", sortPol, []string{"sort", "--output", "/tmp/out"}, false},
+		{"grep ok", grepPol, []string{"grep", "error", "app.log"}, true},
+		{"grep -f", grepPol, []string{"grep", "-f", "patterns.txt", "app.log"}, false},
+		{"grep -r", grepPol, []string{"grep", "-r", "error", "."}, false},
+		{"tail ok", tailPol, []string{"tail", "-n", "20", "app.log"}, true},
+		{"tail -f", tailPol, []string{"tail", "-f", "app.log"}, false},
+		{"tail -F", tailPol, []string{"tail", "-F", "app.log"}, false},
+		{"wc ok", wcPol, []string{"wc", "-l", "app.log"}, true},
+		{"wc --files0-from", wcPol, []string{"wc", "--files0-from", "list.txt"}, false},
+		{"du ok", duPol, []string{"du", "-sh", "."}, true},
+		{"du --files0-from", duPol, []string{"du", "--files0-from", "list.txt"}, false},
+		{"file ok", filePol, []string{"file", "/bin/sh"}, true},
+		{"file -C", filePol, []string{"file", "-C", "-m", "magic"}, false},
+		{"file --files-from", filePol, []string{"file", "--files-from", "list.txt"}, false},
+		{"file --magic-file", filePol, []string{"file", "--magic-file", "magic.mgc", "/bin/sh"}, false},
 	}
 	for _, tt := range cases {
 		got := MatchReadOnlyCLIArgv(tt.args, &tt.pol)
@@ -414,11 +433,15 @@ func TestXargsReadOnlySegmentOK(t *testing.T) {
 	}{
 		{"kubectl get pod with sentinel", `xargs -r -n1 kubectl get pod --`, true},
 		{"systemctl status with sentinel", `xargs --no-run-if-empty --max-args=2 systemctl status --`, true},
+		{"echo output sink without sentinel", `xargs echo "Total pods:"`, true},
+		{"grep without sentinel now blocked by must-not policy", `xargs grep error`, false},
+		{"file without sentinel now blocked by must-not policy", `xargs file`, false},
 		{"missing sentinel", `xargs -r -n1 kubectl get pod`, false},
 		{"replacement template", `xargs -I{} kubectl get pod {}`, false},
 		{"shell wrapper target", `xargs -r sh -c 'echo "$1"' --`, false},
 		{"target utility not allowlisted", `xargs -r -n1 rm --`, false},
 		{"dynamic subcommand slot not fixed", `xargs -r -n1 kubectl --`, false},
+		{"must-not target without sentinel", `xargs sysctl kernel.hostname`, false},
 		{"dangerous flag -P", `xargs -P 4 kubectl get pod --`, false},
 		{"dangerous flag -L", `xargs -L 2 kubectl get pod --`, false},
 		{"dangerous flag -a", `xargs -a names.txt kubectl get pod --`, false},
@@ -453,6 +476,9 @@ func TestXargsReadOnlySegmentReason(t *testing.T) {
 		{"missing sentinel", `xargs -r -n1 kubectl get pod`, i18n.T(i18n.KeyAutoApproveHLXargsMissingSentinel)},
 		{"unsafe target", `xargs -r sh -c 'echo "$1"' --`, i18n.T(i18n.KeyAutoApproveHLXargsUnsafeTarget)},
 		{"target mismatch", `xargs -r -n1 kubectl --`, i18n.T(i18n.KeyAutoApproveHLXargsTargetMismatch)},
+		{"echo output sink ok", `xargs echo "Total pods:"`, ""},
+		{"grep without sentinel blocked", `xargs grep error`, i18n.T(i18n.KeyAutoApproveHLXargsMissingSentinel)},
+		{"file without sentinel blocked", `xargs file`, i18n.T(i18n.KeyAutoApproveHLXargsMissingSentinel)},
 		{"ok", `xargs -r -n1 kubectl get pod --`, ""},
 	}
 	for _, tt := range tests {

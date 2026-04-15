@@ -14,6 +14,8 @@ import (
 	"syscall"
 	"time"
 
+	"delve-shell/internal/config"
+
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/knownhosts"
@@ -25,6 +27,7 @@ type SSHExecutor struct {
 	mu               sync.Mutex
 	reconnectMu      sync.Mutex
 	client           *ssh.Client
+	clientClose      func() error
 	keepAliveStop    chan struct{}
 	recoveryStop     chan struct{}
 	closed           bool
@@ -39,6 +42,16 @@ type SSHExecutor struct {
 type sshAuthConfig struct {
 	identityFile string
 	password     string
+}
+
+type sshClientHandle struct {
+	client *ssh.Client
+	close  func() error
+}
+
+type sshConnectTarget struct {
+	user     string
+	hostPort string
 }
 
 const (
@@ -127,7 +140,7 @@ func (e *HostKeyMismatchError) Error() string {
 // identityFile, when non-empty, is used as a private key; when empty, ~/.ssh/id_rsa
 // is tried first (like OpenSSH client), then SSH agent.
 func NewSSHExecutor(target, identityFile string) (*SSHExecutor, string, error) {
-	client, user, hostPort, err := dialSSHClient(target, identityFile, "")
+	handle, user, hostPort, err := dialSSHClient(target, identityFile, "")
 	if err != nil {
 		return nil, "", err
 	}
@@ -139,7 +152,7 @@ func NewSSHExecutor(target, identityFile string) (*SSHExecutor, string, error) {
 		target: target,
 		auth:   sshAuthConfig{identityFile: identityFile},
 	}
-	if err := exec.replaceClient(client); err != nil {
+	if err := exec.replaceClient(handle); err != nil {
 		return nil, "", err
 	}
 	return exec, label, nil
@@ -148,7 +161,7 @@ func NewSSHExecutor(target, identityFile string) (*SSHExecutor, string, error) {
 // NewSSHExecutorWithPassword creates an SSHExecutor using password-based auth in addition
 // to optional identityFile and SSH agent.
 func NewSSHExecutorWithPassword(target, identityFile, password string) (*SSHExecutor, string, error) {
-	client, user, hostPort, err := dialSSHClient(target, identityFile, password)
+	handle, user, hostPort, err := dialSSHClient(target, identityFile, password)
 	if err != nil {
 		return nil, "", err
 	}
@@ -160,7 +173,7 @@ func NewSSHExecutorWithPassword(target, identityFile, password string) (*SSHExec
 		target: target,
 		auth:   sshAuthConfig{identityFile: identityFile, password: password},
 	}
-	if err := exec.replaceClient(client); err != nil {
+	if err := exec.replaceClient(handle); err != nil {
 		return nil, "", err
 	}
 	return exec, label, nil
@@ -343,9 +356,11 @@ func (e *SSHExecutor) RunStreaming(ctx context.Context, command string, stdout, 
 func (e *SSHExecutor) Close() error {
 	e.mu.Lock()
 	client := e.client
+	closeFn := e.clientClose
 	stop := e.keepAliveStop
 	recoveryStop := e.recoveryStop
 	e.client = nil
+	e.clientClose = nil
 	e.keepAliveStop = nil
 	e.recoveryStop = nil
 	e.closed = true
@@ -355,6 +370,9 @@ func (e *SSHExecutor) Close() error {
 	}
 	if recoveryStop != nil {
 		close(recoveryStop)
+	}
+	if closeFn != nil {
+		return closeFn()
 	}
 	if client != nil {
 		return client.Close()
@@ -407,33 +425,40 @@ func (e *SSHExecutor) reconnect() error {
 	if e.isClosed() {
 		return errors.New("ssh executor is closed")
 	}
-	client, _, _, err := dialSSHClient(e.target, e.auth.identityFile, e.auth.password)
+	handle, _, _, err := dialSSHClient(e.target, e.auth.identityFile, e.auth.password)
 	if err != nil {
 		return err
 	}
-	if err := e.replaceClient(client); err != nil {
+	if err := e.replaceClient(handle); err != nil {
 		return err
 	}
 	e.reportTransportIssue("")
 	return nil
 }
 
-func (e *SSHExecutor) replaceClient(client *ssh.Client) error {
+func (e *SSHExecutor) replaceClient(handle sshClientHandle) error {
 	if e == nil {
 		return errors.New("ssh executor is nil")
 	}
+	client := handle.client
 	if client == nil {
 		return errors.New("ssh client is nil")
+	}
+	closeFn := handle.close
+	if closeFn == nil {
+		closeFn = client.Close
 	}
 	stop := make(chan struct{})
 	e.mu.Lock()
 	if e.closed {
 		e.mu.Unlock()
-		_ = client.Close()
+		_ = closeFn()
 		return errors.New("ssh executor is closed")
 	}
 	old := e.client
+	oldClose := e.clientClose
 	e.client = client
+	e.clientClose = closeFn
 	oldStop := e.keepAliveStop
 	oldRecoveryStop := e.recoveryStop
 	e.keepAliveStop = stop
@@ -445,7 +470,9 @@ func (e *SSHExecutor) replaceClient(client *ssh.Client) error {
 	if oldRecoveryStop != nil {
 		close(oldRecoveryStop)
 	}
-	if old != nil {
+	if oldClose != nil {
+		_ = oldClose()
+	} else if old != nil {
 		_ = old.Close()
 	}
 	go e.keepAliveLoop(client, stop)
@@ -573,12 +600,68 @@ func (e *SSHExecutor) reportTransportIssue(issue string) {
 	}
 }
 
-func dialSSHClient(target, identityFile, password string) (*ssh.Client, string, string, error) {
-	user, hostPort, err := parseUserHost(target)
+func dialSSHClient(target, identityFile, password string) (sshClientHandle, string, string, error) {
+	connectTarget, err := parseSSHConnectTarget(target, false)
 	if err != nil {
-		return nil, "", "", err
+		return sshClientHandle{}, "", "", err
 	}
+	clientConfig, err := newSSHClientConfig(connectTarget.user, identityFile, password)
+	if err != nil {
+		return sshClientHandle{}, "", "", err
+	}
+	proxyJump := resolveTargetProxyJump(target)
+	if strings.TrimSpace(proxyJump) == "" {
+		handle, err := dialDirectSSHClient(connectTarget.hostPort, clientConfig)
+		if err != nil {
+			return sshClientHandle{}, "", "", err
+		}
+		return handle, connectTarget.user, connectTarget.hostPort, nil
+	}
+	jumpTarget, jumpIdentityFile, err := resolveProxyJumpTarget(proxyJump)
+	if err != nil {
+		return sshClientHandle{}, "", "", err
+	}
+	jumpConnectTarget, err := parseSSHConnectTarget(jumpTarget, true)
+	if err != nil {
+		return sshClientHandle{}, "", "", err
+	}
+	jumpConfig, err := newSSHClientConfig(jumpConnectTarget.user, jumpIdentityFile, "")
+	if err != nil {
+		return sshClientHandle{}, "", "", err
+	}
+	jumpHandle, err := dialDirectSSHClient(jumpConnectTarget.hostPort, jumpConfig)
+	if err != nil {
+		return sshClientHandle{}, "", "", err
+	}
+	conn, err := jumpHandle.client.Dial("tcp", connectTarget.hostPort)
+	if err != nil {
+		_ = jumpHandle.close()
+		return sshClientHandle{}, "", "", err
+	}
+	sshConn, chans, reqs, err := ssh.NewClientConn(conn, connectTarget.hostPort, clientConfig)
+	if err != nil {
+		_ = conn.Close()
+		_ = jumpHandle.close()
+		return sshClientHandle{}, "", "", err
+	}
+	client := ssh.NewClient(sshConn, chans, reqs)
+	var closeOnce sync.Once
+	closeFn := func() error {
+		var closeErr error
+		closeOnce.Do(func() {
+			if err := client.Close(); err != nil {
+				closeErr = err
+			}
+			if err := jumpHandle.close(); err != nil && closeErr == nil {
+				closeErr = err
+			}
+		})
+		return closeErr
+	}
+	return sshClientHandle{client: client, close: closeFn}, connectTarget.user, connectTarget.hostPort, nil
+}
 
+func newSSHClientConfig(user, identityFile, password string) (*ssh.ClientConfig, error) {
 	hostKeyCallback, err := loadKnownHosts()
 	if err != nil {
 		hostKeyCallback = ssh.InsecureIgnoreHostKey()
@@ -612,22 +695,24 @@ func dialSSHClient(target, identityFile, password string) (*ssh.Client, string, 
 
 	authMethods, err := buildAuthMethods(identityFile, password)
 	if err != nil {
-		return nil, "", "", err
+		return nil, err
 	}
 	if len(authMethods) == 0 {
 		if password != "" {
-			return nil, "", "", errors.New("no SSH authentication methods available (identity file, agent, or password)")
+			return nil, errors.New("no SSH authentication methods available (identity file, agent, or password)")
 		}
-		return nil, "", "", errors.New("no SSH authentication methods available (identity file, agent, or default keys)")
+		return nil, errors.New("no SSH authentication methods available (identity file, agent, or default keys)")
 	}
 
-	clientConfig := &ssh.ClientConfig{
+	return &ssh.ClientConfig{
 		User:            user,
 		Auth:            authMethods,
 		HostKeyCallback: hostKeyCallback,
 		Timeout:         sshDialTimeout,
-	}
+	}, nil
+}
 
+func dialDirectSSHClient(hostPort string, clientConfig *ssh.ClientConfig) (sshClientHandle, error) {
 	dialer := net.Dialer{
 		Timeout: sshDialTimeout,
 		KeepAliveConfig: net.KeepAliveConfig{
@@ -639,17 +724,50 @@ func dialSSHClient(target, identityFile, password string) (*ssh.Client, string, 
 	}
 	conn, err := dialer.DialContext(context.Background(), "tcp", hostPort)
 	if err != nil {
-		return nil, "", "", err
+		return sshClientHandle{}, err
 	}
 	_ = conn.SetDeadline(time.Now().Add(sshDialTimeout))
 	sshConn, chans, reqs, err := ssh.NewClientConn(conn, hostPort, clientConfig)
 	if err != nil {
 		_ = conn.Close()
-		return nil, "", "", err
+		return sshClientHandle{}, err
 	}
 	_ = conn.SetDeadline(time.Time{})
 	client := ssh.NewClient(sshConn, chans, reqs)
-	return client, user, hostPort, nil
+	return sshClientHandle{client: client, close: client.Close}, nil
+}
+
+func resolveTargetProxyJump(target string) string {
+	sshHost, ok, err := config.ResolveSSHConfigHost(target)
+	if err != nil || !ok {
+		return ""
+	}
+	return strings.TrimSpace(sshHost.ProxyJump)
+}
+
+func resolveProxyJumpTarget(raw string) (target string, identityFile string, err error) {
+	raw = strings.TrimSpace(raw)
+	switch {
+	case raw == "":
+		return "", "", nil
+	case strings.Contains(raw, ","):
+		return "", "", fmt.Errorf("ssh ProxyJump chain %q is not supported", raw)
+	}
+	if sshHost, ok, err := config.ResolveSSHConfigHost(raw); err == nil && ok {
+		if strings.TrimSpace(sshHost.ProxyJump) != "" {
+			name := strings.TrimSpace(sshHost.Alias)
+			if name == "" {
+				name = sshHost.Target
+			}
+			return "", "", fmt.Errorf("ssh ProxyJump chain via %q is not supported", name)
+		}
+		return strings.TrimSpace(sshHost.Target), strings.TrimSpace(sshHost.IdentityFile), nil
+	}
+	connectTarget, err := parseSSHConnectTarget(raw, true)
+	if err != nil {
+		return "", "", fmt.Errorf("invalid ssh ProxyJump target %q: %w", raw, err)
+	}
+	return formatSSHConnectTarget(connectTarget), "", nil
 }
 
 func wrapSSHConnectionError(op string, err error, reconnectSuccess bool) error {
@@ -691,6 +809,45 @@ func isSSHTransportError(err error) bool {
 		strings.Contains(s, "client connection lost") ||
 		strings.Contains(s, "handshake failed: eof") ||
 		s == "eof"
+}
+
+func parseSSHConnectTarget(target string, allowImplicitUser bool) (sshConnectTarget, error) {
+	if !allowImplicitUser || strings.Contains(target, "@") {
+		user, hostPort, err := parseUserHost(target)
+		if err != nil {
+			return sshConnectTarget{}, err
+		}
+		return sshConnectTarget{user: user, hostPort: hostPort}, nil
+	}
+	target = strings.TrimSpace(target)
+	if target == "" {
+		return sshConnectTarget{}, errors.New("empty SSH target")
+	}
+	user := strings.TrimSpace(os.Getenv("USER"))
+	if user == "" {
+		user = strings.TrimSpace(os.Getenv("LOGNAME"))
+	}
+	if user == "" {
+		return sshConnectTarget{}, errors.New("ssh target must include username (user@host or user@host:port)")
+	}
+	if !strings.Contains(target, ":") {
+		target = net.JoinHostPort(target, "22")
+	}
+	return sshConnectTarget{user: user, hostPort: target}, nil
+}
+
+func formatSSHConnectTarget(target sshConnectTarget) string {
+	if target.hostPort == "" {
+		return ""
+	}
+	host, port, err := net.SplitHostPort(target.hostPort)
+	if err != nil {
+		return target.user + "@" + target.hostPort
+	}
+	if port == "22" {
+		return target.user + "@" + host
+	}
+	return target.user + "@" + net.JoinHostPort(host, port)
 }
 
 // parseUserHost parses "user@host[:port]" into user and host:port.

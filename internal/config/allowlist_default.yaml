@@ -693,9 +693,26 @@ commands:
           value: none
       operands: any
   dirname: {}
-  du: {}
+  du:
+    root:
+      flags:
+        any: true
+        must_not:
+          - long: files0-from
+      operands: any
   echo: {}
-  egrep: {}
+  egrep:
+    root:
+      flags:
+        any: true
+        must_not:
+          - short: f
+            long: file
+          - short: r
+            long: recursive
+          - short: R
+            long: dereference-recursive
+      operands: any
   env:
     root:
       flags: none
@@ -749,8 +766,30 @@ commands:
           value: none
       operands: any
   'false': {}
-  fgrep: {}
-  file: {}
+  fgrep:
+    root:
+      flags:
+        any: true
+        must_not:
+          - short: f
+            long: file
+          - short: r
+            long: recursive
+          - short: R
+            long: dereference-recursive
+      operands: any
+  file:
+    root:
+      flags:
+        any: true
+        must_not:
+          - short: C
+            long: compile
+          - short: f
+            long: files-from
+          - short: m
+            long: magic-file
+      operands: any
   find:
     global:
       flags: none
@@ -1000,7 +1039,18 @@ commands:
               value: required
           operands: none
         version: {}
-  grep: {}
+  grep:
+    root:
+      flags:
+        any: true
+        must_not:
+          - short: f
+            long: file
+          - short: r
+            long: recursive
+          - short: R
+            long: dereference-recursive
+      operands: any
   groups: {}
   head: {}
   hexdump: {}
@@ -2230,7 +2280,15 @@ commands:
               value: required
           operands: any
         version: {}
-  tail: {}
+  tail:
+    root:
+      flags:
+        any: true
+        must_not:
+          - short: f
+            long: follow
+          - short: F
+      operands: any
   tc:
     root:
       flags:
@@ -2333,7 +2391,13 @@ commands:
           flags: any
           operands: any
         version: {}
-  wc: {}
+  wc:
+    root:
+      flags:
+        any: true
+        must_not:
+          - long: files0-from
+      operands: any
   whereis: {}
   which: {}
   who: {}

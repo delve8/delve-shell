@@ -27,6 +27,7 @@ Host prod
   User ops
   Port 2222
   IdentityFile ~/.ssh/prod_key
+  ProxyJump bastion
 
 Host *.internal
   User ignored
@@ -48,6 +49,9 @@ Host db staging
 	}
 	if hosts[0].IdentityFile != filepath.Join(home, ".ssh", "prod_key") {
 		t.Fatalf("identity=%q", hosts[0].IdentityFile)
+	}
+	if hosts[0].ProxyJump != "bastion" {
+		t.Fatalf("proxyJump=%q want bastion", hosts[0].ProxyJump)
 	}
 	if hosts[1].Alias != "db" || hosts[1].Target != "deploy@db.example.com" {
 		t.Fatalf("db entry=%#v", hosts[1])
@@ -101,6 +105,29 @@ Host jump
 	}
 	if host.Alias != "jump" || host.Target != "ops@jump.example.com:2201" {
 		t.Fatalf("host=%#v", host)
+	}
+}
+
+func TestResolveSSHConfigHost_ProxyJumpNoneClearsValue(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USER", "localuser")
+	writeTestSSHConfig(t, home, `
+Host prod
+  HostName prod.example.com
+  User ops
+  ProxyJump none
+`)
+
+	host, ok, err := ResolveSSHConfigHost("prod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("expected prod to resolve")
+	}
+	if host.ProxyJump != "" {
+		t.Fatalf("proxyJump=%q want empty", host.ProxyJump)
 	}
 }
 

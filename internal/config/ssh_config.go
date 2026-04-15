@@ -18,6 +18,7 @@ type SSHConfigHost struct {
 	User         string
 	Port         string
 	IdentityFile string
+	ProxyJump    string
 	Target       string
 }
 
@@ -188,6 +189,12 @@ func resolveSSHConfigAlias(cfg *sshconfig.Config, alias string) (SSHConfigHost, 
 		break
 	}
 
+	proxyJump, _ := cfg.Get(alias, "ProxyJump")
+	proxyJump = strings.TrimSpace(proxyJump)
+	if strings.EqualFold(proxyJump, "none") {
+		proxyJump = ""
+	}
+
 	target := remoteUser + "@" + hostName
 	if port != "" && port != "22" {
 		target += ":" + port
@@ -199,6 +206,7 @@ func resolveSSHConfigAlias(cfg *sshconfig.Config, alias string) (SSHConfigHost, 
 		User:         remoteUser,
 		Port:         port,
 		IdentityFile: identityFile,
+		ProxyJump:    proxyJump,
 		Target:       target,
 	}, true
 }
