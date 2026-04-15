@@ -104,7 +104,7 @@ func (c *Controller) updateRemoteIssueFromExecError(err error) {
 	c.ui.RemoteStatus(true, c.runtime.RemoteLabel(), false, issue)
 }
 
-func (c *Controller) handleAccessRemote(target string) {
+func (c *Controller) handleAccessRemote(target string, socks5Addr string) {
 	if c.runtime != nil {
 		c.runtime.SetOffline(false)
 	}
@@ -113,8 +113,8 @@ func (c *Controller) handleAccessRemote(target string) {
 	if c.runners != nil {
 		c.runners.Invalidate()
 	}
-	resolved := resolveAccessRemoteTarget(target)
-	res := c.executors.Connect(resolved.Target, resolved.Label, resolved.IdentityFile)
+	resolved := resolveAccessRemoteTarget(target, socks5Addr)
+	res := c.executors.Connect(resolved.Target, resolved.Label, resolved.IdentityFile, resolved.Socks5Addr)
 	if res.AuthPrompt != nil {
 		c.ui.Raw(remote.AuthPromptMsg{
 			Target:                res.AuthPrompt.Target,
@@ -123,6 +123,7 @@ func (c *Controller) handleAccessRemote(target string) {
 			HostKeyVerify:         res.AuthPrompt.HostKeyVerify,
 			HostKeyFingerprint:    res.AuthPrompt.HostKeyFingerprint,
 			HostKeyHost:           res.AuthPrompt.HostKeyHost,
+			Socks5Addr:            res.AuthPrompt.Socks5Addr,
 		})
 	}
 	if !res.Connected {
@@ -148,23 +149,31 @@ type accessRemoteTarget struct {
 	HostOnly     string
 	ConfigName   string
 	IdentityFile string
+	Socks5Addr   string
 }
 
-func resolveAccessRemoteTarget(input string) accessRemoteTarget {
+func resolveAccessRemoteTarget(input string, socks5Addr string) accessRemoteTarget {
 	input = strings.TrimSpace(input)
+	socks5Addr = strings.TrimSpace(socks5Addr)
 	resolved := accessRemoteTarget{
-		Target:   input,
-		Label:    input,
-		HostOnly: config.HostFromTarget(input),
+		Target:     input,
+		Label:      input,
+		HostOnly:   config.HostFromTarget(input),
+		Socks5Addr: socks5Addr,
 	}
 
 	if remote, ok := findSavedRemote(input, false); ok {
+		remoteSocks5Addr := strings.TrimSpace(remote.Socks5Addr)
+		if socks5Addr != "" {
+			remoteSocks5Addr = socks5Addr
+		}
 		return accessRemoteTarget{
 			Target:       remote.Target,
 			Label:        remoteDisplayLabel(remote),
 			HostOnly:     config.HostFromTarget(remote.Target),
 			ConfigName:   strings.TrimSpace(remote.Name),
 			IdentityFile: strings.TrimSpace(remote.IdentityFile),
+			Socks5Addr:   remoteSocks5Addr,
 		}
 	}
 	if sshHost, ok, err := config.ResolveSSHConfigHost(input); err == nil && ok {
@@ -182,15 +191,21 @@ func resolveAccessRemoteTarget(input string) accessRemoteTarget {
 			HostOnly:     hostOnly,
 			ConfigName:   strings.TrimSpace(sshHost.Alias),
 			IdentityFile: strings.TrimSpace(sshHost.IdentityFile),
+			Socks5Addr:   socks5Addr,
 		}
 	}
 	if remote, ok := findSavedRemote(input, true); ok {
+		remoteSocks5Addr := strings.TrimSpace(remote.Socks5Addr)
+		if socks5Addr != "" {
+			remoteSocks5Addr = socks5Addr
+		}
 		return accessRemoteTarget{
 			Target:       remote.Target,
 			Label:        remoteDisplayLabel(remote),
 			HostOnly:     config.HostFromTarget(remote.Target),
 			ConfigName:   strings.TrimSpace(remote.Name),
 			IdentityFile: strings.TrimSpace(remote.IdentityFile),
+			Socks5Addr:   remoteSocks5Addr,
 		}
 	}
 	return resolved
@@ -260,6 +275,7 @@ func (c *Controller) handleRemoteAuthResp(resp remoteauth.Response) {
 				HostKeyVerify:         res.AuthPrompt.HostKeyVerify,
 				HostKeyFingerprint:    res.AuthPrompt.HostKeyFingerprint,
 				HostKeyHost:           res.AuthPrompt.HostKeyHost,
+				Socks5Addr:            res.AuthPrompt.Socks5Addr,
 			})
 		}
 		if !res.Connected {
@@ -292,7 +308,7 @@ func (c *Controller) handleRemoteAuthResp(resp remoteauth.Response) {
 	}
 	labelStr, err := c.executors.HandleRemoteAuthResponse(resp)
 	if err != nil {
-		c.ui.Raw(remote.AuthPromptMsg{Target: resp.Target, Err: fmt.Sprintf("Auth failed: %v", err)})
+		c.ui.Raw(remote.AuthPromptMsg{Target: resp.Target, Socks5Addr: resp.Socks5Addr, Err: fmt.Sprintf("Auth failed: %v", err)})
 		return
 	}
 	if c.runtime != nil {

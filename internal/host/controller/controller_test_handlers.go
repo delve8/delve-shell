@@ -257,7 +257,7 @@ Host prod
   IdentityFile ~/.ssh/prod_key
 `)
 
-	got := resolveAccessRemoteTarget("prod")
+	got := resolveAccessRemoteTarget("prod", "")
 	if got.Target != "deploy@current.example.com:2222" {
 		t.Fatalf("target=%q", got.Target)
 	}
@@ -281,7 +281,7 @@ Host jump
   Port 2201
 `)
 
-	got := resolveAccessRemoteTarget("jump.example.com")
+	got := resolveAccessRemoteTarget("jump.example.com", "")
 	if got.Target != "deploy@jump.example.com:2201" {
 		t.Fatalf("target=%q", got.Target)
 	}
@@ -308,7 +308,7 @@ Host test
   IdentityFile ~/.ssh/test_key
 `)
 
-	got := resolveAccessRemoteTarget("test")
+	got := resolveAccessRemoteTarget("test", "")
 	if got.Target != "ops@192.168.140.200" {
 		t.Fatalf("target=%q", got.Target)
 	}
@@ -320,6 +320,21 @@ Host test
 	}
 	if got.IdentityFile != filepath.Join(home, ".ssh", "test_key") {
 		t.Fatalf("identity=%q want ssh config identity", got.IdentityFile)
+	}
+}
+
+func TestResolveAccessRemoteTarget_PrefersExplicitSocks5ForUnsavedConnect(t *testing.T) {
+	t.Setenv("DELVE_SHELL_ROOT", t.TempDir())
+	if err := config.EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	if err := config.AddRemoteWithOptions("ops@prod.example.com", "prod", "~/.ssh/prod", config.RemoteTargetOptions{Socks5Addr: "127.0.0.1:1080"}); err != nil {
+		t.Fatal(err)
+	}
+
+	got := resolveAccessRemoteTarget("prod", "127.0.0.1:2080")
+	if got.Socks5Addr != "127.0.0.1:2080" {
+		t.Fatalf("socks5=%q want 127.0.0.1:2080", got.Socks5Addr)
 	}
 }
 

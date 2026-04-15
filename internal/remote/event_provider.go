@@ -51,6 +51,7 @@ func remoteConnectUIHandler(m *ui.Model, msg tea.Msg) (*ui.Model, tea.Cmd, bool)
 				cmd := m.CloseOverlayAndRefocusInput()
 				state.RemoteAuth.Step = ""
 				state.RemoteAuth.Target = ""
+				state.RemoteAuth.Socks5Addr = ""
 				state.RemoteAuth.Error = ""
 				state.RemoteAuth.HostKeyHost = ""
 				state.RemoteAuth.HostKeyFP = ""
@@ -91,6 +92,7 @@ func remoteConnectUIHandler(m *ui.Model, msg tea.Msg) (*ui.Model, tea.Cmd, bool)
 		state.ConnectRemote.Active = false
 		m.OpenOverlayFeature(OverlayFeatureKey, i18n.T(i18n.KeyRemoteAuthTitle), "")
 		state.RemoteAuth.Target = t.Target
+		state.RemoteAuth.Socks5Addr = t.Socks5Addr
 		state.RemoteAuth.Error = t.Err
 		state.RemoteAuth.ChoiceIndex = 0
 		state.RemoteAuth.HostKeyHost = t.HostKeyHost

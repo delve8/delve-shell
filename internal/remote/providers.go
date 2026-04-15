@@ -73,6 +73,12 @@ func registerProviders() {
 				state.AddRemote.KeyInput.SetValue(lastIdentityFile)
 				state.AddRemote.KeyInput.CursorEnd()
 			}
+			state.AddRemote.Socks5Input = textinput.New()
+			state.AddRemote.Socks5Input.Placeholder = i18n.T(i18n.KeyAddRemoteSocks5Placeholder)
+			if lastSocks5Addr, err := config.LoadLastSocks5Addr(); err == nil && lastSocks5Addr != "" {
+				state.AddRemote.Socks5Input.SetValue(lastSocks5Addr)
+				state.AddRemote.Socks5Input.CursorEnd()
+			}
 			prefillAddRemoteFromParams(&state.AddRemote, req.Params)
 			applyAddRemoteFieldFocus(&state.AddRemote)
 			setRemoteOverlayState(state)
@@ -142,6 +148,10 @@ func prefillAddRemoteFromParams(state *AddRemoteOverlayState, params map[string]
 			if strings.TrimSpace(r.IdentityFile) != "" {
 				state.KeyInput.SetValue(strings.TrimSpace(r.IdentityFile))
 				state.KeyInput.CursorEnd()
+			}
+			if strings.TrimSpace(r.Socks5Addr) != "" {
+				state.Socks5Input.SetValue(strings.TrimSpace(r.Socks5Addr))
+				state.Socks5Input.CursorEnd()
 			}
 			if strings.TrimSpace(r.Name) != "" {
 				state.NameInput.SetValue(strings.TrimSpace(r.Name))

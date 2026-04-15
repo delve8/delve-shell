@@ -12,8 +12,8 @@ import (
 	"delve-shell/internal/remote/execenv"
 )
 
-type sshNewFunc func(target, identityFile string) (execenv.CommandExecutor, string, error)
-type sshNewWithPasswordFunc func(target, identityFile, password string) (execenv.CommandExecutor, string, error)
+type sshNewFunc func(target, identityFile, socks5Addr string) (execenv.CommandExecutor, string, error)
+type sshNewWithPasswordFunc func(target, identityFile, password, socks5Addr string) (execenv.CommandExecutor, string, error)
 
 // Manager owns the current command executor (local or remote) and remote credential cache.
 // It is safe for concurrent use.
@@ -41,6 +41,7 @@ type pendingHostKeyDecision struct {
 	target       string
 	label        string
 	identityFile string
+	socks5Addr   string
 	mismatch     *execenv.HostKeyMismatchError
 }
 
@@ -48,11 +49,11 @@ func New() *Manager {
 	return &Manager{
 		executor:    execenv.LocalExecutor{},
 		remoteCreds: make(map[string]remoteCred),
-		newSSH: func(target, identityFile string) (execenv.CommandExecutor, string, error) {
-			return execenv.NewSSHExecutor(target, identityFile)
+		newSSH: func(target, identityFile, socks5Addr string) (execenv.CommandExecutor, string, error) {
+			return execenv.NewSSHExecutorWithProxy(target, identityFile, socks5Addr)
 		},
-		newSSHWithPassword: func(target, identityFile, password string) (execenv.CommandExecutor, string, error) {
-			return execenv.NewSSHExecutorWithPassword(target, identityFile, password)
+		newSSHWithPassword: func(target, identityFile, password, socks5Addr string) (execenv.CommandExecutor, string, error) {
+			return execenv.NewSSHExecutorWithPasswordAndProxy(target, identityFile, password, socks5Addr)
 		},
 	}
 }
@@ -162,9 +163,9 @@ func (m *Manager) HandleRemoteAuthResponse(resp remoteauth.Response) (label stri
 	var sshExec execenv.CommandExecutor
 	switch resp.Kind {
 	case remoteauth.ResponseKindIdentity:
-		sshExec, _, err = m.newSSH(targetForSSH, resp.Password)
+		sshExec, _, err = m.newSSH(targetForSSH, resp.Password, strings.TrimSpace(resp.Socks5Addr))
 	default:
-		sshExec, _, err = m.newSSHWithPassword(targetForSSH, "", resp.Password)
+		sshExec, _, err = m.newSSHWithPassword(targetForSSH, "", resp.Password, strings.TrimSpace(resp.Socks5Addr))
 	}
 	if err != nil {
 		return "", err
@@ -201,8 +202,9 @@ type ConnectResult struct {
 //   - If identityFile is provided, emit an AuthPrompt in "auto identity" mode, then attempt connection.
 //     Auth failures continue to interactive auth; transport failures return ErrText only.
 //   - Otherwise, try plain SSH; auth failures emit an AuthPrompt, while transport failures return ErrText only.
-func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
+func (m *Manager) Connect(target, label, identityFile, socks5Addr string) ConnectResult {
 	hostOnly := config.HostFromTarget(target)
+	socks5Addr = strings.TrimSpace(socks5Addr)
 	if label == "" {
 		label = hostOnly
 	}
@@ -217,9 +219,9 @@ func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 		var exec execenv.CommandExecutor
 		var err error
 		if kind == remoteauth.ResponseKindIdentity {
-			exec, _, err = m.newSSH(targetForSSH, cachedSecret)
+			exec, _, err = m.newSSH(targetForSSH, cachedSecret, socks5Addr)
 		} else {
-			exec, _, err = m.newSSHWithPassword(targetForSSH, "", cachedSecret)
+			exec, _, err = m.newSSHWithPassword(targetForSSH, "", cachedSecret, socks5Addr)
 		}
 		if err == nil && exec != nil {
 			m.Set(exec)
@@ -231,8 +233,8 @@ func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 	// 2) Configured identity
 	if identityFile != "" {
 		info := fmt.Sprintf("Using configured SSH key: %s", identityFile)
-		prompt := &remoteauth.Prompt{Target: target, Err: info, UseConfiguredIdentity: true}
-		exec, _, err := m.newSSH(target, identityFile)
+		prompt := &remoteauth.Prompt{Target: target, Socks5Addr: socks5Addr, Err: info, UseConfiguredIdentity: true}
+		exec, _, err := m.newSSH(target, identityFile, socks5Addr)
 		if err != nil || exec == nil {
 			var mismatch *execenv.HostKeyMismatchError
 			if errors.As(err, &mismatch) {
@@ -241,6 +243,7 @@ func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 					target:       target,
 					label:        label,
 					identityFile: identityFile,
+					socks5Addr:   socks5Addr,
 					mismatch:     mismatch,
 				}
 				m.mu.Unlock()
@@ -249,6 +252,7 @@ func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 					Label:     label,
 					AuthPrompt: &remoteauth.Prompt{
 						Target:             target,
+						Socks5Addr:         socks5Addr,
 						HostKeyVerify:      true,
 						HostKeyHost:        mismatch.Hostname,
 						HostKeyFingerprint: mismatch.Fingerprint,
@@ -258,7 +262,7 @@ func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 			}
 			msg := fmt.Sprintf("Remote connect failed for %s: %v", hostOnly, err)
 			if shouldPromptForAuth(err) {
-				return ConnectResult{Connected: false, Label: label, AuthPrompt: &remoteauth.Prompt{Target: target, Err: msg}}
+				return ConnectResult{Connected: false, Label: label, AuthPrompt: &remoteauth.Prompt{Target: target, Socks5Addr: socks5Addr, Err: msg}}
 			}
 			return ConnectResult{Connected: false, Label: label, ErrText: msg}
 		}
@@ -268,7 +272,7 @@ func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 	}
 
 	// 3) Plain SSH attempt
-	exec, _, err := m.newSSH(target, "")
+	exec, _, err := m.newSSH(target, "", socks5Addr)
 	if err != nil || exec == nil {
 		var mismatch *execenv.HostKeyMismatchError
 		if errors.As(err, &mismatch) {
@@ -277,6 +281,7 @@ func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 				target:       target,
 				label:        label,
 				identityFile: identityFile,
+				socks5Addr:   socks5Addr,
 				mismatch:     mismatch,
 			}
 			m.mu.Unlock()
@@ -285,6 +290,7 @@ func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 				Label:     label,
 				AuthPrompt: &remoteauth.Prompt{
 					Target:             target,
+					Socks5Addr:         socks5Addr,
 					HostKeyVerify:      true,
 					HostKeyHost:        mismatch.Hostname,
 					HostKeyFingerprint: mismatch.Fingerprint,
@@ -294,7 +300,7 @@ func (m *Manager) Connect(target, label, identityFile string) ConnectResult {
 		}
 		msg := fmt.Sprintf("Remote connect failed for %s: %v", hostOnly, err)
 		if shouldPromptForAuth(err) {
-			return ConnectResult{Connected: false, Label: label, AuthPrompt: &remoteauth.Prompt{Target: target, Err: msg}}
+			return ConnectResult{Connected: false, Label: label, AuthPrompt: &remoteauth.Prompt{Target: target, Socks5Addr: socks5Addr, Err: msg}}
 		}
 		return ConnectResult{Connected: false, Label: label, ErrText: msg}
 	}
@@ -340,15 +346,15 @@ func (m *Manager) ResolveHostKeyDecision(target string, accept bool) ConnectResu
 		return ConnectResult{
 			Connected:  false,
 			Label:      pending.label,
-			AuthPrompt: &remoteauth.Prompt{Target: pending.target, Err: fmt.Sprintf("Failed to update known_hosts: %v", err)},
+			AuthPrompt: &remoteauth.Prompt{Target: pending.target, Socks5Addr: pending.socks5Addr, Err: fmt.Sprintf("Failed to update known_hosts: %v", err)},
 		}
 	}
-	exec, _, err := m.newSSH(pending.target, pending.identityFile)
+	exec, _, err := m.newSSH(pending.target, pending.identityFile, pending.socks5Addr)
 	if err != nil || exec == nil {
 		return ConnectResult{
 			Connected:  false,
 			Label:      pending.label,
-			AuthPrompt: &remoteauth.Prompt{Target: pending.target, Err: fmt.Sprintf("Remote connect failed for %s: %v", config.HostFromTarget(pending.target), err)},
+			AuthPrompt: &remoteauth.Prompt{Target: pending.target, Socks5Addr: pending.socks5Addr, Err: fmt.Sprintf("Remote connect failed for %s: %v", config.HostFromTarget(pending.target), err)},
 		}
 	}
 	m.Set(exec)

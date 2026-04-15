@@ -185,7 +185,7 @@ func TestLoadRemotes_WriteRemotes_roundtrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := []RemoteTarget{
-		{Name: "dev", Target: "root@192.168.1.1", IdentityFile: "~/.ssh/id_rsa"},
+		{Name: "dev", Target: "root@192.168.1.1", IdentityFile: "~/.ssh/id_rsa", Socks5Addr: "127.0.0.1:1080"},
 		{Name: "prod", Target: "ops@prod.example.com", IdentityFile: ""},
 	}
 	if err := WriteRemotes(want); err != nil {
@@ -199,7 +199,8 @@ func TestLoadRemotes_WriteRemotes_roundtrip(t *testing.T) {
 		t.Fatalf("LoadRemotes: len = %d, want %d", len(got), len(want))
 	}
 	for i := range want {
-		if got[i].Name != want[i].Name || got[i].Target != want[i].Target || got[i].IdentityFile != want[i].IdentityFile {
+		if got[i].Name != want[i].Name || got[i].Target != want[i].Target ||
+			got[i].IdentityFile != want[i].IdentityFile || got[i].Socks5Addr != want[i].Socks5Addr {
 			t.Errorf("LoadRemotes[%d] = %+v, want %+v", i, got[i], want[i])
 		}
 	}
@@ -256,6 +257,32 @@ func TestAddRemote_validatesUserAtHost(t *testing.T) {
 		if err := AddRemote(valid, "", ""); err != nil {
 			t.Errorf("AddRemote(%q) should succeed: %v", valid, err)
 		}
+	}
+}
+
+func TestAddRemoteWithOptions_UpdateRemoteWithOptions_PersistsSocks5Addr(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", dir)
+	defer t.Setenv("DELVE_SHELL_ROOT", "")
+
+	if err := EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	if err := AddRemoteWithOptions("root@host", "dev", "~/.ssh/id_rsa", RemoteTargetOptions{Socks5Addr: "127.0.0.1:1080"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := UpdateRemoteWithOptions("root@host", "dev-updated", "~/.ssh/id_ed25519", RemoteTargetOptions{Socks5Addr: "127.0.0.1:2080"}); err != nil {
+		t.Fatal(err)
+	}
+	remotes, err := LoadRemotes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(remotes) != 1 {
+		t.Fatalf("len(remotes)=%d want 1", len(remotes))
+	}
+	if remotes[0].Socks5Addr != "127.0.0.1:2080" {
+		t.Fatalf("socks5=%q want 127.0.0.1:2080", remotes[0].Socks5Addr)
 	}
 }
 
@@ -338,5 +365,32 @@ func TestLoadLastUsername_SetLastUsername_roundtrip(t *testing.T) {
 	}
 	if cfg.LastUsername != "alice" {
 		t.Fatalf("config last_username=%q want %q", cfg.LastUsername, "alice")
+	}
+}
+
+func TestLoadLastSocks5Addr_SetLastSocks5Addr_roundtrip(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", dir)
+	defer t.Setenv("DELVE_SHELL_ROOT", "")
+
+	if err := EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	if err := SetLastSocks5Addr(" 127.0.0.1:1080 "); err != nil {
+		t.Fatal(err)
+	}
+	got, err := LoadLastSocks5Addr()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "127.0.0.1:1080" {
+		t.Fatalf("got %q want 127.0.0.1:1080", got)
+	}
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.LastSocks5Addr != "127.0.0.1:1080" {
+		t.Fatalf("config last_socks5_addr=%q want 127.0.0.1:1080", cfg.LastSocks5Addr)
 	}
 }

@@ -14,12 +14,12 @@ import (
 )
 
 // addRemoteFieldCount returns the number of focusable fields in the Add remote form.
-// Indices: 0 Host, 1 User, 2 Key path, 3 Save row; when Save: 4 Name.
+// Indices: 0 Host, 1 User, 2 Key path, 3 SOCKS5 proxy, 4 Save row; when Save: 5 Name.
 func addRemoteFieldCount(s AddRemoteOverlayState) int {
 	if s.Save {
-		return 5
+		return 6
 	}
-	return 4
+	return 5
 }
 
 func applyAddRemoteFieldFocus(state *AddRemoteOverlayState) {
@@ -27,6 +27,7 @@ func applyAddRemoteFieldFocus(state *AddRemoteOverlayState) {
 	state.UserInput.Blur()
 	state.NameInput.Blur()
 	state.KeyInput.Blur()
+	state.Socks5Input.Blur()
 	switch state.FieldIndex {
 	case 0:
 		state.HostInput.Focus()
@@ -35,8 +36,10 @@ func applyAddRemoteFieldFocus(state *AddRemoteOverlayState) {
 	case 2:
 		state.KeyInput.Focus()
 	case 3:
-		// Save row — no text field
+		state.Socks5Input.Focus()
 	case 4:
+		// Save row — no text field
+	case 5:
 		state.NameInput.Focus()
 	}
 }
@@ -154,10 +157,10 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 		return ret(m, nil, true)
 
 	case " ":
-		if state.AddRemote.FieldIndex == 3 {
+		if state.AddRemote.FieldIndex == 4 {
 			state.AddRemote.Save = !state.AddRemote.Save
 			if state.AddRemote.Save {
-				state.AddRemote.FieldIndex = 4
+				state.AddRemote.FieldIndex = 5
 			}
 			applyAddRemoteFieldFocus(&state.AddRemote)
 			return ret(m, nil, true)
@@ -191,6 +194,7 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 		user := strings.TrimSpace(state.AddRemote.UserInput.Value())
 		name := strings.TrimSpace(state.AddRemote.NameInput.Value())
 		keyPath := strings.TrimSpace(state.AddRemote.KeyInput.Value())
+		socks5Addr := strings.TrimSpace(state.AddRemote.Socks5Input.Value())
 
 		if missingIdx, missing := firstIncompleteAddRemoteField(state.AddRemote); missing {
 			state.AddRemote.FieldIndex = missingIdx
@@ -209,7 +213,7 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 
 		target := user + "@" + host
 		if state.AddRemote.Save {
-			if err := config.AddRemote(target, name, keyPath); err != nil {
+			if err := config.AddRemoteWithOptions(target, name, keyPath, config.RemoteTargetOptions{Socks5Addr: socks5Addr}); err != nil {
 				state.AddRemote.Error = err.Error()
 				state.AddRemote.OfferOverwrite = strings.Contains(err.Error(), "already exists")
 				if state.AddRemote.OfferOverwrite {
@@ -230,9 +234,10 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 		}
 		rememberLastAddRemoteUsername(user)
 		rememberLastAddRemoteIdentityFile(keyPath)
+		rememberLastAddRemoteSocks5Addr(socks5Addr)
 		state.AddRemote.Connecting = true
 		state.AddRemote.Error = ""
-		if m.CommandSender == nil || !m.CommandSender.Send(hostcmd.AccessRemote{Target: target}) {
+		if m.CommandSender == nil || !m.CommandSender.Send(hostcmd.AccessRemote{Target: target, Socks5Addr: socks5Addr}) {
 			state.AddRemote.Connecting = false
 		}
 		return ret(m, nil, true)
@@ -259,8 +264,12 @@ func handleAddRemoteOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mod
 			pcState.Index = -1
 		}
 	case 3:
-		cmd = nil
+		state.AddRemote.Socks5Input, cmd = state.AddRemote.Socks5Input.Update(msg)
+		state.AddRemote.Error = ""
+		state.AddRemote.OfferOverwrite = false
 	case 4:
+		cmd = nil
+	case 5:
 		state.AddRemote.NameInput, cmd = state.AddRemote.NameInput.Update(msg)
 		state.AddRemote.Error = ""
 		state.AddRemote.OfferOverwrite = false
@@ -279,11 +288,12 @@ func handleAddRemoteOverwriteConfirm(
 	user := strings.TrimSpace(state.AddRemote.UserInput.Value())
 	name := strings.TrimSpace(state.AddRemote.NameInput.Value())
 	keyPath := strings.TrimSpace(state.AddRemote.KeyInput.Value())
+	socks5Addr := strings.TrimSpace(state.AddRemote.Socks5Input.Value())
 	if host == "" {
 		return ret(m, nil, true)
 	}
 	target := user + "@" + host
-	if err := config.UpdateRemote(target, name, keyPath); err != nil {
+	if err := config.UpdateRemoteWithOptions(target, name, keyPath, config.RemoteTargetOptions{Socks5Addr: socks5Addr}); err != nil {
 		state.AddRemote.Error = err.Error()
 		state.AddRemote.OfferOverwrite = false
 		state.AddRemote.ChoiceIndex = 0
@@ -296,6 +306,7 @@ func handleAddRemoteOverwriteConfirm(
 	m.AppendInfoNotice(i18n.Tf(i18n.KeyConfigRemoteAdded, display))
 	rememberLastAddRemoteUsername(user)
 	rememberLastAddRemoteIdentityFile(keyPath)
+	rememberLastAddRemoteSocks5Addr(socks5Addr)
 	cmd := m.CloseOverlayAndRefocusInput()
 	state.AddRemote.Active = false
 	state.AddRemote.Error = ""
@@ -321,4 +332,12 @@ func rememberLastAddRemoteUsername(username string) {
 		return
 	}
 	_ = config.SetLastUsername(username)
+}
+
+func rememberLastAddRemoteSocks5Addr(addr string) {
+	addr = strings.TrimSpace(addr)
+	if addr == "" {
+		return
+	}
+	_ = config.SetLastSocks5Addr(addr)
 }

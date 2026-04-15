@@ -117,12 +117,15 @@ func buildRemoteOverlayContent(m *ui.Model) (string, bool) {
 		}
 		appendPathCompletionBlock(&b, keyFocused, cands, idx)
 		b.WriteString("\n")
+		b.WriteString(i18n.T(i18n.KeyAddRemoteSocks5Label) + "\n")
+		b.WriteString(state.AddRemote.Socks5Input.View())
+		b.WriteString("\n\n")
 		saveLabel := "[ ]"
 		if state.AddRemote.Save {
 			saveLabel = "[X]"
 		}
 		saveLine := saveLabel + " " + i18n.T(i18n.KeyAddRemoteSaveLabel)
-		if state.AddRemote.FieldIndex == 3 {
+		if state.AddRemote.FieldIndex == 4 {
 			b.WriteString(ui.SuggestHiRender(saveLine) + "\n")
 		} else {
 			b.WriteString(ui.SuggestStyleRender(saveLine) + "\n")

@@ -73,6 +73,7 @@ type Event struct {
 	SessionID          string
 	Command            string
 	RemoteTarget       string
+	RemoteSocks5Addr   string
 	RemoteAuthResponse remoteauth.Response
 	Submission         inputlifecycletype.InputSubmission
 

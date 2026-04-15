@@ -11,6 +11,7 @@ import (
 type RemoteAuthOverlayState struct {
 	Step          string
 	Target        string
+	Socks5Addr    string
 	Error         string
 	ChoiceIndex   int // 0-based selection for two-choice auth steps (host-key trust, password vs key)
 	HostKeyHost   string
@@ -28,6 +29,7 @@ type AddRemoteOverlayState struct {
 	HostInput      textinput.Model
 	NameInput      textinput.Model
 	KeyInput       textinput.Model
+	Socks5Input    textinput.Model
 	FieldIndex     int
 	Error          string
 	ChoiceIndex    int  // 0-based selection for overwrite confirmation choices

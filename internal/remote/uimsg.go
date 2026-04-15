@@ -20,6 +20,7 @@ type ConnectDoneMsg struct {
 // AuthPromptMsg asks the user to provide additional credentials for a remote target.
 type AuthPromptMsg struct {
 	Target                string
+	Socks5Addr            string
 	Err                   string
 	UseConfiguredIdentity bool
 	HostKeyVerify         bool

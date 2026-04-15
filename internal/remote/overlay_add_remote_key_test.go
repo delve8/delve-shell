@@ -19,6 +19,7 @@ func TestHandleAddRemoteOverlayKey_TabMovesToNextFieldWithoutCandidates(t *testi
 	state.AddRemote.HostInput = textinput.New()
 	state.AddRemote.UserInput = textinput.New()
 	state.AddRemote.KeyInput = textinput.New()
+	state.AddRemote.Socks5Input = textinput.New()
 	state.AddRemote.NameInput = textinput.New()
 	setRemoteOverlayState(state)
 	pathcomplete.ResetState()
@@ -45,6 +46,7 @@ func TestHandleAddRemoteOverlayKey_EnterMovesUntilLastField(t *testing.T) {
 	state.AddRemote.HostInput = textinput.New()
 	state.AddRemote.UserInput = textinput.New()
 	state.AddRemote.KeyInput = textinput.New()
+	state.AddRemote.Socks5Input = textinput.New()
 	state.AddRemote.NameInput = textinput.New()
 	setRemoteOverlayState(state)
 	pathcomplete.ResetState()
@@ -67,10 +69,11 @@ func TestHandleAddRemoteOverlayKey_SpaceOnSaveMovesToNameWhenEnabled(t *testing.
 	m := ui.NewModel(nil, nil)
 	state := getRemoteOverlayState()
 	state.AddRemote.Active = true
-	state.AddRemote.FieldIndex = 3
+	state.AddRemote.FieldIndex = 4
 	state.AddRemote.HostInput = textinput.New()
 	state.AddRemote.UserInput = textinput.New()
 	state.AddRemote.KeyInput = textinput.New()
+	state.AddRemote.Socks5Input = textinput.New()
 	state.AddRemote.NameInput = textinput.New()
 	setRemoteOverlayState(state)
 	pathcomplete.ResetState()
@@ -87,8 +90,8 @@ func TestHandleAddRemoteOverlayKey_SpaceOnSaveMovesToNameWhenEnabled(t *testing.
 	if !got.AddRemote.Save {
 		t.Fatal("expected save to be enabled")
 	}
-	if got.AddRemote.FieldIndex != 4 {
-		t.Fatalf("field index=%d want 4", got.AddRemote.FieldIndex)
+	if got.AddRemote.FieldIndex != 5 {
+		t.Fatalf("field index=%d want 5", got.AddRemote.FieldIndex)
 	}
 }
 
@@ -212,6 +215,36 @@ func TestRememberLastAddRemoteUsername_WritesConfigMemory(t *testing.T) {
 	}
 	if got != "alice" {
 		t.Fatalf("last username=%q want %q", got, "alice")
+	}
+}
+
+func TestRememberLastAddRemoteSocks5Addr_IgnoresEmpty(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", dir)
+	defer t.Setenv("DELVE_SHELL_ROOT", "")
+
+	rememberLastAddRemoteSocks5Addr("")
+	got, err := config.LoadLastSocks5Addr()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "" {
+		t.Fatalf("last socks5=%q want empty", got)
+	}
+}
+
+func TestRememberLastAddRemoteSocks5Addr_WritesConfigMemory(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("DELVE_SHELL_ROOT", dir)
+	defer t.Setenv("DELVE_SHELL_ROOT", "")
+
+	rememberLastAddRemoteSocks5Addr(" 127.0.0.1:1080 ")
+	got, err := config.LoadLastSocks5Addr()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "127.0.0.1:1080" {
+		t.Fatalf("last socks5=%q want %q", got, "127.0.0.1:1080")
 	}
 }
 

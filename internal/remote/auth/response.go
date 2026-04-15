@@ -6,6 +6,7 @@ package remoteauth
 // or indicates that an automatic connection attempt is in progress (e.g. using a configured key).
 type Prompt struct {
 	Target                string
+	Socks5Addr            string
 	Err                   string
 	UseConfiguredIdentity bool // true when connecting immediately with a configured identity file; dialog shows "Connecting..." first
 	HostKeyVerify         bool
@@ -18,8 +19,9 @@ type Prompt struct {
 // Kind uses [ResponseKindPassword], [ResponseKindIdentity], [ResponseKindHostKeyAccept], or [ResponseKindHostKeyReject].
 // Username is optional; when set, the executor combines it with the host from Target.
 type Response struct {
-	Target   string
-	Username string
-	Kind     string
-	Password string // password when Kind == "password", or key file path when Kind == "identity"
+	Target     string
+	Socks5Addr string
+	Username   string
+	Kind       string
+	Password   string // password when Kind == "password", or key file path when Kind == "identity"
 }

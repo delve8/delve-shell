@@ -67,7 +67,8 @@ type ShellSnapshot struct {
 func (ShellSnapshot) hostCommand() {}
 
 type AccessRemote struct {
-	Target string
+	Target     string
+	Socks5Addr string
 }
 
 func (AccessRemote) hostCommand() {}

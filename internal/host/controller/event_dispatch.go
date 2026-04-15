@@ -27,7 +27,7 @@ var hostEventHandlers = map[bus.Kind]func(*Controller, bus.Event){
 		c.handleExecDirect(e.Command)
 	},
 	bus.KindAccessRemoteRequested: func(c *Controller, e bus.Event) {
-		c.handleAccessRemote(e.RemoteTarget)
+		c.handleAccessRemote(e.RemoteTarget, e.RemoteSocks5Addr)
 	},
 	bus.KindAccessLocalRequested: func(c *Controller, _ bus.Event) {
 		c.handleAccessLocal()

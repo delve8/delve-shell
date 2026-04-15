@@ -15,6 +15,8 @@ type Config struct {
 	LastUsername string `yaml:"last_username,omitempty"`
 	// LastIdentityFile is the most recently submitted SSH key path in Add Remote; used only to prefill the input.
 	LastIdentityFile string `yaml:"last_identity_file,omitempty"`
+	// LastSocks5Addr is the most recently submitted SOCKS5 proxy address in Add Remote; used only to prefill the input.
+	LastSocks5Addr string `yaml:"last_socks5_addr,omitempty"`
 	// LLM API config; strings support $VAR or ${VAR} env expansion
 	LLM LLMConfig `yaml:"llm"`
 	// History retention policy
@@ -39,6 +41,8 @@ type RemoteTarget struct {
 	Target string `yaml:"target"`
 	// IdentityFile is an optional path to a private key, e.g. "~/.ssh/id_rsa".
 	IdentityFile string `yaml:"identity_file,omitempty"`
+	// Socks5Addr is an optional SOCKS5 proxy address, e.g. "127.0.0.1:1080".
+	Socks5Addr string `yaml:"socks5_addr,omitempty"`
 }
 
 // HistoryConfig is the history retention policy.
@@ -70,6 +74,7 @@ func Load() (*Config, error) {
 		Language         string         `yaml:"language"`
 		LastUsername     string         `yaml:"last_username,omitempty"`
 		LastIdentityFile string         `yaml:"last_identity_file,omitempty"`
+		LastSocks5Addr   string         `yaml:"last_socks5_addr,omitempty"`
 		Remotes          []RemoteTarget `yaml:"remotes,omitempty"`
 		LLM              LLMConfig      `yaml:"llm"`
 		History          HistoryConfig  `yaml:"history"`
@@ -93,6 +98,7 @@ func Load() (*Config, error) {
 		Language:         file.Language,
 		LastUsername:     strings.TrimSpace(file.LastUsername),
 		LastIdentityFile: strings.TrimSpace(file.LastIdentityFile),
+		LastSocks5Addr:   strings.TrimSpace(file.LastSocks5Addr),
 		LLM:              file.LLM,
 		History:          file.History,
 	}
@@ -165,6 +171,15 @@ func LoadLastIdentityFile() (string, error) {
 	return strings.TrimSpace(cfg.LastIdentityFile), nil
 }
 
+// LoadLastSocks5Addr returns the last remembered SOCKS5 proxy address for Add Remote input prefill.
+func LoadLastSocks5Addr() (string, error) {
+	cfg, err := LoadEnsured()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(cfg.LastSocks5Addr), nil
+}
+
 // LoadLastUsername returns the last remembered SSH username for Add Remote input prefill.
 func LoadLastUsername() (string, error) {
 	cfg, err := LoadEnsured()
@@ -181,6 +196,16 @@ func SetLastIdentityFile(path string) error {
 		return err
 	}
 	cfg.LastIdentityFile = strings.TrimSpace(path)
+	return Write(cfg)
+}
+
+// SetLastSocks5Addr updates the remembered SOCKS5 proxy address used to prefill Add Remote.
+func SetLastSocks5Addr(addr string) error {
+	cfg, err := LoadEnsured()
+	if err != nil {
+		return err
+	}
+	cfg.LastSocks5Addr = strings.TrimSpace(addr)
 	return Write(cfg)
 }
 

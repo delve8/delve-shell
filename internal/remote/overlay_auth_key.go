@@ -50,16 +50,18 @@ func handleRemoteAuthOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mo
 				state.RemoteAuth.Connecting = true
 				if m.CommandSender != nil {
 					_ = m.CommandSender.Send(hostcmd.RemoteAuthReply{Response: remoteauth.Response{
-						Target: state.RemoteAuth.Target,
-						Kind:   remoteauth.ResponseKindHostKeyAccept,
+						Target:     state.RemoteAuth.Target,
+						Socks5Addr: state.RemoteAuth.Socks5Addr,
+						Kind:       remoteauth.ResponseKindHostKeyAccept,
 					}})
 				}
 				return ret(m, nil, true)
 			}
 			if m.CommandSender != nil {
 				_ = m.CommandSender.Send(hostcmd.RemoteAuthReply{Response: remoteauth.Response{
-					Target: state.RemoteAuth.Target,
-					Kind:   remoteauth.ResponseKindHostKeyReject,
+					Target:     state.RemoteAuth.Target,
+					Socks5Addr: state.RemoteAuth.Socks5Addr,
+					Kind:       remoteauth.ResponseKindHostKeyReject,
 				}})
 			}
 			cmd := m.CloseOverlayAndRefocusInput()
@@ -69,16 +71,18 @@ func handleRemoteAuthOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mo
 			state.RemoteAuth.Connecting = true
 			if m.CommandSender != nil {
 				_ = m.CommandSender.Send(hostcmd.RemoteAuthReply{Response: remoteauth.Response{
-					Target: state.RemoteAuth.Target,
-					Kind:   remoteauth.ResponseKindHostKeyAccept,
+					Target:     state.RemoteAuth.Target,
+					Socks5Addr: state.RemoteAuth.Socks5Addr,
+					Kind:       remoteauth.ResponseKindHostKeyAccept,
 				}})
 			}
 			return ret(m, nil, true)
 		case "2":
 			if m.CommandSender != nil {
 				_ = m.CommandSender.Send(hostcmd.RemoteAuthReply{Response: remoteauth.Response{
-					Target: state.RemoteAuth.Target,
-					Kind:   remoteauth.ResponseKindHostKeyReject,
+					Target:     state.RemoteAuth.Target,
+					Socks5Addr: state.RemoteAuth.Socks5Addr,
+					Kind:       remoteauth.ResponseKindHostKeyReject,
 				}})
 			}
 			cmd := m.CloseOverlayAndRefocusInput()
@@ -162,10 +166,11 @@ func handleRemoteAuthOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mo
 			state.RemoteAuth.Connecting = true
 			if m.CommandSender != nil {
 				_ = m.CommandSender.Send(hostcmd.RemoteAuthReply{Response: remoteauth.Response{
-					Target:   state.RemoteAuth.Target,
-					Username: state.RemoteAuth.Username,
-					Kind:     remoteauth.ResponseKindPassword,
-					Password: input,
+					Target:     state.RemoteAuth.Target,
+					Socks5Addr: state.RemoteAuth.Socks5Addr,
+					Username:   state.RemoteAuth.Username,
+					Kind:       remoteauth.ResponseKindPassword,
+					Password:   input,
 				}})
 			}
 			return ret(m, nil, true)
@@ -227,10 +232,11 @@ func handleRemoteAuthOverlayKey(m *ui.Model, key string, msg tea.KeyMsg) (*ui.Mo
 			state.RemoteAuth.Connecting = true
 			if m.CommandSender != nil {
 				_ = m.CommandSender.Send(hostcmd.RemoteAuthReply{Response: remoteauth.Response{
-					Target:   state.RemoteAuth.Target,
-					Username: state.RemoteAuth.Username,
-					Kind:     remoteauth.ResponseKindIdentity,
-					Password: input,
+					Target:     state.RemoteAuth.Target,
+					Socks5Addr: state.RemoteAuth.Socks5Addr,
+					Username:   state.RemoteAuth.Username,
+					Kind:       remoteauth.ResponseKindIdentity,
+					Password:   input,
 				}})
 			}
 			return ret(m, nil, true)

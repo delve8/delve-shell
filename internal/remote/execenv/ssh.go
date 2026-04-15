@@ -19,6 +19,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/knownhosts"
+	netproxy "golang.org/x/net/proxy"
 )
 
 // SSHExecutor runs commands on a remote host via SSH.
@@ -42,6 +43,7 @@ type SSHExecutor struct {
 type sshAuthConfig struct {
 	identityFile string
 	password     string
+	socks5Addr   string
 }
 
 type sshClientHandle struct {
@@ -140,7 +142,11 @@ func (e *HostKeyMismatchError) Error() string {
 // identityFile, when non-empty, is used as a private key; when empty, ~/.ssh/id_rsa
 // is tried first (like OpenSSH client), then SSH agent.
 func NewSSHExecutor(target, identityFile string) (*SSHExecutor, string, error) {
-	handle, user, hostPort, err := dialSSHClient(target, identityFile, "")
+	return NewSSHExecutorWithProxy(target, identityFile, "")
+}
+
+func NewSSHExecutorWithProxy(target, identityFile, socks5Addr string) (*SSHExecutor, string, error) {
+	handle, user, hostPort, err := dialSSHClient(target, identityFile, "", socks5Addr)
 	if err != nil {
 		return nil, "", err
 	}
@@ -150,7 +156,7 @@ func NewSSHExecutor(target, identityFile string) (*SSHExecutor, string, error) {
 		user:   user,
 		addr:   hostPort,
 		target: target,
-		auth:   sshAuthConfig{identityFile: identityFile},
+		auth:   sshAuthConfig{identityFile: identityFile, socks5Addr: socks5Addr},
 	}
 	if err := exec.replaceClient(handle); err != nil {
 		return nil, "", err
@@ -161,7 +167,11 @@ func NewSSHExecutor(target, identityFile string) (*SSHExecutor, string, error) {
 // NewSSHExecutorWithPassword creates an SSHExecutor using password-based auth in addition
 // to optional identityFile and SSH agent.
 func NewSSHExecutorWithPassword(target, identityFile, password string) (*SSHExecutor, string, error) {
-	handle, user, hostPort, err := dialSSHClient(target, identityFile, password)
+	return NewSSHExecutorWithPasswordAndProxy(target, identityFile, password, "")
+}
+
+func NewSSHExecutorWithPasswordAndProxy(target, identityFile, password, socks5Addr string) (*SSHExecutor, string, error) {
+	handle, user, hostPort, err := dialSSHClient(target, identityFile, password, socks5Addr)
 	if err != nil {
 		return nil, "", err
 	}
@@ -171,7 +181,7 @@ func NewSSHExecutorWithPassword(target, identityFile, password string) (*SSHExec
 		user:   user,
 		addr:   hostPort,
 		target: target,
-		auth:   sshAuthConfig{identityFile: identityFile, password: password},
+		auth:   sshAuthConfig{identityFile: identityFile, password: password, socks5Addr: socks5Addr},
 	}
 	if err := exec.replaceClient(handle); err != nil {
 		return nil, "", err
@@ -425,7 +435,7 @@ func (e *SSHExecutor) reconnect() error {
 	if e.isClosed() {
 		return errors.New("ssh executor is closed")
 	}
-	handle, _, _, err := dialSSHClient(e.target, e.auth.identityFile, e.auth.password)
+	handle, _, _, err := dialSSHClient(e.target, e.auth.identityFile, e.auth.password, e.auth.socks5Addr)
 	if err != nil {
 		return err
 	}
@@ -600,22 +610,26 @@ func (e *SSHExecutor) reportTransportIssue(issue string) {
 	}
 }
 
-func dialSSHClient(target, identityFile, password string) (sshClientHandle, string, string, error) {
+func dialSSHClient(target, identityFile, password, socks5Addr string) (sshClientHandle, string, string, error) {
 	connectTarget, err := parseSSHConnectTarget(target, false)
 	if err != nil {
 		return sshClientHandle{}, "", "", err
 	}
+	socks5Addr = strings.TrimSpace(socks5Addr)
 	clientConfig, err := newSSHClientConfig(connectTarget.user, identityFile, password)
 	if err != nil {
 		return sshClientHandle{}, "", "", err
 	}
 	proxyJump := resolveTargetProxyJump(target)
 	if strings.TrimSpace(proxyJump) == "" {
-		handle, err := dialDirectSSHClient(connectTarget.hostPort, clientConfig)
+		handle, err := dialDirectSSHClient(connectTarget.hostPort, clientConfig, socks5Addr)
 		if err != nil {
 			return sshClientHandle{}, "", "", err
 		}
 		return handle, connectTarget.user, connectTarget.hostPort, nil
+	}
+	if socks5Addr != "" {
+		return sshClientHandle{}, "", "", fmt.Errorf("ssh ProxyJump and SOCKS5 proxy cannot be used together")
 	}
 	jumpTarget, jumpIdentityFile, err := resolveProxyJumpTarget(proxyJump)
 	if err != nil {
@@ -629,7 +643,7 @@ func dialSSHClient(target, identityFile, password string) (sshClientHandle, stri
 	if err != nil {
 		return sshClientHandle{}, "", "", err
 	}
-	jumpHandle, err := dialDirectSSHClient(jumpConnectTarget.hostPort, jumpConfig)
+	jumpHandle, err := dialDirectSSHClient(jumpConnectTarget.hostPort, jumpConfig, "")
 	if err != nil {
 		return sshClientHandle{}, "", "", err
 	}
@@ -712,7 +726,7 @@ func newSSHClientConfig(user, identityFile, password string) (*ssh.ClientConfig,
 	}, nil
 }
 
-func dialDirectSSHClient(hostPort string, clientConfig *ssh.ClientConfig) (sshClientHandle, error) {
+func dialDirectSSHClient(hostPort string, clientConfig *ssh.ClientConfig, socks5Addr string) (sshClientHandle, error) {
 	dialer := net.Dialer{
 		Timeout: sshDialTimeout,
 		KeepAliveConfig: net.KeepAliveConfig{
@@ -722,7 +736,7 @@ func dialDirectSSHClient(hostPort string, clientConfig *ssh.ClientConfig) (sshCl
 			Count:    sshTCPKeepAliveCount,
 		},
 	}
-	conn, err := dialer.DialContext(context.Background(), "tcp", hostPort)
+	conn, err := dialTCPForSSH(dialer, hostPort, strings.TrimSpace(socks5Addr))
 	if err != nil {
 		return sshClientHandle{}, err
 	}
@@ -735,6 +749,17 @@ func dialDirectSSHClient(hostPort string, clientConfig *ssh.ClientConfig) (sshCl
 	_ = conn.SetDeadline(time.Time{})
 	client := ssh.NewClient(sshConn, chans, reqs)
 	return sshClientHandle{client: client, close: client.Close}, nil
+}
+
+func dialTCPForSSH(dialer net.Dialer, hostPort string, socks5Addr string) (net.Conn, error) {
+	if strings.TrimSpace(socks5Addr) == "" {
+		return dialer.DialContext(context.Background(), "tcp", hostPort)
+	}
+	proxyDialer, err := netproxy.SOCKS5("tcp", socks5Addr, nil, &dialer)
+	if err != nil {
+		return nil, err
+	}
+	return proxyDialer.Dial("tcp", hostPort)
 }
 
 func resolveTargetProxyJump(target string) string {

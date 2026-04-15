@@ -270,6 +270,7 @@ const (
 	KeyAddRemoteHostLabel              = "add_remote_host_label"
 	KeyAddRemoteUserLabel              = "add_remote_user_label"
 	KeyAddRemoteKeyLabel               = "add_remote_key_label"
+	KeyAddRemoteSocks5Label            = "add_remote_socks5_label"
 	KeyAddRemoteSaveLabel              = "add_remote_save_label"
 	KeyAddRemoteNameLabel              = "add_remote_name_label"
 	KeyRemoteTitleBarRemote            = "remote_title_bar_remote"
@@ -278,6 +279,7 @@ const (
 	KeyAddRemoteHostPlaceholder        = "add_remote_host_placeholder"
 	KeyAddRemoteUserPlaceholder        = "add_remote_user_placeholder"
 	KeyAddRemoteKeyPlaceholder         = "add_remote_key_placeholder"
+	KeyAddRemoteSocks5Placeholder      = "add_remote_socks5_placeholder"
 	KeyAddRemoteNamePlaceholder        = "add_remote_name_placeholder"
 	KeyRemoteAuthPasswordPlaceholder   = "remote_auth_password_placeholder"
 	KeyRemoteAuthIdentityPlaceholder   = "remote_auth_identity_placeholder"
@@ -491,6 +493,7 @@ var messages = map[string]map[string]string{
 		KeyAddRemoteHostLabel:                   "Host (address or host:port):",
 		KeyAddRemoteUserLabel:                   "Username:",
 		KeyAddRemoteKeyLabel:                    "Key path (optional):",
+		KeyAddRemoteSocks5Label:                 "SOCKS5 proxy (optional):",
 		KeyAddRemoteSaveLabel:                   "Save as remote (Space to toggle)",
 		KeyAddRemoteNameLabel:                   "Name (optional):",
 		KeyRemoteTitleBarRemote:                 "Remote",
@@ -499,6 +502,7 @@ var messages = map[string]map[string]string{
 		KeyAddRemoteHostPlaceholder:             "host or host:22",
 		KeyAddRemoteUserPlaceholder:             "e.g. root",
 		KeyAddRemoteKeyPlaceholder:              "~/.ssh/id_rsa (optional)",
+		KeyAddRemoteSocks5Placeholder:           "127.0.0.1:1080 (optional)",
 		KeyAddRemoteNamePlaceholder:             "name (optional)",
 		KeyRemoteAuthPasswordPlaceholder:        "SSH password",
 		KeyRemoteAuthIdentityPlaceholder:        "~/.ssh/id_rsa",

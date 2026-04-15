@@ -42,7 +42,11 @@ func (c *Controller) handleCommand(command hostcmd.Command) {
 			}
 		}
 	case hostcmd.AccessRemote:
-		c.bus.PublishBlocking(bus.Event{Kind: bus.KindAccessRemoteRequested, RemoteTarget: cmd.Target})
+		c.bus.PublishBlocking(bus.Event{
+			Kind:             bus.KindAccessRemoteRequested,
+			RemoteTarget:     cmd.Target,
+			RemoteSocks5Addr: cmd.Socks5Addr,
+		})
 	case hostcmd.AccessLocal:
 		c.bus.PublishBlocking(bus.Event{Kind: bus.KindAccessLocalRequested})
 	case hostcmd.AccessOffline:

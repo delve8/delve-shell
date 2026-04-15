@@ -81,9 +81,17 @@ func hostSegmentIsLowercase(target string) bool {
 	return true
 }
 
+type RemoteTargetOptions struct {
+	Socks5Addr string
+}
+
 // AddRemote appends a remote to remotes.yaml. Target is required (user@host or user@host:port); name is an optional label.
 // Duplicate is checked by target (same target cannot be added twice).
 func AddRemote(target, name, identityFile string) error {
+	return AddRemoteWithOptions(target, name, identityFile, RemoteTargetOptions{})
+}
+
+func AddRemoteWithOptions(target, name, identityFile string, opts RemoteTargetOptions) error {
 	target = strings.TrimSpace(target)
 	if target == "" {
 		return fmt.Errorf("target (user@host) is required")
@@ -107,12 +115,17 @@ func AddRemote(target, name, identityFile string) error {
 		Name:         strings.TrimSpace(name),
 		Target:       target,
 		IdentityFile: strings.TrimSpace(identityFile),
+		Socks5Addr:   strings.TrimSpace(opts.Socks5Addr),
 	})
 	return WriteRemotes(remotes)
 }
 
 // UpdateRemote updates an existing remote with the same target (name and identity file). Returns error if target not found.
 func UpdateRemote(target, name, identityFile string) error {
+	return UpdateRemoteWithOptions(target, name, identityFile, RemoteTargetOptions{})
+}
+
+func UpdateRemoteWithOptions(target, name, identityFile string, opts RemoteTargetOptions) error {
 	target = strings.TrimSpace(target)
 	if target == "" {
 		return fmt.Errorf("target (user@host) is required")
@@ -132,6 +145,7 @@ func UpdateRemote(target, name, identityFile string) error {
 		if remotes[i].Target == target {
 			remotes[i].Name = strings.TrimSpace(name)
 			remotes[i].IdentityFile = strings.TrimSpace(identityFile)
+			remotes[i].Socks5Addr = strings.TrimSpace(opts.Socks5Addr)
 			found = true
 			break
 		}

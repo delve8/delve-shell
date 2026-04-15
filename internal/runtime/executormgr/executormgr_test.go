@@ -34,18 +34,18 @@ func TestConnect_UsesCachedCredential_First(t *testing.T) {
 	m := New()
 	called := 0
 	m.SetSSHFactories(
-		func(target, identity string) (execenv.CommandExecutor, string, error) {
+		func(target, identity, socks5 string) (execenv.CommandExecutor, string, error) {
 			called++
 			return fakeExec{}, "", nil
 		},
-		func(target, identity, password string) (execenv.CommandExecutor, string, error) {
+		func(target, identity, password, socks5 string) (execenv.CommandExecutor, string, error) {
 			t.Fatalf("unexpected password ssh factory")
 			return nil, "", nil
 		},
 	)
 	m.PutCachedCred("example.com", remoteauth.ResponseKindIdentity, "root", "/tmp/id_rsa")
 
-	res := m.Connect("example.com", "lbl", "")
+	res := m.Connect("example.com", "lbl", "", "")
 	if !res.Connected || res.Executor == nil {
 		t.Fatalf("expected connected with executor")
 	}
@@ -57,15 +57,15 @@ func TestConnect_UsesCachedCredential_First(t *testing.T) {
 func TestConnect_CachedCredentialFailure_DropsCache(t *testing.T) {
 	m := New()
 	m.SetSSHFactories(
-		func(target, identity string) (execenv.CommandExecutor, string, error) {
+		func(target, identity, socks5 string) (execenv.CommandExecutor, string, error) {
 			return nil, "", errors.New("fail")
 		},
-		func(target, identity, password string) (execenv.CommandExecutor, string, error) {
+		func(target, identity, password, socks5 string) (execenv.CommandExecutor, string, error) {
 			return nil, "", errors.New("fail")
 		},
 	)
 	m.PutCachedCred("example.com", remoteauth.ResponseKindPassword, "root", "pw")
-	res := m.Connect("example.com", "", "")
+	res := m.Connect("example.com", "", "", "")
 	if res.Connected {
 		t.Fatalf("expected not connected")
 	}
@@ -77,12 +77,12 @@ func TestConnect_CachedCredentialFailure_DropsCache(t *testing.T) {
 func TestConnect_ConfigIdentity_Failure_ReturnsPrompt(t *testing.T) {
 	m := New()
 	m.SetSSHFactories(
-		func(target, identity string) (execenv.CommandExecutor, string, error) {
+		func(target, identity, socks5 string) (execenv.CommandExecutor, string, error) {
 			return nil, "", errors.New("ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain")
 		},
 		nil,
 	)
-	res := m.Connect("root@example.com", "mylabel", "/tmp/key")
+	res := m.Connect("root@example.com", "mylabel", "/tmp/key", "")
 	if res.Connected {
 		t.Fatalf("expected not connected")
 	}
@@ -97,12 +97,12 @@ func TestConnect_ConfigIdentity_Failure_ReturnsPrompt(t *testing.T) {
 func TestConnect_TransportFailure_DoesNotPromptForAuth(t *testing.T) {
 	m := New()
 	m.SetSSHFactories(
-		func(target, identity string) (execenv.CommandExecutor, string, error) {
+		func(target, identity, socks5 string) (execenv.CommandExecutor, string, error) {
 			return nil, "", errors.New("dial tcp 10.0.0.1:22: connect: connection refused")
 		},
 		nil,
 	)
-	res := m.Connect("root@example.com", "lbl", "")
+	res := m.Connect("root@example.com", "lbl", "", "")
 	if res.Connected {
 		t.Fatal("expected not connected")
 	}
@@ -117,12 +117,12 @@ func TestConnect_TransportFailure_DoesNotPromptForAuth(t *testing.T) {
 func TestConnect_AuthFailure_PromptsForCredentials(t *testing.T) {
 	m := New()
 	m.SetSSHFactories(
-		func(target, identity string) (execenv.CommandExecutor, string, error) {
+		func(target, identity, socks5 string) (execenv.CommandExecutor, string, error) {
 			return nil, "", errors.New("ssh: handshake failed: ssh: unable to authenticate, attempted methods [none], no supported methods remain")
 		},
 		nil,
 	)
-	res := m.Connect("root@example.com", "lbl", "")
+	res := m.Connect("root@example.com", "lbl", "", "")
 	if res.Connected {
 		t.Fatal("expected not connected")
 	}
@@ -137,10 +137,10 @@ func TestConnect_AuthFailure_PromptsForCredentials(t *testing.T) {
 func TestHandleRemoteAuthResponse_Success_CachesAndSetsExecutor(t *testing.T) {
 	m := New()
 	m.SetSSHFactories(
-		func(target, identity string) (execenv.CommandExecutor, string, error) {
+		func(target, identity, socks5 string) (execenv.CommandExecutor, string, error) {
 			return fakeExec{}, "", nil
 		},
-		func(target, identity, password string) (execenv.CommandExecutor, string, error) {
+		func(target, identity, password, socks5 string) (execenv.CommandExecutor, string, error) {
 			return fakeExec{}, "", nil
 		},
 	)
@@ -164,10 +164,46 @@ func TestHandleRemoteAuthResponse_Success_CachesAndSetsExecutor(t *testing.T) {
 	}
 }
 
+func TestConnect_ForwardsSocks5AddrToSSHFactory(t *testing.T) {
+	m := New()
+	gotSocks5 := ""
+	m.SetSSHFactories(
+		func(target, identity, socks5 string) (execenv.CommandExecutor, string, error) {
+			gotSocks5 = socks5
+			return fakeExec{}, "", nil
+		},
+		nil,
+	)
+	res := m.Connect("root@example.com", "lbl", "", "127.0.0.1:1080")
+	if !res.Connected {
+		t.Fatalf("expected connected")
+	}
+	if gotSocks5 != "127.0.0.1:1080" {
+		t.Fatalf("socks5=%q want 127.0.0.1:1080", gotSocks5)
+	}
+}
+
+func TestConnect_AuthPromptPreservesSocks5Addr(t *testing.T) {
+	m := New()
+	m.SetSSHFactories(
+		func(target, identity, socks5 string) (execenv.CommandExecutor, string, error) {
+			return nil, "", errors.New("ssh: handshake failed: ssh: unable to authenticate, attempted methods [none], no supported methods remain")
+		},
+		nil,
+	)
+	res := m.Connect("root@example.com", "lbl", "", "127.0.0.1:1080")
+	if res.AuthPrompt == nil {
+		t.Fatalf("expected auth prompt")
+	}
+	if res.AuthPrompt.Socks5Addr != "127.0.0.1:1080" {
+		t.Fatalf("socks5=%q want 127.0.0.1:1080", res.AuthPrompt.Socks5Addr)
+	}
+}
+
 func TestConnect_HostKeyMismatch_ReturnsVerifyPrompt(t *testing.T) {
 	m := New()
 	m.SetSSHFactories(
-		func(target, identity string) (execenv.CommandExecutor, string, error) {
+		func(target, identity, socks5 string) (execenv.CommandExecutor, string, error) {
 			return nil, "", &execenv.HostKeyMismatchError{
 				Hostname:    "[example.com]:22",
 				Fingerprint: "SHA256:test",
@@ -175,7 +211,7 @@ func TestConnect_HostKeyMismatch_ReturnsVerifyPrompt(t *testing.T) {
 		},
 		nil,
 	)
-	res := m.Connect("root@example.com", "lbl", "")
+	res := m.Connect("root@example.com", "lbl", "", "")
 	if res.Connected {
 		t.Fatalf("expected not connected")
 	}
@@ -190,7 +226,7 @@ func TestConnect_HostKeyMismatch_ReturnsVerifyPrompt(t *testing.T) {
 func TestConnect_UnknownHostKey_ReturnsVerifyPrompt(t *testing.T) {
 	m := New()
 	m.SetSSHFactories(
-		func(target, identity string) (execenv.CommandExecutor, string, error) {
+		func(target, identity, socks5 string) (execenv.CommandExecutor, string, error) {
 			return nil, "", &execenv.HostKeyMismatchError{
 				Hostname:    "[example.com]:22",
 				Fingerprint: "SHA256:unknown",
@@ -199,7 +235,7 @@ func TestConnect_UnknownHostKey_ReturnsVerifyPrompt(t *testing.T) {
 		},
 		nil,
 	)
-	res := m.Connect("root@example.com", "lbl", "")
+	res := m.Connect("root@example.com", "lbl", "", "")
 	if res.Connected {
 		t.Fatalf("expected not connected")
 	}
@@ -227,7 +263,7 @@ func TestResolveHostKeyDecision_Accept_Reconnects(t *testing.T) {
 	}
 	calls := 0
 	m.SetSSHFactories(
-		func(target, identity string) (execenv.CommandExecutor, string, error) {
+		func(target, identity, socks5 string) (execenv.CommandExecutor, string, error) {
 			calls++
 			if calls == 1 {
 				return nil, "", &execenv.HostKeyMismatchError{
@@ -240,7 +276,7 @@ func TestResolveHostKeyDecision_Accept_Reconnects(t *testing.T) {
 		},
 		nil,
 	)
-	first := m.Connect("root@example.com", "lbl", "")
+	first := m.Connect("root@example.com", "lbl", "", "")
 	if first.AuthPrompt == nil || !first.AuthPrompt.HostKeyVerify {
 		t.Fatalf("expected host-key verify prompt from first connect")
 	}
