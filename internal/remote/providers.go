@@ -35,7 +35,7 @@ func registerProviders() {
 			state.ConnectRemote = RemoteConnectOverlayState{}
 			state.RemoteAuth = RemoteAuthOverlayState{}
 			if connectOnly {
-				target := resolveConnectTarget(req.Params["target"])
+				target := strings.TrimSpace(req.Params["target"])
 				state.ConnectRemote = RemoteConnectOverlayState{
 					Active:     true,
 					Target:     target,

@@ -12,7 +12,8 @@ import (
 // getRemoteSlashOptions returns one row per configured remote. Filtering by what the user typed
 // is done by [slashview.VisibleIndices] (same prefix rules as other slash commands, using full Cmd).
 func getRemoteSlashOptions(lang string) []ui.SlashOption {
-	seen := make(map[string]struct{}, 8)
+	seenRemotes := make(map[string]struct{}, 8)
+	seenSSH := make(map[string]struct{}, 8)
 	hostOpts := make([]ui.SlashOption, 0, 8)
 
 	remotes, err := config.LoadRemotes()
@@ -22,10 +23,10 @@ func getRemoteSlashOptions(lang string) []ui.SlashOption {
 			if suffix == "" {
 				continue
 			}
-			if _, ok := seen[suffix]; ok {
+			if _, ok := seenRemotes[suffix]; ok {
 				continue
 			}
-			seen[suffix] = struct{}{}
+			seenRemotes[suffix] = struct{}{}
 			hostOpts = append(hostOpts, ui.SlashOption{
 				Cmd:  "/access " + suffix,
 				Desc: r.Name,
@@ -40,14 +41,22 @@ func getRemoteSlashOptions(lang string) []ui.SlashOption {
 			if displaySuffix == "" {
 				displaySuffix = strings.ToLower(strings.TrimSpace(h.Alias))
 			}
-			fillSuffix := strings.ToLower(strings.TrimSpace(h.Alias))
-			if displaySuffix == "" || fillSuffix == "" {
+			if displaySuffix == "" {
 				continue
 			}
-			if _, ok := seen[displaySuffix]; ok {
+			aliasSuffix := strings.ToLower(strings.TrimSpace(h.Alias))
+			key := aliasSuffix
+			if key == "" {
+				key = displaySuffix
+			}
+			if _, ok := seenSSH[key]; ok {
 				continue
 			}
-			seen[displaySuffix] = struct{}{}
+			seenSSH[key] = struct{}{}
+			fillSuffix := displaySuffix
+			if _, collided := seenRemotes[displaySuffix]; collided && aliasSuffix != "" {
+				fillSuffix = aliasSuffix
+			}
 			desc := i18n.T(i18n.KeyDescAccessSSHConfig)
 			if alias := strings.TrimSpace(h.Alias); alias != "" {
 				desc = fmt.Sprintf("%s (from %s)", alias, desc)
@@ -55,7 +64,7 @@ func getRemoteSlashOptions(lang string) []ui.SlashOption {
 			hostOpts = append(hostOpts, ui.SlashOption{
 				Cmd:       "/access " + displaySuffix,
 				Desc:      desc,
-				FillValue: "/access " + displaySuffix,
+				FillValue: "/access " + fillSuffix,
 			})
 		}
 	}

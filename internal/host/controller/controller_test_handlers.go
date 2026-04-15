@@ -290,6 +290,39 @@ Host jump
 	}
 }
 
+func TestResolveAccessRemoteTarget_SSHConfigAliasBeatsSavedRemoteSameHost(t *testing.T) {
+	t.Setenv("DELVE_SHELL_ROOT", t.TempDir())
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USER", "localuser")
+	if err := config.EnsureRootDir(); err != nil {
+		t.Fatal(err)
+	}
+	if err := config.AddRemote("ops@192.168.140.200", "global master", "~/.ssh/remote_key"); err != nil {
+		t.Fatal(err)
+	}
+	writeControllerTestSSHConfig(t, home, `
+Host test
+  HostName 192.168.140.200
+  User ops
+  IdentityFile ~/.ssh/test_key
+`)
+
+	got := resolveAccessRemoteTarget("test")
+	if got.Target != "ops@192.168.140.200" {
+		t.Fatalf("target=%q", got.Target)
+	}
+	if got.ConfigName != "test" {
+		t.Fatalf("config name=%q want test", got.ConfigName)
+	}
+	if got.Label != "test (192.168.140.200)" {
+		t.Fatalf("label=%q want test (192.168.140.200)", got.Label)
+	}
+	if got.IdentityFile != filepath.Join(home, ".ssh", "test_key") {
+		t.Fatalf("identity=%q want ssh config identity", got.IdentityFile)
+	}
+}
+
 func TestHandleSubmitNewSession_ReplacesTranscriptWithSessionBanner(t *testing.T) {
 	i18n.SetLang("en")
 	root := t.TempDir()
