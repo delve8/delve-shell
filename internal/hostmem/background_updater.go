@@ -194,7 +194,7 @@ func (LLMBackgroundAnalyzer) Analyze(ctx context.Context, input BackgroundAnalyz
 		return UpdatePatch{}, err
 	}
 	baseURL, apiKey, model := cfg.LLMResolved()
-	chatModel, err := openaimodel.NewChatModel(ctx, &openaimodel.ChatModelConfig{
+	chatModel, err := configllm.NewToolCallingChatModel(ctx, &openaimodel.ChatModelConfig{
 		APIKey:     apiKey,
 		BaseURL:    baseURL,
 		Model:      model,

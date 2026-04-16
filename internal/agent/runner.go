@@ -78,7 +78,7 @@ func NewRunner(ctx context.Context, opts RunnerOptions) (*Runner, error) {
 	baseURL, apiKey, model := opts.Config.LLMResolved()
 	// apiKey may be empty for local deployments (e.g. Ollama) that do not require auth.
 
-	chatModel, err := openaimodel.NewChatModel(ctx, &openaimodel.ChatModelConfig{
+	chatModel, err := configllm.NewToolCallingChatModel(ctx, &openaimodel.ChatModelConfig{
 		APIKey:     apiKey,
 		BaseURL:    baseURL,
 		Model:      model,
