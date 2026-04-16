@@ -92,6 +92,78 @@ func TestCommandAllowsAutoApprove_AwkInPipeline(t *testing.T) {
 	}
 }
 
+func TestCommandAllowsAutoApprove_StaticAssignmentResolvesQuotedSimpleParam(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	if !w.CommandAllowsAutoApprove(`verb=get; kubectl "$verb" pods`) {
+		t.Fatal("quoted simple param in subcommand position should resolve from prior static assignment")
+	}
+	if w.CommandAllowsAutoApprove(`verb=delete; kubectl "$verb" pods`) {
+		t.Fatal("resolved static assignment must still reject disallowed values")
+	}
+}
+
+func TestCommandAllowsAutoApprove_ForLoopLiteralValuesResolveQuotedSimpleParam(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	if !w.CommandAllowsAutoApprove(`for verb in get describe; do kubectl "$verb" pods; done`) {
+		t.Fatal("for-in literal values should resolve quoted simple param in subcommand position")
+	}
+	if w.CommandAllowsAutoApprove(`for verb in get delete; do kubectl "$verb" pods; done`) {
+		t.Fatal("every inferred for-in value must satisfy allowlist")
+	}
+	if w.CommandAllowsAutoApprove(`for verb in get delete; do :; done; kubectl "$verb" pods`) {
+		t.Fatal("post-loop inference should preserve shell's last iteration value")
+	}
+}
+
+func TestCommandAllowsAutoApprove_ReadInvalidatesStaticAssignment(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	if w.CommandAllowsAutoApprove(`verb=get; read verb; kubectl "$verb" pods`) {
+		t.Fatal("read should invalidate prior static assignment for the same variable")
+	}
+}
+
+func TestCommandAllowsAutoApprove_StaticAliasResolvesQuotedSimpleParam(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	if !w.CommandAllowsAutoApprove(`verb=get; alias="$verb"; kubectl "$alias" pods`) {
+		t.Fatal("quoted simple param assignment should propagate known static values")
+	}
+	if w.CommandAllowsAutoApprove(`verb=delete; alias="$verb"; kubectl "$alias" pods`) {
+		t.Fatal("propagated alias values must still satisfy allowlist")
+	}
+}
+
+func TestCommandAllowsAutoApprove_IfEqualityNarrowsQuotedSimpleParam(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	if !w.CommandAllowsAutoApprove(`if [ "$verb" = get ]; then kubectl "$verb" pods; fi`) {
+		t.Fatal("POSIX [ equality should narrow quoted simple param inside then branch")
+	}
+	if !w.CommandAllowsAutoApprove(`if test get = "$verb"; then kubectl "$verb" pods; fi`) {
+		t.Fatal("test equality should narrow quoted simple param when literal is on the left")
+	}
+	if !w.CommandAllowsAutoApprove(`if [[ "$verb" == describe ]]; then kubectl "$verb" pods; fi`) {
+		t.Fatal("[[ equality should narrow quoted simple param inside then branch")
+	}
+	if w.CommandAllowsAutoApprove(`if [ "$verb" = delete ]; then kubectl "$verb" pods; fi`) {
+		t.Fatal("narrowed if equality value must still satisfy allowlist")
+	}
+	if w.CommandAllowsAutoApprove(`if [[ "$verb" == get* ]]; then kubectl "$verb" pods; fi`) {
+		t.Fatal("[[ pattern match must not be treated as an exact static value")
+	}
+}
+
+func TestCommandAllowsAutoApprove_CaseLiteralPatternNarrowsQuotedSimpleParam(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	if !w.CommandAllowsAutoApprove(`case "$verb" in get|describe) kubectl "$verb" pods ;; esac`) {
+		t.Fatal("literal case patterns should narrow quoted simple param inside item body")
+	}
+	if w.CommandAllowsAutoApprove(`case "$verb" in get|delete) kubectl "$verb" pods ;; esac`) {
+		t.Fatal("every inferred case pattern value must satisfy allowlist")
+	}
+	if w.CommandAllowsAutoApprove(`case "$verb" in get*) kubectl "$verb" pods ;; esac`) {
+		t.Fatal("case glob patterns must not be treated as exact static values")
+	}
+}
+
 func TestCommandAllowsAutoApprove_AwkDoubleQuotedFieldRefNotRejectedAsShellVar(t *testing.T) {
 	w := NewAllowlist(config.DefaultLoadedAllowlist())
 	// Double-quoted awk program: $1 is shell ParamExp; awk must be permissiveArgv0 so collectAllowlistSegments does not reject.
