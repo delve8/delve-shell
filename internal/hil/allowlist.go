@@ -145,6 +145,10 @@ func (w *Allowlist) segmentAllowed(seg string) bool {
 	return seg != "" && (w.structuredLiteralSegmentOK(seg) || benignAwkReadOnly(seg))
 }
 
+func (w *Allowlist) segmentAllowedWithEnv(seg string, env staticValueEnv) bool {
+	return seg != "" && (w.structuredLiteralSegmentOKWithEnv(seg, env) || benignAwkReadOnly(seg))
+}
+
 // AllowStrict: for chained/pipeline commands, splits into segments and requires every segment to match the allowlist;
 // for a single command, requires that one segment to match. All must match; no approval bypass by a single allowed token.
 func (w *Allowlist) AllowStrict(command string) bool {

@@ -731,14 +731,18 @@ func staticSimpleCommandArgs(seg string) ([]string, bool) {
 }
 
 func (w *Allowlist) structuredLiteralSegmentOK(seg string) bool {
+	return w.structuredLiteralSegmentOKWithEnv(seg, nil)
+}
+
+func (w *Allowlist) structuredLiteralSegmentOKWithEnv(seg string, env staticValueEnv) bool {
 	if w == nil || len(w.cliByName) == 0 {
 		return false
 	}
 	if args, ok := staticSimpleCommandArgs(seg); ok && xargsReadOnlySegmentOK(args, w.cliByName) {
 		return true
 	}
-	if qa, ok := staticOrOpaqueSimpleCommandArgs(seg); ok && len(qa) > 0 {
-		name, lok := qa[0].literalOK()
+	if variants, ok := staticOrResolvedSimpleCommandArgVariants(seg, env); ok && len(variants) > 0 {
+		name, lok := variants[0][0].literalOK()
 		if !lok {
 			return false
 		}
@@ -747,15 +751,16 @@ func (w *Allowlist) structuredLiteralSegmentOK(seg string) bool {
 		if !pok {
 			return false
 		}
-		pp := p
 		if p.PermissiveVarArgs() {
 			pa, pok2 := permissiveSimpleArgv(seg)
-			if pok2 && MatchReadOnlyCLIArgv(pa, &pp) {
-				return true
-			}
-			return false
+			return pok2 && MatchReadOnlyCLIArgv(pa, &p)
 		}
-		return matchReadOnlyCLIArgs(qa, &pp)
+		for _, qa := range variants {
+			if !matchReadOnlyCLIArgs(qa, &p) {
+				return false
+			}
+		}
+		return true
 	}
 	if pa, ok := permissiveSimpleArgv(seg); ok && len(pa) > 0 {
 		base := argv0Base(pa[0])

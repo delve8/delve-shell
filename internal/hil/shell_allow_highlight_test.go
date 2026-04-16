@@ -130,3 +130,35 @@ func TestCommandAutoApproveHighlight_xargsEchoSinkNotRisk(t *testing.T) {
 		}
 	}
 }
+
+func TestCommandAutoApproveHighlight_StaticInferenceMarksResolvedSegmentSafe(t *testing.T) {
+	w := NewAllowlist(nil)
+	cmd := `verb=get; kubectl "$verb" pods`
+	spans := w.CommandAutoApproveHighlight(cmd)
+	var foundSafe bool
+	for _, s := range spans {
+		if s.Kind != hiltypes.AutoApproveHighlightSafe {
+			continue
+		}
+		if strings.Contains(cmd[s.Start:s.End], `kubectl "$verb" pods`) {
+			foundSafe = true
+			break
+		}
+	}
+	if !foundSafe {
+		t.Fatalf("expected resolved kubectl segment to be highlighted safe, got %+v", spans)
+	}
+}
+
+func TestCommandAutoApproveHighlight_StaticInferenceReasonIncludesResolvedValues(t *testing.T) {
+	w := NewAllowlist(nil)
+	cmd := `verb=delete; kubectl "$verb" pods`
+	spans := w.CommandAutoApproveHighlight(cmd)
+	want := i18n.Tf(i18n.KeyAutoApproveHLInferredArgsMismatch, "kubectl", "$verb=delete")
+	for _, s := range spans {
+		if s.Kind == hiltypes.AutoApproveHighlightRisk && s.Reason == want {
+			return
+		}
+	}
+	t.Fatalf("expected inferred-value risk reason %q in spans=%+v", want, spans)
+}
