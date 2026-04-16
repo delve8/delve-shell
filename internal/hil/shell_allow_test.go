@@ -132,6 +132,20 @@ func TestCommandAllowsAutoApprove_StaticAliasResolvesQuotedSimpleParam(t *testin
 	}
 }
 
+func TestCommandAllowsAutoApprove_DynamicOrUnsupportedAssignmentInvalidatesStaticValue(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	for _, cmd := range []string{
+		`verb=get; verb="$unknown"; kubectl "$verb" pods`,
+		`verb=get; verb=$(printf get); kubectl "$verb" pods`,
+		`verb=get; verb+=x; kubectl "$verb" pods`,
+		`verb=get; verb[0]=get; kubectl "$verb" pods`,
+	} {
+		if w.CommandAllowsAutoApprove(cmd) {
+			t.Fatalf("unsupported or dynamic reassignment must invalidate prior static value: %q", cmd)
+		}
+	}
+}
+
 func TestCommandAllowsAutoApprove_IfEqualityNarrowsQuotedSimpleParam(t *testing.T) {
 	w := NewAllowlist(config.DefaultLoadedAllowlist())
 	if !w.CommandAllowsAutoApprove(`if [ "$verb" = get ]; then kubectl "$verb" pods; fi`) {
@@ -151,6 +165,20 @@ func TestCommandAllowsAutoApprove_IfEqualityNarrowsQuotedSimpleParam(t *testing.
 	}
 }
 
+func TestCommandAllowsAutoApprove_IfUnsupportedConditionDoesNotNarrow(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	for _, cmd := range []string{
+		`if [ "$verb" != get ]; then kubectl "$verb" pods; fi`,
+		`if [[ "$verb" != get ]]; then kubectl "$verb" pods; fi`,
+		`if [ "$verb" = get ] && [ "$ns" = default ]; then kubectl "$verb" pods; fi`,
+		`if [ "$verb" = "$other" ]; then kubectl "$verb" pods; fi`,
+	} {
+		if w.CommandAllowsAutoApprove(cmd) {
+			t.Fatalf("unsupported condition form must not narrow and auto-approve: %q", cmd)
+		}
+	}
+}
+
 func TestCommandAllowsAutoApprove_CaseLiteralPatternNarrowsQuotedSimpleParam(t *testing.T) {
 	w := NewAllowlist(config.DefaultLoadedAllowlist())
 	if !w.CommandAllowsAutoApprove(`case "$verb" in get|describe) kubectl "$verb" pods ;; esac`) {
@@ -161,6 +189,34 @@ func TestCommandAllowsAutoApprove_CaseLiteralPatternNarrowsQuotedSimpleParam(t *
 	}
 	if w.CommandAllowsAutoApprove(`case "$verb" in get*) kubectl "$verb" pods ;; esac`) {
 		t.Fatal("case glob patterns must not be treated as exact static values")
+	}
+}
+
+func TestCommandAllowsAutoApprove_CaseMixedAndNonTargetFormsStayConservative(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	if w.CommandAllowsAutoApprove(`case "$verb" in get) kubectl "$verb" pods ;; delete) kubectl "$verb" pods ;; esac`) {
+		t.Fatal("mixed case items must reject when any inferred branch value is unsafe")
+	}
+	if w.CommandAllowsAutoApprove(`verb=delete; case "$verb" in "$verb") kubectl "$verb" pods ;; esac`) {
+		t.Fatal("dynamic case patterns must not bypass allowlist when they resolve to unsafe values")
+	}
+	if w.CommandAllowsAutoApprove(`case get in get) kubectl "$verb" pods ;; esac`) {
+		t.Fatal("case narrowing should not apply when case word is not a simple quoted parameter")
+	}
+}
+
+func TestCommandAllowsAutoApprove_UnsafeInferredValuesStillRejectInsideCommandSubstitution(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	if w.CommandAllowsAutoApprove(`verb=delete; echo "$(kubectl "$verb" pods)"`) {
+		t.Fatal("unsafe inferred values inside command substitutions must still reject")
+	}
+}
+
+func TestCommandAllowsAutoApprove_VariantExpansionLimitStaysConservative(t *testing.T) {
+	w := NewAllowlist(config.DefaultLoadedAllowlist())
+	cmd := `for verb in get describe logs top api-resources api-versions cluster-info explain version auth attach cp exec diff patch apply delete cordon uncordon drain taint label annotate rollout scale autoscale set wait debug kustomize plugin config completion options; do kubectl "$verb" pods; done`
+	if w.CommandAllowsAutoApprove(cmd) {
+		t.Fatal("too many inferred variants must fail closed")
 	}
 }
 
