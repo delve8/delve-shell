@@ -6,6 +6,7 @@ import (
 
 	hiltypes "delve-shell/internal/hil/types"
 	"delve-shell/internal/i18n"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 // CommandAutoApproveHighlight returns non-overlapping half-open byte spans covering command for approval UI.
@@ -32,7 +33,7 @@ func (w *Allowlist) CommandAutoApproveHighlight(command string) []hiltypes.AutoA
 	}
 	varArg := func(name string) bool { return w.argv0PermitsVarArgs(name) }
 	locals := localFunctionNames(f)
-	_, ranges, reject := collectAllowlistSegments(f, command, locals, shellUnwrapMax, varArg)
+	infos, reject := collectAllowlistSegmentInfos(f, command, locals, shellUnwrapMax, varArg)
 	if reject {
 		if pin := expansionPolicyRiskSpans(command, f, locals, varArg); len(pin) > 0 {
 			reason := i18n.T(i18n.KeyAutoApproveHLExpansionNotAllowed)
@@ -44,11 +45,12 @@ func (w *Allowlist) CommandAutoApproveHighlight(command string) []hiltypes.AutoA
 		}
 		return riskAll(i18n.T(i18n.KeyAutoApproveHLUnsupportedConstruct))
 	}
-	if len(ranges) == 0 {
+	if len(infos) == 0 {
 		return []hiltypes.AutoApproveHighlightSpan{{Start: 0, End: n, Kind: hiltypes.AutoApproveHighlightNeutral}}
 	}
 	var raw []hiltypes.AutoApproveHighlightSpan
-	for _, rg := range ranges {
+	for _, info := range infos {
+		rg := info.span
 		if rg.start < 0 || rg.end > n || rg.start > rg.end {
 			continue
 		}
@@ -58,9 +60,9 @@ func (w *Allowlist) CommandAutoApproveHighlight(command string) []hiltypes.AutoA
 		}
 		kind := hiltypes.AutoApproveHighlightSafe
 		var reason string
-		if ContainsWriteRedirection(t) || !w.segmentAllowed(t) {
+		if ContainsWriteRedirection(t) || !w.segmentAllowedWithEnv(t, info.env) {
 			kind = hiltypes.AutoApproveHighlightRisk
-			reason = w.segmentRiskReason(t)
+			reason = w.segmentRiskReasonWithEnv(t, info.env)
 		}
 		raw = append(raw, hiltypes.AutoApproveHighlightSpan{Start: rg.start, End: rg.end, Kind: kind, Reason: reason})
 	}
@@ -69,6 +71,10 @@ func (w *Allowlist) CommandAutoApproveHighlight(command string) []hiltypes.AutoA
 
 // segmentRiskReason explains why a segment does not pass segment-level auto-approve (empty when unknown).
 func (w *Allowlist) segmentRiskReason(seg string) string {
+	return w.segmentRiskReasonWithEnv(seg, nil)
+}
+
+func (w *Allowlist) segmentRiskReasonWithEnv(seg string, env staticValueEnv) string {
 	seg = strings.TrimSpace(seg)
 	if seg == "" {
 		return i18n.T(i18n.KeyAutoApproveHLEmptySegment)
@@ -80,19 +86,36 @@ func (w *Allowlist) segmentRiskReason(seg string) string {
 	if isAwk && awkReason != "" {
 		return awkReason
 	}
-	if w.segmentAllowed(seg) {
+	if w.segmentAllowedWithEnv(seg, env) {
 		return ""
 	}
-	return w.structuredRejectReason(seg)
+	return w.structuredRejectReasonWithEnv(seg, env)
 }
 
 func (w *Allowlist) structuredRejectReason(seg string) string {
+	return w.structuredRejectReasonWithEnv(seg, nil)
+}
+
+func (w *Allowlist) structuredRejectReasonWithEnv(seg string, env staticValueEnv) string {
 	if w == nil || len(w.cliByName) == 0 {
 		return i18n.T(i18n.KeyAutoApproveHLAllowlistNotLoaded)
 	}
 	if args, ok := staticSimpleCommandArgs(seg); ok && len(args) > 0 && argv0Base(args[0]) == "xargs" {
 		if reason := xargsReadOnlySegmentReason(args, w.cliByName); reason != "" {
 			return reason
+		}
+	}
+	if variants, ok := staticOrResolvedSimpleCommandArgVariants(seg, env); ok && len(variants) > 0 {
+		name, lok := variants[0][0].literalOK()
+		if !lok {
+			return i18n.T(i18n.KeyAutoApproveHLOpaqueArgv0)
+		}
+		base := argv0Base(name)
+		if _, ok := w.cliByName[base]; !ok {
+			return i18n.Tf(i18n.KeyAutoApproveHLCommandNotInAllowlist, base)
+		}
+		if summary := inferredValueSummary(seg, env); summary != "" {
+			return i18n.Tf(i18n.KeyAutoApproveHLInferredArgsMismatch, base, summary)
 		}
 	}
 	if pa, ok := permissiveSimpleArgv(seg); ok && len(pa) > 0 {
@@ -114,6 +137,65 @@ func (w *Allowlist) structuredRejectReason(seg string) string {
 		return i18n.Tf(i18n.KeyAutoApproveHLArgsPolicyMismatch, base)
 	}
 	return i18n.T(i18n.KeyAutoApproveHLSegmentParseOrExpansion)
+}
+
+func inferredValueSummary(seg string, env staticValueEnv) string {
+	if len(env) == 0 {
+		return ""
+	}
+	f, err := parseShell(strings.TrimSpace(seg))
+	if err != nil || len(f.Stmts) != 1 || f.Stmts[0] == nil || f.Stmts[0].Cmd == nil {
+		return ""
+	}
+	ce, ok := f.Stmts[0].Cmd.(*syntax.CallExpr)
+	if !ok || len(ce.Args) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, 2)
+	seen := make(map[string]struct{})
+	for _, w := range ce.Args[1:] {
+		name, ok := simpleParamName(w)
+		if !ok {
+			continue
+		}
+		values := env[name]
+		if len(values) == 0 {
+			continue
+		}
+		if _, ok := seen[name]; ok {
+			continue
+		}
+		seen[name] = struct{}{}
+		parts = append(parts, formatInferredValueSummary(name, values))
+	}
+	return strings.Join(parts, ", ")
+}
+
+func formatInferredValueSummary(name string, values []string) string {
+	if len(values) == 1 {
+		return "$" + name + "=" + shellValueSummary(values[0])
+	}
+	limit := len(values)
+	truncated := false
+	if limit > 4 {
+		limit = 4
+		truncated = true
+	}
+	rendered := make([]string, 0, limit+1)
+	for _, value := range values[:limit] {
+		rendered = append(rendered, shellValueSummary(value))
+	}
+	if truncated {
+		rendered = append(rendered, "...")
+	}
+	return "$" + name + " in {" + strings.Join(rendered, ",") + "}"
+}
+
+func shellValueSummary(value string) string {
+	if value == "" {
+		return `""`
+	}
+	return value
 }
 
 // flattenAutoApproveHighlight splits [0,n) using span boundaries; when intervals overlap, the narrowest containing span wins (so inner $(cmd) can differ from outer).

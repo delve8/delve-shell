@@ -367,6 +367,7 @@ const (
 	KeyAutoApproveHLAllowlistNotLoaded      = "auto_approve_hl_allowlist_not_loaded"
 	KeyAutoApproveHLCommandNotInAllowlist   = "auto_approve_hl_command_not_in_allowlist"
 	KeyAutoApproveHLArgsPolicyMismatch      = "auto_approve_hl_args_policy_mismatch"
+	KeyAutoApproveHLInferredArgsMismatch    = "auto_approve_hl_inferred_args_mismatch"
 	KeyAutoApproveHLOpaqueArgv0             = "auto_approve_hl_opaque_argv0"
 	KeyAutoApproveHLSegmentParseOrExpansion = "auto_approve_hl_segment_parse_or_expansion"
 	KeyAutoApproveHLAwkFromFileOrFlags      = "auto_approve_hl_awk_from_file_or_flags"
@@ -585,6 +586,7 @@ var messages = map[string]map[string]string{
 		KeyAutoApproveHLAllowlistNotLoaded:      "Allowlist is not available.",
 		KeyAutoApproveHLCommandNotInAllowlist:   "Command is not on the allowlist: %s",
 		KeyAutoApproveHLArgsPolicyMismatch:      "Arguments do not match the allowlist policy for %s.",
+		KeyAutoApproveHLInferredArgsMismatch:    "Arguments do not match the allowlist policy for %s after static inference: %s.",
 		KeyAutoApproveHLOpaqueArgv0:             "The command name is not a fixed literal.",
 		KeyAutoApproveHLSegmentParseOrExpansion: "This part could not be matched to the allowlist (parsing or expansion).",
 		KeyAutoApproveHLAwkFromFileOrFlags:      "awk: program from a file (-f) or unsupported options.",
