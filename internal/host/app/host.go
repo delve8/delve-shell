@@ -14,7 +14,6 @@ type Host interface {
 	NotifyConfigUpdated()
 	PublishCancelRequest() bool
 	PublishShellSnapshot(snap hostcmd.ShellSnapshot) bool
-	PublishExecDirect(cmd string)
 	PublishAccessRemote(target string) bool
 	PublishAccessLocal() bool
 	PublishRemoteAuthResponse(resp remoteauth.Response) bool
@@ -37,7 +36,6 @@ func (nopHost) TrySubmitSubmissionNonBlocking(inputlifecycletype.InputSubmission
 func (nopHost) NotifyConfigUpdated()                               {}
 func (nopHost) PublishCancelRequest() bool                         { return false }
 func (nopHost) PublishShellSnapshot(hostcmd.ShellSnapshot) bool    { return false }
-func (nopHost) PublishExecDirect(string)                           {}
 func (nopHost) PublishAccessRemote(string) bool                    { return false }
 func (nopHost) PublishAccessLocal() bool                           { return false }
 func (nopHost) PublishRemoteAuthResponse(remoteauth.Response) bool { return false }

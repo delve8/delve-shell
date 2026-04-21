@@ -298,18 +298,6 @@ func (r *Runtime) PublishShellSnapshot(snap hostcmd.ShellSnapshot) bool {
 	}
 }
 
-// PublishExecDirect sends a direct execution command (blocking until accepted).
-func (r *Runtime) PublishExecDirect(cmd string) {
-	if cmd == "" {
-		return
-	}
-	s := r.currentSend()
-	if s == nil || s.ExecDirect == nil {
-		return
-	}
-	s.ExecDirect <- cmd
-}
-
 // PublishAccessRemote forwards a remote connect target.
 func (r *Runtime) PublishAccessRemote(target string) bool {
 	s := r.currentSend()

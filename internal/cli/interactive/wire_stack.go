@@ -104,7 +104,6 @@ func wireHostStack(
 		Submission:     ports.SubmissionChan,
 		ConfigUpdated:  ports.ConfigUpdatedChan,
 		CancelRequest:  ports.CancelRequestChan,
-		ExecDirect:     ports.ExecDirectChan,
 		RemoteOn:       ports.RemoteOnChan,
 		RemoteOff:      ports.RemoteOffChan,
 		RemoteAuthResp: ports.RemoteAuthRespChan,

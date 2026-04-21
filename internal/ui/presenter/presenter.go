@@ -124,14 +124,7 @@ func (p *Presenter) SystemNotify(text string) {
 
 // --- Command execution (transcript) ---
 
-func (p *Presenter) CommandExecutedDirect(cmd, result string) {
-	p.CommandExecutedFromTool(cmd, false, result, false, false, true, false)
-}
-
-func runLinePrefix(allowed, suggested, direct, offlineManual bool) string {
-	if direct {
-		return i18n.T(i18n.KeyRunLineDirect)
-	}
+func runLinePrefix(allowed, suggested, offlineManual bool) string {
 	if offlineManual {
 		return i18n.T(i18n.KeyRunLineOfflineManual)
 	}
@@ -144,13 +137,13 @@ func runLinePrefix(allowed, suggested, direct, offlineManual bool) string {
 	return i18n.T(i18n.KeyRunLineApproved)
 }
 
-func formatRunExecLine(cmd string, allowed, suggested, direct, offlineManual bool) string {
-	return ui.FormatRunTranscriptLine(runLinePrefix(allowed, suggested, direct, offlineManual), cmd)
+func formatRunExecLine(cmd string, allowed, suggested, offlineManual bool) string {
+	return ui.FormatRunTranscriptLine(runLinePrefix(allowed, suggested, offlineManual), cmd)
 }
 
-func (p *Presenter) CommandExecutedFromTool(cmd string, allowed bool, result string, sensitive, suggested, direct, offlineManual bool) {
+func (p *Presenter) CommandExecutedFromTool(cmd string, allowed bool, result string, sensitive, suggested, offlineManual bool) {
 	// Presenter builds transcript semantics; UI owns styling and wrapping.
-	runLine := formatRunExecLine(cmd, allowed, suggested, direct, offlineManual)
+	runLine := formatRunExecLine(cmd, allowed, suggested, offlineManual)
 	lines := []uivm.Line{{Kind: uivm.LineExec, Text: runLine}}
 	if sensitive {
 		lines = append(lines, uivm.Line{Kind: uivm.LineSystemSuggest, Text: "Result contains sensitive data."})
@@ -163,8 +156,8 @@ func (p *Presenter) CommandExecutedFromTool(cmd string, allowed bool, result str
 }
 
 // ExecStreamBegin appends the Run (...) line before streamed stdout/stderr lines.
-func (p *Presenter) ExecStreamBegin(cmd string, allowed, suggested, direct, offlineManual bool) {
-	runLine := formatRunExecLine(cmd, allowed, suggested, direct, offlineManual)
+func (p *Presenter) ExecStreamBegin(cmd string, allowed, suggested, offlineManual bool) {
+	runLine := formatRunExecLine(cmd, allowed, suggested, offlineManual)
 	p.Raw(ui.TranscriptAppendMsg{Lines: []uivm.Line{{Kind: uivm.LineExec, Text: runLine}}})
 	p.Raw(ui.ExecStreamWindowOpenMsg{})
 }
@@ -246,7 +239,7 @@ func (p *Presenter) DispatchAgentUI(x any) {
 	case *hiltypes.OfflinePasteRequest:
 		p.ShowOfflinePaste(v)
 	case hiltypes.ExecStreamStart:
-		p.ExecStreamBegin(v.Command, v.Allowed, v.Suggested, v.Direct, false)
+		p.ExecStreamBegin(v.Command, v.Allowed, v.Suggested, false)
 	case hiltypes.ExecStreamLine:
 		p.ExecStreamLineOut(v.Line, v.Stderr)
 	case hiltypes.CommandExecutionState:
@@ -257,7 +250,7 @@ func (p *Presenter) DispatchAgentUI(x any) {
 		if v.Streamed {
 			p.CommandExecutedStreamEnd(v.Sensitive, v.Result)
 		} else {
-			p.CommandExecutedFromTool(v.Command, v.Allowed, v.Result, v.Sensitive, v.Suggested, false, v.OfflineManual)
+			p.CommandExecutedFromTool(v.Command, v.Allowed, v.Result, v.Sensitive, v.Suggested, v.OfflineManual)
 		}
 	case remote.ExecutionChangedMsg:
 		p.Raw(v)
@@ -281,10 +274,4 @@ func (p *Presenter) RemoteConnectDone(success bool, label, errText string) {
 
 func (p *Presenter) RemoteAuthPrompt(target, errText string, useConfiguredIdentity bool) {
 	p.Raw(remote.AuthPromptMsg{Target: target, Err: errText, UseConfiguredIdentity: useConfiguredIdentity})
-}
-
-// --- Completion cache (/exec) ---
-
-func (p *Presenter) RunCompletionCache(remoteLabel string, commands []string) {
-	p.Raw(remote.RunCompletionCacheMsg{RemoteLabel: remoteLabel, Commands: commands})
 }

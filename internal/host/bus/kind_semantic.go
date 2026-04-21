@@ -22,8 +22,6 @@ func (k Kind) SemanticLabel() string {
 		return "ConfigReloaded"
 	case KindCancelRequested:
 		return "CancelRequested"
-	case KindExecDirectRequested:
-		return "ExecDirectRequested"
 	case KindAccessRemoteRequested:
 		return "AccessRemoteRequested"
 	case KindAccessLocalRequested:
@@ -64,8 +62,6 @@ func (e Event) RedactedSummary() string {
 		return fmt.Sprintf("%s session_id=%s", label, clipOneLine(e.SessionID, 64))
 	case KindUserChatSubmitted:
 		return fmt.Sprintf("%s text=%q", label, clipOneLine(e.UserText, 80))
-	case KindExecDirectRequested:
-		return fmt.Sprintf("%s command=%q", label, clipOneLine(e.Command, 120))
 	case KindAccessRemoteRequested:
 		return fmt.Sprintf("%s target=%q", label, clipOneLine(e.RemoteTarget, 120))
 	case KindRemoteAuthResponseSubmitted:

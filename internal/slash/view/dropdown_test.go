@@ -22,7 +22,7 @@ func TestBuildDropdownRows_HighlightSessionCommand(t *testing.T) {
 
 func TestBuildDropdownRows_TruncatesDescriptionToSingleLine(t *testing.T) {
 	opts := []Option{
-		{Cmd: "/exec <cmd>", Desc: "this is a very long description for wrap test"},
+		{Cmd: "/skill demo", Desc: "this is a very long description for wrap test"},
 	}
 	vis := []int{0}
 	rows := BuildDropdownRows(opts, vis, 0, 28, 4)

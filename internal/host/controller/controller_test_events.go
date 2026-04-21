@@ -9,7 +9,6 @@ import (
 	"delve-shell/internal/cli/hostfsm"
 	"delve-shell/internal/hil/types"
 	"delve-shell/internal/host/bus"
-	"delve-shell/internal/remote/execenv"
 	"delve-shell/internal/ui"
 	"delve-shell/internal/ui/presenter"
 )
@@ -92,24 +91,6 @@ func TestHandleEvent_DispatchCancel(t *testing.T) {
 	}
 }
 
-func TestHandleEvent_DispatchExecDirect(t *testing.T) {
-	s := &recordSender{}
-	c := newTestControllerWithPresenter(s)
-	fx := &fakeExec{stdout: "ok", exitCode: 0}
-	c.getExec = func() execenv.CommandExecutor { return fx }
-	c.handleEvent(bus.Event{Kind: bus.KindExecDirectRequested, Command: "echo ok"})
-	deadline := time.Now().Add(2 * time.Second)
-	for time.Now().Before(deadline) {
-		if fx.lastCmd == "echo ok" {
-			break
-		}
-		time.Sleep(2 * time.Millisecond)
-	}
-	if fx.lastCmd != "echo ok" {
-		t.Fatalf("unexpected cmd: %q", fx.lastCmd)
-	}
-}
-
 func TestHandleEvent_DispatchLLMCompleted(t *testing.T) {
 	s := &recordSender{}
 	c := newTestControllerWithPresenter(s)
@@ -156,13 +137,11 @@ func TestRun_ProcessesBusEvents(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)
 	b := bus.New(8)
-	fx := &fakeExec{stdout: "ok", exitCode: 0}
 	c := &Controller{
-		stop:    stop,
-		bus:     b,
-		ui:      uipresenter.New(s),
-		getExec: func() execenv.CommandExecutor { return fx },
-		fsm:     hostfsm.NewMachine(hostfsm.StateIdle),
+		stop: stop,
+		bus:  b,
+		ui:   uipresenter.New(s),
+		fsm:  hostfsm.NewMachine(hostfsm.StateIdle),
 	}
 
 	done := make(chan struct{})
@@ -170,7 +149,7 @@ func TestRun_ProcessesBusEvents(t *testing.T) {
 		c.run()
 		close(done)
 	}()
-	b.PublishBlocking(bus.Event{Kind: bus.KindExecDirectRequested, Command: "echo"})
+	b.PublishBlocking(bus.Event{Kind: bus.KindConfigUpdated})
 
 	deadline := time.After(2 * time.Second)
 	for len(s.msgs) == 0 {

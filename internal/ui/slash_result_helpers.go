@@ -67,7 +67,7 @@ func SlashTranscriptErrorResult(text string) inputlifecycletype.ProcessResult {
 }
 
 // SlashTryHostIntent sends a host-side intent for slash commands that rely on host/controller
-// follow-up behavior (for example /access, /history, /new, /exec).
+// follow-up behavior (for example /access, /history, /new, /skill).
 func SlashTryHostIntent(sender CommandSender, command hostcmd.Command) bool {
 	return sender != nil && sender.Send(command)
 }

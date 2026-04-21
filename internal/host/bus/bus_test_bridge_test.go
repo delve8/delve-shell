@@ -58,21 +58,6 @@ func TestBridgeInputs_Cancel(t *testing.T) {
 	}
 }
 
-func TestBridgeInputs_ExecDirect(t *testing.T) {
-	stop := make(chan struct{})
-	defer close(stop)
-
-	b := New(8)
-	in := NewInputPorts()
-	BridgeInputs(stop, b, in)
-
-	in.ExecDirectChan <- "uname -a"
-	ev := mustRecvEvent(t, b.Events())
-	if ev.Kind != KindExecDirectRequested || ev.Command != "uname -a" {
-		t.Fatalf("unexpected event: %+v", ev)
-	}
-}
-
 func TestBridgeInputs_RemoteOn(t *testing.T) {
 	stop := make(chan struct{})
 	defer close(stop)

@@ -249,7 +249,7 @@ func (t *RunSkillTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 
 	endUI := pushCommandExecutionUI(t.UIEvents)
 	defer endUI()
-	streamStart := hiltypes.ExecStreamStart{Allowed: false, Suggested: false, Direct: false}
+	streamStart := hiltypes.ExecStreamStart{Allowed: false, Suggested: false}
 	outStr, errStr, exitCode, err, streamed := runExecutorWithStream(cmdCtx, executor, cmd, t.OnExecStream, streamStart)
 	if t.OnRemoteIssue != nil {
 		var connErr *execenv.SSHConnectionError

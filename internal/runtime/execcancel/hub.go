@@ -1,4 +1,4 @@
-// Package execcancel coordinates cancelling in-flight shell commands (/exec or agent tool run).
+// Package execcancel coordinates cancelling in-flight shell commands started by tools.
 // Multiple registrations may exist concurrently; Esc cancels all of them.
 package execcancel
 
@@ -11,7 +11,7 @@ type registration struct {
 	cancel context.CancelFunc
 }
 
-// Hub tracks active command cancel funcs (concurrent /exec or overlapping tool runs may register more than one).
+// Hub tracks active command cancel funcs (overlapping tool runs may register more than one).
 // Cancel invokes every registered cancel still present. Safe for concurrent use.
 type Hub struct {
 	mu   sync.Mutex

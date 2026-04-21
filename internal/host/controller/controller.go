@@ -46,7 +46,7 @@ type Options struct {
 	// Use bus.Event.RedactedSummary for logs (no secrets).
 	OnEventDispatch func(e bus.Event)
 
-	// ExecCancelHub optional; ESC during [EXECUTING] cancels the in-flight /exec or tool command.
+	// ExecCancelHub optional; ESC during [EXECUTING] cancels the in-flight tool command.
 	ExecCancelHub *execcancel.Hub
 }
 

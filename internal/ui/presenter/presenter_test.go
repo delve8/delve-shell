@@ -90,23 +90,6 @@ func TestPresenter_AgentReply(t *testing.T) {
 	}
 }
 
-func TestPresenter_CommandExecutedDirect_usesDirectTag(t *testing.T) {
-	i18n.SetLang("en")
-	var r recordSender
-	p := New(&r)
-	p.CommandExecutedDirect("ls", "out")
-	if len(r.msgs) != 1 {
-		t.Fatalf("want 1 msg, got %d", len(r.msgs))
-	}
-	ta, ok := r.msgs[0].(ui.TranscriptAppendMsg)
-	if !ok || len(ta.Lines) < 1 {
-		t.Fatalf("want TranscriptAppendMsg with lines, got %#v", r.msgs[0])
-	}
-	if ta.Lines[0].Text != "Run (direct): ls" {
-		t.Fatalf("want direct run line, got %q", ta.Lines[0].Text)
-	}
-}
-
 func TestPresenter_DispatchAgentUI(t *testing.T) {
 	i18n.SetLang("en")
 	var r recordSender
@@ -236,16 +219,6 @@ func TestPresenter_Remote(t *testing.T) {
 	}
 	if _, ok := r.msgs[2].(remote.AuthPromptMsg); !ok {
 		t.Fatalf("msg2 type %T", r.msgs[2])
-	}
-}
-
-func TestPresenter_RunCompletionCache(t *testing.T) {
-	var r recordSender
-	p := New(&r)
-	p.RunCompletionCache("r1", []string{"a", "b"})
-	m := r.msgs[0].(remote.RunCompletionCacheMsg)
-	if m.RemoteLabel != "r1" || len(m.Commands) != 2 {
-		t.Fatalf("%+v", m)
 	}
 }
 

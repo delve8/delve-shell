@@ -12,8 +12,8 @@ import (
 
 // Kind identifies one domain event category on host bus.
 //
-// Coverage: submit routing (new session / switch session / chat to LLM), config reload, cancel and direct
-// exec, remote connect/off/auth, agent→UI HIL (approval / sensitive / exec result / unknown passthrough),
+// Coverage: submit routing (new session / switch session / chat to LLM), config reload, cancel,
+// remote connect/off/auth, agent→UI HIL (approval / sensitive / exec result / unknown passthrough),
 // and LLM run completion.
 //
 // Human-readable architecture labels map to Kind via [Kind.SemanticLabel]; wire values
@@ -27,7 +27,6 @@ const (
 	KindUserChatSubmitted              Kind = "user_chat_submitted"
 	KindConfigUpdated                  Kind = "config_updated"
 	KindCancelRequested                Kind = "cancel_requested"
-	KindExecDirectRequested            Kind = "exec_direct_requested"
 	KindAccessRemoteRequested          Kind = "access_remote_requested"
 	KindAccessLocalRequested           Kind = "access_local_requested"
 	KindAccessOfflineRequested         Kind = "access_offline_requested"
@@ -50,7 +49,6 @@ func AllKinds() []Kind {
 		KindUserChatSubmitted,
 		KindConfigUpdated,
 		KindCancelRequested,
-		KindExecDirectRequested,
 		KindAccessRemoteRequested,
 		KindAccessLocalRequested,
 		KindAccessOfflineRequested,
@@ -164,7 +162,6 @@ type InputPorts struct {
 	SubmissionChan     chan inputlifecycletype.InputSubmission
 	ConfigUpdatedChan  chan struct{}
 	CancelRequestChan  chan struct{}
-	ExecDirectChan     chan string
 	RemoteOnChan       chan string
 	RemoteOffChan      chan struct{}
 	RemoteAuthRespChan chan remoteauth.Response
@@ -176,7 +173,6 @@ func NewInputPorts() InputPorts {
 		SubmissionChan:     make(chan inputlifecycletype.InputSubmission, 8),
 		ConfigUpdatedChan:  make(chan struct{}, 8),
 		CancelRequestChan:  make(chan struct{}, 8),
-		ExecDirectChan:     make(chan string, 8),
 		RemoteOnChan:       make(chan string, 4),
 		RemoteOffChan:      make(chan struct{}, 4),
 		RemoteAuthRespChan: make(chan remoteauth.Response, 4),
@@ -197,8 +193,6 @@ func BridgeInputs(stop <-chan struct{}, b *Bus, in InputPorts) {
 				b.PublishBlocking(Event{Kind: KindConfigUpdated})
 			case <-in.CancelRequestChan:
 				b.PublishBlocking(Event{Kind: KindCancelRequested})
-			case cmd := <-in.ExecDirectChan:
-				b.PublishBlocking(Event{Kind: KindExecDirectRequested, Command: cmd})
 			case target := <-in.RemoteOnChan:
 				b.PublishBlocking(Event{Kind: KindAccessRemoteRequested, RemoteTarget: target})
 			case <-in.RemoteOffChan:

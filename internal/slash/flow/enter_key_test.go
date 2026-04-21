@@ -7,8 +7,8 @@ import (
 )
 
 func TestEvaluateSlashEnter_FillOnly(t *testing.T) {
-	got := EvaluateSlashEnter("/e", "/e", slashview.Option{Cmd: "/exec <cmd>"}, true)
-	if got.Action != EnterKeyFillOnly || got.Fill != "/exec " {
+	got := EvaluateSlashEnter("/sk", "/sk", slashview.Option{Cmd: "/skill demo"}, true)
+	if got.Action != EnterKeyFillOnly || got.Fill != "/skill demo " {
 		t.Fatalf("unexpected result: %+v", got)
 	}
 }

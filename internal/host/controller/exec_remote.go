@@ -1,12 +1,8 @@
 package controller
 
 import (
-	"bytes"
-	"context"
 	"errors"
 	"fmt"
-	"io"
-	"strconv"
 	"strings"
 
 	"delve-shell/internal/config"
@@ -14,82 +10,7 @@ import (
 	"delve-shell/internal/remote"
 	remoteauth "delve-shell/internal/remote/auth"
 	"delve-shell/internal/remote/execenv"
-	"delve-shell/internal/ui/uivm"
 )
-
-func (c *Controller) handleExecDirect(cmd string) {
-	if c.runtime != nil && c.runtime.Offline() {
-		c.ui.TranscriptAppend([]uivm.Line{
-			{Kind: uivm.LineSystemError, Text: "Direct execution is disabled in Offline mode. Use the assistant's execute_command flow and paste results back."},
-			{Kind: uivm.LineBlank},
-		})
-		return
-	}
-	go func() {
-		ctx := context.Background()
-		unreg := func() {}
-		if c.execCancelHub != nil {
-			ctx, unreg = c.execCancelHub.WithCancel(context.Background())
-		}
-		defer unreg()
-		defer c.ui.CommandExecutionActive(false)
-		// Register cancel before [EXECUTING] so Esc cannot arrive before hub.Cancel is wired.
-		c.ui.CommandExecutionActive(true)
-		c.runDirectExecWithContext(ctx, cmd)
-	}()
-}
-
-func (c *Controller) runDirectExecWithContext(ctx context.Context, cmd string) {
-	executor := c.getExec()
-	if sr, ok := executor.(execenv.StreamingRunner); ok {
-		c.ui.ExecStreamBegin(cmd, false, false, true, false)
-		var outBuf, errBuf bytes.Buffer
-		lineOut := execenv.NewLineEmitWriter(func(line string) {
-			c.ui.ExecStreamLineOut(line, false)
-		})
-		lineErr := execenv.NewLineEmitWriter(func(line string) {
-			c.ui.ExecStreamLineOut(line, true)
-		})
-		mwOut := io.MultiWriter(&outBuf, lineOut)
-		mwErr := io.MultiWriter(&errBuf, lineErr)
-		exitCode, runErr := sr.RunStreaming(ctx, cmd, mwOut, mwErr)
-		lineOut.Flush()
-		lineErr.Flush()
-		cancelled := errors.Is(ctx.Err(), context.Canceled) || errors.Is(runErr, context.Canceled)
-		if cancelled {
-			// "Execution cancelled." is sent when Esc is handled ([handleCancelRequest]); only close the streamed block here.
-			c.ui.CommandExecutedStreamEnd(false, "")
-			return
-		}
-		c.updateRemoteIssueFromExecError(runErr)
-		tail := "exit_code: " + strconv.Itoa(exitCode)
-		if runErr != nil && (exitCode == 0 || execenv.IsSSHConnectionError(runErr)) {
-			tail += "\nerror: " + runErr.Error()
-		}
-		c.ui.CommandExecutedStreamEnd(false, tail)
-		return
-	}
-
-	stdout, stderrStr, exitCode, runErr := executor.Run(ctx, cmd)
-	cancelled := errors.Is(ctx.Err(), context.Canceled) || errors.Is(runErr, context.Canceled)
-	if cancelled {
-		c.ui.CommandExecutedDirect(cmd, "")
-		return
-	}
-	c.updateRemoteIssueFromExecError(runErr)
-	result := stdout
-	if stderrStr != "" {
-		if result != "" {
-			result += "\n"
-		}
-		result += "stderr:\n" + stderrStr
-	}
-	result += "\nexit_code: " + fmt.Sprint(exitCode)
-	if runErr != nil && (exitCode == 0 || execenv.IsSSHConnectionError(runErr)) {
-		result += "\nerror: " + runErr.Error()
-	}
-	c.ui.CommandExecutedDirect(cmd, result)
-}
 
 func (c *Controller) updateRemoteIssueFromExecError(err error) {
 	if c.runtime == nil || !c.runtime.RemoteActive() {

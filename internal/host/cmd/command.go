@@ -33,12 +33,6 @@ type HistoryPreviewOpen struct {
 
 func (HistoryPreviewOpen) hostCommand() {}
 
-type ExecDirect struct {
-	Command string
-}
-
-func (ExecDirect) hostCommand() {}
-
 type ConfigUpdated struct{}
 
 func (ConfigUpdated) hostCommand() {}

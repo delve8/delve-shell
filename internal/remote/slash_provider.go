@@ -8,8 +8,6 @@ import (
 	"delve-shell/internal/ui"
 )
 
-const remoteExecUsageOption = "/exec <cmd>"
-
 func remoteSlashOptionsProvider(
 	inputVal string,
 	lang string,
@@ -36,34 +34,6 @@ func remoteSlashOptionsProvider(
 		if rest == "remove-remote" || strings.HasPrefix(rest, "remove-remote ") {
 			return getRemoveRemoteSlashOptions(lang), true
 		}
-	}
-
-	// Remote /exec suggestions: when a cached list exists, prefer it over local PATH scanning.
-	if normalizedLower == "exec" || strings.HasPrefix(normalizedLower, "exec ") {
-		cands := getCachedRunSuggestions()
-		if len(cands) == 0 {
-			return nil, false
-		}
-		if normalizedLower == "exec" {
-			return []ui.SlashOption{{Cmd: remoteExecUsageOption, Desc: i18n.T(i18n.KeyDescRun)}}, true
-		}
-		rest := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "exec"))
-		if strings.Contains(rest, " ") || strings.Contains(rest, "\t") {
-			return []ui.SlashOption{}, true
-		}
-		prefix := strings.ToLower(rest)
-		const maxRunCands = 50
-		opts := make([]ui.SlashOption, 0, 12)
-		for _, c := range cands {
-			if prefix != "" && !strings.HasPrefix(strings.ToLower(c), prefix) {
-				continue
-			}
-			opts = append(opts, ui.SlashOption{Cmd: "/exec " + c, Desc: ""})
-			if len(opts) >= maxRunCands {
-				break
-			}
-		}
-		return opts, true
 	}
 
 	return nil, false

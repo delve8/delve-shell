@@ -56,11 +56,6 @@ var currentRemoteOverlayState struct {
 	state remoteOverlayState
 }
 
-var currentRunSuggestions struct {
-	mu          sync.RWMutex
-	suggestions []string
-}
-
 func getRemoteOverlayState() remoteOverlayState {
 	currentRemoteOverlayState.mu.RLock()
 	defer currentRemoteOverlayState.mu.RUnlock()
@@ -75,32 +70,4 @@ func setRemoteOverlayState(state remoteOverlayState) {
 
 func resetRemoteOverlayState() {
 	setRemoteOverlayState(remoteOverlayState{})
-}
-
-func getCachedRunSuggestions() []string {
-	currentRunSuggestions.mu.RLock()
-	defer currentRunSuggestions.mu.RUnlock()
-	if len(currentRunSuggestions.suggestions) == 0 {
-		return nil
-	}
-	out := make([]string, len(currentRunSuggestions.suggestions))
-	copy(out, currentRunSuggestions.suggestions)
-	return out
-}
-
-func setCachedRunSuggestions(cmds []string) {
-	currentRunSuggestions.mu.Lock()
-	if len(cmds) == 0 {
-		currentRunSuggestions.suggestions = nil
-		currentRunSuggestions.mu.Unlock()
-		return
-	}
-	out := make([]string, len(cmds))
-	copy(out, cmds)
-	currentRunSuggestions.suggestions = out
-	currentRunSuggestions.mu.Unlock()
-}
-
-func clearCachedRunSuggestions() {
-	setCachedRunSuggestions(nil)
 }

@@ -49,7 +49,7 @@ func TestBlackboxInputHistoryContinuesWhenRecalledLineIsSlash(t *testing.T) {
 	f := newBlackboxFixture(t)
 	m := enterText(f.model, "plain-msg")
 	m.Interaction.WaitingForAI = false
-	m.Input.SetValue("/exec pwd")
+	m.Input.SetValue("/access Local")
 	m.Input.CursorEnd()
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = next.(*ui.Model)
@@ -61,7 +61,7 @@ func TestBlackboxInputHistoryContinuesWhenRecalledLineIsSlash(t *testing.T) {
 		return n.(*ui.Model)
 	}
 	m = up(m)
-	if got := m.Input.Value(); got != "/exec pwd" {
+	if got := m.Input.Value(); got != "/access Local" {
 		t.Fatalf("first Up want latest slash line, got %q", got)
 	}
 	m = up(m)
@@ -73,7 +73,7 @@ func TestBlackboxInputHistoryContinuesWhenRecalledLineIsSlash(t *testing.T) {
 func TestBlackboxSlashSubmittedLineInInputHistory(t *testing.T) {
 	f := newBlackboxFixture(t)
 	m := f.model
-	m.Input.SetValue("/exec pwd")
+	m.Input.SetValue("/access Local")
 	m.Input.CursorEnd()
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = next.(*ui.Model)
@@ -81,7 +81,7 @@ func TestBlackboxSlashSubmittedLineInInputHistory(t *testing.T) {
 	m.Input.CursorEnd()
 	next2, _ := m.Update(tea.KeyMsg{Type: tea.KeyUp})
 	m = next2.(*ui.Model)
-	if got := m.Input.Value(); got != "/exec pwd" {
+	if got := m.Input.Value(); got != "/access Local" {
 		t.Fatalf("Up after slash submit want line in input history, got %q", got)
 	}
 }
@@ -124,11 +124,7 @@ func TestBlackboxInputHistoryUpDownWhileRecalledMultiline(t *testing.T) {
 }
 
 func TestBlackboxInputHistoryContinuesWhenRecalledMultilineStartsWithSlash(t *testing.T) {
-	f := newBlackboxFixture(t)
-	m := enterText(f.model, "plain-msg")
-	m.Interaction.WaitingForAI = false
-	m = enterText(m, "/exec pwd\nsecond line")
-	m.Interaction.WaitingForAI = false
+	m := ui.NewModelWithInputHistory(nil, []string{"plain-msg", "/access Local\nsecond line"}, nil)
 	m.Input.SetValue("")
 	m.Input.CursorEnd()
 	up := func(mm *ui.Model) *ui.Model {
@@ -136,7 +132,7 @@ func TestBlackboxInputHistoryContinuesWhenRecalledMultilineStartsWithSlash(t *te
 		return n.(*ui.Model)
 	}
 	m = up(m)
-	wantMultiline := "/exec pwd\nsecond line"
+	wantMultiline := "/access Local\nsecond line"
 	if got := m.Input.Value(); got != wantMultiline {
 		t.Fatalf("first Up want latest multiline slash-prefixed line, got %q", got)
 	}

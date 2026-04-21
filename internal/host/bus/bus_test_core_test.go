@@ -104,7 +104,6 @@ func TestInputPortsDefaults(t *testing.T) {
 	if cap(in.SubmissionChan) != 8 ||
 		cap(in.ConfigUpdatedChan) != 8 ||
 		cap(in.CancelRequestChan) != 8 ||
-		cap(in.ExecDirectChan) != 8 ||
 		cap(in.RemoteOnChan) != 4 ||
 		cap(in.RemoteOffChan) != 4 ||
 		cap(in.RemoteAuthRespChan) != 4 ||

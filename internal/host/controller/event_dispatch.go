@@ -23,9 +23,6 @@ var hostEventHandlers = map[bus.Kind]func(*Controller, bus.Event){
 	bus.KindCancelRequested: func(c *Controller, _ bus.Event) {
 		c.handleCancelRequest()
 	},
-	bus.KindExecDirectRequested: func(c *Controller, e bus.Event) {
-		c.handleExecDirect(e.Command)
-	},
 	bus.KindAccessRemoteRequested: func(c *Controller, e bus.Event) {
 		c.handleAccessRemote(e.RemoteTarget, e.RemoteSocks5Addr)
 	},
@@ -53,12 +50,12 @@ var hostEventHandlers = map[bus.Kind]func(*Controller, bus.Event){
 		if v.Streamed {
 			c.ui.CommandExecutedStreamEnd(v.Sensitive, v.Result)
 		} else {
-			c.ui.CommandExecutedFromTool(v.Command, v.Allowed, v.Result, v.Sensitive, v.Suggested, false, v.OfflineManual)
+			c.ui.CommandExecutedFromTool(v.Command, v.Allowed, v.Result, v.Sensitive, v.Suggested, v.OfflineManual)
 		}
 	},
 	bus.KindAgentExecStreamStart: func(c *Controller, e bus.Event) {
 		v := e.ExecStreamStart
-		c.ui.ExecStreamBegin(v.Command, v.Allowed, v.Suggested, v.Direct, false)
+		c.ui.ExecStreamBegin(v.Command, v.Allowed, v.Suggested, false)
 	},
 	bus.KindAgentExecStreamLine: func(c *Controller, e bus.Event) {
 		v := e.ExecStreamLine

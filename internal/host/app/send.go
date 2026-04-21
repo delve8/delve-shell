@@ -11,7 +11,6 @@ type Send struct {
 	Submission     chan<- inputlifecycletype.InputSubmission
 	ConfigUpdated  chan<- struct{}
 	CancelRequest  chan<- struct{}
-	ExecDirect     chan<- string
 	RemoteOn       chan<- string
 	RemoteOff      chan<- struct{}
 	RemoteAuthResp chan<- remoteauth.Response

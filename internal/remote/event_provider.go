@@ -18,13 +18,6 @@ func remoteStateProvider(m *ui.Model, msg tea.Msg) (*ui.Model, tea.Cmd, bool) {
 		m.Remote.Label = t.Label
 		m.Remote.Offline = t.Offline
 		m.Remote.Issue = strings.TrimSpace(t.Issue)
-		clearCachedRunSuggestions()
-		return m, nil, true
-	case RunCompletionCacheMsg:
-		if t.RemoteLabel == "" || t.RemoteLabel != m.Remote.Label {
-			return m, nil, true
-		}
-		setCachedRunSuggestions(t.Commands)
 		return m, nil, true
 	case AuthPromptMsg, ConnectDoneMsg:
 		// Must run here, not only via overlay feature Event: direct `/access …` has no overlay

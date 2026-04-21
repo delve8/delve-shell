@@ -75,7 +75,6 @@ type ExecStreamStart struct {
 	Command   string
 	Allowed   bool // matched allowlist, no approval needed
 	Suggested bool // run_skill path (tag "suggested"); execute_command uses false
-	Direct    bool // /exec direct path; agent tool uses false
 }
 
 // ExecStreamLine is one stdout or stderr line while a command runs (newline-split).

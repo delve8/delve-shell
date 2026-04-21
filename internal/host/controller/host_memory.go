@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"delve-shell/internal/hostmem"
@@ -36,7 +35,4 @@ func (c *Controller) refreshHostMemory(executor interface {
 		return
 	}
 	c.runtime.SetHostMemoryContext(memCtx)
-	if strings.TrimSpace(alias) != "" && len(probe.Completion) > 0 {
-		c.ui.RunCompletionCache(strings.TrimSpace(alias), probe.Completion)
-	}
 }

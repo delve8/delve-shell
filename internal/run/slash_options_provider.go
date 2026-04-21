@@ -7,8 +7,6 @@ import (
 	"delve-shell/internal/ui"
 )
 
-const slashExecUsageOption = "/exec <cmd>"
-
 func registerSlashOptionsProviders() {
 	ui.RegisterSlashOptionsProvider(func(
 		inputVal string,
@@ -20,30 +18,7 @@ func registerSlashOptionsProviders() {
 		if normalizedLower == "config" || strings.HasPrefix(normalizedLower, "config ") {
 			return configSlashOptions(), true
 		}
-		if normalizedLower != "exec" && !strings.HasPrefix(normalizedLower, "exec ") {
-			return nil, false
-		}
-		if normalizedLower == "exec" {
-			return []ui.SlashOption{{Cmd: slashExecUsageOption, Desc: i18n.T(i18n.KeyDescRun)}}, true
-		}
-		rest := strings.TrimSpace(strings.TrimPrefix(normalizedLower, "exec"))
-		if strings.Contains(rest, " ") || strings.Contains(rest, "\t") {
-			return []ui.SlashOption{}, true
-		}
-		prefix := strings.ToLower(rest)
-		cands := loadLocalRunCommands()
-		const maxRunCands = 50
-		opts := make([]ui.SlashOption, 0, 12)
-		for _, c := range cands {
-			if prefix != "" && !strings.HasPrefix(strings.ToLower(c), prefix) {
-				continue
-			}
-			opts = append(opts, ui.SlashOption{Cmd: "/exec " + c, Desc: ""})
-			if len(opts) >= maxRunCands {
-				break
-			}
-		}
-		return opts, true
+		return nil, false
 	})
 
 	ui.RegisterRootSlashOptionProvider(rootSlashOptions)
@@ -53,8 +28,6 @@ func rootSlashOptions(lang string) []ui.SlashOption {
 	opts := []ui.SlashOption{
 		{Cmd: "/access", Desc: i18n.T(i18n.KeyDescAccess)},
 		{Cmd: "/skill", Desc: i18n.T(i18n.KeyDescSkill)},
-		// Hidden from root / picker for now; direct /exec still works. Uncomment to show again.
-		// {Cmd: slashExecUsageOption, Desc: i18n.T(i18n.KeyDescRun)},
 	}
 	opts = append(opts, bashRootSlashOptions(lang)...)
 	opts = append(opts, []ui.SlashOption{

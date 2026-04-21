@@ -52,8 +52,6 @@ Natural-language tasks drive suggested commands. Allowlisted commands with no sh
 
 ## Slash commands
 
-**/exec** is not listed in the **/** menu; type **/exec {cmd}** directly when you need a one-off command without the AI.
-
 ### /help
 
 ` + helpHelpSectionEN + `
@@ -150,7 +148,6 @@ func Lang() string {
 // Msg keys for user-facing strings. Code error messages stay in English in callers.
 const (
 	KeyHelpText                          = "help_text"
-	KeyUsageRun                          = "usage_run"
 	KeyUnknownCmd                        = "unknown_cmd"
 	KeyErrorPrefix                       = "error_prefix"
 	KeyConfigPrefix                      = "config_prefix"
@@ -200,13 +197,11 @@ const (
 	KeyRunLineAutoAllowed   = "run_line_auto_allowed" // built-in checks passed; no user approval card
 	KeyRunLineApproved      = "run_line_approved"
 	KeyRunLineNotApproved   = "run_line_not_approved"
-	KeyRunLineDirect        = "run_line_direct"
 	KeyRunLineOfflineManual = "run_line_offline_manual"
 	KeyRunLineSuggested     = "run_line_suggested"
 	KeySkillLine            = "skill_line" // format: Skill: %s
 	// Slash option descriptions (cmd as suffix for consistency)
 	KeyDescExit   = "desc_exit"
-	KeyDescRun    = "desc_run"
 	KeyDescSh     = "desc_sh"
 	KeyDescConfig = "desc_config"
 	KeyDescHelp   = "desc_help"
@@ -254,7 +249,6 @@ const (
 	KeyOfflinePastePlaceholder     = "offline_paste_placeholder"
 	KeyOfflineExecBashDisabled     = "offline_exec_bash_disabled"
 	KeyBashReturnNotice            = "bash_return_notice"
-	KeyOfflineSlashExecDisabled    = "offline_slash_exec_disabled"
 	KeyOfflineSlashSkillDisabled   = "offline_slash_skill_disabled"
 	KeySkillScriptsSyncRemote      = "skill_scripts_sync_remote"
 	KeyHelpTitle                   = "help_title"
@@ -383,7 +377,6 @@ const (
 var messages = map[string]map[string]string{
 	"en": {
 		KeyHelpText:                             englishHelpText(),
-		KeyUsageRun:                             "Usage: /exec <command> (for example: /exec ls -la)",
 		KeyUnknownCmd:                           "Unknown command. Type /help for the full list.",
 		KeyDelveLabel:                           "Delve:", // legacy
 		KeyErrorPrefix:                          "Error: ",
@@ -431,18 +424,16 @@ var messages = map[string]map[string]string{
 		KeyRunLineAutoAllowed:                   "Run (checks passed): ",
 		KeyRunLineApproved:                      "Run (approved): ",
 		KeyRunLineNotApproved:                   "Run (not approved): ",
-		KeyRunLineDirect:                        "Run (direct): ",
 		KeyRunLineOfflineManual:                 "Run (manual): ",
 		KeyRunLineSuggested:                     "Run (suggested): ",
 		KeySkillLine:                            "Skill: %s",
 		KeyDescExit:                             "Quit delve-shell",
-		KeyDescRun:                              "Execute a command directly (no AI)",
 		KeyDescSh:                               "Spawn bash",
 		KeyDescConfig:                           "Manage models and hosts",
 		KeyDescHelp:                             "Show help",
 		KeyDescConfigRemoveRemote:               "Remove a remote host",
 		KeyRunTagSuggested:                      "suggested",
-		KeySuggestedCopyHint:                    "Select the command above to copy, or use /exec <cmd> to run it.",
+		KeySuggestedCopyHint:                    "Select the command above to copy, or ask the assistant to run it.",
 		KeySuggestedCopied:                      "Copied to clipboard.",
 		KeyConfigRemoteAdded:                    "Remote added: %s.",
 		KeyConfigRemoteRemoved:                  "Remote removed: %s.",
@@ -479,7 +470,6 @@ var messages = map[string]map[string]string{
 		KeyOfflinePastePlaceholder:              "Paste output",
 		KeyOfflineExecBashDisabled:              "/bash is not available in Offline mode.",
 		KeyBashReturnNotice:                     "Returned from embedded shell (/bash).",
-		KeyOfflineSlashExecDisabled:             "/exec is not available in Offline mode.",
 		KeyOfflineSlashSkillDisabled:            "/skill is not available in Offline mode.",
 		KeySkillScriptsSyncRemote:               "Syncing skill scripts to remote host…",
 		KeyHelpTitle:                            "Help",

@@ -26,7 +26,6 @@ type blackboxFixture struct {
 	sessionNew      chan struct{}
 	historyPreview  chan string
 	sessionSwitch   chan string
-	execDirectChan  chan string
 	shellRequested  chan hostcmd.ShellSnapshot
 	cancelRequest   chan struct{}
 	configUpdated   chan struct{}
@@ -98,13 +97,6 @@ func (s testCommandSender) Send(cmd hostcmd.Command) bool {
 		default:
 			return false
 		}
-	case hostcmd.ExecDirect:
-		select {
-		case s.f.execDirectChan <- c.Command:
-			return true
-		default:
-			return false
-		}
 	case hostcmd.CancelRequested:
 		select {
 		case s.f.cancelRequest <- struct{}{}:
@@ -159,7 +151,6 @@ func newBlackboxFixture(t *testing.T) blackboxFixture {
 		sessionNew:     make(chan struct{}, 2),
 		historyPreview: make(chan string, 2),
 		sessionSwitch:  make(chan string, 2),
-		execDirectChan: make(chan string, 2),
 		shellRequested: make(chan hostcmd.ShellSnapshot, 2),
 		cancelRequest:  make(chan struct{}, 2),
 		configUpdated:  make(chan struct{}, 2),

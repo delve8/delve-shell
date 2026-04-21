@@ -96,43 +96,6 @@ func TestBlackboxSlashBashRemoteModeWhenRemoteActive(t *testing.T) {
 	}
 }
 
-func TestBlackboxSlashRunExecutesDirectCommand(t *testing.T) {
-	f := newBlackboxFixture(t)
-	_ = enterText(f.model, "/exec echo")
-	select {
-	case cmd := <-f.execDirectChan:
-		if cmd != "echo" {
-			t.Fatalf("expected exec cmd 'echo', got %q", cmd)
-		}
-	default:
-		t.Fatalf("expected /exec to send command to execDirectChan")
-	}
-}
-
-func TestBlackboxSlashRunUsageFillsInput(t *testing.T) {
-	f := newBlackboxFixture(t)
-	got := enterText(f.model, "/exec")
-	if got.Input.Value() != "/exec " {
-		t.Fatalf("expected /exec to fill input to '/exec ', got %q", got.Input.Value())
-	}
-}
-
-func TestBlackboxSlashRunDropdownUsesRemoteCachedSuggestionsWhenAvailable(t *testing.T) {
-	f := newBlackboxFixture(t)
-
-	next, _ := f.model.Update(remote.ExecutionChangedMsg{Active: true, Label: "r1"})
-	m1 := next.(*ui.Model)
-	next2, _ := m1.Update(remote.RunCompletionCacheMsg{RemoteLabel: "r1", Commands: []string{"busybox", "bzip2"}})
-	m2 := next2.(*ui.Model)
-
-	m2.Input.SetValue("/exec b")
-	m2.Input.CursorEnd()
-	view := m2.View()
-	if !strings.Contains(view, "/exec busybox") || !strings.Contains(view, "/exec bzip2") {
-		t.Fatalf("expected remote cached /exec suggestions in dropdown, got view:\n%s", view)
-	}
-}
-
 func TestBlackboxSlashConfigRemoveRemoteNoHostsShowsHint(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("DELVE_SHELL_ROOT", dir)

@@ -117,18 +117,6 @@ func (e slashExecutor) ExecuteSlash(req slashproc.ExecutionRequest) (inputlifecy
 			_ = e.sender.Send(hostcmd.ShellSnapshot{Messages: msgs, InputHistory: hist, Mode: mode})
 		}
 		return SlashQuitResult(), nil
-	case strings.HasPrefix(trimmed, "/exec "):
-		cmd := strings.TrimSpace(strings.TrimPrefix(trimmed, "/exec "))
-		if cmd == "" {
-			return SlashTranscriptErrorResult(i18n.T(i18n.KeyUsageRun)), nil
-		}
-		if e.read != nil && e.read.OfflineExecutionMode() {
-			return SlashTranscriptErrorResult(i18n.T(i18n.KeyOfflineSlashExecDisabled)), nil
-		}
-		if !SlashTryHostIntent(e.sender, hostcmd.ExecDirect{Command: cmd}) {
-			return inputlifecycletype.ProcessResult{}, errUIIntentRejected
-		}
-		return inputlifecycletype.ConsumedResult(), nil
 	default:
 		if sessionID, ok := history.SwitchSessionIDFromSlashLine(trimmed); ok {
 			if !SlashTryHostIntent(e.sender, hostcmd.HistoryPreviewOpen{SessionID: sessionID}) {

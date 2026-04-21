@@ -5,7 +5,7 @@ import "testing"
 func TestVisibleIndices_MatchByPrefix(t *testing.T) {
 	opts := []Option{
 		{Cmd: "/help"},
-		{Cmd: "/exec <cmd>"},
+		{Cmd: "/skill demo"},
 		{Cmd: "/access"},
 	}
 	got := VisibleIndices("/a", opts)
@@ -17,7 +17,7 @@ func TestVisibleIndices_MatchByPrefix(t *testing.T) {
 func TestVisibleIndices_NoPrefixMatchWithTypedInputShowsEmpty(t *testing.T) {
 	opts := []Option{
 		{Cmd: "/help"},
-		{Cmd: "/exec <cmd>"},
+		{Cmd: "/skill demo"},
 	}
 	got := VisibleIndices("/zzz", opts)
 	if len(got) != 0 {
@@ -28,7 +28,7 @@ func TestVisibleIndices_NoPrefixMatchWithTypedInputShowsEmpty(t *testing.T) {
 func TestVisibleIndices_EmptyInputAfterSlashShowsAll(t *testing.T) {
 	opts := []Option{
 		{Cmd: "/help"},
-		{Cmd: "/exec <cmd>"},
+		{Cmd: "/skill demo"},
 	}
 	got := VisibleIndices("/", opts)
 	if len(got) != 2 || got[0] != 0 || got[1] != 1 {
@@ -48,8 +48,8 @@ func TestVisibleIndices_SessionsByPrefix(t *testing.T) {
 }
 
 func TestChosenToInputValue_StripsPlaceholder(t *testing.T) {
-	got := ChosenToInputValue(Option{Cmd: "/exec <cmd>"})
-	if got != "/exec " {
+	got := ChosenToInputValue(Option{Cmd: "/skill {name} [text]"})
+	if got != "/skill " {
 		t.Fatalf("unexpected value: %q", got)
 	}
 }

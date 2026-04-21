@@ -38,7 +38,7 @@ The interactive runtime is split into a few stable layers:
 6. `internal/agent` and `internal/runtime/*`
    LLM/tool execution, executor management, runner management, and session coordination (`executormgr`, `runnermgr`, `sessionmgr`).
 7. `internal/run`
-   Registers `/exec`, `/bash`, and related slash/UI hooks into `internal/ui` via `bootstrap` (feature wiring, not the process managers above).
+   Registers `/bash`, `/config`, and related slash/UI hooks into `internal/ui` via `bootstrap` (feature wiring, not the process managers above).
 
 ## Input And Command Flow
 
@@ -94,7 +94,7 @@ Chat, slash, and control share one submission model and one output-application p
 
 ### Feature Modules
 
-- `internal/run`: direct `/exec`, `/bash`, allowlist config helpers, local command completion.
+- `internal/run`: `/bash`, `/config`, and related slash/UI hooks.
 - `internal/remote`: remote config, connect/disconnect, auth, optional SOCKS5 proxy settings, and remote-specific UI state/events.
 - `internal/skill`: skill install/update/remove, skill invocation, skill overlays.
 - `internal/skill/store`: skill discovery, manifest parsing, install/update/remove, and source management.
@@ -123,7 +123,7 @@ Chat, slash, and control share one submission model and one output-application p
 - Slash suggestions are provider-based and intentionally lightweight.
 - Slash execution is feature-registered through a single execution contract.
 - Overlay-heavy features use a unified overlay feature contract for open, event, key, content, close, and startup hooks.
-- Fill-only slash rows such as `/exec <cmd>` are encoded as option metadata instead of separate legacy selected-handler registries.
+- Fill-only slash rows are encoded as option metadata instead of separate legacy selected-handler registries.
 
 The project favors a small plugin surface. It currently does not assume a very large slash surface or a large number of feature modules.
 
@@ -180,7 +180,6 @@ Main files:
 - `/skill Remove {skill_name}` removes an installed skill.
 - `/skill Update {skill_name}` updates an installed skill from its recorded source.
 - `/history` opens the session picker and preview flow.
-- `/exec {cmd}` runs a one-off command directly without going through the AI.
 - `/bash` starts an interactive bash subshell on non-Windows builds; exit the shell to return to the TUI.
 
 ## Host Memory
