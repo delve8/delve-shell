@@ -40,6 +40,8 @@ func TestEnglishHelpText_UsesDetailedCopyDistinctFromSlashRows(t *testing.T) {
 		"Use an installed skill for the current turn.",
 		"Browse and switch sessions.",
 		"Configure model settings.",
+		"optional SOCKS5 proxy address",
+		"ProxyJump and SOCKS5 cannot be combined",
 	}
 	for _, snippet := range snippets {
 		if !strings.Contains(got, snippet) {

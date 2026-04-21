@@ -11,7 +11,7 @@ AI-assisted ops CLI with human-in-the-loop execution and auditable session histo
 - Auto-run allowlisted read-only commands when enabled.
 - Persist session history, approvals, and command results for audit.
 - Support local and SSH-backed remote execution.
-- Respect `~/.ssh/config` aliases, including single-hop `ProxyJump` for SSH access.
+- Respect `~/.ssh/config` aliases, including single-hop `ProxyJump` for SSH access, and support optional SOCKS5 proxies for remote connections.
 - Maintain per-host memory so later turns can reuse stable machine facts and command availability.
 
 ## Core Principles
@@ -95,7 +95,7 @@ Chat, slash, and control share one submission model and one output-application p
 ### Feature Modules
 
 - `internal/run`: direct `/exec`, `/bash`, allowlist config helpers, local command completion.
-- `internal/remote`: remote config, connect/disconnect, auth, and remote-specific UI state/events.
+- `internal/remote`: remote config, connect/disconnect, auth, optional SOCKS5 proxy settings, and remote-specific UI state/events.
 - `internal/skill`: skill install/update/remove, skill invocation, skill overlays.
 - `internal/skill/store`: skill discovery, manifest parsing, install/update/remove, and source management.
 - `internal/skill/git`: shallow clone/fetch helpers for skill installs from git remotes (`package git`).
@@ -106,7 +106,7 @@ Chat, slash, and control share one submission model and one output-application p
 ### Execution, Safety, and Persistence
 
 - `internal/agent`: LLM runner and tools.
-- `internal/runtime/executormgr`: current local or SSH executor and remote credential flow.
+- `internal/runtime/executormgr`: current local or SSH executor, optional SOCKS5 proxy routing, and remote credential flow.
 - `internal/runtime/runnermgr`: agent runner wiring (config, HIL, history, executor provider).
 - `internal/runtime/sessionmgr`: session coordination helpers used by the controller.
 - `internal/hil`: allowlist and sensitive-command checks (core HIL helpers).
@@ -146,13 +146,17 @@ export DELVE_SHELL_ROOT=/path/to/my-dir
 Main files:
 
 - Config: `<root>/config.yaml`
+- Saved remote hosts: `<root>/remotes.yaml`
 - Built-in allowlist: `<root>/allowlist.yaml`
 - Custom allowlist overlay: `<root>/allowlist_custom.yaml`
+- Sensitive-path patterns override: `<root>/sensitive_patterns.yaml`
 - Input history: `<root>/input_history.json`
 - Rules (optional markdown snippets concatenated for prompts): `<root>/rules/`
 - Sessions: `<root>/sessions`
 - Host memory: `<root>/hosts`
 - Skill store: `<root>/skills`
+- Skill source manifest: `<root>/skills/manifest.json`
+- Skill audit log: `<root>/skill_audit.jsonl`
 
 ## Usage
 
@@ -165,7 +169,9 @@ Main files:
 ## Common Slash Commands
 
 - `/access` opens the execution-target picker for saved hosts, explicit `~/.ssh/config` aliases, `/access New`, `/access Local`, and `/access Offline`.
-- SSH config aliases currently honor `HostName`, `User`, `Port`, `IdentityFile`, and single-hop `ProxyJump`. `ProxyCommand` is not supported yet.
+- `/access New` opens the add-remote form. It accepts host, user, optional SSH key path, optional SOCKS5 proxy address, and an optional saved name.
+- Saved remote hosts live in `<root>/remotes.yaml`; entries can include an `identity_file` and `socks5_addr`.
+- SSH config aliases currently honor `HostName`, `User`, `Port`, `IdentityFile`, and single-hop `ProxyJump`. `ProxyCommand` is not supported yet. `ProxyJump` and a SOCKS5 proxy cannot be used together for the same connection.
 - `/access Offline` switches to manual relay mode: commands are shown for you to run elsewhere, then you paste results back.
 - `/config` opens config actions. The built-in entries are `/config remove-remote` and `/config model`.
 - `/config remove-remote {host}` removes a saved remote host from config. Hosts discovered from `~/.ssh/config` are not removable here.
@@ -175,6 +181,7 @@ Main files:
 - `/skill Update {skill_name}` updates an installed skill from its recorded source.
 - `/history` opens the session picker and preview flow.
 - `/exec {cmd}` runs a one-off command directly without going through the AI.
+- `/bash` starts an interactive bash subshell on non-Windows builds; exit the shell to return to the TUI.
 
 ## Host Memory
 

@@ -15,11 +15,11 @@ const (
 	helpConfigSectionEN      = `Manage models and hosts.`
 	helpConfigRemoveRemoteEN = `Remove a saved remote host. Hosts discovered from **~/.ssh/config** are not deleted here.`
 	helpConfigModelSectionEN = `Configure model settings.`
-	helpAccessSectionEN      = `Switch the execution target. The dropdown lists saved hosts first, then aliases discovered from **~/.ssh/config**, then **/access New** (add a host), **/access Local** (use the local executor), and **/access Offline** (manual relay mode). Host segments in saved targets must be lowercase so reserved rows like **/access Local** and **/access New** do not collide with host names.`
-	helpAccessNewSectionEN   = `Add a remote host.`
+	helpAccessSectionEN      = `Switch the execution target. The dropdown lists saved hosts first, then aliases discovered from **~/.ssh/config**, then **/access New** (add a host), **/access Local** (use the local executor), and **/access Offline** (manual relay mode). Saved hosts may include an SSH key path and an optional SOCKS5 proxy address. SSH config aliases honor HostName, User, Port, IdentityFile, and single-hop ProxyJump; ProxyCommand is not supported. ProxyJump and SOCKS5 cannot be combined for the same connection. Host segments in saved targets must be lowercase so reserved rows like **/access Local** and **/access New** do not collide with host names.`
+	helpAccessNewSectionEN   = `Add a remote host. The form accepts host, user, optional SSH key path, optional SOCKS5 proxy address, and an optional saved name.`
 	helpAccessLocalSectionEN = `Switch to local execution.`
 	helpAccessOfflineEN      = `Switch to offline manual relay mode. Commands are shown for you to run elsewhere, then you paste results back here.`
-	helpAccessHostSectionEN  = `Connect to a saved host or enter a new host.`
+	helpAccessHostSectionEN  = `Connect to a saved host, an alias discovered from ~/.ssh/config, or an explicit host target.`
 	helpNewSectionEN         = `Start a new session.`
 	helpHistorySectionEN     = `Browse and switch sessions. Flow: **/history** → pick a row (Tab/Enter fills **/history {id}**) → submit opens a read-only preview → Enter in the dialog switches the active session; Esc closes without switching. Only the first word after **/history** is the session id (trailing text is ignored). Dropdown lines show a one-line summary of the first turn.`
 	helpSkillSectionEN       = `Use an installed skill for the current turn. Skills are directories under **~/.delve-shell/skills/** (each with **SKILL.md**). Type **/skill** to open the slash list of installed skills plus **/skill New**, **/skill Remove**, and **/skill Update**, or type **/skill** followed by the skill directory name. Text after the first word (the skill name) is optional; when present it is passed to the AI as extra context for that turn.`
